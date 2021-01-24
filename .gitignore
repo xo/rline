@@ -1,0 +1,7 @@
+/readline-*
+/replxx-*
+/readline/
+/replxx/
+/_example/_example
+/_example/_example.exe
+*.tar.gz
