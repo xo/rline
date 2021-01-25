@@ -1,4 +1,4 @@
-// +build rline_readline_dynamic
+// +build rline_all rline_readline_dynamic
 
 package rline
 

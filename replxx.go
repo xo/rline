@@ -1,4 +1,4 @@
-// +build rline_all,!no_rline_replxx rline_replxx,!no_rline_replxx
+// +build rline_all rline_replxx
 
 package rline
 

@@ -50,21 +50,26 @@ loop:
 		} else {
 			blank = 0
 		}
+		cmd, param := s, ""
+		if i := strings.IndexAny(cmd, " \t"); i != -1 {
+			param = strings.TrimSpace(cmd[i:])
+			cmd = strings.TrimSpace(cmd[:i])
+		}
 		switch {
-		case strings.HasPrefix(s, `\setprompt `):
-			if err := p.SetPromptFromString(strings.TrimSpace(strings.TrimPrefix(s, `\setprompt `)), opts...); err != nil {
+		case cmd == `\setprompt`:
+			if err := p.SetPromptFromString(param, opts...); err != nil {
 				return err
 			}
-		case strings.HasPrefix(s, `\quit`) || strings.HasPrefix(s, `\exit`) || strings.HasPrefix(s, `\q`):
+		case cmd == `\quit` || cmd == `\exit` || cmd == `\q` || cmd == `exit` || cmd == `quit`:
 			break loop
-		case s == "hello":
+		case cmd == "hello":
 			u, err := user.Current()
 			if err != nil {
 				return err
 			}
 			fmt.Printf("hello %s!\n", u.Username)
 		case blank > 10:
-			fmt.Printf("blank > 10, quitting\n")
+			fmt.Printf("blank > 10, exiting\n")
 			break loop
 		}
 	}
