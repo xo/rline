@@ -1,7 +1,7 @@
 // _example/example.go
 //
-// Note: build with tags rline_all in order to make use of the readline and
-// replxx prompts.
+// Note: build with tags rline_readline and rline_replxx in order to make use
+// of the readline and replxx prompts.
 package main
 
 import (
@@ -17,7 +17,14 @@ import (
 )
 
 func main() {
-	typ := flag.String("type", "", "prompt type")
+	var prompt rline.Prompt
+	for _, p := range []rline.Prompt{rline.Readline, rline.Replxx} {
+		if p.Available() {
+			prompt = p
+			break
+		}
+	}
+	typ := flag.String("type", strings.ToLower(prompt.String()), "prompt type")
 	flag.Parse()
 	if err := run(*typ); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

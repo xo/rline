@@ -44,6 +44,11 @@ var prompts = [...]prompt{
 	Replxx:   {},
 }
 
+// Available returns whether or not the prompt is available.
+func (prompt Prompt) Available() bool {
+	return prompts[prompt].init != nil
+}
+
 // Init initializes the prompt with the specified options.
 func (prompt Prompt) Init(app string, opts ...Option) (Prompter, error) {
 	p := prompts[prompt]
@@ -65,7 +70,7 @@ func (prompt Prompt) Init(app string, opts ...Option) (Prompter, error) {
 
 // Initialized returns whether or not the specified prompt has already been
 // initialized.
-func Initialized(prompt Prompt) (bool, error) {
+func (prompt Prompt) Initialized() (bool, error) {
 	switch {
 	case int(prompt) >= len(prompts):
 		return false, &ErrInvalidPromptType{prompt.String()}

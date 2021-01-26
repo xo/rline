@@ -1,4 +1,4 @@
-// +build rline_all rline_replxx
+// +build rline_replxx
 
 package rline
 
@@ -22,7 +22,7 @@ type ReplxxPrompt struct {
 
 // NewReplxxPrompt creates a new replxx line reader.
 func NewReplxxPrompt(app string, opts ...Option) (Prompter, error) {
-	ok, err := Initialized(Replxx)
+	ok, err := Replxx.Initialized()
 	switch {
 	case err != nil:
 		return nil, err

@@ -24,7 +24,7 @@ func init() {
 
 // NewReadlinePrompt creates a new readline line reader.
 func NewReadlinePrompt(app string, opts ...Option) (Prompter, error) {
-	ok, err := Initialized(Readline)
+	ok, err := Readline.Initialized()
 	switch {
 	case err != nil:
 		return nil, err
