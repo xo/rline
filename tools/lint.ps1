@@ -34,10 +34,26 @@ if (-not (Test-Path $bin)) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     # Built beside the final name and moved into place, so that two runs at
     # once cannot execute a half-written binary.
-    $tmp = "$bin.$PID"
-    & go -C $mod build -o $tmp github.com/golangci/golangci-lint/v2/cmd/golangci-lint
-    if ($LASTEXITCODE -ne 0) { Remove-Item -Force $tmp -ErrorAction SilentlyContinue; exit 2 }
-    Move-Item -Force $tmp $bin
+    #
+    # The name is deliberately not golangci-lint-something.exe. It was
+    # "$bin.$PID", which gives ...exe.1234 — the cleanup filter below does not
+    # match that, so instead of the race lint.sh had, a failed build left a
+    # temporary file behind for ever. ken-mba found both shapes. The finally
+    # block takes it away however this run ends.
+    #
+    # Move-Item -Force onto a binary another process is running fails on
+    # Windows rather than replacing it, so two runs at once end with one of
+    # them stopping here. That is better than running a half-written binary,
+    # and it is a hard stop rather than a retry, which is worth knowing
+    # before it is met.
+    $tmp = Join-Path $dir ".building-golangci-lint-$PID"
+    try {
+        & go -C $mod build -o $tmp github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+        if ($LASTEXITCODE -ne 0) { exit 2 }
+        Move-Item -Force $tmp $bin
+    } finally {
+        Remove-Item -Force $tmp -ErrorAction SilentlyContinue
+    }
     # Older builds of other pins are no longer reachable, so they go. The
     # pattern is the linter's own names ending in .exe, so the probes stay
     # and so does lint.sh's cache: the two key the pin differently, so each
