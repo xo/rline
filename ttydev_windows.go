@@ -177,16 +177,21 @@ func consoleOutput() (windows.Handle, uint32, bool) {
 // are written to it.
 //
 // The port has no Windows branch in term.go: it writes escape sequences on
-// every system and expects the console to read them, where the C instead
-// carries several hundred lines that turn them into console calls. Windows
-// has read them by default since Windows 10, and that was measured on a
-// plain console host rather than assumed. But it is one process wide bit
-// that any other code in the same program can clear, so this asks for it
-// rather than hoping, and puts it back afterwards.
+// every system and needs the console to read them, where the C instead
+// carries several hundred lines that turn them into console calls. This is
+// what stands in for those lines, and it is not a precaution: the flag is
+// off by default on an ordinary Windows 11 console when the output is
+// attached to it, and without this the editor would draw its escape
+// sequences on the screen as text. That was measured rather than assumed.
 //
-// A console that refuses the flag is the one host where the C emulation
-// would have been needed. That fails here, loudly, rather than printing the
-// escape sequences to the user as text.
+// The flag belongs to the console rather than to the process, so another
+// handle in this program or another program sharing the console can clear
+// it. Hence asking each time rather than once.
+//
+// A console that refuses the flag would be one where the C emulation would
+// have been needed. That fails here, loudly, rather than printing the escape
+// sequences to the user. No such console has been found: the one measured
+// accepts the flag even when it starts with it off.
 func (d *ttyDevice) startOutputEscapes() error {
 	h, mode, ok := consoleOutput()
 	if !ok {

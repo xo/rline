@@ -20,11 +20,20 @@ import (
 //
 // Both need a console on the standard input, and go test never gives the test
 // binary one: it hands it a null input whatever window it was started from.
-// To make them run, build the binary and start it yourself with only the
-// output redirected:
+// So they have to be built and started by hand:
 //
 //	go test -c -o rline.test.exe .
-//	rline.test.exe -test.run TestConsole -test.v > out.txt 2>&1
+//	rline.test.exe -test.run TestConsoleKeysRoundTrip -test.v > out.txt 2>&1
+//
+// The two differ in what they want of the standard output, and it matters.
+// TestConsoleKeysRoundTrip does not care, so redirect it and read the file.
+// TestConsoleReadsEscapeSequences needs the output attached to the console,
+// because redirecting it is the one case where the flag it checks makes no
+// difference: the sequences go to the file and the console is not involved.
+// Redirecting that one makes it skip, so run it with nothing redirected and
+// read what it says on the console:
+//
+//	rline.test.exe -test.run TestConsoleReadsEscapeSequences -test.v
 //
 // A skip here means nothing was checked against a real console. That is worth
 // knowing rather than reading as a pass.
@@ -108,62 +117,81 @@ func TestConsoleKeysRoundTrip(t *testing.T) {
 	}
 }
 
-// TestConsoleReadsEscapeSequences checks the assumption that term.go rests
-// on by having no Windows branch: that the console reads the escape
-// sequences written to it rather than printing them.
+// TestConsoleReadsEscapeSequences checks what the port promises: that after
+// startRaw the console reads the escape sequences written to it, and that
+// endRaw puts the console back as it was found.
 //
-// The mode flag is read first, and then the behaviour, because a flag being
-// set is not proof that the console acts on it. The cursor is moved and the
-// console asked where it went.
+// It deliberately does not assert anything about the state before startRaw.
+// An earlier version did, and it was wrong twice over. It asserted that the
+// console already read sequences, which was true of the port before it asked
+// for the flag and is not true now. And it read that state from a freshly
+// opened CONOUT$ rather than from the handle the port uses, so with the
+// output redirected it read a console that the port was not writing to, and
+// passed while the port's own handle was not a console at all. The state
+// before anything asks is a fact about the machine, so it is logged rather
+// than asserted.
+//
+// This one needs the standard output attached to the console as well as the
+// standard input, because that is the only configuration in which the flag
+// matters: with the output redirected the sequences go to the file and the
+// console is not involved. So it cannot be run with the output redirected to
+// capture it, and what it finds appears on the console itself.
 func TestConsoleReadsEscapeSequences(t *testing.T) {
-	out, err := windows.CreateFile(
-		windows.StringToUTF16Ptr("CONOUT$"),
-		windows.GENERIC_READ|windows.GENERIC_WRITE,
-		windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE,
-		nil, windows.OPEN_EXISTING, 0, 0)
-	if err != nil {
-		t.Skipf("no console to write to: %v", err)
+	if !isATTY(0) {
+		t.Skip("no console on standard input: see the comment above for how to run this")
 	}
-	defer func() { _ = windows.CloseHandle(out) }()
-
-	var mode uint32
-	if err := windows.GetConsoleMode(out, &mode); err != nil {
-		t.Fatalf("reading the output mode: %v", err)
+	h, before, ok := consoleOutput()
+	if !ok {
+		t.Skip("the standard output is not a console, so the flag would not matter: " +
+			"run this with the output attached rather than redirected")
 	}
-	t.Logf("the console output mode is %#06x, and escape sequences are %v",
-		mode, mode&enableVirtualTerminalProcessing != 0)
-	// Which console this is decides how much the answer is worth. Windows
-	// Terminal always reads escape sequences; the plain console host is the
-	// one in doubt, and it is the one with none of these set.
+	// What the machine does before anything asks. Not an assertion: it
+	// varies with what else has written to the console, and the port no
+	// longer depends on it.
+	t.Logf("before startRaw the console output mode is %#06x and escape sequences are %v",
+		before, before&enableVirtualTerminalProcessing != 0)
 	t.Logf("WT_SESSION=%q TERM=%q TERM_PROGRAM=%q",
 		os.Getenv("WT_SESSION"), os.Getenv("TERM"), os.Getenv("TERM_PROGRAM"))
 
+	_, d := openConsoleForTest(t)
+	if err := d.startRaw(); err != nil {
+		t.Fatalf("starting raw mode: %v", err)
+	}
+
+	if _, during, ok := consoleOutput(); ok {
+		t.Logf("after startRaw the console output mode is %#06x", during)
+		if during&enableVirtualTerminalProcessing == 0 {
+			t.Error("startRaw left escape sequences off, so the editor would draw them as text")
+		}
+	}
+
+	// The flag being set is not proof that the console acts on it, so move
+	// the cursor with a sequence and ask where it went. Row 5 and column 10
+	// count from one, so the answer is X=9 Y=4.
 	var info windows.ConsoleScreenBufferInfo
-	if err := windows.GetConsoleScreenBufferInfo(out, &info); err != nil {
+	if err := windows.GetConsoleScreenBufferInfo(h, &info); err != nil {
 		t.Fatalf("reading where the cursor is: %v", err)
 	}
-	before := info.CursorPosition
-	// Put the cursor back afterwards, so that a console someone is watching
-	// is left as it was found.
-	defer func() {
-		_ = windows.SetConsoleCursorPosition(out, before)
-	}()
+	at := info.CursorPosition
+	defer func() { _ = windows.SetConsoleCursorPosition(h, at) }()
 
-	// Row 5 and column 10, which count from one, so the answer is X=9 Y=4.
 	var written uint32
-	if err := windows.WriteFile(out, []byte("\x1b[5;10H"), &written, nil); err != nil {
+	if err := windows.WriteFile(h, []byte("\x1b[5;10H"), &written, nil); err != nil {
 		t.Fatalf("writing the sequence: %v", err)
 	}
-	if err := windows.GetConsoleScreenBufferInfo(out, &info); err != nil {
+	if err := windows.GetConsoleScreenBufferInfo(h, &info); err != nil {
 		t.Fatalf("reading where the cursor went: %v", err)
 	}
-	after := info.CursorPosition
-	t.Logf("the cursor was at X=%d Y=%d and is now at X=%d Y=%d",
-		before.X, before.Y, after.X, after.Y)
-	if after.X != 9 || after.Y != 4 {
-		t.Errorf("the console printed the escape sequence instead of reading it, "+
-			"so it needs the console emulation that term.c has and this port does not. "+
-			"The cursor went to X=%d Y=%d rather than X=9 Y=4", after.X, after.Y)
+	if got := info.CursorPosition; got.X != 9 || got.Y != 4 {
+		t.Errorf("after startRaw the console printed the escape sequence instead of reading it: "+
+			"the cursor went to X=%d Y=%d rather than X=9 Y=4", got.X, got.Y)
+	}
+
+	// And the console has to be left as it was found, including when the
+	// flag had to be turned on.
+	d.endRaw()
+	if _, after, ok := consoleOutput(); ok && after != before {
+		t.Errorf("after endRaw the console output mode is %#06x, want %#06x", after, before)
 	}
 }
 

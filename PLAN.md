@@ -736,35 +736,6 @@ could not be. And when a check is worth having on every system, make sure it
 compiles on every system, because a check that is absent is indistinguishable
 from a check that passed.
 
-## Virtual terminal processing on Windows
-
-`term.go` has no Windows branch, so the port writes escape sequences on every
-system and assumes the console reads them. That assumption was measured
-rather than hoped for. On Windows 11 Pro 10.0.26200, windows-vm opened
-`CONOUT$` directly rather than the standard output, so that redirection could
-not confuse the reading, and found `ENABLE_VIRTUAL_TERMINAL_PROCESSING`
-already on. It then checked that the console acts on it rather than merely
-permitting it, by writing a cursor movement and asking the console where the
-cursor went: the cursor moved, rather than seven characters being printed.
-
-What makes that evidence rather than an anecdote is that it was not Windows
-Terminal. `WT_SESSION`, `TERM` and `TERM_PROGRAM` were all empty, so this was
-the plain console host, which is the one in doubt. Windows Terminal always
-does this.
-
-On by default is not the same as guaranteed, and it is one process wide bit
-that any other code in the same program can clear. So `startRaw` asks for the
-flag on the output handle and `endRaw` puts it back, the same way both
-already do for the input handle. Two calls turn the assumption into a
-guarantee, and a host that refuses the flag fails loudly rather than printing
-the escape sequences as text. That is separate from the question of whether
-the roughly 400 lines of console emulation in `term.c` are ported, which is
-still open.
-
-The input handle keeps `ENABLE_VIRTUAL_TERMINAL_INPUT` off, and should. The
-port reads console records and builds the escape sequences itself, so turning
-it on would give two sources of the same thing.
-
 ## Checks
 
 Three checks run on the Go code:
