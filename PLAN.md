@@ -1118,6 +1118,15 @@ of the suite catches is worth knowing about — it says the new test is
 narrower than it looks — but it is not a hole, and reporting it as one sends
 someone to write a test that already exists.
 
+A line that runs and proves nothing. `history.load` returns an error in three
+places, and the third — a line in the file that cannot be read — was reached
+by `TestHistoryLoadStopsAtABadLine`, which had been running it for a long
+time and threw the error away with an underscore. So swallowing the error
+came back uncaught. Found by ken-mba, seconding the two error paths I had
+added and noticing the third. It is not that nothing reached the path: it is
+that the thing reaching it discarded the value, which is coverage that proves
+nothing, and the same family as a corpus that was never attacked.
+
 A premise nobody checked on the system it was about. A test for the error
 `LoadHistory` returns reached the opening half with a path that goes through a
 file, and its comment said that cannot be opened "on every system this builds
@@ -1205,8 +1214,8 @@ file when `-o` is given and leaves the standard error on the terminal
 whatever happens, `usql/rline/rline.go:147` against `:161`. usql reaches for
 `Stderr()` in seven places, `handler.go:818`, `:877`, `:1006` and `:1246`
 among them, so an adapter that answered the `*Prompt` for both would put
-error text inside the output file and take it off the screen, quietly, in exactly the case a caller chose a file because they
-wanted the output clean. Nothing here can say "write this to the error
+error text inside the output file and take it off the screen, quietly, in
+exactly the case a caller chose a file because they wanted the output clean. Nothing here can say "write this to the error
 stream": `WithOutput` sets one writer, and `WithLog` is for the port's own
 tracing rather than for the program's errors. So `Stderr` wants something
 built, and it is the second decision left rather than the first.
@@ -1277,6 +1286,14 @@ it has drifted once already: `Stderr` was recorded as fitting because a
 `*Prompt` is an `io.Writer`, which is true and is not the question. Anything
 written here about what usql does should be re-read against the source before
 it is relied on, with the file and line beside it as above.
+
+The drift went in while this section was being rewritten against the new
+names, not while it was being researched: the first audit said outright that
+`Stderr` had no answer, and the rewrite upgraded it to fitting on a true
+statement that answered a different question. That is the ordinary way a
+document goes wrong, and it is why the file and line matter more than the
+sentence — ken-mba found it by opening `usql/rline/rline.go` rather than by
+re-reading this.
 
 ## Open questions
 
