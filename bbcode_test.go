@@ -480,6 +480,70 @@ func TestLineStyleTextIsTheLine(t *testing.T) {
 
 // TestHighlighterFuncRunsTheFunction checks the adapter that makes an
 // ordinary function into a Highlighter.
+// TestStyleRefusesANegativePosition checks the promise both marking methods
+// make in their doc comments: a negative position is refused.
+//
+// It is a promise rather than a detail, because a negative number already
+// means something here — inside the marking, a negative position is read as
+// an offset in characters, which is the convention the C uses. So without
+// the guard Style(-3, ...) would quietly mark from the third character
+// instead of doing nothing, which is the difference between refusing a bad
+// argument and acting on a misread one.
+//
+// Nothing held the guard before. Taking it out of either method left the
+// whole suite green, while the comment beside it said what it was for.
+func TestStyleRefusesANegativePosition(t *testing.T) {
+	t.Parallel()
+	// Three characters of three bytes each, so a position read as characters
+	// would land somewhere a position read as bytes never could.
+	const line = "日本語"
+
+	// The position has to land inside the line once it is read as
+	// characters, or the marking stops for want of anything to mark and the
+	// guard is never the reason nothing happened. -1 is the second
+	// character, three bytes in; -3 is the end, and an earlier version of
+	// this test used it and passed with the guard taken out.
+	for _, test := range []struct {
+		name string
+		mark func(l *LineStyle)
+	}{
+		{"Style", func(l *LineStyle) { l.Style(-1, 3, "keyword") }},
+		{"StyleRunes", func(l *LineStyle) { l.StyleRunes(-1, 1, "keyword") }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			l, ab := newLineStyle(t, line)
+			test.mark(l)
+			if marked := markedBytes(ab, len(line)); marked != 0 {
+				t.Errorf("a negative position marked %d bytes, want none: it was "+
+					"read as an offset rather than refused", marked)
+			}
+		})
+	}
+}
+
+// TestStyleWithNoNameChangesNothing checks that naming no style marks
+// nothing, which is what a highlighter that has decided a stretch needs no
+// styling should be able to say.
+//
+// The guard that returns early for it is not what makes this true: an
+// unnamed style resolves to an attribute that says nothing, and laying one
+// of those over a stretch leaves it as it was. So taking the guard out
+// changes no attribute, and this test would pass without it. It is here for
+// the promise rather than for the guard, and it should not be read as
+// covering the guard — nothing does, and nothing needs to.
+func TestStyleWithNoNameChangesNothing(t *testing.T) {
+	t.Parallel()
+	const line = "hello"
+	l, ab := newLineStyle(t, line)
+	l.Style(0, len(line), "keyword")
+	before := markedBytes(ab, len(line))
+	l.Style(0, len(line), "")
+	if after := markedBytes(ab, len(line)); after != before {
+		t.Errorf("naming no style changed the marking from %d bytes to %d", before, after)
+	}
+}
+
 func TestHighlighterFuncRunsTheFunction(t *testing.T) {
 	t.Parallel()
 	var sink bytes.Buffer
