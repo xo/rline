@@ -286,3 +286,55 @@ func TestExamplePromptFollowsTheStatement(t *testing.T) {
 		t.Errorf("the prompts went %v, want %v", order, want)
 	}
 }
+
+// TestExampleBackslashQuit checks that \q leaves, including part way through
+// a statement, where exit and quit do not because they are matched against
+// the whole statement rather than the line just typed.
+func TestExampleBackslashQuit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	for _, test := range []struct {
+		name  string
+		input string
+		want  []string
+		gone  []string
+	}{
+		{
+			name:  "at a fresh prompt",
+			input: "select 1;\n\\q\nselect 2;\n",
+			want:  []string{"ran 1 line(s): select 1;"},
+			gone:  []string{"select 2"},
+		},
+		{
+			name:  "part way through a statement",
+			input: "select 1\n\\q\nfrom t;\n",
+			want:  []string{},
+			gone:  []string{"ran "},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cmd := exec.Command(bin)
+			cmd.Stdin = strings.NewReader(test.input)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				t.Fatalf("running the example: %v\n%s", err, out)
+			}
+			got := string(out)
+			for _, want := range test.want {
+				if !strings.Contains(got, want) {
+					t.Errorf("the run never showed %q.\nWhat it wrote:\n%s", want, got)
+				}
+			}
+			for _, gone := range test.gone {
+				if strings.Contains(got, gone) {
+					t.Errorf("the run showed %q after \\q.\nWhat it wrote:\n%s", gone, got)
+				}
+			}
+		})
+	}
+}

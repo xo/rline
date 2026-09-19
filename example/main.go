@@ -77,7 +77,7 @@ func run() error {
 	r.DefineStyle("sql-comment", "ansi-gray")
 
 	r.Println("[b]rline[/b] SQL example.")
-	r.Println("[ic-info]A statement ends at a semicolon. Ctrl-D leaves.[/]")
+	r.Println("[ic-info]A statement ends at a semicolon. \\q or Ctrl-D leaves.[/]")
 	r.Println("[ic-info]Ctrl-J puts a line break inside one line. Tab completes.[/]")
 
 	var stmt strings.Builder
@@ -96,6 +96,12 @@ func run() error {
 		}
 		if err != nil {
 			return fmt.Errorf("reading a line: %w", err)
+		}
+		// A backslash command acts on the line just typed rather than on the
+		// statement being built, so it works part way through one. usql
+		// spells quitting this way.
+		if strings.TrimSpace(line) == `\q` {
+			return nil
 		}
 		if stmt.Len() > 0 {
 			stmt.WriteByte('\n')
