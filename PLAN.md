@@ -1259,6 +1259,17 @@ because the example runs as a separate program and its coverage is not
 recorded. Found by reading `go test -cover` rather than by anything failing:
 forty functions at zero, of which those were the ones a caller reaches.
 
+Explain a gap, and say whether it is a gap. Four or five comments in this
+package now say why something is not checked, and each one has stopped the
+next reader taking the hole for a decision. The exception is the one that
+proves the rule needs its second clause: `editor_test.go` explained, entirely
+correctly, that the corpus does not record whether an operation changed
+anything, because the C has no such value. The explanation was right, and its
+rightness is what made the hole invisible — a good account of why something
+is not checked reads to the next person as a reason not to check it. So
+saying why is not enough. Say also whether anything else holds it, and when
+nothing does, say that.
+
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.
 Before landing a corpus, break the code it covers on purpose, once per thing
