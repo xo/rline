@@ -1,0 +1,56 @@
+\e[m\e[1mIsocline\e[22m sample program:\r
+\n
+- Type 'exit' to quit. (or use \e[38;5;244m\e[4mctrl-d\e[39m\e[24m).\r
+\n
+- Press \e[38;5;244m\e[4mF1\e[39m\e[24m for help on editing commands.\r
+\n
+- Use \e[38;5;244m\e[4mshift-tab\e[39m\e[24m for multiline input. (or \e[38;5;244m\e[4mctrl-enter\e[39m\e[24m, or \e[38;5;244m\e[4mctrl-j\e[39m\e[24m)\r
+\n
+- Type 'p' (or 'id', 'f', or 'h') followed by tab for completion.\r
+\n
+- Type 'fun' or 'int' to see syntax highlighting\r
+\n
+- Use \e[38;5;244m\e[4mctrl-r\e[39m\e[24m to search the history.\r
+\n
+\r
+\n
+\e[31misoclinε> \e[39m\r
+\e[31misoclinε> \e[39mh\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mhe\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39mhel\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39mhell\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39mhello\e[K\r
+\e[15C\r
+\e[31misoclinε> \e[39mhello\e[K\r
+\e[15C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+hello\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\e[31misoclinε> \e[39m\r
+\e[31misoclinε> \e[39me\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mex\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39mexi\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+exit\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+done\r
+\n

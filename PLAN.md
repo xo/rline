@@ -21,6 +21,17 @@ A module is the unit of work, not a function. isocline passes its own allocator
 into most structures, as the type `alloc_t`. A module keeps that ownership in
 one place, so a module ports cleanly and a single function does not.
 
+## Platforms
+
+`rline` must run on Linux, macOS and Windows. On Windows it must work in both
+`cmd.exe` and PowerShell. Linux is the only target for now, to keep the work
+simple. macOS and Windows come later, on hosts that run those systems.
+
+The capture harness follows the same rule. It records on Linux only. On every
+other platform `Record` returns `ErrUnsupported`. macOS needs a pseudo-terminal
+opened with `posix_openpt`. Windows has no pseudo-terminal device file, so it
+needs a pseudo console, which it creates with `CreatePseudoConsole`.
+
 ## Port order
 
 The C headers give an acyclic order. Port the modules from the leaves up:
@@ -52,17 +63,30 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 ## Test method
 
 The C code has no unit tests. The `test/` directory holds two demo programs.
-Build the test corpus from recorded bytes instead:
+The test corpus comes from recorded bytes instead.
 
-1. Add a capture mode to the C demo. Run the C demo under a pseudo-terminal. A
-   pseudo-terminal is a program that acts as a terminal for another program.
-2. Record the input bytes and the output bytes as a golden file. A golden file
-   holds the expected output of a test.
-3. Feed the same input bytes to the Go port. Compare the output bytes exactly.
+`tools/build-demo.sh` builds the isocline demo into `.build/`. It never writes
+inside `isocline/`, because `isocline/` is a separate git repository that this
+project does not change. `isocline/src/isocline.c` includes every other source
+file, so one `gcc` command builds the whole library.
 
-Fix the terminal size and the `TERM` variable, or the output changes between
-runs. Inject a clock, because the escape decoder uses a timeout to tell the
-Escape key from an escape sequence.
+`internal/capture` records a session. It opens a pseudo-terminal, starts the
+demo on it, sends the input of the session, and returns every byte that the
+demo wrote. It fixes the terminal size, the `TERM` variable, the home directory
+and the working directory, so that the output does not change between runs.
+
+The recordings live in `internal/capture/testdata` as golden files. A golden
+file holds the expected output of a test. `go test ./internal/capture -update`
+rewrites them. `go test ./internal/capture` compares against them.
+
+The golden files are escaped text, not raw bytes, so that a difference is
+readable. The escape byte becomes `\e`, other control bytes become `\xNN`, and
+a real newline follows every `\r` and `\n`.
+
+Two limits are known. The leader side of the pseudo-terminal must be opened
+non-blocking, or the Go poller never sees it and a read deadline never fires.
+The escape decoder uses a timeout to tell the Escape key from an escape
+sequence, so a clock must be injected before the timing tests are written.
 
 Add fuzz tests for the escape decoder and for the markup parser. A fuzz test
 feeds random input to find errors. Run the C code and the Go code on the same
