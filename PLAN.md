@@ -805,17 +805,31 @@ nothing at all was written — no redraw, no masking character, nothing — so t
 password never reached the screen, and this is the read itself rather than a
 test standing in for it.
 
-What the two runs do not show, stated because a hand-driven run is worth
-exactly what was touched: nobody pressed an arrow key or Tab in either of
-them, so the completion menu and walking the history are still covered only by
-tests and by injected console records on that platform.
+A third run closed what was left. Tab opened the completion menu, which drew
+three columns of nine numbered entries below the line without writing over it,
+with the paging hint for the other six, and put the cursor back with
+`\e[4A\e[6C`. The down arrow moved the selection, which redrew with the chosen
+entry marked and brightened, and picking it replaced the typed `c` rather than
+appending to it. Then a four row statement was edited in the middle: up into
+row 2, left, two characters typed, and the whole block repainted with the
+other rows' contents and highlighting intact. The arrow keys arrived as
+`\e[1;1A` and `\e[1;1B` and `\e[1;1D`, byte by byte, which is
+`ttydev_windows.go`'s encoder and the escape decoder agreeing under a human's
+fingers rather than against records the tests wrote.
 
-That last sentence was nearly the opposite. windows-vm first counted the keys
-with a search for an escaped tab, which matched the `t` in `select`, and was
-about to report the menu as driven by hand when nobody had pressed Tab. The
-keys were then extracted from both logs rather than pattern-matched. It is the
-same shape as the rest of the section below: a result that cannot tell you it
-is measuring the wrong thing.
+So across three runs, everything the editor does on Windows has now been done
+by a person: typing, highlighting, backspace, three and four row statements,
+the completion menu and picking from it, the arrow keys within and between
+rows, `\pass`, and `\q`. No defect was found in any of them.
+
+The keystroke counts behind that took three attempts to get right, and both
+wrong answers were the flattering one. A search for an escaped tab matched the
+`t` in `select` and reported Tab as pressed when it was not; an anchored
+pattern defeated by CRLF line endings reported backspace as unpressed when it
+was. The counts are only trusted because the distinct escaped values were
+extracted and counted rather than pattern-matched. It is the same shape as the
+section below: a count that is confidently wrong looks exactly like a count
+that is right.
 
 Testing F11 needs Ctrl+F11. The console host claims a bare F11 for fullscreen,
 so it never reaches the program at all. That is the terminal rather than the
