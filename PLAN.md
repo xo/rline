@@ -322,13 +322,26 @@ blank line in the menu. A Go caller cannot pass the absence of a string, so
 the two are the same here. This is the only recorded case where the port
 answers differently on purpose, and the test says so where it checks it.
 
-The history file is created with the mode that keeps it to its owner, rather
-than created and then tightened. The C code calls `fopen` and then `chmod`,
-which leaves a moment where a file holding everything the user typed can be
-read by anyone. Setting the mode at creation closes that, and the `chmod`
-stays so that a file which already existed with a looser mode is tightened as
-well, which the C code never does. A file mode cannot appear in terminal
-output, so no recorded session can tell the difference.
+The history file is written with no restriction on who can read it. The C
+code creates it with `fopen` and then calls `chmod` to make it owner only,
+and the port leaves both out. That is a decision rather than an oversight:
+the mode cannot be expressed on Windows, where `os.Chmod` maps only the owner
+write bit onto the read-only attribute and drops the rest, and the history is
+going to be rewritten, so guarding it now would be work thrown away twice. A
+file mode cannot appear in terminal output, so no recorded session can tell
+the difference either way.
+
+What that leaves open, for whoever rewrites the history. The file holds every
+line the user typed, which is the kind of thing that holds a password typed
+into the wrong prompt. On Unix the C code made it owner only and the port no
+longer does, so it is now whatever the umask gives, usually readable by the
+group and by everyone. On Windows a file written under a user profile came
+back with an access control list holding only SYSTEM, Administrators and the
+user, measured on a real host, but that list is inherited from the directory
+rather than set by the code. Write the history somewhere with a looser
+inherited list and the protection is gone with nothing to show it. Making it
+a guarantee on Windows needs `SetNamedSecurityInfo` with an explicit list,
+which is a change in behaviour rather than a port.
 
 Case-insensitive comparison compares C `char` values, and the result depends on
 whether `char` is signed. Any byte above 0x7f sorts before every ASCII

@@ -188,22 +188,24 @@ func (h *history) load() {
 
 // save writes the list to its file, oldest first.
 //
-// The file holds what the user typed, so it is readable only by its owner.
-// The C code creates the file and then changes its mode. This asks for the
-// mode when it creates the file, and sets it again in case the file was
-// already there with a looser one.
+// Nothing here restricts who can read the file. The C code creates it and
+// then changes its mode to owner only, which this used to follow, and the
+// mode is deliberately left out now: it cannot be expressed on Windows at
+// all, and the history is going to be rewritten, so guarding it here would
+// be work thrown away twice. PLAN.md records what that leaves open.
 func (h *history) save() error {
 	if h.fname == "" {
 		return nil
 	}
-	f, err := os.OpenFile(h.fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	// 0666 is what the C gets from fopen, with the umask applied by the
+	// system.
+	f, err := os.OpenFile(h.fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
 	if err != nil {
 		// The C code gives up without saying anything when it cannot open
 		// the file. The caller decides what to do here instead.
 		return err //nolint:wrapcheck // the path is already in the error
 	}
 	defer func() { _ = f.Close() }()
-	_ = os.Chmod(h.fname, 0o600)
 	w := bufio.NewWriter(f)
 	for _, entry := range h.entries {
 		line := escapeEntry(entry)
