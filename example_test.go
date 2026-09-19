@@ -452,3 +452,95 @@ func TestExamplePasswordIsHidden(t *testing.T) {
 		t.Errorf("the password did not come back as expected.\nWhat it wrote:\n%s", plain)
 	}
 }
+
+// TestExampleWalksTheHistory checks that the arrow keys step through what has
+// been entered, and that a line picked out of the history runs.
+func TestExampleWalksTheHistory(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name:  "history",
+		About: "walking back and forward through the history",
+		Steps: []capture.Step{
+			{Send: "select alpha;" + capture.KeyEnter},
+			{Send: "select beta;" + capture.KeyEnter},
+			{Send: capture.KeyUp, Wait: 400 * time.Millisecond},   // beta
+			{Send: capture.KeyUp, Wait: 400 * time.Millisecond},   // alpha
+			{Send: capture.KeyDown, Wait: 400 * time.Millisecond}, // beta again
+			{Send: capture.KeyEnter, Wait: 400 * time.Millisecond},
+			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system: %v", err)
+	}
+	var ran []string
+	for _, ln := range strings.Split(stripEscapes(string(tr.Bytes())), "\n") {
+		if ln = strings.Trim(ln, "\r "); strings.HasPrefix(ln, "ran ") {
+			ran = append(ran, ln)
+		}
+	}
+	// Two statements were typed, and the third came back out of the history:
+	// two steps back then one forward lands on the newer of the two.
+	want := []string{
+		"ran 1 line(s): select alpha;",
+		"ran 1 line(s): select beta;",
+		"ran 1 line(s): select beta;",
+	}
+	if strings.Join(ran, "|") != strings.Join(want, "|") {
+		t.Errorf("the statements that ran were %v, want %v", ran, want)
+	}
+}
+
+// TestExampleSearchesTheHistory checks the incremental search that Ctrl-R
+// opens: it draws its own prompt, narrows as more is typed, and the entry it
+// found becomes the line.
+func TestExampleSearchesTheHistory(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name:  "history search",
+		About: "finding an older entry by typing part of it",
+		Steps: []capture.Step{
+			{Send: "select alpha;" + capture.KeyEnter},
+			{Send: "select beta;" + capture.KeyEnter},
+			{Send: capture.CtrlR, Wait: 400 * time.Millisecond},
+			// "alp" appears only in the older entry, so the search has to walk
+			// past the newer one to find it.
+			{Send: "alp", Wait: 400 * time.Millisecond},
+			{Send: capture.KeyEnter, Wait: 400 * time.Millisecond}, // take it
+			{Send: capture.KeyEnter, Wait: 400 * time.Millisecond}, // run it
+			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system: %v", err)
+	}
+	plain := stripEscapes(string(tr.Bytes()))
+	if !strings.Contains(plain, "history search") {
+		t.Error("the search prompt was never drawn")
+	}
+	if !strings.Contains(plain, "use tab for the next match") {
+		t.Error("the reminder below the line was never drawn")
+	}
+	// The entry the search found is the one that ran, not the newer one.
+	last := ""
+	for _, ln := range strings.Split(plain, "\n") {
+		if ln = strings.Trim(ln, "\r "); strings.HasPrefix(ln, "ran ") {
+			last = ln
+		}
+	}
+	if last != "ran 1 line(s): select alpha;" {
+		t.Errorf("the search ran %q, want the entry it found", last)
+	}
+}

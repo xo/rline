@@ -46,6 +46,7 @@ type env struct {
 	noHighlight       bool
 	noBraceMatch      bool
 	noHint            bool
+	noHelp            bool
 	singlelineOnly    bool
 
 	// completeAutoTab keeps completing while there is only one answer.

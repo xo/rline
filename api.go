@@ -36,6 +36,9 @@ const (
 
 	// DefaultMultilineEOL ends a line that carries on below.
 	DefaultMultilineEOL = '\\'
+
+	// DefaultHistoryEntries is how many lines are remembered.
+	DefaultHistoryEntries = 200
 )
 
 // defaultStyles are the styles that markup can use without defining them. The
@@ -108,6 +111,7 @@ type config struct {
 	noHighlight       bool
 	noBraceMatch      bool
 	noHint            bool
+	noHelp            bool
 	singlelineOnly    bool
 	completeAutoTab   bool
 
@@ -145,13 +149,24 @@ func WithPrompt(marker, continuation string) Option {
 }
 
 // WithHistory keeps the history in the named file, holding at most entries of
-// them. An empty name keeps the history only while the program runs. Zero
-// entries means the default of 200.
+// them.
+//
+// An empty name keeps the history only while the program runs. A count of zero
+// or less means the default of 200. Use WithoutHistory to turn it off.
 func WithHistory(fname string, entries int) Option {
 	return func(c *config) {
 		c.historyFile = fname
 		c.historyEntries = entries
+		if entries <= 0 {
+			c.historyEntries = DefaultHistoryEntries
+		}
 	}
+}
+
+// WithoutHistory keeps no history at all, so nothing is remembered between
+// lines and the arrow keys have nothing to walk through.
+func WithoutHistory() Option {
+	return func(c *config) { c.historyEntries = 0 }
 }
 
 // WithHighlighter marks up each line as it is typed.
@@ -213,6 +228,12 @@ func WithoutHints() Option {
 	return func(c *config) { c.noHint = true }
 }
 
+// WithoutInlineHelp stops the short reminder that is shown below the line
+// while searching the history.
+func WithoutInlineHelp() Option {
+	return func(c *config) { c.noHelp = true }
+}
+
 // WithoutMultilineIndent stops the lines after the first lining up under the
 // prompt.
 func WithoutMultilineIndent() Option {
@@ -263,7 +284,7 @@ func New(opts ...Option) (*Reader, error) {
 		out:            os.Stdout,
 		promptMarker:   DefaultPromptMarker,
 		cpromptMarker:  DefaultPromptMarker,
-		historyEntries: 200,
+		historyEntries: DefaultHistoryEntries,
 		hintDelay:      DefaultHintDelay,
 		opts: editOptions{
 			MatchBraces:  DefaultMatchBraces,
@@ -333,6 +354,7 @@ func New(opts ...Option) (*Reader, error) {
 		noHighlight:       c.noHighlight,
 		noBraceMatch:      c.noBraceMatch,
 		noHint:            c.noHint,
+		noHelp:            c.noHelp,
 		singlelineOnly:    c.singlelineOnly,
 		completeAutoTab:   c.completeAutoTab,
 		hintDelay:         c.hintDelay,

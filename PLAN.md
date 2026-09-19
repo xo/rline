@@ -203,9 +203,11 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     `editlineloop.go`, together with the hint, the resize and the reading of
     one line from start to finish.
 
-    What is left is `editline_help.c`, `editline_history.c` and
-    `editline_completion.c`, which are textual includes of `editline.c` rather
-    than separate units. The three entry points the dispatch calls are
+    `editline_help.c` and `editline_history.c` are done. `editlinehistory.go`
+    holds walking through the history and the incremental search that Ctrl-R
+    opens, which draws its own prompt below the line and reads its own keys.
+
+    What is left is `editline_completion.c`. The three entry points the dispatch calls are
     declared in `editlinehistory.go`, `editlinecompletion.go` and
     `editlinehelp.go`, so the dispatch is complete and the seam sits in one
     place.
@@ -574,6 +576,13 @@ started and what it is attached to.
 check that a colour setting holds only the escape codes that are safe to send
 on, which nothing does, so a setting from the environment reaches the terminal
 unchecked.
+
+### editline_history.c
+
+The search ends by pushing a key back for the edit loop to read, and it cannot
+happen. Every path out of the loop sets the key to zero first, and every other
+path goes round again, so `tty_code_pushback` is unreachable. The port leaves
+it out rather than writing a line that cannot run.
 
 ### tty.c
 

@@ -51,7 +51,7 @@ func run() error {
 		rline.WithHighlighter(highlight),
 		rline.WithCompleter(complete),
 		rline.WithContinue(incomplete),
-		rline.WithHistory("", 0),
+		rline.WithHistory("", 0), // kept in memory, default size
 	}
 	if *logPath != "" {
 		f, err := os.Create(*logPath)
