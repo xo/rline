@@ -191,6 +191,36 @@ static void sort_case(const char* const* in, int n) {
 /* ------------------------------------------------------------------------
    The longest shared start of every completion
    ------------------------------------------------------------------------ */
+/* The same, but with each entry taking away a different amount of the line.
+   The shared start is only safe to fill in when every entry deletes the same
+   number of bytes before the cursor, and prefix_case cannot show that,
+   because it gives every entry the same count. */
+static void prefix_mixed_case(const char* line, ssize_t pos,
+                              const char* const* in, const ssize_t* befores, int n) {
+  completions_t* cms = fresh_completions();
+  cms->completer_max = 100;
+  for (int i = 0; i < n; i++) completions_add(cms, in[i], NULL, NULL, befores[i], 0);
+  stringbuf_t* sbuf = sbuf_new(&probe_mem);
+  sbuf_append(sbuf, line);
+  ssize_t res = completions_apply_longest_prefix(cms, sbuf, pos);
+  printf("prefixmixed ");
+  print_str(line);
+  printf(" %zd", pos);
+  print_inputs(in, n);
+  printf(" %d", n);
+  for (int i = 0; i < n; i++) printf(" %zd", befores[i]);
+  printf(" %zd ", res);
+  print_bytes((const uint8_t*)sbuf_string(sbuf), sbuf_len(sbuf));
+  printf(" %zd", completions_count(cms));
+  for (ssize_t i = 0; i < completions_count(cms); i++) {
+    printf(" %zd", cms->elems[i].delete_before);
+  }
+  printf("\n");
+  sbuf_free(sbuf);
+  completions_free(cms);
+}
+
+
 static void prefix_case(const char* line, ssize_t pos, const char* const* in, int n, ssize_t before) {
   completions_t* cms = fresh_completions();
   cms->completer_max = 100;
@@ -337,6 +367,64 @@ int main(void) {
     prefix_case("sa", 2, p2, 2, before);
     prefix_case("x", 1, p3, 2, before);
     prefix_case("on", 2, p4, 1, before);
+  }
+
+  /* Entries that do not agree on how much they take away. */
+  {
+    static const char* m1[] = { "alpha", "alpine" };
+    static const ssize_t b_same[] = { 1, 1 };
+    static const ssize_t b_diff[] = { 1, 2 };
+    static const ssize_t b_first[] = { 2, 1 };
+    static const char* m2[] = { "alpha", "alpine", "almond" };
+    static const ssize_t b3_same[] = { 1, 1, 1 };
+    static const ssize_t b3_last[] = { 1, 1, 0 };
+    prefix_mixed_case("al", 2, m1, b_same, 2);
+    prefix_mixed_case("al", 2, m1, b_diff, 2);
+    prefix_mixed_case("al", 2, m1, b_first, 2);
+    prefix_mixed_case("al", 2, m2, b3_same, 3);
+    prefix_mixed_case("al", 2, m2, b3_last, 3);
+    /* A shared start shorter than the amount every entry takes away, which
+       is refused rather than applied: filling it in would delete more of
+       the line than it put back. */
+    static const char* m3[] = { "ab", "ax" };
+    static const ssize_t b2[] = { 2, 2 };
+    static const ssize_t b3[] = { 3, 3 };
+    prefix_mixed_case("zz", 2, m3, b2, 2);
+    prefix_mixed_case("zzz", 3, m3, b3, 2);
+  }
+
+  /* Replacements longer than the 256 byte buffer the shared start is copied
+     into. The first pair share more than fits, so the answer is cut at 256.
+     The second pair are built so that the 256th byte falls in the middle of
+     a three byte character, which is the case that halves one. */
+  {
+    static char long_a[600], long_b[600], utf_a[600], utf_b[600];
+    memset(long_a, 'x', 500); long_a[500] = 'a'; long_a[501] = 0;
+    memset(long_b, 'x', 500); long_b[500] = 'b'; long_b[501] = 0;
+    /* 255 filler bytes, then repeated U+65E5, so byte 256 is inside one. */
+    memset(utf_a, 'y', 255);
+    ssize_t k = 255;
+    for (int i = 0; i < 40; i++) { utf_a[k++] = (char)0xE6; utf_a[k++] = (char)0x97; utf_a[k++] = (char)0xA5; }
+    utf_a[k] = 0;
+    memcpy(utf_b, utf_a, (size_t)k + 1);
+    utf_b[k - 1] = (char)0xAC;  /* differs only after the cut */
+    static const char* lp[2];
+    static const ssize_t lb[] = { 1, 1 };
+    lp[0] = long_a; lp[1] = long_b;
+    prefix_mixed_case("x", 1, lp, lb, 2);
+    lp[0] = utf_a; lp[1] = utf_b;
+    prefix_mixed_case("y", 1, lp, lb, 2);
+  }
+
+  /* More orders for the sort, including entries that fold to the same bytes
+     and entries of equal length. */
+  {
+    static const char* s4[] = { "B", "a", "C", "b", "A" };
+    static const char* s5[] = { "zz", "z", "zzz", "" };
+    static const char* s6[] = { "\xe6\x97\xa5", "ab", "a" };
+    sort_case(s4, 5);
+    sort_case(s5, 4);
+    sort_case(s6, 3);
   }
 
   static const char* wadd1[] = { "world", "wonder" };

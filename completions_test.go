@@ -53,7 +53,8 @@ func TestCompletionsPort(t *testing.T) {
 		t.Errorf("%d differences in total, %d shown", bad, maxReported)
 	}
 	for _, kind := range []string{
-		"add", "display", "hint", "apply", "applymissing", "sort", "prefix", "word", "qword",
+		"add", "display", "hint", "apply", "applymissing", "sort", "prefix",
+		"prefixmixed", "word", "qword",
 	} {
 		if counts[kind] == 0 {
 			t.Errorf("the corpus holds no %s cases", kind)
@@ -182,6 +183,40 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 			return f[0], fmt.Sprintf("the list holds %d, want %d", c.count(), wantBefores)
 		}
 		for i := range wantBefores {
+			if got, want := c.items[i].deleteBefore, p.num(); got != want {
+				return f[0], fmt.Sprintf("entry %d takes away %d before, want %d", i, got, want)
+			}
+		}
+	case "prefixmixed":
+		// The same as "prefix", except that each entry names how much of the
+		// line it takes away. When they do not agree there is nothing safe
+		// to fill in, which "prefix" cannot show, because it gives every
+		// entry the same count.
+		line, pos := p.str(), p.num()
+		in := p.list()
+		befores := make([]int, p.num())
+		for i := range befores {
+			befores[i] = p.num()
+		}
+		wantRes, wantBuf := p.num(), p.next()
+		c := &completions{completerMax: 100}
+		for i, entry := range in {
+			c.add(entry, "", "", befores[i], 0)
+		}
+		buf := &buffer{}
+		buf.appendString(line)
+		if got := c.applyLongestPrefix(buf, pos); got != wantRes {
+			return f[0], fmt.Sprintf("applyLongestPrefix gave %d, want %d (buffer %q)",
+				got, wantRes, buf.string())
+		}
+		if got := hexOrDash(buf.bytes()); got != wantBuf {
+			return f[0], fmt.Sprintf("applyLongestPrefix left the buffer %s, want %s", got, wantBuf)
+		}
+		wantCount := p.num()
+		if c.count() != wantCount {
+			return f[0], fmt.Sprintf("the list holds %d, want %d", c.count(), wantCount)
+		}
+		for i := range wantCount {
 			if got, want := c.items[i].deleteBefore, p.num(); got != want {
 				return f[0], fmt.Sprintf("entry %d takes away %d before, want %d", i, got, want)
 			}

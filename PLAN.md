@@ -895,16 +895,25 @@ wrong style on every entry. Both the probe and the replay now define the
 styles a `Reader` defines, which is what makes the names observable at all.
 
 What is still not reached, stated rather than left to be assumed. The menu
-corpus drives `completionMenu` only, so `generateCompletions` — the Tab entry
-point, which beeps on nothing, applies a single answer, and puts in the
-longest shared prefix before opening the menu — has no recording behind it.
-`TestTabFillsInWhatEveryAnswerShares` now drives it through the editor
-instead, and taking the longest-prefix call out fails it, so the hole that
-was named here is closed. What that test does not check is the beep, because
-`term_beep` writes to standard error rather than through the terminal, in the
-C as well. A probe over `edit_generate_completions` would still be worth
-having, since a driven test says what the port does and a recording says what
-the C did.
+corpus drives `completionMenu` only, so nothing records
+`generateCompletions` itself: which of its three branches runs, and whether
+the longest shared start goes in before the menu opens.
+`TestTabFillsInWhatEveryAnswerShares` drives it through the editor instead,
+and taking the longest-prefix call out fails it, so the entry point is no
+longer untested. A recording would still be worth having, because a driven
+test says what the port does and a recording says what the C did.
+
+What the shared start does once it is asked for is recorded, in the
+`prefixmixed` cases of `testdata/completions.txt`: entries that take away
+different amounts of the line, a shared start shorter than the amount they
+take away, and replacements long enough to be cut by the 256 byte buffer the
+C copies them into, including a pair whose 256th byte falls inside a three
+byte character. Five deliberate breakages of `applyLongestPrefix` are caught
+by those and were caught by nothing before.
+
+The beep on no answer is out of reach of both: `term_beep` writes to the
+standard error rather than through the terminal, in the C as well, so
+neither a recording nor a driven test sees it.
 
 A check that cannot fail where it is run. `TestWritesToTerminalLooksAtTheWriter`
 asserts that a plain file is not taken for a terminal, which catches the
