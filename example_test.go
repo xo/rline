@@ -544,3 +544,65 @@ func TestExampleSearchesTheHistory(t *testing.T) {
 		t.Errorf("the search ran %q, want the entry it found", last)
 	}
 }
+
+// TestExampleCompletionMenuColumns checks the two column layouts the menu
+// chooses between, which depend on how wide the entries are rather than on how
+// many there are.
+//
+// Tab completes the longest start every answer shares before it offers a menu,
+// so the prefix here is chosen for what is left afterwards: "c" leaves fifteen
+// short words, and "co" leaves six longer ones.
+func TestExampleCompletionMenuColumns(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	for _, test := range []struct {
+		name    string
+		prefix  string
+		wantRow string
+		wantAll string
+	}{
+		{
+			name:    "three columns",
+			prefix:  "c",
+			wantRow: " 1 case      4 count     7 commit ",
+			wantAll: "page-down",
+		},
+		{
+			name:   "two columns",
+			prefix: "co",
+			// Longer words leave room for two columns rather than three.
+			wantRow: " 1 count        4 collate",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			tr, err := capture.Record(context.Background(), bin, capture.Session{
+				Name:  test.name,
+				About: test.name,
+				Cols:  80,
+				Rows:  24,
+				Steps: []capture.Step{
+					{Send: test.prefix},
+					{Send: capture.KeyTab, Wait: 600 * time.Millisecond},
+					{Send: capture.KeyEscape, Wait: 200 * time.Millisecond},
+					{Send: capture.CtrlU},
+					{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
+				},
+			})
+			if err != nil {
+				t.Skipf("cannot record on this system: %v", err)
+			}
+			plain := stripEscapes(string(tr.Bytes()))
+			if !strings.Contains(plain, test.wantRow) {
+				t.Errorf("the menu never drew %q.\nWhat it wrote:\n%s", test.wantRow, plain)
+			}
+			if test.wantAll != "" && !strings.Contains(plain, test.wantAll) {
+				t.Errorf("the menu never offered %q", test.wantAll)
+			}
+		})
+	}
+}

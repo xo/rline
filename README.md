@@ -22,8 +22,13 @@ file, and reading a plain line when there is no terminal to edit on.
 `Password` reads a line without showing it, without recording it, and without
 completion or highlighting.
 
-What does not work yet: completion when the Tab key is pressed, and walking
-through the history with the arrow keys. Both are being written.
+Completion is finished too. Tab fills in the longest start every answer shares,
+and offers a menu when several remain. The menu lays out in columns, and how
+many depends on how wide the entries are: in the example, `c` then Tab gives
+three columns and `co` then Tab gives two.
+
+The port is complete. Every module of isocline is either ported or deliberately
+replaced.
 
 ## Quickstart
 

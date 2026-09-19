@@ -194,6 +194,12 @@ var sqlKeywords = map[string]bool{
 	"group": true, "order": true, "by": true, "having": true, "limit": true,
 	"offset": true, "as": true, "distinct": true, "union": true, "create": true,
 	"table": true, "drop": true, "alter": true, "index": true,
+	// Enough words starting with the same letter that one keystroke fills the
+	// completion menu, which is how the column layout can be seen at all.
+	"case": true, "cast": true, "coalesce": true, "column": true,
+	"constraint": true, "cross": true, "count": true, "check": true,
+	"current_date": true, "current_time": true, "current_timestamp": true,
+	"cascade": true, "collate": true, "commit": true,
 }
 
 // sqlTypes are colored as types.
