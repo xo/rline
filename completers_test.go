@@ -24,15 +24,15 @@ func TestCompleteQWordUsesTheUsualQuoting(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			inner := func(cenv *completionEnv, _ string) {
+			inner := func(cenv *Completion, _ string) {
 				cenv.add("my file.txt", "", "", 0, 0)
 			}
 			short := &completions{}
-			short.setCompleter(func(cenv *completionEnv, prefix string) {
+			short.setCompleter(func(cenv *Completion, prefix string) {
 				completeQWord(cenv, prefix, inner, nil)
 			}, nil)
 			long := &completions{}
-			long.setCompleter(func(cenv *completionEnv, prefix string) {
+			long.setCompleter(func(cenv *Completion, prefix string) {
 				completeQWordEx(cenv, prefix, inner, nil, defaultEscapeChar, defaultQuoteChars)
 			}, nil)
 
@@ -73,7 +73,7 @@ func TestAddCompletionsFiltersByPrefix(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			c := &completions{}
-			c.setCompleter(func(cenv *completionEnv, prefix string) {
+			c.setCompleter(func(cenv *Completion, prefix string) {
 				addCompletions(cenv, prefix, words)
 			}, nil)
 			c.generate(test.prefix, len(test.prefix), 100)
@@ -96,7 +96,7 @@ func TestAddCompletionsStopsWhenFull(t *testing.T) {
 	words := []string{"a1", "a2", "a3", "a4", "a5"}
 	c := &completions{}
 	finished := false
-	c.setCompleter(func(cenv *completionEnv, prefix string) {
+	c.setCompleter(func(cenv *Completion, prefix string) {
 		finished = addCompletions(cenv, prefix, words)
 	}, nil)
 	c.generate("a", 1, 2)
@@ -158,7 +158,7 @@ func TestGenerateRefusesACursorPastTheEnd(t *testing.T) {
 	t.Parallel()
 	called := false
 	c := &completions{}
-	c.setCompleter(func(cenv *completionEnv, prefix string) {
+	c.setCompleter(func(cenv *Completion, prefix string) {
 		called = true
 		cenv.add("x", "", "", 0, 0)
 	}, nil)
@@ -184,7 +184,7 @@ func TestGeneratePassesTheCompleterArg(t *testing.T) {
 	want := &marker{n: 42}
 	var got any
 	c := &completions{}
-	c.setCompleter(func(cenv *completionEnv, _ string) {
+	c.setCompleter(func(cenv *Completion, _ string) {
 		got = cenv.arg
 	}, want)
 	c.generate("x", 1, 10)

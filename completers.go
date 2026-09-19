@@ -26,7 +26,7 @@ const defaultEscapeChar = '\\'
 //
 // isWordChar says what a word is made of. Passing nil means anything that is
 // not a separator.
-func completeWord(cenv *completionEnv, prefix string, fun completerFunc, isWordChar charClass) {
+func completeWord(cenv *Completion, prefix string, fun Completer, isWordChar charClass) {
 	if isWordChar == nil {
 		isWordChar = charIsNonSeparator
 	}
@@ -55,8 +55,8 @@ func completeWord(cenv *completionEnv, prefix string, fun completerFunc, isWordC
 // the completer knows nothing about. The amount to take away after the cursor
 // is whatever end of the replacement is already typed there, so that
 // completing in the middle of a word does not leave its tail behind.
-func withWordPrefix(cenv *completionEnv, deleteBeforeAdjust int,
-	fix func(string) string, fun completerFunc, word string,
+func withWordPrefix(cenv *Completion, deleteBeforeAdjust int,
+	fix func(string) string, fun Completer, word string,
 ) {
 	postfix := ""
 	if cenv.cursor >= 0 && cenv.cursor <= len(cenv.input) {
@@ -75,13 +75,13 @@ func withWordPrefix(cenv *completionEnv, deleteBeforeAdjust int,
 
 // completeQWord is completeWord for a word that may be quoted, with the usual
 // backslash escape and single or double quotes.
-func completeQWord(cenv *completionEnv, prefix string, fun completerFunc, isWordChar charClass) {
+func completeQWord(cenv *Completion, prefix string, fun Completer, isWordChar charClass) {
 	completeQWordEx(cenv, prefix, fun, isWordChar, defaultEscapeChar, defaultQuoteChars)
 }
 
 // completeQWordEx is completeQWord with the escape character and the quotes
 // named by the caller. An empty quoteChars means the default pair.
-func completeQWordEx(cenv *completionEnv, prefix string, fun completerFunc,
+func completeQWordEx(cenv *Completion, prefix string, fun Completer,
 	isWordChar charClass, escape byte, quoteChars string,
 ) {
 	if isWordChar == nil {

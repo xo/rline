@@ -73,6 +73,9 @@ type Reader struct {
 
 	// closed stops a second Close from touching the terminal again.
 	closed bool
+
+	// log records the session, and may be nil.
+	log *sessionLog
 }
 
 // config carries what New needs before it builds a Reader.
@@ -91,7 +94,7 @@ type config struct {
 
 	// What marks up a line, and what completes a word.
 	highlighter Highlighter
-	completer   completerFunc
+	completer   Completer
 
 	// Editing settings.
 	opts editOptions
@@ -107,6 +110,9 @@ type config struct {
 	completeAutoTab   bool
 
 	hintDelay time.Duration
+
+	// log records everything read and written, and may be nil.
+	log io.Writer
 }
 
 // Option changes a setting on a Reader being made.
@@ -152,7 +158,7 @@ func WithHighlighter(fn Highlighter) Option {
 }
 
 // WithCompleter offers completions for the word at the cursor.
-func WithCompleter(fn func(cenv *completionEnv, prefix string)) Option {
+func WithCompleter(fn Completer) Option {
 	return func(c *config) { c.completer = fn }
 }
 
@@ -218,6 +224,18 @@ func WithAutoBraces(pairs string) Option {
 	return func(c *config) { c.opts.AutoBraces = pairs }
 }
 
+// WithLog records everything the reader reads from the keyboard and writes to
+// the terminal, so that a session can be read back afterwards by someone who
+// was not watching it.
+//
+// Every line of the log says which direction it went: "<" for what was written
+// to the terminal, ">" for a key that was read, and "=" for a finished line.
+// The bytes are escaped so that the log can be read by eye, with the escape
+// byte written as "\e".
+func WithLog(w io.Writer) Option {
+	return func(c *config) { c.log = w }
+}
+
 // New returns a Reader.
 //
 // It returns a Reader even when there is no terminal to edit on, such as when
@@ -253,7 +271,19 @@ func New(opts ...Option) (*Reader, error) {
 	if ttyErr == nil {
 		isUTF8 = t.isUTF8
 	}
-	tm := newTerm(c.out, termOptions{
+	// The log sits between the reader and the terminal. The size and the
+	// question of whether the output is a terminal are still asked of the real
+	// output, not of the log.
+	var slog *sessionLog
+	out := c.out
+	if c.log != nil {
+		slog = &sessionLog{w: c.log}
+		out = logWriter{w: c.out, log: slog}
+		if ttyErr == nil {
+			t.src = logReader{src: t.src, log: slog}
+		}
+	}
+	tm := newTerm(out, termOptions{
 		// Color goes off when the output is not a terminal, so that a program
 		// whose output is redirected writes plain text rather than escape
 		// sequences into a file. The C makes the same check.
@@ -290,6 +320,7 @@ func New(opts ...Option) (*Reader, error) {
 		completeAutoTab:   c.completeAutoTab,
 		hintDelay:         c.hintDelay,
 	}
+	r.log = slog
 	r.noEdit = ttyErr != nil || !isInteractive()
 	return r, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
 }
@@ -331,8 +362,10 @@ func (r *Reader) ReadLine(prompt string) (string, error) {
 		return "", err
 	}
 	if !ok {
+		r.log.note(logLine, "<end of input>")
 		return "", io.EOF
 	}
+	r.log.note(logLine, line)
 	return line, nil
 }
 

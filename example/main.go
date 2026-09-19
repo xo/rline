@@ -10,9 +10,11 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/xo/rline"
@@ -27,11 +29,24 @@ func main() {
 
 // run reads statements until the input ends.
 func run() error {
-	r, err := rline.New(
+	logPath := flag.String("log", "", "record the session to this file")
+	flag.Parse()
+
+	opts := []rline.Option{
 		rline.WithPrompt("sql> ", "...> "),
 		rline.WithHighlighter(highlight),
+		rline.WithCompleter(complete),
 		rline.WithHistory("", 0),
-	)
+	}
+	if *logPath != "" {
+		f, err := os.Create(*logPath)
+		if err != nil {
+			return fmt.Errorf("opening the log: %w", err)
+		}
+		defer func() { _ = f.Close() }()
+		opts = append(opts, rline.WithLog(f))
+	}
+	r, err := rline.New(opts...)
 	if err != nil {
 		return fmt.Errorf("starting the reader: %w", err)
 	}
@@ -49,7 +64,7 @@ func run() error {
 
 	r.Println("[b]rline[/b] SQL example.")
 	r.Println("[ic-info]A statement ends at a semicolon. Ctrl-D leaves.[/]")
-	r.Println("[ic-info]Ctrl-J puts a line break inside one line.[/]")
+	r.Println("[ic-info]Ctrl-J puts a line break inside one line. Tab completes.[/]")
 
 	var stmt strings.Builder
 	for {
@@ -169,4 +184,37 @@ func isDigit(c byte) bool { return c >= '0' && c <= '9' }
 // isWordByte reports whether c can appear in an identifier.
 func isWordByte(c byte) bool {
 	return c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || isDigit(c)
+}
+
+// complete offers the SQL words that start with what has been typed.
+//
+// A completer is handed the prefix to complete and calls Add for each answer.
+// This one walks its three word lists, which is enough to show how completion
+// is wired up.
+func complete(c *rline.Completion, prefix string) {
+	word := prefix
+	// Complete the last word rather than the whole line.
+	if i := strings.LastIndexAny(word, " \t\n(,"); i >= 0 {
+		word = word[i+1:]
+	}
+	if word == "" {
+		return
+	}
+	lower := strings.ToLower(word)
+	var found []string
+	for _, set := range []map[string]bool{sqlKeywords, sqlTypes, sqlConstants} {
+		for w := range set {
+			if strings.HasPrefix(w, lower) && w != lower {
+				found = append(found, w)
+			}
+		}
+	}
+	sort.Strings(found)
+	for _, w := range found {
+		// The replacement takes the place of the word already typed, so the
+		// part already there is deleted first.
+		if !c.AddFull(w, "", "", len(word), 0) {
+			return
+		}
+	}
 }

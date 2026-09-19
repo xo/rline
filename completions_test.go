@@ -212,7 +212,7 @@ func checkWordCase(t *testing.T, quoted bool, p *fieldReader) string {
 	// The completer writes down the word it was handed and offers a fixed
 	// set, which is how the deletion counts become readable.
 	captured := ""
-	inner := func(cenv *completionEnv, prefix string) {
+	inner := func(cenv *Completion, prefix string) {
 		captured = prefix
 		for _, a := range adds {
 			cenv.add(a, "", "", 0, 0)
@@ -220,7 +220,7 @@ func checkWordCase(t *testing.T, quoted bool, p *fieldReader) string {
 	}
 	c := &completions{}
 	isWordChar := completionClasses[class]
-	c.setCompleter(func(cenv *completionEnv, prefix string) {
+	c.setCompleter(func(cenv *Completion, prefix string) {
 		if quoted {
 			completeQWordEx(cenv, prefix, inner, isWordChar, escape, quotes)
 		} else {

@@ -286,7 +286,7 @@ func isAbsolutePath(path string) bool {
 // dirPrefix is what goes in front of each name in the completion, which is
 // the part of the path the user already typed. It reports false once no more
 // completions are accepted.
-func completeInDir(cenv *completionEnv, noColor bool, dir, dirPrefix, base string,
+func completeInDir(cenv *Completion, noColor bool, dir, dirPrefix, base string,
 	dirSep byte, extensions string,
 ) bool {
 	f, err := os.Open(dir)
@@ -332,7 +332,7 @@ func completeInDir(cenv *completionEnv, noColor bool, dir, dirPrefix, base strin
 }
 
 // filenameCompleter offers the file names that could follow prefix.
-func filenameCompleter(cenv *completionEnv, prefix string, noColor bool,
+func filenameCompleter(cenv *Completion, prefix string, noColor bool,
 	dirSep byte, roots, extensions string,
 ) {
 	// Split what was typed into the directory part and the start of a name.
@@ -368,7 +368,7 @@ func filenameCompleter(cenv *completionEnv, prefix string, noColor bool,
 //
 // The word is taken with completeQWordEx, so a name with a space in it can be
 // completed whether the user quoted it or escaped the space.
-func completeFilename(cenv *completionEnv, prefix string, noColor bool,
+func completeFilename(cenv *Completion, prefix string, noColor bool,
 	dirSep byte, roots, extensions string,
 ) {
 	if roots == "" {
@@ -381,7 +381,7 @@ func completeFilename(cenv *completionEnv, prefix string, noColor bool,
 	// that belongs to the program, and leaves it pointing at a dead stack
 	// value afterwards. A closure carries them here instead, so the
 	// program's own argument is left alone.
-	inner := func(cenv *completionEnv, word string) {
+	inner := func(cenv *Completion, word string) {
 		filenameCompleter(cenv, word, noColor, dirSep, roots, extensions)
 	}
 	completeQWordEx(cenv, prefix, inner, charIsFileNameLetter, defaultEscapeChar, defaultQuoteChars)

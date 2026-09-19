@@ -55,12 +55,15 @@ type completion struct {
 // of the line the completion takes away.
 type addFunc func(replacement, display, help string, deleteBefore, deleteAfter int) bool
 
-// completerFunc offers completions for prefix by calling cenv.add.
-type completerFunc func(cenv *completionEnv, prefix string)
+// Completer offers completions for the word at the cursor.
+//
+// It is handed the prefix to complete and calls Add for each answer. Returning
+// without adding anything means there is nothing to offer.
+type Completer func(c *Completion, prefix string)
 
-// completionEnv is what a completer is given: the whole line, where the
-// cursor is, and the way to offer a completion.
-type completionEnv struct {
+// Completion is what a completer is given: the whole line, where the cursor
+// sits in it, and the way to offer an answer.
+type Completion struct {
 	// input is the whole line and cursor where the cursor sits in it. The
 	// prefix a completer is handed is the line up to the cursor, or a part of
 	// it once word completion has narrowed it down.
@@ -74,11 +77,37 @@ type completionEnv struct {
 	add addFunc
 }
 
+// Add offers one completion, which replaces the prefix that was handed to the
+// completer. It reports whether more are wanted: a completer that is walking a
+// large directory should stop when it answers false.
+func (c *Completion) Add(replacement string) bool {
+	return c.AddFull(replacement, "", "", 0, 0)
+}
+
+// AddFull offers one completion, saying how it should be shown and how much of
+// the line it replaces.
+//
+// display is what the menu shows, and an empty display shows the replacement
+// itself. help is a line shown below the menu. deleteBefore and deleteAfter
+// say how many bytes on each side of the cursor the completion takes away.
+func (c *Completion) AddFull(replacement, display, help string, deleteBefore, deleteAfter int) bool {
+	if c == nil || c.add == nil {
+		return false
+	}
+	return c.add(replacement, display, help, deleteBefore, deleteAfter)
+}
+
+// Input returns the whole line and where the cursor sits in it, which a
+// completer needs when the word alone is not enough to decide.
+func (c *Completion) Input() (string, int) {
+	return c.input, c.cursor
+}
+
 // completions holds what the completer offered, and the completer itself.
 type completions struct {
 	items []completion
 
-	completer    completerFunc
+	completer    Completer
 	completerArg any
 
 	// completerMax is how many more completions will be accepted. It counts
@@ -98,7 +127,7 @@ func (c *completions) clear() {
 }
 
 // setCompleter sets the function that offers completions.
-func (c *completions) setCompleter(completer completerFunc, arg any) {
+func (c *completions) setCompleter(completer Completer, arg any) {
 	c.completer = completer
 	c.completerArg = arg
 }
@@ -287,7 +316,7 @@ func (c *completions) generate(input string, pos, maxOffers int) int {
 	if c.completer == nil || pos < 0 || len(input) < pos {
 		return 0
 	}
-	cenv := &completionEnv{input: input, cursor: pos, arg: c.completerArg}
+	cenv := &Completion{input: input, cursor: pos, arg: c.completerArg}
 	cenv.add = func(replacement, display, help string, deleteBefore, deleteAfter int) bool {
 		return c.add(replacement, display, help, deleteBefore, deleteAfter)
 	}
@@ -298,7 +327,7 @@ func (c *completions) generate(input string, pos, maxOffers int) int {
 
 // addCompletions offers every one of completions that starts with prefix,
 // ignoring case. It stops early once no more are accepted.
-func addCompletions(cenv *completionEnv, prefix string, completions []string) bool {
+func addCompletions(cenv *Completion, prefix string, completions []string) bool {
 	for _, completion := range completions {
 		if hasPrefixFold(completion, prefix) {
 			if !cenv.add(completion, "", "", 0, 0) {
