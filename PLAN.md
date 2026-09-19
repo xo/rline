@@ -607,25 +607,42 @@ is always readable. `tools/probe-tty.c` uses an idle pipe rather than
 ## Windows
 
 The port does not carry the console emulation in `term.c`. About 400 lines
-there translate escape sequences into console API calls, for a Windows that
+there translate escape sequences into console API calls, for a console that
 cannot read escape sequences itself. The port writes escape sequences on every
-system and assumes the console reads them, which Windows 10 and later do once
-virtual terminal processing is turned on, and which the C also prefers when it
-is available.
+system and asks the console to read them, which two `SetConsoleMode` calls in
+`ttydev_windows.go` arrange as raw mode is entered and left.
 
-This has not been decided so much as arrived at, and it deserves a decision.
-The evidence for it is that the Windows host passes every corpus unchanged,
-including all 1584 redraws against a set recorded on Linux, so nothing in the
-port needs the emulation today. The argument against is that it drops support
-for consoles older than Windows 10, which the C still carries.
+That is now known to be necessary rather than precautionary, and the evidence
+took two readings to get right.
 
+A console on Windows 11 does not read escape sequences by default. Measured on
+the plain console host: with standard output attached to a console the mode is
+`0x000003` and the flag is off, and writing `ESC [ 5 ; 10 H` moves the cursor
+to column 7 of row 0, which is seven characters printed on the screen rather
+than a cursor move. So the emulation in the C addresses a real failure on an
+ordinary machine, not a historical one.
 
-Windows support for `tty.c` is deliberately not written yet, and it waits for a
-Windows host. The console API reads key events and needs its own pushback,
-which is a rewrite rather than a port, and the capture harness cannot record on
-Windows either. Code that nobody can run and no corpus can check is worse than
-a gap that is written down. `ttydev_other.go` returns an error there. This
-belongs to whoever owns `tty.c` once a host exists.
+An earlier reading said the flag was on by default, and it was taken in a
+process whose standard output was redirected to a file, which is the one
+arrangement where the flag cannot matter because nothing reaches a console at
+all. A line editor never runs that way. The corrected reading points the same
+way as the first conclusion but much harder: without the two calls the port
+would not work on Windows at all, rather than merely on old machines.
+
+Turning the flag on is enough. On a console with the flag off,
+`SetConsoleMode` accepts the change, the same sequence then moves the cursor
+properly, and leaving raw mode puts the mode back to exactly the `0x000003` it
+found. That branch had never been exercised until a real console ran it. So
+two calls replace the 400 lines.
+
+What remains open is which consoles are supported. Turning the flag on works
+on Windows 10 and later. Anything older cannot read escape sequences at all
+and would need the emulation. Dropping them is a narrowing of where rline runs
+and is a decision about supported platforms rather than a detail of the port.
+
+The flag is a property of the console rather than of the process, which
+matters for any test that reads it: a test asserting the ambient default is
+asserting what the machine happens to be set to, not what the port guarantees.
 
 ## Where a corpus lives
 
