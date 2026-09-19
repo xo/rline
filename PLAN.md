@@ -34,6 +34,31 @@ A module is the unit of work, not a function. isocline passes its own allocator
 into most structures, as the type `alloc_t`. A module keeps that ownership in
 one place, so a module ports cleanly and a single function does not.
 
+## Which systems are supported
+
+Three are tested: Linux, macOS and Windows. Each has a session running the
+full suite, and a person has driven the editor by hand on each.
+
+Seven more compile and are not tested: FreeBSD, NetBSD, OpenBSD, Dragonfly,
+Solaris, illumos and the mobile variants that Go folds into darwin and linux.
+The Unix file is tagged `unix && !aix` and the ioctl numbers they need sit in
+`ttydev_bsd.go` and `ttydev_solaris.go`. Nothing else in the terminal layer
+asks anything of the system that `golang.org/x/sys/unix` does not answer per
+system.
+
+Compiling is not support, and this list says which is which rather than
+leaving a user of FreeBSD to guess. DeepSeek argued for keeping the narrow
+tag on exactly that ground. It also named the risk that would justify it,
+which is code that hardcodes the index of VMIN or VTIME in the control
+character array, since Linux puts them at 6 and 5 while the BSDs put them at
+16 and 17. That risk was measured rather than accepted: the code reads
+`unix.VMIN`, and `x/sys/unix` defines it as 0x6 on Linux, 0x10 on the BSDs
+and 0x4 on Solaris. So the named risk does not apply here.
+
+Anything else, including aix, falls to `ttydev_other.go`. It reads plain
+lines with no editing and says the terminal is unsupported, which is a mode
+rather than a failure.
+
 ## Platforms
 
 `rline` must run on Linux, macOS and Windows. On Windows it must work in both
@@ -118,14 +143,14 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    terminal is put back. `tty_read_esc_response` is in the corpus, because it
    reads from the same byte source as the decoder.
 5. `attr.c`. Done. The attributes are a Go struct of comparable fields in
-   `color.go`, rather than the 64 bit union of bit fields the C packs them into,
+   `bbcode.go`, rather than the 64 bit union of bit fields the C packs them into,
    because Go compares a struct with `==` and nothing outside `attr.c` depends
-   on the packed value. The colors came with it, in `color.go`, because the SGR
+   on the packed value. The colors came with it, in `bbcode.go`, because the SGR
    parser needs them: `term_color.c` holds `ic_rgb`, `ic_rgbx` and
    `color_from_ansi256`, and the 256 color table was extracted from the C
    source rather than typed out. `tools/build-probe-attr.sh` builds a fourth
    probe, and `testdata/attr.txt` records 1678 of those calls.
-6. `term.c` and `term_color.c`. Done, apart from Windows. `color.go` holds
+6. `term.c` and `term_color.c`. Done, apart from Windows. `bbcode.go` holds
    the color reduction, which finds the nearest color a terminal can show when
    it understands fewer than a style asks for. `term.go` holds the terminal
    itself: the writer, the buffering, cursor movement, the attribute state, and
@@ -297,16 +322,16 @@ program works, but neither checks which key reaches which operation. Three
 faults were found only by running the program, which is what that gap looks
 like from the other side.
 
-`feed_test.go` covers it. It feeds a string of keystrokes to the editor and
+`driven_test.go` covers it. It feeds a string of keystrokes to the editor and
 asserts on the line and the cursor that come out, which is the shape
 python-prompt-toolkit uses in `tests/test_cli.py`. It is the only comparable
 project with a test suite worth copying: GNU readline ships example programs
 rather than tests, and linenoise has none. jline3 has a large one, and its
-list of what it tests is where `behaviour_test.go` comes from: how a line
+list of what it tests is where the rest of that file comes from: how a line
 ends, input that is not UTF-8, characters of more than one byte, and a
 completion list too long to show.
 
-`behaviour_test.go` also reaches one layer up, calling `editLine` rather than
+It also reaches one layer up, calling `editLine` rather than
 the key loop, because what the caller is told apart from the text — the line
 ended, the input ended — is a mapping of its own and was not covered.
 
@@ -1341,6 +1366,55 @@ be. And when a check is worth having on every system, make sure it compiles
 on every system, because a check that is absent is indistinguishable from a
 check that passed.
 
+## How files are organized
+
+The rule is Gemini's, written for this project after it reviewed the layout.
+It decides where new code goes without anyone having to ask.
+
+A type does not have to live in one file. The Go standard library splits one
+type across files by what the methods do: `os` splits `File` across
+`file.go`, `stat.go` and `dir.go`. Group by behavior.
+
+A file past five hundred to a thousand lines is a reason to look, not a limit
+to obey. `bbcode.go` is two thousand and stays whole, because a color, the
+attribute that carries it, the markup that names it and the highlighter that
+applies it are one subject. A split there would cut between a color and the
+markup for it. A file that long which covers three subjects is a different
+matter and splits by behavior.
+
+Platform-specific code follows four patterns, in this order of preference.
+
+Logic that is specific to one system but makes no system call stays untagged.
+It then compiles and runs its tests everywhere, so it cannot rot on the one
+machine nobody builds on. Turning Windows key events into escape sequences is
+written this way, and it sits inside `tty.go`, which carries no build tag
+either, so every system compiles it and every system runs its tests.
+
+Code that orchestrates a platform-specific step stays untagged and calls a
+small interface. The tagged files implement the interface. `Password` does
+this: the reading, the clearing and the echo back are one untagged function,
+and only turning the echo off is per system.
+
+Code shared by a group of systems takes the broad tag for that group.
+`ttydev_posix.go` is `unix && !aix`, and holds everything the Unix systems do
+the same way.
+
+Values that differ per system take a narrow tag, and the file is named for
+what it covers. `ttydev_linux.go`, `ttydev_bsd.go`, `ttydev_solaris.go` and
+`sys_darwin.go` hold two ioctl numbers each. A system nobody mapped gets no
+constants and falls to the stub in `ttydev_other.go`, which reads plain lines
+and says the terminal is unsupported.
+
+Name a file for the axis it splits on rather than for one system on it.
+`ttydev_sti.go` and `ttydev_nosti.go` split on whether the system has the
+`TIOCSTI` ioctl, which is what actually differs: OpenBSD removed it and
+Solaris does not offer it, while five other systems have it.
+
+Gemini recommends a fuzz test in a file of its own, because the corpus and
+the helpers crowd out the unit tests. This project puts them together anyway,
+in `tty_test.go`, because Ken asked for fewer files and the fuzz test here is
+one function over a corpus that lives in `testdata`.
+
 ## Where things live
 
 One package, twenty source files and seventeen test files. The layout follows
@@ -1378,8 +1452,14 @@ Three checks run on the Go code:
 
 1. `gofmt -l .` names any file that is not formatted.
 2. `go vet ./...` reports suspicious code.
-3. `GOOS=plan9 go build ./...`, and any other system that is none of the
-   three, checks that the fallback still compiles. `ttydev_other.go` exists so
+3. `go vet` for every system, not only the three. A build is not enough: a
+   test file whose tag no longer matches its source still compiles on the
+   systems where both are excluded, and only vet on a system where they
+   disagree says so. That happened the moment the Unix tag widened, and
+   `ttydev_other_test.go` kept the old tag for an hour. The systems worth
+   naming are linux, darwin, windows, freebsd, netbsd, openbsd, dragonfly,
+   solaris, illumos and plan9. This also checks that the fallback still
+   compiles. `ttydev_other.go` exists so
    that such a system builds and reads plain lines, and a function added with
    implementations for only two of the three tag groups breaks it invisibly:
    vet for linux, darwin and windows all pass, and nobody builds the rest.

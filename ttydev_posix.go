@@ -1,4 +1,4 @@
-//go:build linux || darwin
+//go:build unix && !aix
 
 package rline
 
@@ -10,9 +10,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
-	"unsafe"
 
-	"github.com/xo/rline/key"
 	"golang.org/x/sys/unix"
 )
 
@@ -238,20 +236,6 @@ func (d *ttyDevice) resizeEvent() bool {
 		return true
 	}
 	return d.resized.Swap(false)
-}
-
-// asyncStop makes a read that is waiting for a key return, by putting a
-// ctrl+c into the input of the terminal.
-//
-// This needs the TIOCSTI request, which recent systems refuse: Linux hides it
-// behind a build option that distributions turn off, and macOS allows it only
-// to a privileged process. It answers false when the system refuses, which is
-// what the C code does on a system that has no such request at all.
-func (d *ttyDevice) asyncStop() bool {
-	c := byte(key.CtrlC)
-	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(d.fd),
-		uintptr(unix.TIOCSTI), uintptr(unsafe.Pointer(&c)))
-	return errno == 0
 }
 
 // localeIsUTF8 reports whether the locale says the input is UTF-8.

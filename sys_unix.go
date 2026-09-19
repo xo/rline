@@ -1,4 +1,4 @@
-//go:build linux || darwin
+//go:build unix && !aix
 
 // What Linux and macOS do: reading a password with the echo turned off, and
 // asking

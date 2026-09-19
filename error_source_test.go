@@ -11,8 +11,10 @@ import (
 	"testing"
 )
 
-// TestNoTwoErrorsShareText checks the rule the collision test states but
-// cannot hold: that no two Error constants have the same text.
+// TestNoTwoErrorsShareText checks the two rules the list in
+// TestErrorsAreConstants states but cannot hold: that no two Error constants
+// share text, and that each one reads as its own name without the Err
+// prefix.
 //
 // It matters because Error is a string type, so two constants with the same
 // text are the same value, and errors.Is answers true for the wrong one. The
@@ -80,6 +82,16 @@ func TestNoTwoErrorsShareText(t *testing.T) {
 						continue
 					}
 					found++
+					// The naming rule, checked here rather than only
+					// against the hand written list, for the same reason
+					// the collision rule is: an error added and left off
+					// that list escaped it. Measured, not assumed — a
+					// constant with a text that did not match its name left
+					// the package green.
+					if want := sentinelText(ident.Name); text != want {
+						t.Errorf("%s reads %q, want %q: the text of an error is its "+
+							"name without the Err prefix", ident.Name, text, want)
+					}
 					if other, seen := byText[text]; seen {
 						t.Errorf("%s and %s are both %q, so they are the same error: "+
 							"errors.Is cannot tell them apart", other, ident.Name, text)
