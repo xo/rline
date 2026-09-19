@@ -1,6 +1,7 @@
-//go:build unix
+//go:build linux || darwin
 
-// What Unix does: reading a password with the echo turned off, and asking
+// What Linux and macOS do: reading a password with the echo turned off, and
+// asking
 // the terminal how wide it is.
 
 package rline

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode"
 
 	"github.com/xo/rline/internal/capture"
 )
@@ -1355,17 +1356,32 @@ func TestWithStderrReachesTheSession(t *testing.T) {
 func TestErrorsAreConstants(t *testing.T) {
 	t.Parallel()
 
+	// Every error in the package, by the name a caller looks it up under.
+	// The text is not written out here: it is derived from the name, so the
+	// check is the rule rather than a copy of the answer.
+	all := map[string]Error{
+		"ErrClosed":       ErrClosed,
+		"ErrInterrupted":  ErrInterrupted,
+		"errNotATerminal": errNotATerminal,
+	}
+
+	t.Run("the text is the name without the Err prefix", func(t *testing.T) {
+		t.Parallel()
+		// So the words a caller prints and the identifier they looked it up
+		// by are the same words, and neither can drift from the other.
+		// Context belongs in the wrapping where the error is returned.
+		for name, err := range all {
+			if want := sentinelText(name); string(err) != want {
+				t.Errorf("%s reads %q, want %q", name, string(err), want)
+			}
+		}
+	})
+
 	t.Run("they satisfy error", func(t *testing.T) {
 		t.Parallel()
-		for _, test := range []struct {
-			err  error
-			want string
-		}{
-			{ErrClosed, "the session is closed"},
-			{ErrInterrupted, "interrupted"},
-		} {
-			if got := test.err.Error(); got != test.want {
-				t.Errorf("the message is %q, want %q", got, test.want)
+		for name, err := range all {
+			if got := error(err).Error(); got != string(err) {
+				t.Errorf("%s gave the message %q, want %q", name, got, string(err))
 			}
 		}
 	})
@@ -1389,11 +1405,7 @@ func TestErrorsAreConstants(t *testing.T) {
 		// would be one error. These do not share text, and a future one must
 		// not either.
 		seen := map[Error]string{}
-		for name, err := range map[string]Error{
-			"ErrClosed":      ErrClosed,
-			"ErrInterrupted": ErrInterrupted,
-			"notATerminal":   errNotATerminal,
-		} {
+		for name, err := range all {
 			if other, ok := seen[err]; ok {
 				t.Errorf("%s and %s have the same text %q, so they are the same error",
 					name, other, string(err))
@@ -1402,4 +1414,20 @@ func TestErrorsAreConstants(t *testing.T) {
 		}
 	})
 
+}
+
+// sentinelText returns the text an error named name must carry: the name with
+// its Err or err prefix taken off, split where a word starts, and lowercased.
+// ErrNoSteps reads "no steps".
+func sentinelText(name string) string {
+	name = strings.TrimPrefix(strings.TrimPrefix(name, "Err"), "err")
+	var words []string
+	start := 0
+	for i, r := range name {
+		if i > 0 && unicode.IsUpper(r) {
+			words = append(words, name[start:i])
+			start = i
+		}
+	}
+	return strings.ToLower(strings.Join(append(words, name[start:]), " "))
 }

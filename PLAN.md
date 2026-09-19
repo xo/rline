@@ -329,7 +329,19 @@ The errors this package returns are constants of a string type, following
 
     type Error string
     func (err Error) Error() string { return string(err) }
-    const ErrClosed Error = "the session is closed"
+    const ErrClosed Error = "closed"
+
+The text of each one is its own name with the `Err` prefix taken off, split
+where a word starts and lowercased: `ErrClosed` reads "closed", `ErrNoSteps`
+reads "no steps". So the words a caller prints and the identifier they looked
+it up by are the same words, and neither can drift from the other. Context
+belongs in the wrapping at the place the error is returned, which is where it
+knows what was being attempted — `record_unix.go` names the session, and
+`ttydev_other.go` says that it was reading keys.
+
+That rule is a test rather than a convention. `TestErrorsAreConstants` derives
+the text from the name rather than writing it out, so the check is the rule
+and not a copy of the answer, and the capture package has the same check.
 
 A `var` holding an error is writable by anything that can see it, including
 another package. An error value that changes underneath a caller comparing
@@ -1366,6 +1378,13 @@ Three checks run on the Go code:
 
 1. `gofmt -l .` names any file that is not formatted.
 2. `go vet ./...` reports suspicious code.
+2. `GOOS=plan9 go build ./...`, and any other system that is none of the
+   three, checks that the fallback still compiles. `ttydev_other.go` exists so
+   that such a system builds and reads plain lines, and a function added with
+   implementations for only two of the three tag groups breaks it invisibly:
+   vet for linux, darwin and windows all pass, and nobody builds the rest.
+   That happened at 95ec387, when `fileIsTerminal` was split out of `isATTY`
+   with no answer here, and nothing said so for a day.
 3. `go tool golangci-lint run ./...` runs the linters that `.golangci.yml`
    names.
 

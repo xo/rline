@@ -4,7 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
+	"unicode"
 )
 
 // goldenDir returns the directory holding the recordings for the system the
@@ -53,4 +55,34 @@ func TestGoldenSetIsPresent(t *testing.T) {
 		"Record to be written first, which for Windows means a pseudo console "+
 		"made with CreatePseudoConsole rather than a pseudo-terminal opened.",
 		dir, missing, len(Sessions), runtime.GOOS, runtime.GOOS)
+}
+
+// TestErrorTextMatchesTheName checks the rule the rline package follows: an
+// error's text is its own name with the Err prefix taken off. Context belongs
+// in the wrapping where the error is returned, not in the sentinel.
+func TestErrorTextMatchesTheName(t *testing.T) {
+	t.Parallel()
+	for name, err := range map[string]Error{
+		"ErrNoSteps":     ErrNoSteps,
+		"ErrUnsupported": ErrUnsupported,
+	} {
+		want := strings.ToLower(strings.Join(splitWords(strings.TrimPrefix(name, "Err")), " "))
+		if string(err) != want {
+			t.Errorf("%s reads %q, want %q", name, string(err), want)
+		}
+	}
+}
+
+// splitWords cuts a name where each word starts. "NoSteps" becomes
+// ["No", "Steps"].
+func splitWords(name string) []string {
+	var words []string
+	start := 0
+	for i, r := range name {
+		if i > 0 && unicode.IsUpper(r) {
+			words = append(words, name[start:i])
+			start = i
+		}
+	}
+	return append(words, name[start:])
 }

@@ -71,6 +71,12 @@ import (
 // error is writable by any code that can see it, and an error value that
 // changes underneath a caller comparing against it is a fault nobody looks
 // for.
+//
+// The text of each one is its own name with the Err prefix taken off:
+// ErrClosed reads "closed". So the message a caller prints and the identifier
+// they looked it up by are the same words, and neither can drift from the
+// other. Context belongs in the wrapping at the place the error is returned,
+// not in the sentinel.
 type Error string
 
 // Error satisfies the error interface.
@@ -81,7 +87,7 @@ func (err Error) Error() string {
 // Error values.
 const (
 	// ErrClosed is returned by a Session that has been closed.
-	ErrClosed Error = "the session is closed"
+	ErrClosed Error = "closed"
 
 	// ErrInterrupted is returned when the user abandoned what was being read,
 	// which is Ctrl-C or Ctrl-G, and which asks for the reading to be given

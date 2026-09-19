@@ -24,7 +24,7 @@ import (
 // an empty step to wait for a banner.
 func Record(ctx context.Context, path string, s Session) (*Transcript, error) {
 	if len(s.Steps) == 0 {
-		return nil, ErrNoSteps
+		return nil, fmt.Errorf("recording the session %s: %w", s.Name, ErrNoSteps)
 	}
 	s = s.withDefaults()
 	// The recording runs in a temporary directory, so a relative path to the

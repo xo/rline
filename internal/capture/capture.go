@@ -21,7 +21,9 @@ import (
 // Error is an error.
 //
 // These are constants rather than variables so that nothing can reassign
-// one, as in the rline package itself.
+// one, as in the rline package itself, and the text of each is its own name
+// with the Err prefix taken off. Context belongs in the wrapping where the
+// error is returned.
 type Error string
 
 // Error satisfies the error interface.
@@ -32,10 +34,10 @@ func (err Error) Error() string {
 // Error values.
 const (
 	// ErrNoSteps is returned when a session carries no input.
-	ErrNoSteps Error = "session has no steps"
+	ErrNoSteps Error = "no steps"
 
 	// ErrUnsupported is returned by Record on a platform that cannot record.
-	ErrUnsupported Error = "recording is not supported on this platform"
+	ErrUnsupported Error = "unsupported"
 )
 
 // Key sequences that a terminal sends. These name the bytes that the sessions
