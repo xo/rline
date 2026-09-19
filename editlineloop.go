@@ -357,6 +357,36 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 	return line, ok, nil
 }
 
+// runEditLoop reads keys until the line is finished, and returns the key that
+// finished it.
+//
+// This is the loop itself, apart from the terminal being put into raw mode and
+// the history being kept, so that a test can drive it over a fixed set of keys
+// and look at the line afterwards. Reading the C, this is the body of the
+// while inside edit_line.
+func (ev *env) runEditLoop(e *editor) key.Code {
+	for {
+		ev.term.flush()
+		c := ev.readKey(e)
+		if ev.tty.resizeEvent() {
+			ev.resize(e)
+		}
+		// The hint is dropped after a possible resize, so that the resize
+		// measures the rows the hint was drawn on.
+		hadHint := e.hint.length() > 0
+		e.hint.clear()
+		e.hintHelp.clear()
+		// Moving into a hint accepts it rather than stepping over nothing.
+		if (c == key.Right || c == key.End) && hadHint {
+			ev.generateCompletions(e, true)
+			c = key.None
+		}
+		if ev.handleKey(e, c) {
+			return c
+		}
+	}
+}
+
 // editLine reads one line from the terminal. It returns the line, and false
 // when the user ended the input rather than finishing a line.
 //
@@ -374,27 +404,7 @@ func (ev *env) editLine(promptText string) (string, bool) {
 	// back and returning lands on it again.
 	ev.history.push("")
 
-	var c key.Code
-	for {
-		ev.term.flush()
-		c = ev.readKey(e)
-		if ev.tty.resizeEvent() {
-			ev.resize(e)
-		}
-		// The hint is dropped after a possible resize, so that the resize
-		// measures the rows the hint was drawn on.
-		hadHint := e.hint.length() > 0
-		e.hint.clear()
-		e.hintHelp.clear()
-		// Moving into a hint accepts it rather than stepping over nothing.
-		if (c == key.Right || c == key.End) && hadHint {
-			ev.generateCompletions(e, true)
-			c = key.None
-		}
-		if ev.handleKey(e, c) {
-			break
-		}
-	}
+	c := ev.runEditLoop(e)
 
 	e.cursorToEnd()
 	// One last draw, without brace matching, so no brace is left highlighted
