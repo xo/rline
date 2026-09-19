@@ -879,6 +879,25 @@ mechanism, but that is one step short of watching a row fill.
 Closing it needs one line in the example with a background left open, and a
 human at the console to see the row rather than a session reading bytes.
 
+## Why the baselines are files rather than assertions
+
+windows-vm keeps the example's banner as recorded bytes and diffs new runs
+against them, rather than asserting a pattern over them. That choice has paid
+three times, and the reason is worth stating: a pattern can be confidently
+wrong and produce a plausible number, and a byte diff cannot — it either
+matches or shows you the bytes.
+
+The three, all theirs, all caught by themselves, all failing by matching more
+than was meant. A search for an escaped tab matched the `t` in `select` and
+reported Tab as pressed when nobody had pressed it. An anchored pattern
+defeated by CRLF reported backspace as unpressed when it was. And a pattern
+meant to find a newline before an attribute reset was written with a `\n`
+that collapsed to a bare `n`, so it found the `n` in `rline`, `statement`,
+`Enter` and `showing`, and briefly looked like the colour bleed.
+
+Every one of those answers looked like a measurement. None of them cost
+anything, because the same run carried a byte diff that disagreed.
+
 ## Things that look like a platform bug and are not
 
 Two reports of "no colour on Windows" were the launcher rather than the port,
