@@ -1172,6 +1172,24 @@ of the suite catches is worth knowing about — it says the new test is
 narrower than it looks — but it is not a hole, and reporting it as one sends
 someone to write a test that already exists.
 
+`tools/mutate.sh` does this itself now, because the rule was a paragraph
+here and it caught both sessions anyway, the second time catching the person
+who wrote the paragraph. A run given a pattern that answers not caught runs
+the whole package before it says anything, and reports the narrow answer and
+the wide one together. A rule that has to be remembered at the moment of use
+is a rule that will be forgotten at the moment of use.
+
+Mutate every copy of the thing you are claiming about. Two methods that
+differ by one character are two mutations, not one. `Style` and `StyleRunes`
+both guard against a negative position; ken-mba mutated the guard in
+`StyleRunes`, found it unheld, and reported that neither was held. `Style`'s
+guard was held all along, by the highlighting corpus, which drives it with
+negative positions. The wrong half of that claim nearly became a rule in the
+section above before it was measured. This is the same shape as a test that
+covers one of two copies of a rule, which happened the same week to
+`Write` and `WriteString`: the difference is only whether the copy you
+skipped was in the test or in the mutation.
+
 Coverage answers whether a line ran, which is not the question anyone is
 asking, and it gets both of the shapes below wrong in opposite directions. A
 check tagged out of the build never runs and coverage shows the gap, which is

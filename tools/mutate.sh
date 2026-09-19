@@ -45,15 +45,33 @@ if ! go build ./... >/dev/null 2>&1; then
     echo "DID NOT COMPILE: nothing was tested, so this says nothing about the test"
     exit 1
 fi
+# No pattern means the whole package, which is the honest default: a mutation
+# only the rest of the suite catches says the test under defence is narrower
+# than it looks, but it is not a hole.
+#
+# A pattern narrows it, and a narrow run that answers NOT CAUGHT is the
+# answer most likely to be wrong, because the test that would have caught it
+# may simply not have been asked. So that answer is never reported on its
+# own: the whole package runs before anything is said. The rule used to be a
+# paragraph in PLAN.md and it caught both sessions, so it is a step here now.
+wide=
 if [ -n "$pattern" ]; then
     go test -count=1 -run "$pattern" ./... >/dev/null 2>&1
+    rc=$?
+    if [ $rc -eq 0 ]; then
+        go test -count=1 ./... >/dev/null 2>&1
+        wide=$?
+    fi
 else
-    # No pattern means the whole package, which is the honest default: a
-    # mutation only the rest of the suite catches says the test under
-    # defence is narrower than it looks, but it is not a hole.
     go test -count=1 ./... >/dev/null 2>&1
+    rc=$?
 fi
-rc=$?
 cp "$orig" "$file" || { echo "RESTORE FAILED"; exit 2; }
 cmp -s "$file" "$orig" || { echo "RESTORE FAILED"; exit 2; }
-[ $rc -ne 0 ] && echo "caught" || echo "NOT CAUGHT"
+if [ $rc -ne 0 ]; then
+    echo "caught"
+elif [ -n "$wide" ] && [ "$wide" -ne 0 ]; then
+    echo "NOT CAUGHT by $pattern, but caught by the rest of the package: the test under defence is narrower than it looks, and this is not a hole"
+else
+    echo "NOT CAUGHT"
+fi
