@@ -117,15 +117,18 @@ halves is one value too wide.
 The QUTF-8 encoder does encode a surrogate code point, and the decoder will not
 read one back. The encoder and the decoder disagree.
 
-Case-insensitive comparison compares C `char` values, and `char` is signed on
-x86-64. Any byte above 0x7f therefore sorts before every ASCII character. The
-port keeps that order, because the corpus comes from an x86-64 host.
+Case-insensitive comparison compares C `char` values, and the result depends on
+whether `char` is signed. Any byte above 0x7f sorts before every ASCII
+character when it is signed, and after it when it is unsigned.
 
-Whether this matters on another machine is not settled. Linux on arm64 makes
-`char` unsigned by default, which would reverse the order. Apple's arm64 ABI
-is reported to keep `char` signed, which would not. The macOS host has been
-asked to compile and run a one line program that answers this, and the answer
-goes here.
+This is settled. `char` is signed on x86-64, and signed on Apple arm64, which
+the macOS host confirmed by compiling and running a test program. The whole
+corpus was regenerated on that host and matched all 18576 lines with no
+difference. The port keeps the signed order.
+
+The cause is the ABI, not the architecture. Apple's arm64 ABI specifies signed
+`char`. The Linux AArch64 ABI makes it unsigned. So a Linux arm64 host would
+produce a different corpus, and that case is untested.
 
 ## The width table
 

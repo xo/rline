@@ -119,6 +119,21 @@ var Sessions = []Session{
 		},
 	},
 	{
+		Name:  "hangul-jamo",
+		About: "type Hangul Jamo, where the C width table and go-runewidth disagree",
+		// U+1100 to U+115F are width 2 in both tables. U+1160 to U+11FF are
+		// width 0 in the C table and width 1 in go-runewidth, and isocline
+		// computes cursor movement from that width. This session types one
+		// decomposed syllable, so the disagreement shows up as a difference in
+		// the recorded cursor positions once the Go port replays it. Without
+		// this session no recording touches a divergent code point at all.
+		Steps: []Step{
+			{Send: "\u1100\u1161\u11a8"},
+			{Send: KeyEnter},
+			{Send: "exit" + KeyEnter},
+		},
+	},
+	{
 		Name:  "ctrl-d",
 		About: "leave with Ctrl-D instead of typing exit",
 		Steps: []Step{

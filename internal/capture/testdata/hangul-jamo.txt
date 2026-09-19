@@ -1,0 +1,87 @@
+# rline capture transcript v1
+session: hangul-jamo
+about: type Hangul Jamo, where the C width table and go-runewidth disagree
+term: xterm-256color
+size: 80x24
+
+## step 0
+send:
+
+recv:
+\e[m\e[1mIsocline\e[22m sample program:\r
+\n
+- Type 'exit' to quit. (or use \e[38;5;244m\e[4mctrl-d\e[39m\e[24m).\r
+\n
+- Press \e[38;5;244m\e[4mF1\e[39m\e[24m for help on editing commands.\r
+\n
+- Use \e[38;5;244m\e[4mshift-tab\e[39m\e[24m for multiline input. (or \e[38;5;244m\e[4mctrl-enter\e[39m\e[24m, or \e[38;5;244m\e[4mctrl-j\e[39m\e[24m)\r
+\n
+- Type 'p' (or 'id', 'f', or 'h') followed by tab for completion.\r
+\n
+- Type 'fun' or 'int' to see syntax highlighting\r
+\n
+- Use \e[38;5;244m\e[4mctrl-r\e[39m\e[24m to search the history.\r
+\n
+\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 1
+send:
+각
+
+recv:
+\r
+\e[31misoclinε> \e[39mᄀ\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39m가\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39m각\e[K\r
+\e[12C
+
+
+## step 2
+send:
+\r
+
+recv:
+\r
+\e[31misoclinε> \e[39m각\e[K\r
+\e[12C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+각\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 3
+send:
+exit\r
+
+recv:
+\r
+\e[31misoclinε> \e[39me\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mex\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39mexi\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+exit\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+done\r
+\n
+
