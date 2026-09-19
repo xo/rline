@@ -144,74 +144,109 @@ func (e *editor) posIsAtEnd() bool {
 // Moving the cursor
 //-------------------------------------------------------------
 
-// cursorLeft moves the cursor one character to the left.
-func (e *editor) cursorLeft() {
-	if prev, _ := e.input.prev(e.pos); prev >= 0 {
-		e.pos = prev
+// cursorLeft moves the cursor one character to the left. It reports whether
+// it moved.
+//
+// Every operation here that can find nothing to do says so, because the caller
+// only redraws when something changed. The C returns early in the same places,
+// before it reaches its own redraw.
+func (e *editor) cursorLeft() bool {
+	prev, _ := e.input.prev(e.pos)
+	if prev < 0 {
+		return false
 	}
+	e.pos = prev
+	return true
 }
 
-// cursorRight moves the cursor one character to the right.
-func (e *editor) cursorRight() {
-	if next, _ := e.input.next(e.pos); next >= 0 {
-		e.pos = next
+// cursorRight moves the cursor one character to the right. It reports whether
+// it moved.
+func (e *editor) cursorRight() bool {
+	next, _ := e.input.next(e.pos)
+	if next < 0 {
+		return false
 	}
+	e.pos = next
+	return true
 }
 
-// cursorLineEnd moves the cursor to the end of the line it is on.
-func (e *editor) cursorLineEnd() {
-	if end := e.input.findLineEnd(e.pos); end >= 0 {
-		e.pos = end
+// cursorLineEnd moves the cursor to the end of the line it is on. It reports whether it moved.
+func (e *editor) cursorLineEnd() bool {
+	p := e.input.findLineEnd(e.pos)
+	if p < 0 {
+		return false
 	}
+	e.pos = p
+	return true
 }
 
-// cursorLineStart moves the cursor to the start of the line it is on.
-func (e *editor) cursorLineStart() {
-	if start := e.input.findLineStart(e.pos); start >= 0 {
-		e.pos = start
+// cursorLineStart moves the cursor to the start of the line it is on. It reports whether it moved.
+func (e *editor) cursorLineStart() bool {
+	p := e.input.findLineStart(e.pos)
+	if p < 0 {
+		return false
 	}
+	e.pos = p
+	return true
 }
 
-// cursorNextWord moves the cursor to the end of the word.
-func (e *editor) cursorNextWord() {
-	if end := e.input.findWordEnd(e.pos); end >= 0 {
-		e.pos = end
+// cursorNextWord moves the cursor to the end of the word. It reports whether it moved.
+func (e *editor) cursorNextWord() bool {
+	p := e.input.findWordEnd(e.pos)
+	if p < 0 {
+		return false
 	}
+	e.pos = p
+	return true
 }
 
-// cursorPrevWord moves the cursor to the start of the word.
-func (e *editor) cursorPrevWord() {
-	if start := e.input.findWordStart(e.pos); start >= 0 {
-		e.pos = start
+// cursorPrevWord moves the cursor to the start of the word. It reports whether it moved.
+func (e *editor) cursorPrevWord() bool {
+	p := e.input.findWordStart(e.pos)
+	if p < 0 {
+		return false
 	}
+	e.pos = p
+	return true
 }
 
-// cursorNextWSWord moves the cursor past the next run of non-space.
-func (e *editor) cursorNextWSWord() {
-	if end := e.input.findWSWordEnd(e.pos); end >= 0 {
-		e.pos = end
+// cursorNextWSWord moves the cursor past the next run of non-space. It reports whether it moved.
+func (e *editor) cursorNextWSWord() bool {
+	p := e.input.findWSWordEnd(e.pos)
+	if p < 0 {
+		return false
 	}
+	e.pos = p
+	return true
 }
 
-// cursorPrevWSWord moves the cursor back over the last run of non-space.
-func (e *editor) cursorPrevWSWord() {
-	if start := e.input.findWSWordStart(e.pos); start >= 0 {
-		e.pos = start
+// cursorPrevWSWord moves the cursor back over the last run of non-space. It reports whether it moved.
+func (e *editor) cursorPrevWSWord() bool {
+	p := e.input.findWSWordStart(e.pos)
+	if p < 0 {
+		return false
 	}
+	e.pos = p
+	return true
 }
 
-// cursorToStart moves the cursor to the start of the whole line.
-func (e *editor) cursorToStart() { e.pos = 0 }
+// cursorToStart moves the cursor to the start of the whole line. It always
+// counts as a move, because the C redraws there without checking.
+func (e *editor) cursorToStart() bool { e.pos = 0; return true }
 
-// cursorToEnd moves the cursor to the end of the whole line.
-func (e *editor) cursorToEnd() { e.pos = e.input.length() }
+// cursorToEnd moves the cursor to the end of the whole line. It always counts
+// as a move, for the same reason as cursorToStart.
+func (e *editor) cursorToEnd() bool { e.pos = e.input.length(); return true }
 
 // cursorMatchBrace moves the cursor to the brace that goes with the one it is
 // on.
-func (e *editor) cursorMatchBrace() {
-	if match, _ := findMatchingBrace(e.input.string(), e.pos, e.opts.MatchBraces); match >= 0 {
-		e.pos = match
+func (e *editor) cursorMatchBrace() bool {
+	match, _ := findMatchingBrace(e.input.string(), e.pos, e.opts.MatchBraces)
+	if match < 0 {
+		return false
 	}
+	e.pos = match
+	return true
 }
 
 //-------------------------------------------------------------
@@ -219,43 +254,46 @@ func (e *editor) cursorMatchBrace() {
 //-------------------------------------------------------------
 
 // backspace deletes the character before the cursor.
-func (e *editor) backspace() {
+func (e *editor) backspace() bool {
 	if e.pos <= 0 {
-		return
+		return false
 	}
 	e.startModify()
 	e.pos = e.input.deleteCharBefore(e.pos)
+	return true
 }
 
 // deleteChar deletes the character under the cursor.
-func (e *editor) deleteChar() {
+func (e *editor) deleteChar() bool {
 	if e.pos >= e.input.length() {
-		return
+		return false
 	}
 	e.startModify()
 	e.input.deleteCharAt(e.pos)
+	return true
 }
 
 // deleteAll empties the line.
-func (e *editor) deleteAll() {
+func (e *editor) deleteAll() bool {
 	if e.input.length() <= 0 {
-		return
+		return false
 	}
 	e.startModify()
 	e.input.clear()
 	e.pos = 0
+	return true
 }
 
 // deleteToLineEnd deletes from the cursor to the end of the line. On an empty
 // line it takes the line break as well, so no blank line is left.
-func (e *editor) deleteToLineEnd() {
+func (e *editor) deleteToLineEnd() bool {
 	start := e.input.findLineStart(e.pos)
 	if start < 0 {
-		return
+		return false
 	}
 	end := e.input.findLineEnd(e.pos)
 	if end < 0 {
-		return
+		return false
 	}
 	e.startModify()
 	switch {
@@ -265,17 +303,18 @@ func (e *editor) deleteToLineEnd() {
 		e.pos--
 	}
 	e.input.deleteFromTo(e.pos, end)
+	return true
 }
 
 // deleteToLineStart deletes from the start of the line to the cursor.
-func (e *editor) deleteToLineStart() {
+func (e *editor) deleteToLineStart() bool {
 	start := e.input.findLineStart(e.pos)
 	if start < 0 {
-		return
+		return false
 	}
 	end := e.input.findLineEnd(e.pos)
 	if end < 0 {
-		return
+		return false
 	}
 	e.startModify()
 	goRight := false
@@ -288,18 +327,19 @@ func (e *editor) deleteToLineStart() {
 	if goRight {
 		e.cursorRight()
 	}
+	return true
 }
 
 // deleteLine deletes the whole line the cursor is on, and the line break with
 // it so that no blank line is left.
-func (e *editor) deleteLine() {
+func (e *editor) deleteLine() bool {
 	start := e.input.findLineStart(e.pos)
 	if start < 0 {
-		return
+		return false
 	}
 	end := e.input.findLineEnd(e.pos)
 	if end < 0 {
-		return
+		return false
 	}
 	e.startModify()
 	goRight := false
@@ -315,60 +355,64 @@ func (e *editor) deleteLine() {
 	if goRight {
 		e.cursorRight()
 	}
+	return true
 }
 
 // deleteToWordStart deletes back to the start of the word.
-func (e *editor) deleteToWordStart() {
-	e.deleteBackTo(e.input.findWordStart(e.pos))
+func (e *editor) deleteToWordStart() bool {
+	return e.deleteBackTo(e.input.findWordStart(e.pos))
 }
 
 // deleteToWordEnd deletes forward to the end of the word.
-func (e *editor) deleteToWordEnd() {
-	e.deleteForwardTo(e.input.findWordEnd(e.pos))
+func (e *editor) deleteToWordEnd() bool {
+	return e.deleteForwardTo(e.input.findWordEnd(e.pos))
 }
 
 // deleteToWSWordStart deletes back over the last run of non-space.
-func (e *editor) deleteToWSWordStart() {
-	e.deleteBackTo(e.input.findWSWordStart(e.pos))
+func (e *editor) deleteToWSWordStart() bool {
+	return e.deleteBackTo(e.input.findWSWordStart(e.pos))
 }
 
 // deleteToWSWordEnd deletes forward over the next run of non-space.
-func (e *editor) deleteToWSWordEnd() {
-	e.deleteForwardTo(e.input.findWSWordEnd(e.pos))
+func (e *editor) deleteToWSWordEnd() bool {
+	return e.deleteForwardTo(e.input.findWSWordEnd(e.pos))
 }
 
 // deleteBackTo deletes from start to the cursor and puts the cursor there.
-func (e *editor) deleteBackTo(start int) {
+func (e *editor) deleteBackTo(start int) bool {
 	if start < 0 {
-		return
+		return false
 	}
 	e.startModify()
 	e.input.deleteFromTo(start, e.pos)
 	e.pos = start
+	return true
 }
 
 // deleteForwardTo deletes from the cursor up to end.
-func (e *editor) deleteForwardTo(end int) {
+func (e *editor) deleteForwardTo(end int) bool {
 	if end < 0 {
-		return
+		return false
 	}
 	e.startModify()
 	e.input.deleteFromTo(e.pos, end)
+	return true
 }
 
 // deleteWord deletes the whole word the cursor is in.
-func (e *editor) deleteWord() {
+func (e *editor) deleteWord() bool {
 	start := e.input.findWordStart(e.pos)
 	if start < 0 {
-		return
+		return false
 	}
 	end := e.input.findWordEnd(e.pos)
 	if end < 0 {
-		return
+		return false
 	}
 	e.startModify()
 	e.input.deleteFromTo(start, end)
 	e.pos = start
+	return true
 }
 
 //-------------------------------------------------------------
@@ -376,23 +420,25 @@ func (e *editor) deleteWord() {
 //-------------------------------------------------------------
 
 // swapChar swaps the character before the cursor with the one after it.
-func (e *editor) swapChar() {
+func (e *editor) swapChar() bool {
 	if e.pos <= 0 || e.pos == e.input.length() {
-		return
+		return false
 	}
 	e.startModify()
 	e.pos = e.input.swapChar(e.pos)
+	return true
 }
 
 // multilineEOL turns the line continuation character before the cursor into a
 // real line break.
-func (e *editor) multilineEOL() {
+func (e *editor) multilineEOL() bool {
 	if e.pos <= 0 || e.input.charAt(e.pos-1) != e.opts.MultilineEOL {
-		return
+		return false
 	}
 	e.startModify()
 	e.input.deleteAt(e.pos-1, 1)
 	e.input.insertAt("\n", e.pos-1)
+	return true
 }
 
 // insertRune puts one character in at the cursor.

@@ -1,5 +1,7 @@
 package rline
 
+import "time"
+
 // Drawing the line being edited.
 //
 // The editor redraws the whole line after every change, rather than tracking
@@ -38,7 +40,15 @@ type env struct {
 	noMultilineIndent bool
 	noHighlight       bool
 	noBraceMatch      bool
+	noHint            bool
 	singlelineOnly    bool
+
+	// completeAutoTab keeps completing while there is only one answer.
+	completeAutoTab bool
+
+	// hintDelay is how long to wait before showing a hint. Zero shows it at
+	// once.
+	hintDelay time.Duration
 }
 
 // promptWidth returns how wide the prompt is on the first row, and on the rows

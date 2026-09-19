@@ -5,17 +5,25 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
-const (
-	// refreshCorpusPath holds what the C drew when it redrew a line.
-	refreshCorpusPath = "testdata/refresh.txt"
+// refreshProbePath is where tools/build-probe-refresh.sh puts the probe.
+const refreshProbePath = ".build/probe-refresh"
 
-	// refreshProbePath is where tools/build-probe-refresh.sh puts the probe.
-	refreshProbePath = ".build/probe-refresh"
-)
+// refreshCorpusPath returns where the recordings for the running system live.
+//
+// This corpus is kept per system, unlike the others, because the C code it
+// records is not the same on every system: the mark at the end of a wrapped
+// row is chosen at compile time. The rule is that a corpus goes under a system
+// directory when the C it records has a platform branch in it, and stays a
+// single file when it does not.
+func refreshCorpusPath() string {
+	return filepath.Join("testdata", runtime.GOOS, "refresh.txt")
+}
 
 // The settings the probe redraws under.
 var (
@@ -36,9 +44,13 @@ func TestRefreshMatchesC(t *testing.T) {
 	if *update {
 		refreshRegenerate(t)
 	}
-	b, err := os.ReadFile(refreshCorpusPath)
+	path := refreshCorpusPath()
+	b, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("reading the corpus: %v (run tools/build-probe-refresh.sh, then go test -update)", err)
+		t.Fatalf("no recordings for %s: %v\n"+
+			"Record them on a %s machine with:\n"+
+			"  ./tools/build-probe-refresh.sh && go test . -run TestRefreshMatchesC -update",
+			runtime.GOOS, err, runtime.GOOS)
 	}
 	want := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
 	got := refreshReplay(t)
@@ -53,7 +65,7 @@ func TestRefreshMatchesC(t *testing.T) {
 		}
 		bad++
 		if bad <= 20 {
-			t.Errorf("%s:%d\n  got:  %s\n  want: %s", refreshCorpusPath, i+1, g, w)
+			t.Errorf("%s:%d\n  got:  %s\n  want: %s", path, i+1, g, w)
 		}
 	}
 	if bad > 20 {
@@ -144,8 +156,12 @@ func refreshRegenerate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("running the probe: %v", err)
 	}
-	if err := os.WriteFile(refreshCorpusPath, out, 0o644); err != nil {
-		t.Fatalf("writing %s: %v", refreshCorpusPath, err)
+	path := refreshCorpusPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("creating %s: %v", filepath.Dir(path), err)
 	}
-	t.Logf("wrote %s: %d bytes", refreshCorpusPath, len(out))
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatalf("writing %s: %v", path, err)
+	}
+	t.Logf("wrote %s: %d bytes", path, len(out))
 }

@@ -199,9 +199,16 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     a hint or none, three kinds of content shown below the line, and both
     settings of the indent and brace matching.
 
-    What is left is the key dispatch and the main loop, and then
-    `editline_help.c`, `editline_history.c` and `editline_completion.c`, which
-    are textual includes of `editline.c` rather than separate units.
+    The key dispatch and the main loop are done as well, in
+    `editlineloop.go`, together with the hint, the resize and the reading of
+    one line from start to finish.
+
+    What is left is `editline_help.c`, `editline_history.c` and
+    `editline_completion.c`, which are textual includes of `editline.c` rather
+    than separate units. The three entry points the dispatch calls are
+    declared in `editlinehistory.go`, `editlinecompletion.go` and
+    `editlinehelp.go`, so the dispatch is complete and the seam sits in one
+    place.
 12. `isocline.c`. This is the public API. API means Application Programming
     Interface.
 
@@ -552,6 +559,24 @@ which is a rewrite rather than a port, and the capture harness cannot record on
 Windows either. Code that nobody can run and no corpus can check is worse than
 a gap that is written down. `ttydev_other.go` returns an error there. This
 belongs to whoever owns `tty.c` once a host exists.
+
+## Where a corpus lives
+
+A corpus is a single file under `testdata/` when the C code it records is the
+same on every system, which is true of most of them. It goes under
+`testdata/<goos>/` when the C has a platform branch in it, because then each
+system has to compare against what its own C build produces.
+
+Two are per system so far. `internal/capture/testdata/<goos>/` holds the
+recorded sessions, because `term.c` asks the terminal for its color palette
+only on macOS. `testdata/<goos>/refresh.txt` holds the redraws, because the
+mark at the end of a wrapped row is chosen at compile time.
+
+Getting this wrong is quiet rather than loud. The code was made per system
+before the corpus was, and the result was that macOS compared its own glyph
+against a recording made on Linux and failed in 10 of 1584 cases. A missing
+corpus for the running system is therefore a failure with a message saying how
+to record one, never a skip.
 
 ## Checks
 

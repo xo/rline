@@ -27,7 +27,10 @@ var edTexts = []string{
 // edOps are the operations the probe runs, in the order it runs them.
 var edOps = []struct {
 	name string
-	fn   func(*editor)
+	// fn reports whether it changed anything, which the key dispatch uses to
+	// decide whether to redraw. The corpus does not record that, because the
+	// C has no such value: it returns early instead.
+	fn func(*editor) bool
 }{
 	{"left", (*editor).cursorLeft},
 	{"right", (*editor).cursorRight},
@@ -116,7 +119,7 @@ func edReplay() []string {
 		for pos := 0; pos <= len(text); pos++ {
 			for _, op := range edOps {
 				e := start(text, pos)
-				op.fn(e)
+				_ = op.fn(e)
 				out = append(out, report(op.name, text, pos, e))
 			}
 		}
