@@ -115,8 +115,19 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    `color_from_ansi256`, and the 256 color table was extracted from the C
    source rather than typed out. `tools/build-probe-attr.sh` builds a fourth
    probe, and `testdata/attr.txt` records 1678 of those calls.
-6. `term.c` and `term_color.c`. This writes to the terminal and reduces colors
-   to what the terminal accepts.
+6. `term.c` and `term_color.c`. The color reduction is done, in
+   `termcolor.go`. A terminal that understands fewer colors than a style asks
+   for needs the nearest one it does have, which is a weighted euclidean
+   distance whose weights shift with how much red is in the color, plus a
+   penalty for trading a gray for a color. `tools/build-probe-termcolor.sh`
+   builds a sixth probe, and `testdata/termcolor.txt` records 5522 of those
+   calls. The C keeps a sixteen entry cache in front of the match, which the
+   port leaves out, because the answer depends on nothing but the palette and
+   the color.
+
+   What is left is `term.c` itself: the writer, the buffering, cursor
+   movement, the attribute state, and working out the size of the terminal
+   and how much color it supports.
 7. `bbcode.c` and `bbcode_colors.c`. This parses markup such as
    `[red]text[/red]`.
 8. `history.c` and `undo.c`. Done. `history.go` holds the list of lines the
