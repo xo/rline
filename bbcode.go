@@ -561,16 +561,12 @@ func (bb *bbCode) parseTagContent(s string) bbTag {
 }
 
 // styleOpen opens a style on the terminal.
-//
-//nolint:unused // wired up by editline and the public API
 func (bb *bbCode) styleOpen(spec string) {
 	t := bb.parseTagContent(spec)
 	bb.term.setAttr(bb.openTag(0, t, bb.term.getAttr()))
 }
 
 // styleClose closes the innermost style on the terminal.
-//
-//nolint:unused // wired up by editline and the public API
 func (bb *bbCode) styleClose(spec string) {
 	base := len(bb.tags) - 1
 	bb.parseTagContent(spec)
@@ -738,8 +734,6 @@ func (bb *bbCode) print(s string) {
 }
 
 // println writes markup to the terminal and ends the line.
-//
-//nolint:unused // wired up by editline and the public API
 func (bb *bbCode) println(s string) {
 	bb.print(s)
 	bb.term.writeln("")
@@ -961,8 +955,6 @@ const maxBraceNesting = 64
 
 // Highlighter marks up a line. It is given the line and an environment to
 // mark it through.
-//
-//nolint:unused // wired up by editline, step 11
 type Highlighter interface {
 	Highlight(l *LineStyle)
 }
@@ -995,8 +987,6 @@ type LineStyle struct {
 
 // runHighlight fills attrs with one attribute per byte of s and then lets the
 // highlighter mark it up. A nil highlighter leaves the line unmarked.
-//
-//nolint:unused // wired up by editline, step 11
 func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn Highlighter) {
 	if len(s) == 0 {
 		return

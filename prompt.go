@@ -27,8 +27,6 @@ import (
 //
 // This is ic_env_t, minus the fields that belong to starting up and shutting
 // down, which the public API owns.
-//
-//nolint:unused // the key dispatch and the main loop fill in the rest
 type env struct {
 	// Where input comes from and output goes.
 	term *term
@@ -96,16 +94,12 @@ func (ev *env) promptWidth(e *editor, inExtra bool) (int, int) {
 }
 
 // rowCol returns how many rows the line takes and where the cursor sits.
-//
-//nolint:unused // used by the key dispatch, next slice
 func (ev *env) rowCol(e *editor) (int, rowCol) {
 	promptw, cpromptw := ev.promptWidth(e, false)
 	return e.input.rowColAtPos(e.termW, promptw, cpromptw, e.pos)
 }
 
 // setPosAtRowCol moves the cursor to a row and column on screen.
-//
-//nolint:unused // used by the key dispatch, next slice
 func (ev *env) setPosAtRowCol(e *editor, row, col int) bool {
 	promptw, cpromptw := ev.promptWidth(e, false)
 	pos := e.input.posAtRowCol(e.termW, promptw, cpromptw, row, col)
@@ -117,8 +111,6 @@ func (ev *env) setPosAtRowCol(e *editor, row, col int) bool {
 }
 
 // posIsAtRowEnd reports whether the cursor is at the end of a screen row.
-//
-//nolint:unused // used by the key dispatch, next slice
 func (ev *env) posIsAtRowEnd(e *editor) bool {
 	_, rc := ev.rowCol(e)
 	return rc.lastOnRow
@@ -282,8 +274,6 @@ func (ev *env) refresh(e *editor) {
 }
 
 // clear wipes the rows the line is drawn on.
-//
-//nolint:unused // used by the key dispatch, next slice
 func (ev *env) clear(e *editor) {
 	ev.term.attrReset()
 	ev.term.up(e.curRow)
@@ -295,9 +285,6 @@ func (ev *env) clear(e *editor) {
 }
 
 // clearScreen wipes the screen and draws the line again.
-//
-//nolint:unused // used by the key dispatch, next slice
-//nolint:unused // used by the key dispatch, next slice
 func (ev *env) clearScreen(e *editor) {
 	rows := e.curRows
 	e.curRows = ev.term.getHeight() - 1
@@ -312,14 +299,9 @@ func (ev *env) clearScreen(e *editor) {
 // Reading a line: the hint, resizing, the key dispatch and the loop.
 //
 // Ported from isocline/src/editline.c.
-//
-// Nothing here has a caller yet. The public API in step 12 is what starts the
-// loop, and until then every function below carries a nolint saying so.
 
 // appendHintHelp puts the help text that goes with a hint below the line, or
 // clears it when there is none.
-//
-//nolint:unused // started by the public API, step 12
 func (e *editor) appendHintHelp(help string) {
 	e.hintHelp.Reset()
 	if help == "" {
@@ -334,8 +316,6 @@ func (e *editor) appendHintHelp(help string) {
 //
 // A hint is the rest of the only completion that fits. When more than one
 // fits there is nothing to hint at.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) refreshHint(e *editor) {
 	if ev.noHint || ev.hintDelay > 0 {
 		// Draw without the hint first, so the line appears at once and the
@@ -369,8 +349,6 @@ func (ev *env) refreshHint(e *editor) {
 
 // extendHint keeps completing past the hint while each step has exactly one
 // answer, so that a chain of forced completions shows as one hint.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) extendHint(e *editor, hint string) {
 	var sb buffer
 	sb.replace(e.input.string())
@@ -396,8 +374,6 @@ func (ev *env) extendHint(e *editor, hint string) {
 
 // resize works out the new layout after the terminal changed size, and
 // reports whether it did change.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) resize(e *editor) bool {
 	ev.term.updateDim()
 	newW := ev.term.getWidth()
@@ -433,8 +409,6 @@ func (ev *env) resize(e *editor) bool {
 
 // readKey waits for the next key, showing the hint if one is pending and the
 // user pauses long enough.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) readKey(e *editor) key.Code {
 	if ev.hintDelay <= 0 || e.hint.Len() == 0 {
 		return ev.tty.read()
@@ -455,8 +429,6 @@ func (ev *env) readKey(e *editor) key.Code {
 // act redraws when an operation changed something. The C redraws inside each
 // operation, after the early return that leaves when there is nothing to do,
 // so an operation that finds nothing writes no bytes at all.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) act(e *editor, changed bool) {
 	if changed {
 		ev.refresh(e)
@@ -464,8 +436,6 @@ func (ev *env) act(e *editor, changed bool) {
 }
 
 // handleKey acts on one key and reports whether the line is finished.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) handleKey(e *editor, c key.Code) bool {
 	switch c {
 	case key.Enter:
@@ -509,8 +479,6 @@ func (ev *env) handleKey(e *editor, c key.Code) bool {
 }
 
 // editKey acts on a key that does not finish the line.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) editKey(e *editor, c key.Code) {
 	switch c {
 	case key.EventResize:
@@ -612,8 +580,6 @@ func (ev *env) editKey(e *editor, c key.Code) {
 
 // cursorRowUp moves the cursor one screen row up, or walks back through the
 // history when it is already on the first row.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) cursorRowUp(e *editor) {
 	_, rc := ev.rowCol(e)
 	if rc.row == 0 {
@@ -627,8 +593,6 @@ func (ev *env) cursorRowUp(e *editor) {
 
 // cursorRowDown moves the cursor one screen row down, or walks forward
 // through the history when it is already on the last row.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) cursorRowDown(e *editor) {
 	rows, rc := ev.rowCol(e)
 	if rc.row+1 >= rows {
@@ -700,8 +664,6 @@ func (ev *env) runEditLoop(e *editor) key.Code {
 // the user ended the input rather than finishing a line, and the key that
 // finished it, which is how the caller tells an abandoned line from an empty
 // one.
-//
-//nolint:unused // started by the public API, step 12
 func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	e := &editor{
 		opts:       ev.opts,

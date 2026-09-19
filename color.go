@@ -120,20 +120,13 @@ func cap8(i int) uint32 {
 	return uint32(i)
 }
 
-// isRGB and rgb are used when term_color.c reduces a color to what a terminal
-// accepts, which is step 6.
-//
 // isRGB reports whether the color carries an RGB value rather than a palette
 // code.
-//
-//nolint:unused // wired up when term_color.c lands
 func (c Color) isRGB() bool {
 	return c >= rgbFlag
 }
 
 // rgb returns the red, green and blue components of an RGB color.
-//
-//nolint:unused // wired up when term_color.c lands
 func (c Color) rgb() (int, int, int) {
 	return int(c>>16) & 0xFF, int(c>>8) & 0xFF, int(c) & 0xFF
 }
@@ -476,16 +469,12 @@ func (ab *attrBuf) slice(n int) []attr {
 	return ab.attrs
 }
 
-// at is used by the bbcode parser, which is step 7.
-//
 // at returns the attribute at pos, or nothing when pos is outside the buffer.
 //
 // The C code tests pos against the count with the wrong comparison, so at the
 // one position just past the end it reads a slot it never wrote. That is
 // undefined behavior rather than a wrong answer, so there is nothing to
 // reproduce. This returns the empty attribute there.
-//
-//nolint:unused // wired up when bbcode.c lands
 func (ab *attrBuf) at(pos int) attr {
 	if ab == nil || pos < 0 || pos >= len(ab.attrs) {
 		return attr{}

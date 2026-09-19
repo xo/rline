@@ -206,24 +206,6 @@ func (t *term) getHeight() int { return t.height }
 // colorBits returns how many bits of color the terminal takes.
 func (t *term) colorBits() int { return t.palette.bits() }
 
-// enableBeep turns the beep on or off, and returns what it was.
-//
-//nolint:unused // wired up by the public API, step 12
-func (t *term) enableBeep(on bool) bool {
-	was := t.silent
-	t.silent = !on
-	return was
-}
-
-// enableColor turns color on or off, and returns whether it was on.
-//
-//nolint:unused // wired up by the public API, step 12
-func (t *term) enableColor(on bool) bool {
-	was := !t.nocolor
-	t.nocolor = !on
-	return was
-}
-
 // startRaw notes that raw mode is wanted. On a Unix system the tty does the
 // work, so this only counts.
 func (t *term) startRaw() { t.rawEnabled++ }
@@ -293,8 +275,6 @@ func (t *term) writef(format string, args ...any) {
 //
 // The C writes to standard error rather than to the terminal, so the bell
 // still sounds while output is being collected. The port does the same.
-//
-//nolint:unused // wired up by the public API, step 12
 func (t *term) beep() {
 	if t.silent {
 		return

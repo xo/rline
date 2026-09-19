@@ -39,8 +39,6 @@ type editOptions struct {
 }
 
 // editor holds a line being edited.
-//
-//nolint:unused // the redraw and the key dispatch fill in the rest, next slice
 type editor struct {
 	// The line and where the cursor is in it.
 	input buffer
@@ -97,8 +95,6 @@ func (e *editor) undoCapture() {
 }
 
 // undoForget drops the most recent recorded version.
-//
-//nolint:unused // used by the key dispatch, next slice
 func (e *editor) undoForget() {
 	if e.disableUndo {
 		return
@@ -148,8 +144,6 @@ func (e *editor) startModify() {
 }
 
 // posIsAtEnd reports whether the cursor sits after the last character.
-//
-//nolint:unused // used by the key dispatch, next slice
 func (e *editor) posIsAtEnd() bool {
 	return e.pos == e.input.length()
 }
@@ -456,8 +450,6 @@ func (e *editor) multilineEOL() bool {
 }
 
 // insertRune puts one character in at the cursor.
-//
-//nolint:unused // used by the key dispatch, next slice
 func (e *editor) insertRune(r rune) {
 	e.startModify()
 	if next := e.input.insertRuneAt(r, e.pos); next >= 0 {
