@@ -948,6 +948,16 @@ fifth, a shared start shorter than the amount the entries take away, needed
 a case that was not there; nothing said so until the guard was deleted and
 the corpus stayed green.
 
+Reading the exit status matters twice as much when attacking a corpus. A
+mutation that was never applied looks exactly like a mutation that was not
+caught, and the answer it suggests — add a case — is the wrong work. Both
+sessions hit this from different directions: a shell loop that counted lines
+of output rather than reading the return code, where BSD sed had taken the
+expression as a backup suffix and patched nothing; and a `go test ... | grep
+... && git commit`, where grep succeeding masked the test failing. Patch,
+assert the file actually changed, run the test, read the return code, restore
+the file.
+
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.
 Before landing a corpus, break the code it covers on purpose, once per thing
