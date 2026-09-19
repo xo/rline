@@ -80,6 +80,7 @@ func run() error {
 	r.Println("[b]rline[/b] SQL example.")
 	r.Println("[ic-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
 	r.Println("[ic-info]Enter carries on until then, so up and down move between the rows.[/]")
+	r.Println(`[ic-info]\pass reads a password without showing it, then echoes it back.[/]`)
 
 	// When there is no terminal to edit on, ReadLine hands back one line at a
 	// time and WithContinue never runs, so the statement is joined here
@@ -108,6 +109,29 @@ func run() error {
 			pending.Reset()
 		}
 		text := strings.TrimSpace(line)
+		if i := strings.LastIndexByte(text, '\n'); i >= 0 {
+			// A command is whatever is on the last row, so it works after a
+			// statement has been started.
+			text = strings.TrimSpace(text[i+1:])
+		}
+		if text == `\pass` {
+			// Reading something that must not be shown, the way usql asks for
+			// a database password.
+			pw, err := r.Password("password: ")
+			switch {
+			case errors.Is(err, rline.ErrInterrupted):
+				r.Println("[ic-info]cancelled[/]")
+				continue
+			case errors.Is(err, io.EOF):
+				return nil
+			case err != nil:
+				return fmt.Errorf("reading the password: %w", err)
+			}
+			// Echoed on purpose, so that what Password collected can be
+			// checked against what was typed. A real program would not.
+			_, _ = fmt.Fprintf(r, "password was %q (%d bytes)\n", pw, len(pw))
+			continue
+		}
 		if text == "" || isQuit(text) {
 			if isQuit(text) {
 				return nil
@@ -139,14 +163,25 @@ func isQuit(text string) bool {
 // incomplete reports whether a statement is unfinished, so that Enter starts
 // another row rather than running it.
 //
-// A statement is finished at a semicolon. A person asking to leave is finished
-// too, or the word would be swallowed into a statement that never ends.
+// A statement is finished at a semicolon. A backslash command is finished at
+// the end of its row, and so is a person asking to leave, or either would be
+// swallowed into a statement that never ends.
 func incomplete(line string) bool {
 	text := strings.TrimSpace(line)
-	if text == "" || isQuit(text) {
+	if text == "" || isCommand(text) {
 		return false
 	}
 	return !strings.HasSuffix(text, ";")
+}
+
+// isCommand reports whether the last row is a backslash command rather than
+// part of a statement.
+func isCommand(text string) bool {
+	if i := strings.LastIndexByte(text, '\n'); i >= 0 {
+		text = text[i+1:]
+	}
+	text = strings.TrimSpace(text)
+	return strings.HasPrefix(text, `\`) || isQuit(text)
 }
 
 // sqlKeywords are the words the highlighter colors as keywords.

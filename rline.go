@@ -20,4 +20,8 @@ import "errors"
 var (
 	// ErrClosed is returned by a Reader that has been closed.
 	ErrClosed = errors.New("the reader is closed")
+
+	// ErrInterrupted is returned when the user pressed Ctrl-C, which asks for
+	// the reading to be abandoned rather than for the input to end.
+	ErrInterrupted = errors.New("interrupted")
 )

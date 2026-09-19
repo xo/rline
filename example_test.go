@@ -399,3 +399,56 @@ func TestExampleArrowsMoveBetweenRows(t *testing.T) {
 		t.Errorf("the run never showed %q.\nWhat it wrote:\n%s", want, plain)
 	}
 }
+
+// TestExamplePasswordIsHidden checks that Password shows nothing, records
+// nothing, and still edits.
+//
+// The check that matters is the first: the typed text must not appear anywhere
+// in what the terminal was sent, because a password that reaches the screen is
+// worse than one that is not read at all.
+func TestExamplePasswordIsHidden(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name:  "password",
+		About: "a password is read without being shown",
+		Steps: []capture.Step{
+			{Send: `\pass` + capture.KeyEnter},
+			{Send: "hunter2"},
+			{Send: capture.KeyBackspace}, // proves editing works while hidden
+			{Send: "3" + capture.KeyEnter, Wait: 500 * time.Millisecond},
+			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system: %v", err)
+	}
+	raw := string(tr.Bytes())
+	plain := stripEscapes(raw)
+	// The example echoes the password back on purpose, so that what Password
+	// collected can be checked against what was typed. That echo is the only
+	// place it may appear: while it was being typed the editor redraws the
+	// line on every key, so a password that was not hidden would appear many
+	// times over.
+	if n := strings.Count(raw, "hunter3"); n != 1 {
+		t.Errorf("the password appears %d times in what the terminal was sent, want 1", n)
+	}
+	for _, partial := range []string{"hunter2", "hunte\x1b", "unter2"} {
+		if strings.Contains(raw, partial) {
+			t.Errorf("the password text %q reached the terminal while it was typed", partial)
+		}
+	}
+	if !strings.Contains(plain, "password: ") {
+		t.Error("the password prompt was never drawn")
+	}
+	// "hunter2" with the 2 taken off and a 3 put on, so the backspace was
+	// acted on rather than ignored or shown.
+	if !strings.Contains(plain, `password was "hunter3" (7 bytes)`) {
+		t.Errorf("the password did not come back as expected.\nWhat it wrote:\n%s", plain)
+	}
+}

@@ -19,6 +19,9 @@ kinds of delete, undo and redo, input over more than one line, syntax
 highlighting, matching braces, hints, markup for colored output, a history
 file, and reading a plain line when there is no terminal to edit on.
 
+`Password` reads a line without showing it, without recording it, and without
+completion or highlighting.
+
 What does not work yet: completion when the Tab key is pressed, and walking
 through the history with the arrow keys. Both are being written.
 
@@ -58,6 +61,9 @@ A statement ends at a semicolon. Until then Enter starts another row inside the
 same line rather than handing it back, which is what `WithContinue` does. The
 rows are one buffer, so the up and down keys move the cursor between them and
 the whole statement comes back at once.
+
+`\pass` reads a password and then echoes it back, so that what was collected
+can be checked against what was typed. A real program would not echo it.
 
 Run it with:
 
