@@ -596,6 +596,11 @@ A missing corpus is therefore a failure with a message saying how to record
 one, never a skip, and the check has to compile on the system that is missing
 it.
 
+The rule behind all three: when a check is tagged per system, ask what runs on
+the systems it excludes. Each of the three was found by making something else
+per system, never by a test noticing, and each one looked green from the
+machine the work was done on.
+
 ## Checks
 
 Three checks run on the Go code:
