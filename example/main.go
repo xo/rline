@@ -6,6 +6,20 @@
 //
 // A statement ends at a semicolon. Until then Enter starts another line, so a
 // statement can be written over as many lines as it takes.
+//
+// Run it with:
+//
+//	go run ./example
+//
+// Do not build it with "go build -o example ./example". The argument names a
+// directory that already exists, so the binary lands at example/example rather
+// than replacing anything in the current directory, and an older binary of the
+// same name goes on running. Use a different name:
+//
+//	go build -o rlex ./example && ./rlex
+//
+// Pass -log to record everything read and written, which is the way to see
+// what was drawn without watching it happen.
 package main
 
 import (
