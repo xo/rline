@@ -87,7 +87,10 @@ func Record(ctx context.Context, path string, s Session) (*Transcript, error) {
 // answer. It appends each exchange to the transcript as it goes, so that a
 // recording that fails still shows how far it reached.
 func run(leader *os.File, s Session, t *Transcript) error {
-	b, done, err := drain(leader, s.Quiet)
+	// Wait for the program to say something before the quiet rule applies,
+	// so that a program that has not started yet is not mistaken for one
+	// that has finished writing.
+	b, done, err := drain(leader, s.Quiet, s.Start)
 	t.Exchanges = append(t.Exchanges, Exchange{Recv: b})
 	if err != nil || done {
 		return err
@@ -102,7 +105,7 @@ func run(leader *os.File, s Session, t *Transcript) error {
 		if quiet == 0 {
 			quiet = s.Quiet
 		}
-		b, done, err := drain(leader, quiet)
+		b, done, err := drain(leader, quiet, quiet)
 		t.Exchanges = append(t.Exchanges, Exchange{Send: []byte(step.Send), Recv: b})
 		if err != nil {
 			return err
@@ -116,11 +119,19 @@ func run(leader *os.File, s Session, t *Transcript) error {
 
 // drain reads until the program writes nothing for the quiet period. It
 // reports whether the stream ended.
-func drain(leader *os.File, quiet time.Duration) ([]byte, bool, error) {
+//
+// first is how long to wait for the first byte, which is longer than quiet
+// when the program is still starting. Once anything has arrived, the quiet
+// period decides when the program has finished.
+func drain(leader *os.File, quiet, first time.Duration) ([]byte, bool, error) {
 	var out []byte
 	buf := make([]byte, 4096)
 	for {
-		if err := leader.SetReadDeadline(time.Now().Add(quiet)); err != nil {
+		wait := quiet
+		if len(out) == 0 {
+			wait = first
+		}
+		if err := leader.SetReadDeadline(time.Now().Add(wait)); err != nil {
 			return out, false, fmt.Errorf("setting read deadline: %w", err)
 		}
 		n, err := leader.Read(buf)

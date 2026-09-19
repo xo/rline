@@ -36,18 +36,6 @@ func TestExampleRunsUnderATerminal(t *testing.T) {
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
 		Name:  "example",
 		About: "type a line, see it echoed, then leave",
-		// The harness collects the startup output by reading until the
-		// program goes quiet, and it cannot tell a program that has finished
-		// writing from one that has not started. This program is built
-		// moments earlier and started cold, so it writes nothing for longer
-		// than the usual 200ms, and the first line of input was going out
-		// before it was listening. The terminal echoed that line itself, and
-		// raw mode then threw it away, because entering raw mode discards
-		// whatever is already waiting. So the session showed "hello" without
-		// the program ever having seen it. Waiting longer for the banner is
-		// what closes that, and is why this fails on a slower machine before
-		// it fails anywhere else.
-		Quiet: 1500 * time.Millisecond,
 		Steps: []capture.Step{
 			{Send: "select 1;" + capture.KeyEnter},
 			{Send: "exit" + capture.KeyEnter, Wait: 500 * time.Millisecond},
@@ -186,14 +174,6 @@ func TestExampleHighlightsAndSpansLines(t *testing.T) {
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
 		Name:  "sql",
 		About: "one statement over three reads, then one over three rows",
-		// The same wait the other session needs, and for the same reason:
-		// the harness reads until the program goes quiet and cannot tell a
-		// program that has finished writing from one that has not started,
-		// so a freshly built binary is still starting when the first line
-		// goes out. The terminal echoes that line and raw mode then discards
-		// it, which shows up here as the first of the three reads going
-		// missing. See the comment in TestExampleRunsUnderATerminal.
-		Quiet: 1500 * time.Millisecond,
 		Steps: []capture.Step{
 			// Three reads, joined by the caller at the semicolon.
 			{Send: "select id" + capture.KeyEnter},

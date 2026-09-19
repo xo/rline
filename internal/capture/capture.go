@@ -58,6 +58,12 @@ const (
 const (
 	DefaultQuiet = 200 * time.Millisecond
 	DefaultLimit = 10 * time.Second
+
+	// DefaultStart is the longest to wait for a program to write its first
+	// byte. It is far longer than DefaultQuiet, because starting is slower
+	// than answering: a program built moments earlier has to be loaded and
+	// linked before it says anything.
+	DefaultStart = 5 * time.Second
 	DefaultTerm  = "xterm-256color"
 	DefaultCols  = 80
 	DefaultRows  = 24
@@ -87,6 +93,18 @@ type Session struct {
 	// Limit is the longest a recording can run.
 	Quiet time.Duration
 	Limit time.Duration
+
+	// Start is the longest to wait for the program's first byte, before the
+	// quiet rule takes over.
+	//
+	// Reading until a program goes quiet cannot tell one that has finished
+	// writing from one that has not started, and a program built moments
+	// earlier is usually still starting when the quiet period runs out. The
+	// recording would then be taken to have begun, and the first input sent
+	// into a terminal nobody is reading: the terminal echoes it, and the
+	// program discards it when it turns raw mode on. Waiting for the first
+	// byte closes that.
+	Start time.Duration
 }
 
 // Step is one chunk of input, and the quiet period that follows it.
@@ -153,6 +171,9 @@ func (s Session) withDefaults() Session {
 	}
 	if s.Limit == 0 {
 		s.Limit = DefaultLimit
+	}
+	if s.Start == 0 {
+		s.Start = DefaultStart
 	}
 	return s
 }

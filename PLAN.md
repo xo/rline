@@ -706,6 +706,27 @@ the systems it excludes. Each of the three was found by making something else
 per system, never by a test noticing, and each one looked green from the
 machine the work was done on.
 
+## Waiting for a program that has not started
+
+`internal/capture` collects the output a program writes when it starts by
+reading until the program goes quiet. That cannot tell a program which has
+finished writing from one which has not started, and the two look identical:
+nothing arrives. A program built moments earlier is usually still being
+loaded when the quiet period runs out, so the recording is taken to have
+begun, the first input goes into a terminal nobody is reading, the terminal
+echoes it, and entering raw mode throws it away. The session then shows text
+the program never saw.
+
+It went wrong twice, both times in a test that builds the example and drives
+it, and both times it was patched by guessing a longer wait for that one
+session. The guess is gone. `Session.Start` is how long to wait for the first
+byte, five seconds by default, and the quiet rule takes over once anything
+has arrived. That removes the guess from every session rather than adding one
+to each session that happens to show the problem.
+
+Nothing in the recorded sessions moved, because the C demo writes its banner
+at once and was never waiting on this.
+
 ## Tests that pass without checking anything
 
 The rule above is one case of a wider one, which has now cost time five
