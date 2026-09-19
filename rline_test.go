@@ -1261,6 +1261,62 @@ func TestStderrGoesWhereItIsToldAndKeepsItsOrder(t *testing.T) {
 
 // TestWithStderrReachesTheSession checks the option, since every other one is
 // checked and this is the newest.
+// TestStderrKeepsItsWriterContract checks the two things Stderr promises as
+// an io.Writer, neither of which was held.
+//
+// A writer that reports fewer bytes than it was given makes fmt report an
+// error, and a writer that loses the failure underneath it tells the caller
+// nothing they can act on. Both matter more here than for most writers,
+// because this is where a program says what went wrong: a shell whose error
+// stream fails silently is a shell that stops reporting errors and does not
+// say so.
+//
+// New defaults the destination to os.Stderr, so the nil case is reached by
+// asking for it, which WithStderr(nil) does.
+func TestStderrKeepsItsWriterContract(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nowhere to write is not a short write", func(t *testing.T) {
+		t.Parallel()
+		s := &Session{}
+		n, err := fmt.Fprintf(s.Stderr(), "error: %s\n", "something")
+		if err != nil {
+			t.Errorf("writing to a session with nowhere to write gave %v", err)
+		}
+		if want := len("error: something\n"); n != want {
+			t.Errorf("reported %d bytes written, want %d", n, want)
+		}
+	})
+
+	t.Run("a destination that fails says so", func(t *testing.T) {
+		t.Parallel()
+		boom := errors.New("the pipe went away")
+		s := &Session{errOut: failingWriter{err: boom}}
+		n, err := s.Stderr().Write([]byte("error: something\n"))
+		if err == nil {
+			t.Fatal("a destination that refused the write reported success")
+		}
+		// The reason has to survive, or the caller cannot tell a closed pipe
+		// from a full disk.
+		if !errors.Is(err, boom) {
+			t.Errorf("the error is %v, which does not carry the reason underneath", err)
+		}
+		// And it has to say what was being done, the way SaveHistory does.
+		if !strings.Contains(err.Error(), "error stream") {
+			t.Errorf("the error is %v, which does not say what was being done", err)
+		}
+		if n != 0 {
+			t.Errorf("reported %d bytes written after a failure, want 0", n)
+		}
+	})
+}
+
+// failingWriter refuses every write, which is what a closed pipe or a full
+// disk looks like from here.
+type failingWriter struct{ err error }
+
+func (w failingWriter) Write([]byte) (int, error) { return 0, w.err }
+
 func TestWithStderrReachesTheSession(t *testing.T) {
 	t.Parallel()
 	var errs bytes.Buffer
