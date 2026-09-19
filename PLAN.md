@@ -1331,8 +1331,27 @@ among them, so an adapter that answered the `*Prompt` for both would put
 error text inside the output file and take it off the screen, quietly, in
 exactly the case a caller chose a file because they wanted the output clean. Nothing here can say "write this to the error
 stream": `WithOutput` sets one writer, and `WithLog` is for the port's own
-tracing rather than for the program's errors. So `Stderr` wants something
-built, and it is the second decision left rather than the first.
+tracing rather than for the program's errors.
+
+But nothing has to be built to match what usql does today, and an earlier
+version of this paragraph implied otherwise. `readline.Stdout` and
+`readline.Stderr` in gohxs/readline are plain package variables holding
+`os.Stdout` and `os.Stderr` — `std.go:12` and `:13` — so usql writes both
+straight to the operating system and neither is coordinated with the line
+being edited. And `-o` sets `interactive = false` on the line after it opens
+the file, so in that case there is no line being edited at all. An adapter
+can hold `os.Stderr` and answer with it, and usql behaves exactly as it does
+now.
+
+What ken-mba's warning is really about is a mistake an adapter can make
+rather than a hole in this package: answering the `*Prompt` for both would
+put error text in the output file when `-o` is given. That is worth writing
+down and is not work.
+
+So the decision is whether to offer something better than what usql has:
+output that does not land on top of the line being edited. That is the thing
+this package can do that gohxs/readline cannot, and it is an enhancement
+rather than a requirement.
 
 One behavioural difference under `Password`: usql answers
 `ErrPasswordNotAvailable` when built non-interactive, where this reads the
@@ -1387,9 +1406,11 @@ rather than a fault, and it is listed under the departures as well.
 
 ### What the count is now
 
-Four fit, three want a thin wrapper, `Completer` fits since `SetCompleter`,
-`Cygwin` is a question, and two want something built: `Stderr` and
-`SetOutput`. That is the eleven.
+Five fit — `Close`, `Interactive`, `Password`, `Completer` since
+`SetCompleter`, and `Stdout`. Three want a thin wrapper: `Next`, `Prompt` and
+`Save`. `Cygwin` is a question. `Stderr` needs nothing built to match what
+usql does today and is a choice about whether to do better. `SetOutput` is
+the one real mismatch. That is the eleven.
 
 None of this is a defect. It is all downstream of having ported isocline
 faithfully, which is what was asked for, and it is the list of decisions that
