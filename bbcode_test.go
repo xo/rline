@@ -384,3 +384,121 @@ func TestHighlightFormattedEmpty(t *testing.T) {
 		}
 	}
 }
+
+// ----------------------------------------------------------------------------
+// The highlighting surface a program actually uses
+
+// newLineStyle returns a LineStyle over s, and the attribute buffer behind it,
+// which is how a test sees what a highlighter did.
+func newLineStyle(t *testing.T, s string) (*LineStyle, *attrBuf) {
+	t.Helper()
+	var sink bytes.Buffer
+	tm := newTerm(&sink, termOptions{NoColor: true})
+	bb := newBBCode(tm)
+	bb.styleDef("keyword", "bold")
+	var ab attrBuf
+	ab.setAt(0, len(s), attr{})
+	return &LineStyle{input: s, attrs: &ab, bb: bb}, &ab
+}
+
+// TestStyleCountsBytesAndStyleRunesCountsCharacters checks the pair that
+// replaced one method with a negative count meaning characters.
+//
+// The negative count was the reason for the split, so what matters is that
+// the two disagree where a character is more than one byte, and agree where
+// every character is one.
+func TestStyleCountsBytesAndStyleRunesCountsCharacters(t *testing.T) {
+	t.Parallel()
+	// Three characters of three bytes each.
+	const line = "日本語"
+
+	t.Run("Style counts bytes", func(t *testing.T) {
+		t.Parallel()
+		l, ab := newLineStyle(t, line)
+		l.Style(0, 3, "keyword")
+		marked := markedBytes(ab, len(line))
+		if marked != 3 {
+			t.Errorf("Style(0, 3) marked %d bytes, want 3 — one character", marked)
+		}
+	})
+
+	t.Run("StyleRunes counts characters", func(t *testing.T) {
+		t.Parallel()
+		l, ab := newLineStyle(t, line)
+		l.StyleRunes(0, 3, "keyword")
+		marked := markedBytes(ab, len(line))
+		if marked != 9 {
+			t.Errorf("StyleRunes(0, 3) marked %d bytes, want 9 — three characters", marked)
+		}
+	})
+
+	t.Run("they agree over ASCII", func(t *testing.T) {
+		t.Parallel()
+		a, aab := newLineStyle(t, "select")
+		a.Style(0, 6, "keyword")
+		b, bab := newLineStyle(t, "select")
+		b.StyleRunes(0, 6, "keyword")
+		if x, y := markedBytes(aab, 6), markedBytes(bab, 6); x != y {
+			t.Errorf("Style marked %d bytes and StyleRunes marked %d, over ASCII", x, y)
+		}
+	})
+
+	t.Run("a style that is not defined marks nothing", func(t *testing.T) {
+		t.Parallel()
+		l, ab := newLineStyle(t, line)
+		l.Style(0, 9, "")
+		if marked := markedBytes(ab, len(line)); marked != 0 {
+			t.Errorf("an empty style marked %d bytes", marked)
+		}
+	})
+}
+
+// markedBytes counts how many of the first n bytes carry any attribute.
+func markedBytes(ab *attrBuf, n int) int {
+	count := 0
+	for _, a := range ab.slice(n) {
+		if a != (attr{}) {
+			count++
+		}
+	}
+	return count
+}
+
+// TestLineStyleTextIsTheLine checks the method that replaced handing the
+// highlighter its line twice.
+func TestLineStyleTextIsTheLine(t *testing.T) {
+	t.Parallel()
+	l, _ := newLineStyle(t, "select 1")
+	if got := l.Text(); got != "select 1" {
+		t.Errorf("Text gave %q, want %q", got, "select 1")
+	}
+	var nilStyle *LineStyle
+	if got := nilStyle.Text(); got != "" {
+		t.Errorf("Text on nothing gave %q", got)
+	}
+}
+
+// TestHighlighterFuncRunsTheFunction checks the adapter that makes an
+// ordinary function into a Highlighter.
+func TestHighlighterFuncRunsTheFunction(t *testing.T) {
+	t.Parallel()
+	var sink bytes.Buffer
+	tm := newTerm(&sink, termOptions{NoColor: true})
+	bb := newBBCode(tm)
+	bb.styleDef("keyword", "bold")
+	var ab attrBuf
+
+	var sawText string
+	h := HighlighterFunc(func(l *LineStyle) {
+		sawText = l.Text()
+		l.Style(0, 6, "keyword")
+	})
+	runHighlight(bb, "select 1", &ab, h)
+
+	if sawText != "select 1" {
+		t.Errorf("the highlighter was given %q, want %q", sawText, "select 1")
+	}
+	if marked := markedBytes(&ab, 8); marked != 6 {
+		t.Errorf("the highlighter marked %d bytes, want 6", marked)
+	}
+}

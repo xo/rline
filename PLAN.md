@@ -1118,6 +1118,13 @@ of the suite catches is worth knowing about — it says the new test is
 narrower than it looks — but it is not a hole, and reporting it as one sends
 someone to write a test that already exists.
 
+Coverage answers whether a line ran, which is not the question anyone is
+asking, and it gets both of the shapes below wrong in opposite directions. A
+check tagged out of the build never runs and coverage shows the gap, which is
+the easy one. A line whose value is discarded runs every time and coverage
+shows green. windows-vm's pairing: both are invisible to the tool you would
+reach for first, and for the same reason.
+
 A line that runs and proves nothing. `history.load` returns an error in three
 places, and the third — a line in the file that cannot be read — was reached
 by `TestHistoryLoadStopsAtABadLine`, which had been running it for a long
@@ -1136,6 +1143,14 @@ with a nil error. Found by windows-vm running it. The universal claim was the
 fault, not the construct: nobody had asked two of the three systems. It uses
 a zero byte in the path now, which no system allows and none reports as a
 missing file.
+
+New API with nothing behind it, which is the plainest shape and the easiest
+to leave. Three reshaping passes added `Style` and `StyleRunes`, `FromColor`,
+`Color.RGBA`, `LineStyle.Text`, `Completion.Text` and `Completion.Cursor`,
+and the example exercised all of them while nothing in the package did,
+because the example runs as a separate program and its coverage is not
+recorded. Found by reading `go test -cover` rather than by anything failing:
+forty functions at zero, of which those were the ones a caller reaches.
 
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.

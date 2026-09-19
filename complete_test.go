@@ -1279,3 +1279,83 @@ func menuRegenerate(t *testing.T) {
 	}
 	t.Logf("wrote %s: %d bytes", path, len(out))
 }
+
+// ----------------------------------------------------------------------------
+// What a completer can see
+
+// TestCompletionSeesTheWholeLine checks Text and Cursor, which are what a
+// completer reads when the prefix it was handed is not enough to decide.
+//
+// The example needs exactly this: with the cursor in the middle of a word it
+// must offer nothing, or completing "wh" inside "where" would give
+// "whereere". The prefix alone cannot say, because it stops at the cursor.
+func TestCompletionSeesTheWholeLine(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name   string
+		line   string
+		cursor int
+		want   string
+	}{
+		{"at the end", "select wh", 9, "select wh"},
+		{"inside a word", "select where", 9, "select where"},
+		{"at the start", "abc", 0, "abc"},
+		{"an empty line", "", 0, ""},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			var gotText string
+			var gotCursor, gotPrefixLen int
+			c := &completions{}
+			c.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
+				gotText, gotCursor, gotPrefixLen = cenv.Text(), cenv.Cursor(), len(prefix)
+			}), nil)
+			c.generate(test.line, test.cursor, 10)
+
+			if gotText != test.want {
+				t.Errorf("Text gave %q, want the whole line %q", gotText, test.want)
+			}
+			if gotCursor != test.cursor {
+				t.Errorf("Cursor gave %d, want %d", gotCursor, test.cursor)
+			}
+			// The prefix stops at the cursor; the line does not. That
+			// difference is the reason both exist.
+			if gotPrefixLen != test.cursor {
+				t.Errorf("the prefix is %d bytes, want %d", gotPrefixLen, test.cursor)
+			}
+		})
+	}
+
+	t.Run("nothing answers nothing", func(t *testing.T) {
+		t.Parallel()
+		var c *Completion
+		if got := c.Text(); got != "" {
+			t.Errorf("Text on nothing gave %q", got)
+		}
+		if got := c.Cursor(); got != 0 {
+			t.Errorf("Cursor on nothing gave %d", got)
+		}
+	})
+}
+
+// TestCompleterFuncRunsTheFunction checks the adapter that makes an ordinary
+// function into a Completer.
+func TestCompleterFuncRunsTheFunction(t *testing.T) {
+	t.Parallel()
+	c := &completions{}
+	c.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
+		cenv.AddCandidate(Candidate{Replacement: prefix + "x", DeleteBefore: len(prefix)})
+	}), nil)
+	if n := c.generate("ab", 2, 10); n != 1 {
+		t.Fatalf("the completer offered %d, want 1", n)
+	}
+	cm, ok := c.get(0)
+	if !ok {
+		t.Fatal("nothing was kept")
+	}
+	if cm.replacement != "abx" || cm.deleteBefore != 2 {
+		t.Errorf("the candidate is %q taking away %d, want %q taking away 2",
+			cm.replacement, cm.deleteBefore, "abx")
+	}
+}

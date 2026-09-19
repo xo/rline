@@ -3,6 +3,7 @@ package rline
 import (
 	"encoding/hex"
 	"fmt"
+	"image/color"
 	"os"
 	"os/exec"
 	"strconv"
@@ -387,4 +388,87 @@ func termColorRegenerate(t *testing.T) {
 		t.Fatalf("writing %s: %v", termColorCorpusPath, err)
 	}
 	t.Logf("wrote %s: %d bytes", termColorCorpusPath, len(out))
+}
+
+// ----------------------------------------------------------------------------
+// Bridging to image/color
+
+// TestColorSatisfiesImageColor checks the two ways a Color meets the standard
+// library: answering RGBA, and being made from anything that does.
+func TestColorSatisfiesImageColor(t *testing.T) {
+	t.Parallel()
+
+	t.Run("an RGB color answers its own components", func(t *testing.T) {
+		t.Parallel()
+		// RGBA reports each channel in the range 0 to 0xFFFF, so a byte of
+		// 0xFF becomes 0xFFFF and 0x00 stays 0.
+		r, g, b, a := RGB(0x12, 0x34, 0x56).RGBA()
+		for _, test := range []struct {
+			name string
+			got  uint32
+			want uint32
+		}{
+			{"red", r, 0x1212},
+			{"green", g, 0x3434},
+			{"blue", b, 0x5656},
+			{"alpha", a, 0xFFFF},
+		} {
+			if test.got != test.want {
+				t.Errorf("%s is %#04x, want %#04x", test.name, test.got, test.want)
+			}
+		}
+	})
+
+	t.Run("no color is transparent", func(t *testing.T) {
+		t.Parallel()
+		// ColorNone and ANSIDefault both mean the terminal decides, and
+		// transparent black is the only honest answer to that.
+		for _, c := range []Color{ColorNone, ANSIDefault} {
+			if r, g, b, a := c.RGBA(); r|g|b|a != 0 {
+				t.Errorf("%v gave %v %v %v %v, want all zero", c, r, g, b, a)
+			}
+		}
+	})
+
+	t.Run("a palette color answers the usual table", func(t *testing.T) {
+		t.Parallel()
+		// Not the terminal's theme, which is not knowable here, but the
+		// table the 256 color palette uses.
+		for _, c := range []Color{ANSIBlack, ANSIMaroon, ANSISilver, ANSIGray, ANSIRed, ANSIWhite} {
+			if _, _, _, a := c.RGBA(); a != 0xFFFF {
+				t.Errorf("%v is not opaque", c)
+			}
+		}
+		if r, _, _, _ := ANSIMaroon.RGBA(); r == 0 {
+			t.Error("dark red has no red in it")
+		}
+	})
+
+	t.Run("FromColor takes a standard color", func(t *testing.T) {
+		t.Parallel()
+		// color.RGBA is the ordinary one a caller will have.
+		got := FromColor(color.RGBA{R: 0x12, G: 0x34, B: 0x56, A: 0xFF})
+		if want := RGB(0x12, 0x34, 0x56); got != want {
+			t.Errorf("FromColor gave %#08x, want %#08x", uint32(got), uint32(want))
+		}
+	})
+
+	t.Run("FromColor drops the alpha rather than the color", func(t *testing.T) {
+		t.Parallel()
+		// A terminal has no transparency. A fully transparent color comes
+		// out black, which is what color.RGBA's premultiplied channels say,
+		// rather than coming out invisible.
+		if got := FromColor(color.RGBA{}); got != RGB(0, 0, 0) {
+			t.Errorf("a transparent color gave %#08x, want black", uint32(got))
+		}
+	})
+
+	t.Run("a round trip through RGBA keeps the color", func(t *testing.T) {
+		t.Parallel()
+		for _, want := range []Color{RGB(0, 0, 0), RGB(255, 255, 255), RGBHex(0xFF8800)} {
+			if got := FromColor(want); got != want {
+				t.Errorf("%#08x came back as %#08x", uint32(want), uint32(got))
+			}
+		}
+	})
 }
