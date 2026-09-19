@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -23,7 +24,7 @@ func TestExampleRunsUnderATerminal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("building the example takes a moment")
 	}
-	bin := filepath.Join(t.TempDir(), "example")
+	bin := exampleBinary(t)
 	build := exec.Command("go", "build", "-o", bin, "./example")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
@@ -122,7 +123,7 @@ func TestExampleWithPipedInput(t *testing.T) {
 	if testing.Short() {
 		t.Skip("building the example takes a moment")
 	}
-	bin := filepath.Join(t.TempDir(), "example")
+	bin := exampleBinary(t)
 	build := exec.Command("go", "build", "-o", bin, "./example")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
@@ -152,4 +153,18 @@ func TestExampleWithPipedInput(t *testing.T) {
 	if strings.Contains(got, "> ") {
 		t.Errorf("a prompt was written to a pipe:\n%q", got)
 	}
+}
+
+// exampleBinary returns where to build the example for this system.
+//
+// Windows needs the suffix. "go build -o" writes exactly the name it is given
+// and adds nothing, and Windows decides what is runnable by the extension, so
+// a name without one is refused however valid the bytes are.
+func exampleBinary(t *testing.T) string {
+	t.Helper()
+	name := "example"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	return filepath.Join(t.TempDir(), name)
 }
