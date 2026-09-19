@@ -1,4 +1,4 @@
-//go:build !linux
+//go:build !linux && !darwin
 
 package capture
 
@@ -6,8 +6,8 @@ import "context"
 
 // Record reports that this platform cannot record a session yet.
 //
-// macOS needs a pseudo-terminal opened with posix_openpt, and Windows needs a
-// pseudo console, which it creates with CreatePseudoConsole.
+// Linux and macOS both record. Windows has no pseudo-terminal device file, so
+// it needs a pseudo console, which it creates with CreatePseudoConsole.
 func Record(_ context.Context, _ string, _ Session) (*Transcript, error) {
 	return nil, ErrUnsupported
 }

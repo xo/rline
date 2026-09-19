@@ -131,6 +131,13 @@ func (t *Transcript) Bytes() []byte {
 }
 
 // withDefaults returns a copy of s with every zero limit filled in.
+//
+// Only Record calls this, and Record records on Linux and macOS alone, so a
+// build for any other system has no caller for it. The unused linter is told
+// so here rather than moving the method, because the Windows implementation
+// will call it too.
+//
+//nolint:unused // used by Record on the systems that can record
 func (s Session) withDefaults() Session {
 	if s.Term == "" {
 		s.Term = DefaultTerm

@@ -27,10 +27,31 @@ one place, so a module ports cleanly and a single function does not.
 `cmd.exe` and PowerShell. Linux is the only target for now, to keep the work
 simple. macOS and Windows come later, on hosts that run those systems.
 
-The capture harness follows the same rule. It records on Linux only. On every
-other platform `Record` returns `ErrUnsupported`. macOS needs a pseudo-terminal
-opened with `posix_openpt`. Windows has no pseudo-terminal device file, so it
-needs a pseudo console, which it creates with `CreatePseudoConsole`.
+The capture harness records on Linux and on macOS. On every other platform
+`Record` returns `ErrUnsupported`. Windows has no pseudo-terminal device file,
+so it needs a pseudo console, which it creates with `CreatePseudoConsole`.
+
+`record_unix.go` holds everything the two systems share. Only `openPTY`
+differs, and it sits in `record_linux.go` and `record_darwin.go`. Both open
+`/dev/ptmx`. Linux then unlocks the pair, asks for its number, and builds the
+name as `/dev/pts/N`. macOS grants the follower to the user, unlocks it, and
+asks for the whole name, which looks like `/dev/ttys003`. The two also report
+the end of the stream differently: Linux fails the read with `EIO`, and macOS
+returns `io.EOF`.
+
+The golden files stay Linux only, because isocline itself writes different
+bytes on macOS. `term_update_ansi16` in `term.c` is guarded by
+`#if __APPLE__`, so on macOS the demo asks the terminal for its color palette
+with an OSC 4 sequence and waits for an answer. A bare pseudo-terminal never
+answers, so the demo waits out its timeout, which both adds the query to the
+output and pushes the rest of the startup text into the next exchange. On
+Linux the query is not compiled in at all, because `GIO_CMAP` is.
+
+`TestRecord` therefore records every session on macOS and checks that it
+produced output, but compares the bytes only on Linux, and `-update` refuses
+to rewrite a golden file from the wrong system. Recording is stable on macOS,
+so `TestRecordIsStable` runs there as well. Per platform golden files are
+possible later. They are not needed while Linux is the reference.
 
 ## Port order
 

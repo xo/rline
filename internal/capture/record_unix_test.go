@@ -1,4 +1,4 @@
-//go:build linux
+//go:build linux || darwin
 
 package capture
 
@@ -8,6 +8,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -18,10 +19,27 @@ var update = flag.Bool("update", false, "rewrite the golden files")
 // demoPath is where tools/build-demo.sh puts the compiled isocline demo.
 const demoPath = "../../.build/example"
 
+// goldenGOOS is the system the golden files were recorded on.
+//
+// A recording is only comparable against a golden file from the same system,
+// because isocline itself writes different bytes on each. term_update_ansi16
+// is guarded by "#if __APPLE__", so on macOS the demo asks the terminal for
+// its color palette with an OSC 4 sequence and then waits for an answer. A
+// bare pseudo-terminal never answers, so the demo waits out its timeout, and
+// that both adds the query to the output and moves the rest of the startup
+// text into the next exchange. On Linux the query is not compiled in at all.
+//
+// So on any other system the test records every session and checks that it
+// produced output, but does not compare the bytes.
+const goldenGOOS = "linux"
+
 // TestRecord records every session and compares it against its golden file.
 func TestRecord(t *testing.T) {
 	if _, err := os.Stat(demoPath); err != nil {
 		t.Skipf("no demo at %s: run tools/build-demo.sh", demoPath)
+	}
+	if *update && runtime.GOOS != goldenGOOS {
+		t.Fatalf("refusing to rewrite the golden files on %s: they are recorded on %s", runtime.GOOS, goldenGOOS)
 	}
 	for _, session := range Sessions {
 		t.Run(session.Name, func(t *testing.T) {
@@ -31,6 +49,10 @@ func TestRecord(t *testing.T) {
 			}
 			if len(tr.Bytes()) == 0 {
 				t.Fatal("the program wrote nothing")
+			}
+			if runtime.GOOS != goldenGOOS {
+				t.Skipf("recorded %d exchanges and %d bytes, but the golden files were recorded on %s and isocline writes different bytes on %s",
+					len(tr.Exchanges), len(tr.Bytes()), goldenGOOS, runtime.GOOS)
 			}
 			golden := filepath.Join("testdata", session.Name+".txt")
 			got := tr.Encode()
