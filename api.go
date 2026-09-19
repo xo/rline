@@ -242,20 +242,24 @@ func New(opts ...Option) (*Reader, error) {
 	}
 
 	r := &Reader{plain: bufio.NewReader(os.Stdin)}
-	t, err := openTTY(c.inFd)
-	if err != nil {
-		// No keyboard to read from. That is not a failure: a program whose
-		// input is a pipe or a file still wants its lines, and gets them
-		// without editing. Returning the error here would make every such
-		// program handle a condition that is not a problem.
-		//
-		r.noEdit = true
-		return r, nil //nolint:nilerr // a missing terminal is a mode, not a failure
+
+	// A missing keyboard is a mode rather than a failure: a program whose
+	// input is a pipe or a file still wants its lines, and gets them without
+	// editing. The terminal is built either way, because the output is still
+	// worth writing even when there is nothing to edit on. Losing it was the
+	// bug this shape fixes.
+	t, ttyErr := openTTY(c.inFd)
+	isUTF8 := true
+	if ttyErr == nil {
+		isUTF8 = t.isUTF8
 	}
 	tm := newTerm(c.out, termOptions{
-		NoColor: c.noColor,
+		// Color goes off when the output is not a terminal, so that a program
+		// whose output is redirected writes plain text rather than escape
+		// sequences into a file. The C makes the same check.
+		NoColor: c.noColor || !writesToTerminal(c.out),
 		Silent:  c.silent,
-		IsUTF8:  t.isUTF8,
+		IsUTF8:  isUTF8,
 		Sizer:   outputSizer(c.out),
 	})
 	bb := newBBCode(tm)
@@ -286,8 +290,19 @@ func New(opts ...Option) (*Reader, error) {
 		completeAutoTab:   c.completeAutoTab,
 		hintDelay:         c.hintDelay,
 	}
-	r.noEdit = !isInteractive()
-	return r, nil
+	r.noEdit = ttyErr != nil || !isInteractive()
+	return r, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
+}
+
+// writesToTerminal reports whether w is a terminal. Anything that is not a
+// file is taken to be one, since a caller that passes its own writer has said
+// where the output goes and is not redirecting it by accident.
+func writesToTerminal(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	if !ok {
+		return true
+	}
+	return isATTY(int(f.Fd()))
 }
 
 // outputSizer returns something that can report the size of the terminal
@@ -321,11 +336,15 @@ func (r *Reader) ReadLine(prompt string) (string, error) {
 	return line, nil
 }
 
-// readPlain reads a line with no editing, for when there is no terminal.
+// readPlain reads a line with no editing, for when there is no terminal to
+// edit on.
+//
+// The prompt is written only when there is a keyboard, which means the user is
+// typing at a terminal that cannot be edited on. When the input is a pipe
+// there is nobody to prompt and the prompt would only dirty the output, so it
+// is left out. That is what the C does as well.
 func (r *Reader) readPlain(prompt string) (string, error) {
-	if r.env != nil {
-		// There is a terminal to write on even though there is none to edit
-		// on, so the prompt is still worth showing.
+	if r.env != nil && r.env.tty != nil {
 		r.env.term.write(prompt)
 		r.env.term.write(r.env.promptMarker)
 		r.env.term.flush()
@@ -364,6 +383,9 @@ func (r *Reader) Close() error {
 		return nil
 	}
 	r.env.term.free()
+	if r.env.tty == nil {
+		return nil
+	}
 	if err := r.env.tty.close(); err != nil {
 		return fmt.Errorf("closing the terminal: %w", err)
 	}

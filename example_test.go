@@ -98,3 +98,46 @@ func stripEscapes(s string) string {
 	}
 	return sb.String()
 }
+
+// TestExampleWithPipedInput checks the path taken when the input is a pipe.
+//
+// There is no keyboard to edit on, so lines are read plainly, but there is
+// still an output to write to and the program's own output must appear. It
+// went missing once: the reader was built without a terminal at all when the
+// keyboard could not be opened, so every print silently did nothing while the
+// lines were read correctly.
+func TestExampleWithPipedInput(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := filepath.Join(t.TempDir(), "example")
+	build := exec.Command("go", "build", "-o", bin, "./example")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	cmd := exec.Command(bin)
+	cmd.Stdin = strings.NewReader("hello\nworld\n")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("running the example: %v\n%s", err, out)
+	}
+	got := string(out)
+	for _, want := range []string{
+		"rline example",   // the banner
+		"you said: hello", // the first line, read and written back
+		"you said: world", // the second
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the run never showed %q.\nWhat it wrote:\n%s", want, got)
+		}
+	}
+	// Both ends are pipes here, so nothing should be colored and no prompt
+	// should be written: there is nobody to prompt, and a prompt would only
+	// dirty the output.
+	if strings.Contains(got, "\x1b") {
+		t.Errorf("an escape sequence reached a pipe:\n%q", got)
+	}
+	if strings.Contains(got, "> ") {
+		t.Errorf("a prompt was written to a pipe:\n%q", got)
+	}
+}

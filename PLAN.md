@@ -547,6 +547,27 @@ reading: without raw mode the line discipline rewrites the Enter key into a
 line feed on its way in, so the editor saw the key that inserts a line break
 rather than the key that ends a line, and no line could ever be finished.
 
+### Also found by running it
+
+Two faults in the public API, both found by running the example program with
+its input coming from a pipe, and both of them mine rather than the C's.
+
+A program whose input is a pipe lost all of its own output. The keyboard
+cannot be opened when standard input is not a terminal, and the reader was
+built with no terminal at all in that case, so every print silently did
+nothing while the lines were read correctly. The C builds its terminal either
+way and only marks itself as unable to edit. The port now does the same, and
+the prompt is the one thing left out, because with a pipe there is nobody to
+prompt and a prompt would only dirty the output.
+
+Color was written into a redirected output. The C turns color off when the
+output is not a terminal, and the port did not check, so a program whose
+output went to a file wrote escape sequences into it.
+
+Neither could be caught by a corpus, for the same reason the missing raw mode
+could not: a corpus drives a function, and these are about how the program is
+started and what it is attached to.
+
 ### completers.c
 
 `ls_valid_esc` is defined and never called. It looks like it was meant to
