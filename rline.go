@@ -16,7 +16,7 @@
 // completion and syntax highlighting.
 //
 // This file holds the public interface — the Prompt a program builds, the
-// Reader inside it, the markup Writer beside it and the options that make
+// Session inside it, the markup Writer beside it and the options that make
 // them — and the session log that records what passes through.
 package rline
 
@@ -36,7 +36,7 @@ import (
 
 // Error values.
 var (
-	// ErrClosed is returned by a Reader that has been closed.
+	// ErrClosed is returned by a Session that has been closed.
 	ErrClosed = errors.New("the reader is closed")
 
 	// ErrInterrupted is returned when the user abandoned what was being read,
@@ -61,7 +61,7 @@ var (
 // single environment in a process global and every public function reaches for
 // it, so a program can only have one line reader and cannot say which terminal
 // it is on. A Go package should not work that way, so the state lives in a
-// Reader that the caller makes, and the settings are options passed when it is
+// Session that the caller makes, and the settings are options passed when it is
 // made rather than global switches flipped afterwards.
 //
 // Ported in spirit, not in shape, from isocline/src/isocline.c.
@@ -106,10 +106,10 @@ var defaultStyles = [][2]string{
 	{"constant", "#569cd6"},
 }
 
-// Reader reads lines from a terminal, with editing, history and completion.
+// Session reads lines from a terminal, with editing, history and completion.
 //
-// A Reader is not safe for use from more than one goroutine at a time.
-type Reader struct {
+// A Session is not safe for use from more than one goroutine at a time.
+type Session struct {
 	// env holds the terminal, the keyboard and everything the editor reads.
 	env *env
 
@@ -127,7 +127,7 @@ type Reader struct {
 	log *sessionLog
 }
 
-// config carries what New needs before it builds a Reader.
+// config carries what New needs before it builds a Session.
 type config struct {
 	// Where the reader reads and writes. A negative fd means standard input.
 	inFd int
@@ -171,7 +171,7 @@ type config struct {
 	in io.Reader
 }
 
-// Option changes a setting on a Reader being made.
+// Option changes a setting on a Session being made.
 type Option func(*config)
 
 // WithOutput writes to w rather than to standard output.
@@ -361,9 +361,9 @@ func WithLog(w io.Writer) Option {
 	return func(c *config) { c.log = w }
 }
 
-// New returns a Reader.
+// New returns a Session.
 //
-// It returns a Reader even when there is no terminal to edit on, such as when
+// It returns a Session even when there is no terminal to edit on, such as when
 // the input is a pipe. ReadLine then reads a plain line with no editing, which
 // is what the C does and what a program reading a script expects.
 func New(opts ...Option) (*Prompt, error) {
@@ -388,7 +388,7 @@ func New(opts ...Option) (*Prompt, error) {
 	if c.in != nil {
 		in = c.in
 	}
-	r := &Reader{plain: bufio.NewReader(in)}
+	r := &Session{plain: bufio.NewReader(in)}
 
 	// A missing keyboard is a mode rather than a failure: a program whose
 	// input is a pipe or a file still wants its lines, and gets them without
@@ -453,7 +453,7 @@ func New(opts ...Option) (*Prompt, error) {
 	}
 	r.log = slog
 	r.noEdit = ttyErr != nil || !isInteractive()
-	return &Prompt{Reader: r, markup: &Writer{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
+	return &Prompt{Session: r, markup: &Writer{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
 }
 
 // writesToTerminal reports whether w is a terminal. Anything that is not a
@@ -493,7 +493,7 @@ func outputSizer(w io.Writer) sizer {
 // or Ctrl-G. This is a deliberate departure: the C clears the line and hands
 // back an empty string, so a caller cannot tell an abandoned line from Enter
 // on an empty one, and a shell has to. See PLAN.md.
-func (r *Reader) ReadLine(prompt string) (string, error) {
+func (r *Session) ReadLine(prompt string) (string, error) {
 	if r.closed {
 		return "", ErrClosed
 	}
@@ -522,7 +522,7 @@ func (r *Reader) ReadLine(prompt string) (string, error) {
 // typing at a terminal that cannot be edited on. When the input is a pipe
 // there is nobody to prompt and the prompt would only dirty the output, so it
 // is left out. That is what the C does as well.
-func (r *Reader) readPlain(prompt string) (string, error) {
+func (r *Session) readPlain(prompt string) (string, error) {
 	if r.env != nil && r.env.tty != nil {
 		r.env.term.write(prompt)
 		r.env.term.write(r.env.promptMarker)
@@ -552,8 +552,8 @@ func trimSuffix(s, suffix string) string {
 	return s
 }
 
-// Close puts the terminal back as it was. A Reader cannot be used afterwards.
-func (r *Reader) Close() error {
+// Close puts the terminal back as it was. A Session cannot be used afterwards.
+func (r *Session) Close() error {
 	if r.closed {
 		return nil
 	}
@@ -577,7 +577,7 @@ func (r *Reader) Close() error {
 // sets a new completer rather than building a new reader: usql replaces its
 // completer when the connection changes, so that the words offered come from
 // the database that is actually open. A nil completer offers nothing.
-func (r *Reader) SetCompleter(completer Completer) {
+func (r *Session) SetCompleter(completer Completer) {
 	if r.env == nil || r.env.completions == nil {
 		return
 	}
@@ -590,7 +590,7 @@ func (r *Reader) SetCompleter(completer Completer) {
 // A program that reads a statement over several calls changes the marker
 // between them, so that the first line is asked for differently from the ones
 // that carry on. An empty continuation repeats the first.
-func (r *Reader) SetPrompt(marker, continuation string) {
+func (r *Session) SetPrompt(marker, continuation string) {
 	if r.env == nil {
 		return
 	}
@@ -605,14 +605,14 @@ func (r *Reader) SetPrompt(marker, continuation string) {
 //
 // This is what to use for anything that came from the user or from a file,
 // because Print would read a bracket in it as a tag: "a[b]c" printed as markup
-// comes out as "ac". A Reader is therefore an io.Writer, so fmt.Fprintf works
+// comes out as "ac". A Session is therefore an io.Writer, so fmt.Fprintf works
 // on it.
 //
 // A program with its own output to write should write it here rather than to
 // os.Stdout, because the terminal this goes through is the one that knows
 // where the prompt is. An adapter that has to offer an io.Writer can return
-// the Reader itself.
-func (r *Reader) Write(p []byte) (int, error) {
+// the Session itself.
+func (r *Session) Write(p []byte) (int, error) {
 	if r.env == nil {
 		return len(p), nil
 	}
@@ -621,23 +621,21 @@ func (r *Reader) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Stdout returns where the program should write its own output.
-//
-// It is the Reader, because the terminal the Reader writes through is the one
-// that knows where the prompt is. Writing to os.Stdout instead draws over the
-// line being edited.
-func (r *Reader) Stdout() io.Writer { return r }
-
-// Stderr returns where the program should write its errors.
-//
-// It is the Reader as well, for the same reason: an error written straight to
-// os.Stderr lands on top of the line being edited. A program that wants its
-// errors kept apart from its output should write them somewhere else itself.
-func (r *Reader) Stderr() io.Writer { return r }
+// WriteString writes plain text without making a byte slice of it first,
+// which is what io.StringWriter asks for and what the markup Writer beside
+// this one already does.
+func (r *Session) WriteString(s string) (int, error) {
+	if r.env == nil {
+		return len(s), nil
+	}
+	r.env.term.write(s)
+	r.env.term.flush()
+	return len(s), nil
+}
 
 // Writer writes markup to a terminal, such as "[red]text[/red]".
 //
-// A Reader writes plain text, because most of what a program writes came from
+// A Session writes plain text, because most of what a program writes came from
 // a user or a file and a bracket in it is not a tag. This is the other half:
 // everything written here is read as markup.
 //
@@ -696,18 +694,18 @@ func (w *Writer) writeMarkup(s string) {
 	w.env.term.flush()
 }
 
-// Prompt is a Reader and the markup Writer that goes with it.
+// Prompt is a Session and the markup Writer that goes with it.
 //
-// The reading methods are promoted, so a Prompt is used like a Reader:
+// The reading methods are promoted, so a Prompt is used like a Session:
 // ReadLine, Password and Close all work on it directly. Markup is reached
 // through Markup, and a program that wants none simply never calls it.
 //
-// A Prompt is an io.Writer as well, through the Reader it holds, and writes
+// A Prompt is an io.Writer as well, through the Session it holds, and writes
 // plain text that way. That is deliberate: fmt.Fprintln(p, s) writes what a
 // program has to say through the terminal that knows where the prompt is,
 // without reading a bracket in it as a tag.
 type Prompt struct {
-	*Reader
+	*Session
 
 	// markup writes styled output, and is never nil.
 	markup *Writer
@@ -727,7 +725,7 @@ func (p *Prompt) Markup() *Writer {
 
 // DefineStyle gives a name to a set of attributes, so that markup can use it.
 // The spec is written the way the inside of a tag is, such as "bold color=red".
-func (r *Reader) DefineStyle(name, spec string) {
+func (r *Session) DefineStyle(name, spec string) {
 	if r.env == nil {
 		return
 	}
@@ -737,28 +735,53 @@ func (r *Reader) DefineStyle(name, spec string) {
 // SetHighlighter changes the function that marks up the line.
 //
 // A nil highlighter draws the line plainly.
-func (r *Reader) SetHighlighter(h Highlighter) {
+func (r *Session) SetHighlighter(h Highlighter) {
 	if r.env == nil {
 		return
 	}
 	r.env.highlighter = h
 }
 
-// LoadHistory reads the history back from the file it was given, throwing
-// away what is held.
+// LoadHistory reads the history back from its file, throwing away what is
+// held.
 //
-// New does this already. This is for a program that changes the file while it
-// runs, or that wants what another process has written since.
-func (r *Reader) LoadHistory(fname string) error {
+// New does this already. This is for a program that wants what another
+// process has written since, or that has changed the file with
+// SetHistoryFile.
+//
+// It takes no file name, and SaveHistory takes none either: which file the
+// history lives in is one setting, not two arguments that could disagree.
+func (r *Session) LoadHistory() error {
 	if r.env == nil || r.env.history == nil {
 		return nil
 	}
-	r.env.history.loadFrom(fname, r.env.history.max)
+	r.env.history.loadFrom(r.env.history.fname, r.env.history.max)
 	return nil
 }
 
+// SetHistoryFile changes the file the history is kept in. It does not read
+// the new file; call LoadHistory for that.
+func (r *Session) SetHistoryFile(fname string) {
+	if r.env == nil || r.env.history == nil {
+		return
+	}
+	r.env.history.fname = fname
+}
+
+// History returns the entries, newest first.
+//
+// A program that wants to show the history, search it its own way, or write
+// it somewhere else needs to be able to read it, and adding, saving and
+// clearing were the only ways to touch it.
+func (r *Session) History() []string {
+	if r.env == nil || r.env.history == nil {
+		return nil
+	}
+	return r.env.history.all()
+}
+
 // AddHistory adds an entry to the history.
-func (r *Reader) AddHistory(entry string) {
+func (r *Session) AddHistory(entry string) {
 	if r.env == nil {
 		return
 	}
@@ -766,7 +789,7 @@ func (r *Reader) AddHistory(entry string) {
 }
 
 // ClearHistory empties the history.
-func (r *Reader) ClearHistory() {
+func (r *Session) ClearHistory() {
 	if r.env == nil {
 		return
 	}
@@ -774,7 +797,7 @@ func (r *Reader) ClearHistory() {
 }
 
 // SaveHistory writes the history to the file it was given, if it was given one.
-func (r *Reader) SaveHistory() error {
+func (r *Session) SaveHistory() error {
 	if r.env == nil {
 		return nil
 	}
@@ -786,7 +809,7 @@ func (r *Reader) SaveHistory() error {
 
 // Interactive reports whether there is a terminal to edit on. When there is
 // not, ReadLine reads a plain line.
-func (r *Reader) Interactive() bool {
+func (r *Session) Interactive() bool {
 	return !r.noEdit
 }
 

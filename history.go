@@ -71,6 +71,19 @@ func (h *history) get(n int) (string, bool) {
 	return h.entries[len(h.entries)-n-1], true
 }
 
+// all returns the entries, newest first, in a slice of their own so that a
+// caller cannot change the list by holding on to it.
+func (h *history) all() []string {
+	if len(h.entries) == 0 {
+		return nil
+	}
+	out := make([]string, len(h.entries))
+	for i := range h.entries {
+		out[i] = h.entries[len(h.entries)-i-1]
+	}
+	return out
+}
+
 // deleteAt removes the entry at idx, counting from the oldest.
 func (h *history) deleteAt(idx int) {
 	if idx < 0 || idx >= len(h.entries) {

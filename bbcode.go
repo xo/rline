@@ -964,20 +964,21 @@ const maxBraceNesting = 64
 //
 //nolint:unused // wired up by editline, step 11
 type Highlighter interface {
-	Highlight(env *Highlight, input string)
+	Highlight(l *LineStyle)
 }
 
 // HighlighterFunc makes a Highlighter out of an ordinary function.
-type HighlighterFunc func(env *Highlight, input string)
+type HighlighterFunc func(l *LineStyle)
 
 // Highlight satisfies Highlighter.
-func (f HighlighterFunc) Highlight(env *Highlight, input string) { f(env, input) }
+func (f HighlighterFunc) Highlight(l *LineStyle) { f(l) }
 
-// Highlight is what a highlighter marks a line through.
+// LineStyle is a line and the attributes drawn over it.
 //
-// A highlighter is handed one of these and calls Style on the stretches it
-// recognises. Anything it does not touch keeps the attributes of the terminal.
-type Highlight struct {
+// A highlighter is handed one of these, reads the line with Text, and calls
+// StyleBytes or StyleRunes on the stretches it recognises. Anything it does
+// not touch keeps the attributes of the terminal.
+type LineStyle struct {
 	// What is being marked, and where the marks go.
 	input string
 	attrs *attrBuf
@@ -1004,7 +1005,19 @@ func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn Highlighter) {
 	if fn == nil {
 		return
 	}
-	fn.Highlight(&Highlight{input: s, attrs: attrs, bb: bb}, s)
+	fn.Highlight(&LineStyle{input: s, attrs: attrs, bb: bb})
+}
+
+// Text returns the line being marked up.
+//
+// A highlighter reads the line from here rather than being handed it
+// separately, so that there is one copy of it and no way for the two to
+// disagree.
+func (l *LineStyle) Text() string {
+	if l == nil {
+		return ""
+	}
+	return l.input
 }
 
 // posAdjust turns a position and a count given in characters into one given in
@@ -1014,8 +1027,8 @@ func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn Highlighter) {
 // Nothing reaches the negative position case, because the one public entry
 // point refuses a negative position before it gets here. Only a negative count
 // can arrive.
-func (h *Highlight) posAdjust(pos, count int) (int, int) {
-	if pos >= len(h.input) {
+func (l *LineStyle) posAdjust(pos, count int) (int, int) {
+	if pos >= len(l.input) {
 		return pos, count
 	}
 	if pos >= 0 && count >= 0 {
@@ -1024,11 +1037,11 @@ func (h *Highlight) posAdjust(pos, count int) (int, int) {
 	if pos < 0 {
 		upos := -pos
 		cpos, ucount := 0, 0
-		if h.cachedUPos <= upos {
-			ucount, cpos = h.cachedUPos, h.cachedCPos
+		if l.cachedUPos <= upos {
+			ucount, cpos = l.cachedUPos, l.cachedCPos
 		}
 		for ucount < upos {
-			next, _ := nextOfs([]byte(h.input), cpos)
+			next, _ := nextOfs([]byte(l.input), cpos)
 			if next <= 0 {
 				return pos, count
 			}
@@ -1036,13 +1049,13 @@ func (h *Highlight) posAdjust(pos, count int) (int, int) {
 			cpos += next
 		}
 		pos = cpos
-		h.cachedUPos, h.cachedCPos = upos, cpos
+		l.cachedUPos, l.cachedCPos = upos, cpos
 	}
 	if count < 0 {
 		want := -count
 		ucount, clen := 0, 0
 		for ucount < want {
-			next, _ := nextOfs([]byte(h.input), pos+clen)
+			next, _ := nextOfs([]byte(l.input), pos+clen)
 			if next <= 0 {
 				return pos, count
 			}
@@ -1050,21 +1063,21 @@ func (h *Highlight) posAdjust(pos, count int) (int, int) {
 			clen += next
 		}
 		count = clen
-		if h.cachedCPos == pos {
-			h.cachedUPos += ucount
-			h.cachedCPos += clen
+		if l.cachedCPos == pos {
+			l.cachedUPos += ucount
+			l.cachedCPos += clen
 		}
 	}
 	return pos, count
 }
 
 // mark lays a over count bytes from pos.
-func (h *Highlight) mark(pos, count int, a attr) {
-	pos, count = h.posAdjust(pos, count)
+func (l *LineStyle) mark(pos, count int, a attr) {
+	pos, count = l.posAdjust(pos, count)
 	if pos < 0 || count <= 0 {
 		return
 	}
-	h.attrs.updateAt(pos, count, a)
+	l.attrs.updateAt(pos, count, a)
 }
 
 // StyleBytes marks count bytes from pos with a named style, such as "keyword" or
@@ -1073,21 +1086,21 @@ func (h *Highlight) mark(pos, count int, a attr) {
 // A negative count means a number of characters rather than bytes, which is
 // what a caller counting characters wants. A negative pos is refused, which is
 // what the C does.
-func (h *Highlight) StyleBytes(pos, count int, style string) {
+func (l *LineStyle) StyleBytes(pos, count int, style string) {
 	if style == "" || pos < 0 {
 		return
 	}
-	h.mark(pos, count, h.bb.style(style))
+	l.mark(pos, count, l.bb.style(style))
 }
 
 // StyleRunes marks count characters from pos with a named style. pos is still
 // counted in bytes, because that is where the caller found the word; only the
 // length is counted in characters.
-func (h *Highlight) StyleRunes(pos, count int, style string) {
+func (l *LineStyle) StyleRunes(pos, count int, style string) {
 	if style == "" || pos < 0 {
 		return
 	}
-	h.mark(pos, -count, h.bb.style(style))
+	l.mark(pos, -count, l.bb.style(style))
 }
 
 // Formatted marks up s using markup that spells out the same text, so that a
@@ -1097,15 +1110,15 @@ func (h *Highlight) StyleRunes(pos, count int, style string) {
 // away. When the two disagree in length the marks simply run out, and the rest
 // of the line keeps what it had. The C writes a debug line about it, which the
 // port drops because nothing reads it.
-func (h *Highlight) Formatted(s, format string) {
+func (l *LineStyle) Formatted(s, format string) {
 	if s == "" {
 		return
 	}
 	var out buffer
 	var attrs attrBuf
-	h.bb.appendTo(format, &out, &attrs)
+	l.bb.appendTo(format, &out, &attrs)
 	for i := range len(s) {
-		h.attrs.updateAt(i, 1, attrs.at(i))
+		l.attrs.updateAt(i, 1, attrs.at(i))
 	}
 }
 

@@ -90,13 +90,13 @@ type CompleterFunc func(c *Completion, prefix string)
 // Complete satisfies Completer.
 func (f CompleterFunc) Complete(c *Completion, prefix string) { f(c, prefix) }
 
-// Entry is one completion, said in full.
+// Candidate is one completion, said in full.
 //
 // Replacement is what goes into the line. Display is what the menu shows, and
 // an empty Display shows the Replacement itself. Help is a line shown below
 // the menu. DeleteBefore and DeleteAfter say how many bytes on each side of
 // the cursor the completion takes away.
-type Entry struct {
+type Candidate struct {
 	Replacement  string
 	Display      string
 	Help         string
@@ -124,20 +124,20 @@ type Completion struct {
 // completer. It reports whether more are wanted: a completer that is walking a
 // large directory should stop when it answers false.
 func (c *Completion) Add(replacement string) bool {
-	return c.AddEntry(Entry{Replacement: replacement})
+	return c.AddCandidate(Candidate{Replacement: replacement})
 }
 
-// AddEntry offers one completion, said in full. It reports whether more are
+// AddCandidate offers one completion, said in full. It reports whether more are
 // wanted, as Add does.
-func (c *Completion) AddEntry(e Entry) bool {
+func (c *Completion) AddCandidate(cand Candidate) bool {
 	if c == nil || c.add == nil {
 		return false
 	}
-	return c.add(e.Replacement, e.Display, e.Help, e.DeleteBefore, e.DeleteAfter)
+	return c.add(cand.Replacement, cand.Display, cand.Help, cand.DeleteBefore, cand.DeleteAfter)
 }
 
-// Input is the line a completer was called on.
-type Input struct {
+// CompletionContext is the line a completer was called on.
+type CompletionContext struct {
 	// Text is the whole line, not only the part before the cursor.
 	Text string
 
@@ -147,8 +147,8 @@ type Input struct {
 
 // Input returns the whole line and where the cursor sits in it, which a
 // completer needs when the word alone is not enough to decide.
-func (c *Completion) Input() Input {
-	return Input{Text: c.input, Cursor: c.cursor}
+func (c *Completion) Input() CompletionContext {
+	return CompletionContext{Text: c.input, Cursor: c.cursor}
 }
 
 // completions holds what the completer offered, and the completer itself.

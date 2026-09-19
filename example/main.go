@@ -218,7 +218,8 @@ var sqlConstants = map[string]bool{
 //
 // It walks the line once, marking each stretch it recognises. Everything it
 // does not mark keeps the color of the terminal.
-func highlight(h *rline.Highlight, input string) {
+func highlight(h *rline.LineStyle) {
+	input := h.Text()
 	for i := 0; i < len(input); {
 		switch {
 		case strings.HasPrefix(input[i:], "--"):
@@ -311,7 +312,7 @@ func complete(c *rline.Completion, prefix string) {
 	for _, w := range found {
 		// The replacement takes the place of the word already typed, so the
 		// part already there is deleted first.
-		if !c.AddEntry(rline.Entry{Replacement: w, DeleteBefore: len(word)}) {
+		if !c.AddCandidate(rline.Candidate{Replacement: w, DeleteBefore: len(word)}) {
 			return
 		}
 	}

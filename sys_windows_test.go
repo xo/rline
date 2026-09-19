@@ -526,10 +526,22 @@ func TestWindowsSequencesDecodeBack(t *testing.T) {
 // TestWindowsOpenTTYNeedsAConsole checks the way in. Under go test the
 // standard input is usually a pipe rather than a console, and then opening
 // it has to fail rather than half work.
+//
+// Both calls pass -1, which is what asks for the standard input. They passed
+// 0 while openTTY ignored its argument, and 0 is a handle now rather than a
+// descriptor, so the first call opened handle 0 — not a console — and the
+// test reported that a real console was not one. That failure only appeared
+// from a console, because under go test isATTY(0) is false and the else path
+// runs. windows-vm found it by running the binary the way this file says to.
+//
+// The else path passed either way, and was changed too: asking about handle 0
+// gets errNotATerminal because 0 is not a console, not because the standard
+// input is not a terminal. The same answer to a different question is the
+// shape this project keeps finding.
 func TestWindowsOpenTTYNeedsAConsole(t *testing.T) {
 	if isATTY(0) {
 		// Running with a real console attached, so opening it must work.
-		term, err := openTTY(0)
+		term, err := openTTY(-1)
 		if err != nil {
 			t.Fatalf("opening a real console: %v", err)
 		}
@@ -539,7 +551,7 @@ func TestWindowsOpenTTYNeedsAConsole(t *testing.T) {
 		}
 		return
 	}
-	if _, err := openTTY(0); !errors.Is(err, errNotATerminal) {
+	if _, err := openTTY(-1); !errors.Is(err, errNotATerminal) {
 		t.Errorf("opening something that is not a console gave %v, want %v", err, errNotATerminal)
 	}
 }

@@ -1155,7 +1155,7 @@ func menuReplay(t *testing.T) []string {
 		},
 		noHighlight: true,
 	}
-	// The styles a Reader defines. Without them every style name in the menu
+	// The styles a Session defines. Without them every style name in the menu
 	// renders to nothing, and the recording cannot tell one name from
 	// another. The C probe defines the same list by hand, so a name that
 	// drifts between the two shows up here as well.

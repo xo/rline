@@ -33,29 +33,50 @@ replaced.
 ## Quickstart
 
 ```go
-r, err := rline.New(
+p, err := rline.New(
     rline.WithPrompt("> ", "| "),
-    rline.WithHistory(".history", 200),
+    rline.WithHistoryFile(".history"),
+    rline.WithHistoryLimit(200),
 )
 if err != nil {
     return err
 }
-defer r.Close()
+defer p.Close()
 
 for {
-    line, err := r.ReadLine("")
-    if errors.Is(err, io.EOF) {
-        return nil
-    }
-    if err != nil {
+    line, err := p.ReadLine("")
+    switch {
+    case errors.Is(err, io.EOF):
+        return nil            // the input ended: Ctrl-D on an empty line
+    case errors.Is(err, rline.ErrInterrupted):
+        continue              // the line was given up: Ctrl-C
+    case err != nil:
         return err
     }
-    fmt.Fprintf(r, "read: %s\n", line)
+    fmt.Fprintf(p, "read: %s\n", line)
 }
 ```
 
-`ReadLine` answers `io.EOF` when the input ends. A `Reader` is an `io.Writer`
-for plain text, and `Print` writes markup such as `[red]text[/red]`.
+`New` returns a `*Prompt`: a `Reader` that reads lines, with the markup
+`Writer` that goes with it. The reading methods are promoted, so `p.ReadLine`,
+`p.Password` and `p.Close` are the `Reader`'s.
+
+A `Prompt` is an `io.Writer` for plain text, which is what most of what a
+program prints is — a bracket in it is not a tag. Markup goes through
+`p.Markup()`, which is never nil:
+
+```go
+fmt.Fprintf(p, "read: %s\n", line)                     // plain
+fmt.Fprintf(p.Markup(), "[ic-error]%s[/]\n", err)       // styled
+```
+
+Write through the `Prompt` rather than to `os.Stdout`, because the terminal it
+writes through is the one that knows where the prompt is. `p.Stdout()` and
+`p.Stderr()` return it for a program that needs an `io.Writer` to hand on.
+
+`ReadLine` answers `io.EOF` when the input ends and `ErrInterrupted` when the
+user gave the line up with Ctrl-C. Those are different answers on purpose: the
+C cannot tell them apart, and a shell has to.
 
 ## The example
 

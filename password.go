@@ -29,7 +29,7 @@ import (
 // input, which is what a program driven by a script needs. Nothing is hidden
 // in that case, because there is no terminal to hide it from, and a caller
 // that must not read a password from a pipe should check Interactive first.
-func (r *Reader) Password(prompt string) (string, error) {
+func (r *Session) Password(prompt string) (string, error) {
 	switch {
 	case r.closed:
 		return "", ErrClosed
@@ -66,7 +66,7 @@ type noEchoDevice interface {
 
 // readNoEcho reads one line with echo off and the terminal driver still doing
 // the editing.
-func (r *Reader) readNoEcho(dev noEchoDevice) (string, error) {
+func (r *Session) readNoEcho(dev noEchoDevice) (string, error) {
 	if err := dev.startNoEcho(); err != nil {
 		return "", err
 	}
@@ -95,7 +95,7 @@ func (r *Reader) readNoEcho(dev noEchoDevice) (string, error) {
 }
 
 // readHidden reads keys until the line ends, showing nothing.
-func (r *Reader) readHidden() (string, error) {
+func (r *Session) readHidden() (string, error) {
 	var sb strings.Builder
 	for {
 		switch c := r.env.tty.read(); c {
@@ -135,7 +135,7 @@ func (r *Reader) readHidden() (string, error) {
 }
 
 // readPlainPassword reads a line when there is no terminal to hide it on.
-func (r *Reader) readPlainPassword(prompt string) (string, error) {
+func (r *Session) readPlainPassword(prompt string) (string, error) {
 	if r.env != nil && r.env.tty != nil {
 		r.env.term.write(prompt)
 		r.env.term.flush()

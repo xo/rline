@@ -26,7 +26,7 @@ import (
 func TestReadLineWithoutTerminal(t *testing.T) {
 	t.Parallel()
 	var out bytes.Buffer
-	r := &Reader{
+	r := &Session{
 		noEdit: true,
 		plain:  bufio.NewReader(strings.NewReader("first\nsecond\r\nlast")),
 	}
@@ -52,7 +52,7 @@ func TestReadLineWithoutTerminal(t *testing.T) {
 // touching a terminal it has already put back.
 func TestReadLineAfterClose(t *testing.T) {
 	t.Parallel()
-	r := &Reader{noEdit: true, plain: bufio.NewReader(strings.NewReader("x\n"))}
+	r := &Session{noEdit: true, plain: bufio.NewReader(strings.NewReader("x\n"))}
 	if err := r.Close(); err != nil {
 		t.Fatalf("Close: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestOptions(t *testing.T) {
 	}
 }
 
-// TestDefaultsMatchTheC checks the settings a Reader starts with against what
+// TestDefaultsMatchTheC checks the settings a Session starts with against what
 // isocline starts with, since a caller who passes no options should get what
 // the C gives.
 func TestDefaultsMatchTheC(t *testing.T) {

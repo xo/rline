@@ -453,7 +453,7 @@ func manyWords(words ...string) Completer {
 	return CompleterFunc(func(c *Completion, prefix string) {
 		for _, w := range words {
 			if strings.HasPrefix(w, prefix) && w != prefix {
-				if !c.AddEntry(Entry{Replacement: w, DeleteBefore: len(prefix)}) {
+				if !c.AddCandidate(Candidate{Replacement: w, DeleteBefore: len(prefix)}) {
 					return
 				}
 			}
@@ -822,7 +822,7 @@ func TestReadLineTellsAnInterruptFromAnEmptyLine(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			ev, _ := feedEnv(t, test.keys, feedOpts{})
-			r := &Reader{env: ev}
+			r := &Session{env: ev}
 			line, err := r.ReadLine("")
 			if !errors.Is(err, test.err) {
 				t.Errorf("ReadLine gave %v, want %v", err, test.err)
@@ -840,7 +840,7 @@ func TestReadLineTellsAnInterruptFromAnEmptyLine(t *testing.T) {
 func TestSetCompleterReplacesTheCompleter(t *testing.T) {
 	t.Parallel()
 	ev, _ := feedEnv(t, "se"+kTab+kEsc+kPause+kEnter, feedOpts{})
-	r := &Reader{env: ev}
+	r := &Session{env: ev}
 
 	// Nothing is offered until a completer is set.
 	if ev.completions.completer != nil {
