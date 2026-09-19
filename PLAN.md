@@ -1179,39 +1179,44 @@ standard library import as an error.
 usql is the program this port exists for, and it talks to its reader through
 one interface, `usql/rline.IO`, with eleven methods. That interface is the
 surface to fit, not readline's own. Audited read-only by ken-mba against a
-usql checkout, and the two claims that decide anything were checked again
-here against a second checkout.
+usql checkout, re-checked here against a second one, and restated below
+against the API as it now stands after three passes of reshaping.
 
-Three methods fit as they are: `Close`, `Interactive` and `Password`, the last
-exactly. One behavioural difference under it: usql answers
+Five fit as they are. `Close`, `Interactive` and `Password` did already.
+`Stdout` and `Stderr` now do too, in the sense that matters: both wanted an
+`io.Writer` that keeps program output off the prompt, and a `*Prompt` is one,
+so the adapter returns it from both and writes no code. The methods that used
+to exist here for them are gone, because returning the receiver said nothing
+the type did not.
+
+One behavioural difference under `Password`: usql answers
 `ErrPasswordNotAvailable` when built non-interactive, where this reads the
 password plainly from the input.
 
-Four want a thin wrapper. `Next` returns runes where `ReadLine` returns a
+Three want a thin wrapper. `Next` returns runes where `ReadLine` returns a
 string. `Prompt(string)` is a whole prompt where `SetPrompt` takes two
 markers. `Save(string) error` splits into `AddHistory` and `SaveHistory`.
-`Completer` adapted in shape but not in lifetime, because usql sets its
-completer after the reader exists and replaces it when the connection changes,
-and there was only `WithCompleter` at construction; `SetCompleter` now covers
-that.
 
-Four are not here at all. `Stdout()` and `Stderr()`: `*Reader` already
-implements `io.Writer`, and an adapter returns the Reader itself from
-`Stdout()`, which is both the easy answer and the right one, because the
-terminal it writes through is the one that knows where the prompt is. `Write`
-says so now. `Stderr()` still has no answer: there is no second stream here,
-and whether errors should go through the same terminal or straight to
-`os.Stderr` is undecided. `Cygwin()`
-may genuinely not be needed, since the Windows console is handled natively
-here, but that is a question rather than something to assume away.
-`SetOutput(func(string) string)` is the real mismatch: usql passes a filter
-over the text about to be drawn, which re-parses its whole accumulated
-statement buffer and returns the last line with a colour-continuation prefix.
-`WithHighlighter` is handed one line and marks stretches with named styles,
-and cannot see outside that line. usql's is stateful across reads by design,
-because a SQL statement spans them. Bridging means usql giving up cross-read
+`Completer` fits now. usql sets its completer after the reader exists and
+replaces it when the connection changes; `SetCompleter` covers that, and
+`SetHighlighter` is there for the same reason on the other side.
+
+`Cygwin()` may genuinely not be needed, since the Windows console is handled
+natively here, but that is a question rather than something to assume away.
+
+`SetOutput(func(string) string)` is the one real mismatch, and three passes of
+renaming have not changed it. usql passes a filter over the text about to be
+drawn, which re-parses its whole accumulated statement buffer and returns the
+last line with a colour-continuation prefix. A `Highlighter` is handed one
+line through a `LineStyle` and marks stretches with named styles, and cannot
+see outside that line. usql's is stateful across reads by design, because a
+SQL statement spans them. Bridging means usql giving up cross-read
 highlighting inside the editor, or this accepting a filter over the drawn
-string.
+string. It is the one decision left that is not a rename.
+
+Worth knowing while deciding: usql's filter is exactly the thing that returns
+markup with a colour left open at the end of a line, which is what made the
+newline bleed in `MarkupWriter` a real fault rather than a hypothetical one.
 
 ### Ctrl-C now says so, which is the one behavioural departure
 
