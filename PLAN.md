@@ -1030,6 +1030,14 @@ a sign convention where the port has two methods, so no recording can reach
 the second one. The proposed second class dissolves on measurement and the
 first one swallows it.
 
+Worth noting what nearly happened, since the section would have carried it.
+The second class was offered, hedged, and could have been written in on
+trust; it was plausible and it came from the person who had found the first
+three instances. Had it gone in, this section would read as two shapes where
+there is one, and nothing afterwards would have caught it, because a document
+is not run. The measurement is what kept it right, and the cost of the
+measurement was four minutes.
+
 The test ken-mba wrote is worth keeping either way. It holds `StyleRunes`'s
 guard, which nothing did, and it writes the promise down for both.
 
