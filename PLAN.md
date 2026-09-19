@@ -42,8 +42,12 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    ASCII case rules in `ascii.go`. Neither matches the standard library.
    `tools/build-probe.sh` builds a probe that prints what the C functions
    return, and `testdata/common.txt` records 18576 of those calls.
-2. `wcwidth.c`. This is the wcwidth function of Markus Kuhn. It returns 0 for
-   combining marks and for control characters.
+2. `wcwidth.c`. Not ported. `width.go` calls `github.com/mattn/go-runewidth`
+   instead. `testdata/wcwidth.txt` records the width that the C code gives
+   every code point, and `testdata/wcwidth-delta.txt` records the 150 ranges
+   where go-runewidth answers differently. `TestWidthDelta` keeps that record
+   current, so an upgrade of go-runewidth shows up as a change to a committed
+   file.
 3. `stringbuf.c`. This is a growable buffer that moves the cursor by character,
    not by byte.
 4. `tty.c` and `tty_esc.c`. This reads the terminal and decodes escape
@@ -62,7 +66,8 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 12. `isocline.c`. This is the public API. API means Application Programming
     Interface.
 
-`wcwidth.c` is a textual include of `stringbuf.c`, so the two port together.
+`wcwidth.c` is a textual include of `stringbuf.c`. Since it is not ported,
+`stringbuf.c` ports on its own and calls `runeWidth`.
 
 ## Test method
 
@@ -113,10 +118,34 @@ The QUTF-8 encoder does encode a surrogate code point, and the decoder will not
 read one back. The encoder and the decoder disagree.
 
 Case-insensitive comparison compares C `char` values, and `char` is signed on
-x86 and on x86-64. Any byte above 0x7f therefore sorts before every ASCII
-character. `char` is unsigned by default on ARM, so the C code sorts completions
-differently there. The port keeps the x86 order, because that is where the
-corpus comes from. This needs a decision once the port runs on ARM.
+x86-64. Any byte above 0x7f therefore sorts before every ASCII character. The
+port keeps that order, because the corpus comes from an x86-64 host.
+
+Whether this matters on another machine is not settled. Linux on arm64 makes
+`char` unsigned by default, which would reverse the order. Apple's arm64 ABI
+is reported to keep `char` signed, which would not. The macOS host has been
+asked to compile and run a one line program that answers this, and the answer
+goes here.
+
+## The width table
+
+go-runewidth is newer than the table in `wcwidth.c`, and the two disagree for
+3877 code points out of 1114112. Most of the disagreement is go-runewidth
+being right about characters that Unicode added after the C table was written.
+Three parts need a decision, and none is settled.
+
+U+1160 to U+11FF are Hangul Jamo vowels and final consonants. The C table
+gives them width 0, because they combine with the syllable in front of them.
+go-runewidth gives them width 1. Korean text composed from Jamo will therefore
+place the cursor differently.
+
+U+E0020 to U+E007F are the tag characters, which carry the region letters
+inside a flag emoji. The C table gives them width 0 and go-runewidth gives
+them width 1.
+
+U+D800 to U+DFFF are the UTF-16 surrogate halves, and they account for 2048 of
+the 3877. They cannot appear in text that the decoder accepts, so this part
+does not matter in practice.
 
 ## Checks
 
@@ -134,7 +163,7 @@ standard library import as an error.
 
 ## Open questions
 
-Four questions have no answer yet.
+Three questions have no answer yet.
 
 First, does `rline` adopt `github.com/xo/terminfo`? isocline contains no
 terminfo code. `term.c` reads the `TERM`, `COLORTERM`, `NO_COLOR`,
@@ -144,11 +173,7 @@ palette. terminfo is therefore new work, not saved work.
 Second, does `rline` adopt `github.com/xo/inputrc`? isocline never reads an
 inputrc file, because it carries fixed key bindings. inputrc is a new feature.
 
-Third, which package measures character width? `github.com/mattn/go-runewidth`
-matches the C behavior. `golang.org/x/text/width` does not, because it gives
-East Asian width only and returns no zero width for combining marks.
-
-Fourth, how does `isocline/` reach another host? It is a separate git
+Third, how does `isocline/` reach another host? It is a separate git
 repository, so this repository ignores it for now.
 
 ## License

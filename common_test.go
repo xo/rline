@@ -19,6 +19,12 @@ const (
 	// corpusPath holds what the C functions in common.c returned.
 	corpusPath = "testdata/common.txt"
 
+	// widthPath holds the column width that the C code gives every code point.
+	widthPath = "testdata/wcwidth.txt"
+
+	// deltaPath holds every range where go-runewidth disagrees with the C code.
+	deltaPath = "testdata/wcwidth-delta.txt"
+
 	// probePath is where tools/build-probe.sh puts the compiled probe.
 	probePath = ".build/probe-common"
 
@@ -134,7 +140,8 @@ func checkLine(t *testing.T, line string) (string, string) {
 	return f[0], ""
 }
 
-// regenerate runs the C probe and writes the corpus.
+// regenerate runs the C probe and writes the two corpus files. The probe
+// prints both, so splitting them here keeps one build step.
 func regenerate(t *testing.T) {
 	t.Helper()
 	if _, err := os.Stat(probePath); err != nil {
@@ -144,10 +151,28 @@ func regenerate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("running the probe: %v", err)
 	}
-	if err := os.WriteFile(corpusPath, out, 0o644); err != nil {
-		t.Fatalf("writing %s: %v", corpusPath, err)
+	var calls, widths strings.Builder
+	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+		if strings.HasPrefix(line, "width ") {
+			widths.WriteString(line)
+			widths.WriteByte('\n')
+			continue
+		}
+		calls.WriteString(line)
+		calls.WriteByte('\n')
 	}
-	t.Logf("wrote %s: %d bytes", corpusPath, len(out))
+	for _, f := range []struct {
+		path string
+		body string
+	}{
+		{corpusPath, calls.String()},
+		{widthPath, widths.String()},
+	} {
+		if err := os.WriteFile(f.path, []byte(f.body), 0o644); err != nil {
+			t.Fatalf("writing %s: %v", f.path, err)
+		}
+		t.Logf("wrote %s: %d bytes", f.path, len(f.body))
+	}
 }
 
 // mustHex reads a hex field. The probe writes "-" for an empty string.

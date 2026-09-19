@@ -94,6 +94,23 @@ static void string_cases(void) {
   }
 }
 
+/* Print the column width that isocline gives every code point, as ranges.
+   mk_wcwidth lives in wcwidth.c, which stringbuf.c includes, so the unity
+   build reaches it. Ranges keep the output small while covering every code
+   point from U+0000 to U+10FFFF. */
+static void width_ranges(void) {
+  int prev = mk_wcwidth(0);
+  unicode_t start = 0;
+  for (unicode_t u = 1; u <= 0x110000; u++) {
+    int w = (u <= 0x10ffff ? mk_wcwidth((int32_t)u) : prev - 1);
+    if (w != prev) {
+      printf("width %06x %06x %d\n", start, u - 1, prev);
+      start = u;
+      prev = w;
+    }
+  }
+}
+
 int main(void) {
   /* One byte. */
   for (int a = 0; a < 256; a++) {
@@ -138,5 +155,6 @@ int main(void) {
   for (unicode_t u = 0xee000; u <= 0xee0ff; u++) encode_case(u);
   for (unicode_t u = 0x100; u <= 0x10ffff; u += 0x1111) encode_case(u);
   string_cases();
+  width_ranges();
   return 0;
 }
