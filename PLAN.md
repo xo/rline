@@ -657,6 +657,29 @@ This is the wrap mark again in a different costume: one function standing for
 two questions that are the same on one system and not on another, so the
 system where they differ is the one that finds out.
 
+And a third instance of the same shape, found by windows-vm while regression
+testing the API reshape. `openTTYDevice` on Windows took a descriptor and
+ignored it, always opening the standard input, so `WithInput` and
+`WithInputFd` silently did nothing there: the caller's stream was accepted and
+discarded, the console was read instead, and because opening it succeeded the
+reader stayed in editing mode, so it looked as though it had worked. On Unix
+the same call fails to open a plain file as a terminal, falls back to reading
+plainly, and returns the line. Measured rather than read: a file already
+holding a whole line, and `ReadLine` waiting three seconds for the keyboard.
+
+It is fixed rather than documented, because the option meaning different
+things on different systems is worse than either meaning. A negative
+descriptor means the standard input, as on Unix, and anything else is a handle
+the caller gave. `TestConsoleOpenTTYDeviceHonoursItsArgument` pins it, and
+needs a real console for the reason the others do: a plain file being refused
+only proves something while a console is there to be taken by mistake.
+
+Three instances is enough to name the rule rather than the incidents. A
+function that takes an argument it ignores is a trap on this platform, because
+the value that would have been wrong is the one the caller believes was used.
+`isATTY` is the one remaining, and its comment now says outright not to give
+it a second meaning.
+
 ### completers.c
 
 `ls_valid_esc` is defined and never called. It looks like it was meant to

@@ -211,7 +211,7 @@ func TestConsoleReadsEscapeSequences(t *testing.T) {
 // interface.
 func openConsoleForTest(t *testing.T) (*tty, *ttyDevice) {
 	t.Helper()
-	d, err := openTTYDevice(0)
+	d, err := openTTYDevice(-1)
 	if err != nil {
 		t.Fatalf("opening the console: %v", err)
 	}
@@ -561,7 +561,7 @@ func TestWindowsRawModeRoundTrip(t *testing.T) {
 	if !isATTY(0) {
 		t.Skip("no console on standard input: see the comment above for how to run this so it checks raw mode")
 	}
-	d, err := openTTYDevice(0)
+	d, err := openTTYDevice(-1)
 	if err != nil {
 		t.Fatalf("opening the console: %v", err)
 	}
@@ -605,7 +605,7 @@ func TestWindowsReadByteTimesOut(t *testing.T) {
 	if !isATTY(0) {
 		t.Skip("no console on standard input: see TestWindowsRawModeRoundTrip for how to run this")
 	}
-	d, err := openTTYDevice(0)
+	d, err := openTTYDevice(-1)
 	if err != nil {
 		t.Fatalf("opening the console: %v", err)
 	}
@@ -617,4 +617,46 @@ func TestWindowsReadByteTimesOut(t *testing.T) {
 	if waited := time.Since(start); waited > 2*time.Second {
 		t.Errorf("a wait of 50ms took %v", waited)
 	}
+}
+
+// TestConsoleOpenTTYDeviceHonoursItsArgument checks that a descriptor handed
+// to openTTYDevice is used rather than thrown away.
+//
+// It ignored its argument and always took the standard input, which made
+// WithInput and WithInputFd silently do nothing on Windows: the caller's
+// stream was accepted and discarded, the console was read instead, and
+// because opening it succeeded the reader stayed in editing mode, so it
+// looked as though it had worked. Found by windows-vm, by passing a file that
+// already held a whole line and watching ReadLine wait for the keyboard
+// instead of returning it.
+//
+// This needs a console on the standard input, because the point of it is that
+// a plain file is refused while a console is there to be taken by mistake.
+// See the comment at the top of this file for how to run it.
+func TestConsoleOpenTTYDeviceHonoursItsArgument(t *testing.T) {
+	if !isATTY(0) {
+		t.Skip("no console on standard input, which is the only state this can fail in: " +
+			"see the comment at the top of this file")
+	}
+	f, err := os.CreateTemp(t.TempDir(), "in")
+	if err != nil {
+		t.Fatalf("making a file: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	// A plain file is not a console, so opening it as one has to fail. If the
+	// argument were ignored this would take the console and succeed.
+	if d, err := openTTYDevice(int(f.Fd())); err == nil {
+		_ = d.close()
+		t.Error("a plain file opened as a console, so the descriptor was thrown away " +
+			"and the console taken instead")
+	}
+
+	// And a negative descriptor still means the standard input, which is what
+	// every caller that has not been given one passes.
+	d, err := openTTYDevice(-1)
+	if err != nil {
+		t.Fatalf("opening the standard input as a console: %v", err)
+	}
+	_ = d.close()
 }

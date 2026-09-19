@@ -117,9 +117,15 @@ type ttyDevice struct {
 	resized atomic.Bool
 }
 
-// isATTY reports whether the standard input is a console. The file descriptor
-// is ignored, because a console is reached by handle rather than by
-// descriptor, and isocline only ever reads the standard input.
+// isATTY reports whether the standard input is a console.
+//
+// The argument is ignored on purpose: this answers "is there a keyboard",
+// which is always about the standard input. Do not give it a second meaning.
+// Two faults on this platform came from one function standing for two
+// questions — writesToTerminal asked this one about the output, and
+// openTTYDevice took a descriptor and threw it away — so anything that wants
+// to ask about a particular stream has its own function. fileIsTerminal asks
+// about a file, and openTTYDevice now honours the descriptor it is handed.
 func isATTY(_ int) bool {
 	h, err := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
 	if err != nil {
@@ -141,10 +147,23 @@ func fileIsTerminal(f *os.File) bool {
 
 // openTTYDevice prepares the console for reading keys. The file descriptor is
 // ignored, for the reason isATTY gives.
-func openTTYDevice(_ int) (*ttyDevice, error) {
-	h, err := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
-	if err != nil {
-		return nil, fmt.Errorf("taking the console handle: %w", errNotATerminal)
+func openTTYDevice(fd int) (*ttyDevice, error) {
+	// A negative descriptor means the standard input, as it does on Unix.
+	// Anything else is a handle the caller gave, because f.Fd() on Windows
+	// returns a handle rather than a descriptor.
+	//
+	// This used to ignore its argument and always take the standard input,
+	// which made WithInput and WithInputFd silently do nothing: the caller's
+	// stream was accepted, discarded, and the console read instead, in
+	// editing mode, so it looked as though it had worked. Found by the
+	// windows-vm session, by passing a file that already held a line and
+	// watching ReadLine wait for the keyboard.
+	h := windows.Handle(uintptr(fd)) //nolint:gosec // a handle, not a size
+	if fd < 0 {
+		var err error
+		if h, err = windows.GetStdHandle(windows.STD_INPUT_HANDLE); err != nil {
+			return nil, fmt.Errorf("taking the console handle: %w", errNotATerminal)
+		}
 	}
 	var mode uint32
 	if err := windows.GetConsoleMode(h, &mode); err != nil {
