@@ -1267,6 +1267,15 @@ because the example runs as a separate program and its coverage is not
 recorded. Found by reading `go test -cover` rather than by anything failing:
 forty functions at zero, of which those were the ones a caller reaches.
 
+A claim that someone checked something is theirs to make, not yours to
+infer. The last commit before this one was announced as "verified on both
+platforms" while the macOS session had not yet seen it. It was green, and
+nothing turned on it, and that is the point: the answer being right is not
+what makes the claim true. This is the same species as inventing a cause for
+a mutation that was almost certainly true and unmeasured — and it happened in
+the sentence claiming the work was verified, which is where it costs most,
+because a reader takes "verified" as meaning somebody looked.
+
 Explain a gap, and say whether it is a gap. Four or five comments in this
 package now say why something is not checked, and each one has stopped the
 next reader taking the hole for a decision. The exception is the one that
