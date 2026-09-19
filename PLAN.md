@@ -332,7 +332,7 @@ One departure is over a behaviour rather than a fault, and is the only one.
 `ReadLine` answers `ErrInterrupted` when the user presses Ctrl-C or Ctrl-G,
 where the C clears the line and hands back an empty string that no caller can
 tell from Enter on an empty line. usql cannot work without that distinction.
-Ken decided for the program over the C. See "What usql needs" below.
+Ken decided for the program over the C. See "What rline offers usql" below.
 
 The QUTF-8 decoder refuses the byte pair `0xED 0x80`, which encodes U+D000 to
 U+D03F. Those are ordinary characters. The test that refuses UTF-16 surrogate
@@ -1307,80 +1307,66 @@ with the toolchain of this module. A golangci-lint binary built elsewhere can
 fail to read the export data of a newer Go release, and then it reports every
 standard library import as an error.
 
-## What usql needs
+## What rline offers usql
 
-usql is the program this port exists for, and it talks to its reader through
-one interface, `usql/rline.IO`, with eleven methods. That interface is the
-surface to fit, not readline's own. Audited read-only by ken-mba against a
-usql checkout, re-checked here against a second one, and restated below
-against the API as it now stands after three passes of reshaping.
+Ken set the direction on 2026-09-20 and it decides every question in this
+section: **rline never adapts to usql.** usql is the program this port exists
+for, but it is meant to be a blind consumer of a package that knows better,
+and it will adapt here once this is working. Where usql's current reader does
+something poorly, the answer is to do it well and let usql come to it, not to
+grow a second way of doing it that matches what usql has.
 
-Four fit as they are. `Close`, `Interactive` and `Password` did already, and
-`Stdout` does now: it wanted an `io.Writer` that keeps program output off the
-prompt, and a `*Prompt` is one, so the adapter returns it and writes no code.
-The method that used to exist here for it is gone, because returning the
-receiver said nothing the type did not.
+So the eleven methods of `usql/rline.IO` are read here as a list of things
+usql will need to do, not as a list of shapes to fit.
 
-`Stderr` does not fit, and an earlier version of this section said it did.
-Returning the `*Prompt` from both is only right while both go to the same
-place, and in usql they do not: `rline.New` sends the standard output to a
-file when `-o` is given and leaves the standard error on the terminal
-whatever happens, `usql/rline/rline.go:147` against `:161`. usql reaches for
-`Stderr()` in seven places, `handler.go:818`, `:877`, `:1006` and `:1246`
-among them, so an adapter that answered the `*Prompt` for both would put
-error text inside the output file and take it off the screen, quietly, in
-exactly the case a caller chose a file because they wanted the output clean. Nothing here can say "write this to the error
-stream": `WithOutput` sets one writer, and `WithLog` is for the port's own
-tracing rather than for the program's errors.
+Five need nothing. `Close`, `Interactive` and `Password` map straight across.
+`Completer` maps to `SetCompleter`, which also lets usql replace the completer
+when the connection changes, which is what it does today. `Stdout` maps to the
+`*Prompt` itself, which is an `io.Writer`, and a better one than `os.Stdout`
+because the terminal it writes through is the one that knows where the prompt
+is.
 
-But nothing has to be built to match what usql does today, and an earlier
-version of this paragraph implied otherwise. `readline.Stdout` and
-`readline.Stderr` in gohxs/readline are plain package variables holding
-`os.Stdout` and `os.Stderr` — `std.go:12` and `:13` — so usql writes both
-straight to the operating system and neither is coordinated with the line
-being edited. And `-o` sets `interactive = false` on the line after it opens
-the file, so in that case there is no line being edited at all. An adapter
-can hold `os.Stderr` and answer with it, and usql behaves exactly as it does
-now.
+Three are renames usql makes in its adapter, and each is the better shape.
+`Next` returns runes where `ReadLine` returns a string and can also say that a
+line was given up rather than ended. `Prompt(string)` sets a whole prompt
+where `SetPrompt` takes a marker and a continuation marker, which is what a
+statement spanning rows needs. `Save(string) error` does two things where
+`AddHistory` and `SaveHistory` do one each.
 
-What ken-mba's warning is really about is a mistake an adapter can make
-rather than a hole in this package: answering the `*Prompt` for both would
-put error text in the output file when `-o` is given. That is worth writing
-down and is not work.
+`Cygwin` is a concept this package should not have. The Windows console is
+handled natively, so there is nothing for usql to ask. It drops the method.
 
-So the decision is whether to offer something better than what usql has:
-output that does not land on top of the line being edited. That is the thing
-this package can do that gohxs/readline cannot, and it is an enhancement
-rather than a requirement.
+`Stderr` is built, and is better than what usql has. `WithStderr` says where a
+program's errors go and `Session.Stderr` returns the writer. usql today
+writes to `os.Stdout` and `os.Stderr` directly — `readline.Stdout` and
+`readline.Stderr` in gohxs/readline are plain package variables holding those
+two, `std.go:12` and `:13` — so its two streams interleave however the
+operating system buffers them. Here they keep their order, because the
+terminal is flushed before each error.
 
-One behavioural difference under `Password`: usql answers
-`ErrPasswordNotAvailable` when built non-interactive, where this reads the
-password plainly from the input.
+`SetOutput` is the one thing usql should stop doing rather than the one thing
+this package should add. Its `outputHighlighter` at `handler/handler.go:134`
+takes the accumulated statement buffer from previous reads, prepends the line
+about to be drawn, re-parses the whole thing with the driver's SQL parser,
+highlights all of it, and returns only the last line with a
+colour-continuation prefix. All of that exists because gohxs/readline hands it
+one line at a time while a SQL statement spans several.
 
-Three want a thin wrapper. `Next` returns runes where `ReadLine` returns a
-string. `Prompt(string)` is a whole prompt where `SetPrompt` takes two
-markers. `Save(string) error` splits into `AddHistory` and `SaveHistory`.
+It does not have to. `WithContinue` keeps a whole statement in one buffer
+across as many rows as it takes, and hands it back at once, which is what the
+example demonstrates. `h.buf` is reset after each statement and on interrupt
+— `handler.go:262` among others — so it never holds more than the one
+unfinished statement `WithContinue` already holds. A `Highlighter` therefore
+sees the whole statement as it is typed, and marks it with named styles
+rather than returning a decorated string with a colour left open.
 
-`Completer` fits now. usql sets its completer after the reader exists and
-replaces it when the connection changes; `SetCompleter` covers that, and
-`SetHighlighter` is there for the same reason on the other side.
+That last detail is not incidental: the open colour is what made the newline
+bleed in `MarkupWriter` a real fault, and the structured interface cannot
+produce it.
 
-`Cygwin()` may genuinely not be needed, since the Windows console is handled
-natively here, but that is a question rather than something to assume away.
-
-`SetOutput(func(string) string)` is the one real mismatch, and three passes of
-renaming have not changed it. usql passes a filter over the text about to be
-drawn, which re-parses its whole accumulated statement buffer and returns the
-last line with a colour-continuation prefix. A `Highlighter` is handed one
-line through a `LineStyle` and marks stretches with named styles, and cannot
-see outside that line. usql's is stateful across reads by design, because a
-SQL statement spans them. Bridging means usql giving up cross-read
-highlighting inside the editor, or this accepting a filter over the drawn
-string. It is the one decision left that is not a rename.
-
-Worth knowing while deciding: usql's filter is exactly the thing that returns
-markup with a colour left open at the end of a line, which is what made the
-newline bleed in `MarkupWriter` a real fault rather than a hypothetical one.
+This is the claim in the section most worth checking before it is relied on,
+because it is the one nobody has built yet. The check is cheap: point a
+`Highlighter` at a multi-row statement and see whether it is handed all of it.
 
 ### Ctrl-C now says so, which is the one behavioural departure
 
@@ -1406,15 +1392,9 @@ rather than a fault, and it is listed under the departures as well.
 
 ### What the count is now
 
-Five fit — `Close`, `Interactive`, `Password`, `Completer` since
-`SetCompleter`, and `Stdout`. Three want a thin wrapper: `Next`, `Prompt` and
-`Save`. `Cygwin` is a question. `Stderr` needs nothing built to match what
-usql does today and is a choice about whether to do better. `SetOutput` is
-the one real mismatch. That is the eleven.
-
-None of this is a defect. It is all downstream of having ported isocline
-faithfully, which is what was asked for, and it is the list of decisions that
-turning it into usql's reader needs.
+Five need nothing, three are renames usql makes, `Cygwin` is dropped,
+`Stderr` is built, and `SetOutput` is a thing usql stops doing. That is the
+eleven, and nothing on the list is waiting on this package.
 
 This section is checked against a usql checkout rather than remembered, and
 it has drifted once already: `Stderr` was recorded as fitting because a

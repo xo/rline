@@ -1166,3 +1166,112 @@ func TestLoadHistoryReportsWhatItCannotRead(t *testing.T) {
 		}
 	})
 }
+
+// ----------------------------------------------------------------------------
+// The error stream
+
+// TestStderrGoesWhereItIsToldAndKeepsItsOrder checks the stream a program
+// uses for its errors.
+//
+// The point of it is not that errors can go somewhere else — that is easy —
+// but that they keep their order with respect to the output when they do.
+// A program writing results to a file and errors to the screen has two
+// destinations and one sequence of events, and the sequence has to survive.
+func TestStderrGoesWhereItIsToldAndKeepsItsOrder(t *testing.T) {
+	t.Parallel()
+
+	t.Run("errors go to their own destination", func(t *testing.T) {
+		t.Parallel()
+		var out, errs bytes.Buffer
+		s := &Session{
+			env:    &env{term: newTerm(&out, termOptions{NoColor: true})},
+			errOut: &errs,
+		}
+		if _, err := s.WriteString("result\n"); err != nil {
+			t.Fatalf("WriteString: %v", err)
+		}
+		if _, err := fmt.Fprint(s.Stderr(), "trouble\n"); err != nil {
+			t.Fatalf("writing an error: %v", err)
+		}
+		if got := out.String(); got != "result\n" {
+			t.Errorf("the output holds %q, want only the result", got)
+		}
+		if got := errs.String(); got != "trouble\n" {
+			t.Errorf("the error stream holds %q, want only the error", got)
+		}
+	})
+
+	t.Run("the order survives two destinations", func(t *testing.T) {
+		t.Parallel()
+		// Both ends write into one buffer, which is the only way to see
+		// whether the sequence held. Without the flush the terminal's own
+		// buffering would let the second line out first.
+		var both bytes.Buffer
+		s := &Session{
+			env:    &env{term: newTerm(&both, termOptions{NoColor: true})},
+			errOut: &both,
+		}
+		for i := range 3 {
+			if _, err := fmt.Fprintf(s, "out %d\n", i); err != nil {
+				t.Fatalf("writing output: %v", err)
+			}
+			if _, err := fmt.Fprintf(s.Stderr(), "err %d\n", i); err != nil {
+				t.Fatalf("writing an error: %v", err)
+			}
+		}
+		want := "out 0\nerr 0\nout 1\nerr 1\nout 2\nerr 2\n"
+		if got := both.String(); got != want {
+			t.Errorf("the two streams came out as\n%q\nwant\n%q", got, want)
+		}
+	})
+
+	t.Run("the order survives the terminal holding text back", func(t *testing.T) {
+		t.Parallel()
+		// The case the flush is for. Every public write through a Session
+		// flushes already, so ordering holds there whatever this does; what
+		// it protects is text the terminal is still holding, which is the
+		// state the editor is in while it draws. Reaching that state needs
+		// the terminal directly, so this test does.
+		var both bytes.Buffer
+		tm := newTerm(&both, termOptions{NoColor: true})
+		tm.setBufferMode(buffered)
+		s := &Session{env: &env{term: tm}, errOut: &both}
+
+		tm.write("drawn but not flushed")
+		if both.Len() != 0 {
+			t.Fatalf("the terminal wrote %q already, so this test is not in the state it needs",
+				both.String())
+		}
+		if _, err := fmt.Fprint(s.Stderr(), "|trouble"); err != nil {
+			t.Fatalf("writing an error: %v", err)
+		}
+		if want := "drawn but not flushed|trouble"; both.String() != want {
+			t.Errorf("the two came out as %q, want %q", both.String(), want)
+		}
+	})
+
+	t.Run("a session with nowhere to write throws it away", func(t *testing.T) {
+		t.Parallel()
+		s := &Session{}
+		if _, err := fmt.Fprint(s.Stderr(), "trouble"); err != nil {
+			t.Errorf("writing to a session with no destination gave %v", err)
+		}
+	})
+}
+
+// TestWithStderrReachesTheSession checks the option, since every other one is
+// checked and this is the newest.
+func TestWithStderrReachesTheSession(t *testing.T) {
+	t.Parallel()
+	var errs bytes.Buffer
+	c := &config{}
+	WithStderr(&errs)(c)
+	if c.errOut != &errs {
+		t.Error("WithStderr did not reach the setting")
+	}
+	// And with no option, errors go to standard error rather than nowhere.
+	fresh := &config{}
+	if fresh.errOut != nil {
+		t.Error("a config starts with an error destination, so New cannot tell it was not set")
+	}
+}

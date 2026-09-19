@@ -155,6 +155,10 @@ type Session struct {
 
 	// log records the session, and may be nil.
 	log *sessionLog
+
+	// errOut is where the program's errors go, which need not be where its
+	// output goes. It is never nil once New has built the Session.
+	errOut io.Writer
 }
 
 // config carries what New needs before it builds a Session.
@@ -162,6 +166,10 @@ type config struct {
 	// Where the session reads and writes. A negative fd means standard input.
 	inFd int
 	out  io.Writer
+
+	// errOut is where the program's errors go, which need not be where its
+	// output goes.
+	errOut io.Writer
 
 	// The prompt, and the one used for the lines after the first.
 	promptMarker  string
@@ -207,6 +215,22 @@ type Option func(*config)
 // WithOutput writes to w rather than to standard output.
 func WithOutput(w io.Writer) Option {
 	return func(c *config) { c.out = w }
+}
+
+// WithStderr sends the program's errors to w rather than to standard error.
+//
+// The editor draws on the output, which WithOutput sets, and a program's own
+// output goes there too, because the terminal the editor draws through is the
+// one that knows where the prompt is. Errors are the one thing a program
+// often wants somewhere else: a shell whose results are being written to a
+// file still wants its errors on the screen.
+//
+// Whatever the destination, errors written through Session.Stderr keep their
+// order with respect to the output, because the terminal is flushed before
+// each one. Writing to os.Stderr directly does not, and the two streams then
+// interleave however the operating system happens to buffer them.
+func WithStderr(w io.Writer) Option {
+	return func(c *config) { c.errOut = w }
 }
 
 // WithInput reads keys from r rather than from standard input.
@@ -400,6 +424,7 @@ func New(opts ...Option) (*Prompt, error) {
 	c := &config{
 		inFd:           -1,
 		out:            os.Stdout,
+		errOut:         os.Stderr,
 		promptMarker:   DefaultPromptMarker,
 		cpromptMarker:  DefaultPromptMarker,
 		historyEntries: DefaultHistoryEntries,
@@ -418,7 +443,11 @@ func New(opts ...Option) (*Prompt, error) {
 	if c.in != nil {
 		in = c.in
 	}
-	r := &Session{plain: bufio.NewReader(in)}
+	errOut := c.errOut
+	if errOut == nil {
+		errOut = os.Stderr
+	}
+	r := &Session{plain: bufio.NewReader(in), errOut: errOut}
 
 	// A missing keyboard is a mode rather than a failure: a program whose
 	// input is a pipe or a file still wants its lines, and gets them without
@@ -653,6 +682,47 @@ func (s *Session) Write(p []byte) (int, error) {
 	s.env.term.writeBytes(p)
 	s.env.term.flush()
 	return len(p), nil
+}
+
+// Stderr returns where the program's errors go.
+//
+// This is the one stream a program usually wants apart from its output: a
+// shell writing its results to a file still wants its errors on the screen.
+// WithStderr says where, and standard error is the default.
+//
+// What is written here keeps its order with respect to what is written
+// through the Session, because the terminal is flushed first. Writing to
+// os.Stderr directly does not, and the two then interleave however the
+// operating system happens to buffer them.
+//
+// Every public write through a Session flushes already, so today that order
+// would hold without the flush. What the flush protects is text the terminal
+// is still holding, which is the state the editor is in while it draws, so
+// the guarantee holds by construction rather than by coincidence.
+//
+// There is no matching Stdout, because the Session is the output: hand it
+// straight to anything that wants an io.Writer.
+func (s *Session) Stderr() io.Writer {
+	return errWriter{s: s}
+}
+
+// errWriter writes to the error destination, flushing the terminal first so
+// that the two streams keep their order.
+type errWriter struct{ s *Session }
+
+// Write satisfies io.Writer.
+func (w errWriter) Write(p []byte) (int, error) {
+	if w.s == nil || w.s.errOut == nil {
+		return len(p), nil
+	}
+	if w.s.env != nil && w.s.env.term != nil {
+		w.s.env.term.flush()
+	}
+	n, err := w.s.errOut.Write(p)
+	if err != nil {
+		return n, fmt.Errorf("writing to the error stream: %w", err)
+	}
+	return n, nil
 }
 
 // WriteString writes plain text without making a byte slice of it first,
