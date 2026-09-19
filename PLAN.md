@@ -192,7 +192,14 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     C redraws at the end of every one, and the port leaves that to the caller,
     which is what lets an operation be checked without a terminal.
 
-    What is left is the redraw, the key dispatch and the main loop, and then
+    The redraw is done too, in `editline.go`, together with the environment
+    type that carries everything the editor needs besides the line itself.
+    `tools/build-probe-refresh.sh` builds the eleventh probe, and
+    `testdata/refresh.txt` records 1584 redraws across ten lines, two prompts,
+    a hint or none, three kinds of content shown below the line, and both
+    settings of the indent and brace matching.
+
+    What is left is the key dispatch and the main loop, and then
     `editline_help.c`, `editline_history.c` and `editline_completion.c`, which
     are textual includes of `editline.c` rather than separate units.
 12. `isocline.c`. This is the public API. API means Application Programming
@@ -461,6 +468,24 @@ that goes past and folds it into the stored attributes. The two assignments
 inside `term_set_attr` cover the one case that defeats this, which is a color
 the palette cannot show, where the sequence names the nearest color instead and
 reading it back would record the approximation.
+
+### editline.c
+
+`edit_refresh` asserts that the first row of the content shown below the line
+is at or after zero. It is not, whenever the line is long enough to be clipped
+to the height of the terminal while there is something to show below it, which
+a completion menu on a short terminal reaches. A release build, which is what
+people run, compiles the assertion out and then draws no rows of that content
+at all, which is defined and harmless. `tools/build-probe-refresh.sh` therefore
+builds with `-DNDEBUG`, so that the corpus records what a release build does,
+and the port draws nothing there for the same reason.
+
+The mark at the end of a wrapped row is chosen at compile time: a return symbol
+on macOS and a left arrow everywhere else. That is a guess about which glyph a
+terminal is likely to have rather than anything about the system, but the port
+keeps the branch in `wrapmark_darwin.go` and `wrapmark_other.go`, because the
+recorded sessions are kept per system and each holds the glyph its own C build
+produced.
 
 ### completers.c
 

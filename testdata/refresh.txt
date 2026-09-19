@@ -1,0 +1,3168 @@
+\e[m
+refresh 0 \r>\s\e[K\r\e[2C 1 0 0 -
+-
+refresh 1 \r>\s\e[K\r\e[2C 1 0 0 -
+-
+refresh 2 \r>\s\e[K\r\e[2C 1 0 0 -
+-
+refresh 3 \r>\s\e[K\r\e[2C 1 0 0 -
+-
+refresh 4 \r>\s\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 -
+-
+refresh 5 \r>\s\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 -
+-
+refresh 6 \r>\s\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 -
+-
+refresh 7 \r>\s\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 -
+-
+refresh 8 \r>\s\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 -
+-
+refresh 9 \r>\s\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 -
+-
+refresh 10 \r>\s\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 -
+-
+refresh 11 \r>\s\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 -
+-
+refresh 12 \r>\shint\e[K\r\e[2C 1 0 0 -
+-
+refresh 13 \r>\shint\e[K\r\e[2C 1 0 0 -
+-
+refresh 14 \r>\shint\e[K\r\e[2C 1 0 0 -
+-
+refresh 15 \r>\shint\e[K\r\e[2C 1 0 0 -
+-
+refresh 16 \r>\shint\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 -
+-
+refresh 17 \r>\shint\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 -
+-
+refresh 18 \r>\shint\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 -
+-
+refresh 19 \r>\shint\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 -
+-
+refresh 20 \r>\shint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 -
+-
+refresh 21 \r>\shint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 -
+-
+refresh 22 \r>\shint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 -
+-
+refresh 23 \r>\shint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 -
+-
+refresh 24 \rps>\s\e[K\r\e[4C 1 0 0 -
+-
+refresh 25 \rps>\s\e[K\r\e[4C 1 0 0 -
+-
+refresh 26 \rps>\s\e[K\r\e[4C 1 0 0 -
+-
+refresh 27 \rps>\s\e[K\r\e[4C 1 0 0 -
+-
+refresh 28 \rps>\s\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 -
+-
+refresh 29 \rps>\s\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 -
+-
+refresh 30 \rps>\s\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 -
+-
+refresh 31 \rps>\s\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 -
+-
+refresh 32 \rps>\s\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 -
+-
+refresh 33 \rps>\s\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 -
+-
+refresh 34 \rps>\s\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 -
+-
+refresh 35 \rps>\s\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 -
+-
+refresh 36 \rps>\shint\e[K\r\e[4C 1 0 0 -
+-
+refresh 37 \rps>\shint\e[K\r\e[4C 1 0 0 -
+-
+refresh 38 \rps>\shint\e[K\r\e[4C 1 0 0 -
+-
+refresh 39 \rps>\shint\e[K\r\e[4C 1 0 0 -
+-
+refresh 40 \rps>\shint\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 -
+-
+refresh 41 \rps>\shint\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 -
+-
+refresh 42 \rps>\shint\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 -
+-
+refresh 43 \rps>\shint\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 -
+-
+refresh 44 \rps>\shint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 -
+-
+refresh 45 \rps>\shint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 -
+-
+refresh 46 \rps>\shint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 -
+-
+refresh 47 \rps>\shint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 -
+-
+refresh 48 \r>\sa\e[K\r\e[2C 1 0 0 a
+-
+refresh 49 \r>\sa\e[K\r\e[2C 1 0 0 a
+-
+refresh 50 \r>\sa\e[K\r\e[2C 1 0 0 a
+-
+refresh 51 \r>\sa\e[K\r\e[2C 1 0 0 a
+-
+refresh 52 \r>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 a
+-
+refresh 53 \r>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 a
+-
+refresh 54 \r>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 a
+-
+refresh 55 \r>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 a
+-
+refresh 56 \r>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 a
+-
+refresh 57 \r>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 a
+-
+refresh 58 \r>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 a
+-
+refresh 59 \r>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 a
+-
+refresh 60 \r>\shinta\e[K\r\e[2C 1 0 0 a
+-
+refresh 61 \r>\shinta\e[K\r\e[2C 1 0 0 a
+-
+refresh 62 \r>\shinta\e[K\r\e[2C 1 0 0 a
+-
+refresh 63 \r>\shinta\e[K\r\e[2C 1 0 0 a
+-
+refresh 64 \r>\shinta\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 a
+-
+refresh 65 \r>\shinta\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 a
+-
+refresh 66 \r>\shinta\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 a
+-
+refresh 67 \r>\shinta\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 a
+-
+refresh 68 \r>\shinta\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 a
+-
+refresh 69 \r>\shinta\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 a
+-
+refresh 70 \r>\shinta\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 a
+-
+refresh 71 \r>\shinta\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 a
+-
+refresh 72 \rps>\sa\e[K\r\e[4C 1 0 0 a
+-
+refresh 73 \rps>\sa\e[K\r\e[4C 1 0 0 a
+-
+refresh 74 \rps>\sa\e[K\r\e[4C 1 0 0 a
+-
+refresh 75 \rps>\sa\e[K\r\e[4C 1 0 0 a
+-
+refresh 76 \rps>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 a
+-
+refresh 77 \rps>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 a
+-
+refresh 78 \rps>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 a
+-
+refresh 79 \rps>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 a
+-
+refresh 80 \rps>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 a
+-
+refresh 81 \rps>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 a
+-
+refresh 82 \rps>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 a
+-
+refresh 83 \rps>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 a
+-
+refresh 84 \rps>\shinta\e[K\r\e[4C 1 0 0 a
+-
+refresh 85 \rps>\shinta\e[K\r\e[4C 1 0 0 a
+-
+refresh 86 \rps>\shinta\e[K\r\e[4C 1 0 0 a
+-
+refresh 87 \rps>\shinta\e[K\r\e[4C 1 0 0 a
+-
+refresh 88 \rps>\shinta\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 a
+-
+refresh 89 \rps>\shinta\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 a
+-
+refresh 90 \rps>\shinta\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 a
+-
+refresh 91 \rps>\shinta\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 a
+-
+refresh 92 \rps>\shinta\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 a
+-
+refresh 93 \rps>\shinta\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 a
+-
+refresh 94 \rps>\shinta\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 a
+-
+refresh 95 \rps>\shinta\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 a
+-
+refresh 96 \r>\sa\e[K\r\e[3C 1 0 1 a
+-
+refresh 97 \r>\sa\e[K\r\e[3C 1 0 1 a
+-
+refresh 98 \r>\sa\e[K\r\e[3C 1 0 1 a
+-
+refresh 99 \r>\sa\e[K\r\e[3C 1 0 1 a
+-
+refresh 100 \r>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 a
+-
+refresh 101 \r>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 a
+-
+refresh 102 \r>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 a
+-
+refresh 103 \r>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 a
+-
+refresh 104 \r>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 a
+-
+refresh 105 \r>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 a
+-
+refresh 106 \r>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 a
+-
+refresh 107 \r>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 a
+-
+refresh 108 \r>\sahint\e[K\r\e[3C 1 0 1 a
+-
+refresh 109 \r>\sahint\e[K\r\e[3C 1 0 1 a
+-
+refresh 110 \r>\sahint\e[K\r\e[3C 1 0 1 a
+-
+refresh 111 \r>\sahint\e[K\r\e[3C 1 0 1 a
+-
+refresh 112 \r>\sahint\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 a
+-
+refresh 113 \r>\sahint\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 a
+-
+refresh 114 \r>\sahint\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 a
+-
+refresh 115 \r>\sahint\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 a
+-
+refresh 116 \r>\sahint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 a
+-
+refresh 117 \r>\sahint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 a
+-
+refresh 118 \r>\sahint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 a
+-
+refresh 119 \r>\sahint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 a
+-
+refresh 120 \rps>\sa\e[K\r\e[5C 1 0 1 a
+-
+refresh 121 \rps>\sa\e[K\r\e[5C 1 0 1 a
+-
+refresh 122 \rps>\sa\e[K\r\e[5C 1 0 1 a
+-
+refresh 123 \rps>\sa\e[K\r\e[5C 1 0 1 a
+-
+refresh 124 \rps>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 a
+-
+refresh 125 \rps>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 a
+-
+refresh 126 \rps>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 a
+-
+refresh 127 \rps>\sa\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 a
+-
+refresh 128 \rps>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 a
+-
+refresh 129 \rps>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 a
+-
+refresh 130 \rps>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 a
+-
+refresh 131 \rps>\sa\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 a
+-
+refresh 132 \rps>\sahint\e[K\r\e[5C 1 0 1 a
+-
+refresh 133 \rps>\sahint\e[K\r\e[5C 1 0 1 a
+-
+refresh 134 \rps>\sahint\e[K\r\e[5C 1 0 1 a
+-
+refresh 135 \rps>\sahint\e[K\r\e[5C 1 0 1 a
+-
+refresh 136 \rps>\sahint\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 a
+-
+refresh 137 \rps>\sahint\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 a
+-
+refresh 138 \rps>\sahint\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 a
+-
+refresh 139 \rps>\sahint\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 a
+-
+refresh 140 \rps>\sahint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 a
+-
+refresh 141 \rps>\sahint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 a
+-
+refresh 142 \rps>\sahint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 a
+-
+refresh 143 \rps>\sahint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 a
+-
+refresh 144 \r>\shello\e[K\r\e[2C 1 0 0 hello
+-
+refresh 145 \r>\shello\e[K\r\e[2C 1 0 0 hello
+-
+refresh 146 \r>\shello\e[K\r\e[2C 1 0 0 hello
+-
+refresh 147 \r>\shello\e[K\r\e[2C 1 0 0 hello
+-
+refresh 148 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello
+-
+refresh 149 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello
+-
+refresh 150 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello
+-
+refresh 151 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello
+-
+refresh 152 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello
+-
+refresh 153 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello
+-
+refresh 154 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello
+-
+refresh 155 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello
+-
+refresh 156 \r>\shinthello\e[K\r\e[2C 1 0 0 hello
+-
+refresh 157 \r>\shinthello\e[K\r\e[2C 1 0 0 hello
+-
+refresh 158 \r>\shinthello\e[K\r\e[2C 1 0 0 hello
+-
+refresh 159 \r>\shinthello\e[K\r\e[2C 1 0 0 hello
+-
+refresh 160 \r>\shinthello\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello
+-
+refresh 161 \r>\shinthello\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello
+-
+refresh 162 \r>\shinthello\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello
+-
+refresh 163 \r>\shinthello\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello
+-
+refresh 164 \r>\shinthello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello
+-
+refresh 165 \r>\shinthello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello
+-
+refresh 166 \r>\shinthello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello
+-
+refresh 167 \r>\shinthello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello
+-
+refresh 168 \rps>\shello\e[K\r\e[4C 1 0 0 hello
+-
+refresh 169 \rps>\shello\e[K\r\e[4C 1 0 0 hello
+-
+refresh 170 \rps>\shello\e[K\r\e[4C 1 0 0 hello
+-
+refresh 171 \rps>\shello\e[K\r\e[4C 1 0 0 hello
+-
+refresh 172 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello
+-
+refresh 173 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello
+-
+refresh 174 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello
+-
+refresh 175 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello
+-
+refresh 176 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello
+-
+refresh 177 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello
+-
+refresh 178 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello
+-
+refresh 179 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello
+-
+refresh 180 \rps>\shinthello\e[K\r\e[4C 1 0 0 hello
+-
+refresh 181 \rps>\shinthello\e[K\r\e[4C 1 0 0 hello
+-
+refresh 182 \rps>\shinthello\e[K\r\e[4C 1 0 0 hello
+-
+refresh 183 \rps>\shinthello\e[K\r\e[4C 1 0 0 hello
+-
+refresh 184 \rps>\shinthello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello
+-
+refresh 185 \rps>\shinthello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello
+-
+refresh 186 \rps>\shinthello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello
+-
+refresh 187 \rps>\shinthello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello
+-
+refresh 188 \rps>\shinthello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello
+-
+refresh 189 \rps>\shinthello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello
+-
+refresh 190 \rps>\shinthello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello
+-
+refresh 191 \rps>\shinthello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello
+-
+refresh 192 \r>\shello\e[K\r\e[3C 1 0 1 hello
+-
+refresh 193 \r>\shello\e[K\r\e[3C 1 0 1 hello
+-
+refresh 194 \r>\shello\e[K\r\e[3C 1 0 1 hello
+-
+refresh 195 \r>\shello\e[K\r\e[3C 1 0 1 hello
+-
+refresh 196 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 hello
+-
+refresh 197 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 hello
+-
+refresh 198 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 hello
+-
+refresh 199 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 hello
+-
+refresh 200 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 hello
+-
+refresh 201 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 hello
+-
+refresh 202 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 hello
+-
+refresh 203 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 hello
+-
+refresh 204 \r>\shhintello\e[K\r\e[3C 1 0 1 hello
+-
+refresh 205 \r>\shhintello\e[K\r\e[3C 1 0 1 hello
+-
+refresh 206 \r>\shhintello\e[K\r\e[3C 1 0 1 hello
+-
+refresh 207 \r>\shhintello\e[K\r\e[3C 1 0 1 hello
+-
+refresh 208 \r>\shhintello\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 hello
+-
+refresh 209 \r>\shhintello\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 hello
+-
+refresh 210 \r>\shhintello\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 hello
+-
+refresh 211 \r>\shhintello\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 hello
+-
+refresh 212 \r>\shhintello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 hello
+-
+refresh 213 \r>\shhintello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 hello
+-
+refresh 214 \r>\shhintello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 hello
+-
+refresh 215 \r>\shhintello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 hello
+-
+refresh 216 \rps>\shello\e[K\r\e[5C 1 0 1 hello
+-
+refresh 217 \rps>\shello\e[K\r\e[5C 1 0 1 hello
+-
+refresh 218 \rps>\shello\e[K\r\e[5C 1 0 1 hello
+-
+refresh 219 \rps>\shello\e[K\r\e[5C 1 0 1 hello
+-
+refresh 220 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 hello
+-
+refresh 221 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 hello
+-
+refresh 222 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 hello
+-
+refresh 223 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 hello
+-
+refresh 224 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 hello
+-
+refresh 225 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 hello
+-
+refresh 226 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 hello
+-
+refresh 227 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 hello
+-
+refresh 228 \rps>\shhintello\e[K\r\e[5C 1 0 1 hello
+-
+refresh 229 \rps>\shhintello\e[K\r\e[5C 1 0 1 hello
+-
+refresh 230 \rps>\shhintello\e[K\r\e[5C 1 0 1 hello
+-
+refresh 231 \rps>\shhintello\e[K\r\e[5C 1 0 1 hello
+-
+refresh 232 \rps>\shhintello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 hello
+-
+refresh 233 \rps>\shhintello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 hello
+-
+refresh 234 \rps>\shhintello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 hello
+-
+refresh 235 \rps>\shhintello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 hello
+-
+refresh 236 \rps>\shhintello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 hello
+-
+refresh 237 \rps>\shhintello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 hello
+-
+refresh 238 \rps>\shhintello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 hello
+-
+refresh 239 \rps>\shhintello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 hello
+-
+refresh 240 \r>\shello\e[K\r\e[4C 1 0 2 hello
+-
+refresh 241 \r>\shello\e[K\r\e[4C 1 0 2 hello
+-
+refresh 242 \r>\shello\e[K\r\e[4C 1 0 2 hello
+-
+refresh 243 \r>\shello\e[K\r\e[4C 1 0 2 hello
+-
+refresh 244 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 2 hello
+-
+refresh 245 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 2 hello
+-
+refresh 246 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 2 hello
+-
+refresh 247 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 2 hello
+-
+refresh 248 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 2 hello
+-
+refresh 249 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 2 hello
+-
+refresh 250 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 2 hello
+-
+refresh 251 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 2 hello
+-
+refresh 252 \r>\shehintllo\e[K\r\e[4C 1 0 2 hello
+-
+refresh 253 \r>\shehintllo\e[K\r\e[4C 1 0 2 hello
+-
+refresh 254 \r>\shehintllo\e[K\r\e[4C 1 0 2 hello
+-
+refresh 255 \r>\shehintllo\e[K\r\e[4C 1 0 2 hello
+-
+refresh 256 \r>\shehintllo\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 2 hello
+-
+refresh 257 \r>\shehintllo\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 2 hello
+-
+refresh 258 \r>\shehintllo\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 2 hello
+-
+refresh 259 \r>\shehintllo\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 2 hello
+-
+refresh 260 \r>\shehintllo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 2 hello
+-
+refresh 261 \r>\shehintllo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 2 hello
+-
+refresh 262 \r>\shehintllo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 2 hello
+-
+refresh 263 \r>\shehintllo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 2 hello
+-
+refresh 264 \rps>\shello\e[K\r\e[6C 1 0 2 hello
+-
+refresh 265 \rps>\shello\e[K\r\e[6C 1 0 2 hello
+-
+refresh 266 \rps>\shello\e[K\r\e[6C 1 0 2 hello
+-
+refresh 267 \rps>\shello\e[K\r\e[6C 1 0 2 hello
+-
+refresh 268 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 2 hello
+-
+refresh 269 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 2 hello
+-
+refresh 270 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 2 hello
+-
+refresh 271 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 2 hello
+-
+refresh 272 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 2 hello
+-
+refresh 273 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 2 hello
+-
+refresh 274 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 2 hello
+-
+refresh 275 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 2 hello
+-
+refresh 276 \rps>\shehintllo\e[K\r\e[6C 1 0 2 hello
+-
+refresh 277 \rps>\shehintllo\e[K\r\e[6C 1 0 2 hello
+-
+refresh 278 \rps>\shehintllo\e[K\r\e[6C 1 0 2 hello
+-
+refresh 279 \rps>\shehintllo\e[K\r\e[6C 1 0 2 hello
+-
+refresh 280 \rps>\shehintllo\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 2 hello
+-
+refresh 281 \rps>\shehintllo\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 2 hello
+-
+refresh 282 \rps>\shehintllo\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 2 hello
+-
+refresh 283 \rps>\shehintllo\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 2 hello
+-
+refresh 284 \rps>\shehintllo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 2 hello
+-
+refresh 285 \rps>\shehintllo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 2 hello
+-
+refresh 286 \rps>\shehintllo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 2 hello
+-
+refresh 287 \rps>\shehintllo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 2 hello
+-
+refresh 288 \r>\shello\e[K\r\e[5C 1 0 3 hello
+-
+refresh 289 \r>\shello\e[K\r\e[5C 1 0 3 hello
+-
+refresh 290 \r>\shello\e[K\r\e[5C 1 0 3 hello
+-
+refresh 291 \r>\shello\e[K\r\e[5C 1 0 3 hello
+-
+refresh 292 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 3 hello
+-
+refresh 293 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 3 hello
+-
+refresh 294 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 3 hello
+-
+refresh 295 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 3 hello
+-
+refresh 296 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 3 hello
+-
+refresh 297 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 3 hello
+-
+refresh 298 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 3 hello
+-
+refresh 299 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 3 hello
+-
+refresh 300 \r>\shelhintlo\e[K\r\e[5C 1 0 3 hello
+-
+refresh 301 \r>\shelhintlo\e[K\r\e[5C 1 0 3 hello
+-
+refresh 302 \r>\shelhintlo\e[K\r\e[5C 1 0 3 hello
+-
+refresh 303 \r>\shelhintlo\e[K\r\e[5C 1 0 3 hello
+-
+refresh 304 \r>\shelhintlo\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 3 hello
+-
+refresh 305 \r>\shelhintlo\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 3 hello
+-
+refresh 306 \r>\shelhintlo\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 3 hello
+-
+refresh 307 \r>\shelhintlo\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 3 hello
+-
+refresh 308 \r>\shelhintlo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 3 hello
+-
+refresh 309 \r>\shelhintlo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 3 hello
+-
+refresh 310 \r>\shelhintlo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 3 hello
+-
+refresh 311 \r>\shelhintlo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 3 hello
+-
+refresh 312 \rps>\shello\e[K\r\e[7C 1 0 3 hello
+-
+refresh 313 \rps>\shello\e[K\r\e[7C 1 0 3 hello
+-
+refresh 314 \rps>\shello\e[K\r\e[7C 1 0 3 hello
+-
+refresh 315 \rps>\shello\e[K\r\e[7C 1 0 3 hello
+-
+refresh 316 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 3 hello
+-
+refresh 317 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 3 hello
+-
+refresh 318 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 3 hello
+-
+refresh 319 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 3 hello
+-
+refresh 320 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 3 hello
+-
+refresh 321 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 3 hello
+-
+refresh 322 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 3 hello
+-
+refresh 323 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 3 hello
+-
+refresh 324 \rps>\shelhintlo\e[K\r\e[7C 1 0 3 hello
+-
+refresh 325 \rps>\shelhintlo\e[K\r\e[7C 1 0 3 hello
+-
+refresh 326 \rps>\shelhintlo\e[K\r\e[7C 1 0 3 hello
+-
+refresh 327 \rps>\shelhintlo\e[K\r\e[7C 1 0 3 hello
+-
+refresh 328 \rps>\shelhintlo\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 3 hello
+-
+refresh 329 \rps>\shelhintlo\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 3 hello
+-
+refresh 330 \rps>\shelhintlo\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 3 hello
+-
+refresh 331 \rps>\shelhintlo\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 3 hello
+-
+refresh 332 \rps>\shelhintlo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 3 hello
+-
+refresh 333 \rps>\shelhintlo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 3 hello
+-
+refresh 334 \rps>\shelhintlo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 3 hello
+-
+refresh 335 \rps>\shelhintlo\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 3 hello
+-
+refresh 336 \r>\shello\e[K\r\e[6C 1 0 4 hello
+-
+refresh 337 \r>\shello\e[K\r\e[6C 1 0 4 hello
+-
+refresh 338 \r>\shello\e[K\r\e[6C 1 0 4 hello
+-
+refresh 339 \r>\shello\e[K\r\e[6C 1 0 4 hello
+-
+refresh 340 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 4 hello
+-
+refresh 341 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 4 hello
+-
+refresh 342 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 4 hello
+-
+refresh 343 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 4 hello
+-
+refresh 344 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 4 hello
+-
+refresh 345 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 4 hello
+-
+refresh 346 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 4 hello
+-
+refresh 347 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 4 hello
+-
+refresh 348 \r>\shellhinto\e[K\r\e[6C 1 0 4 hello
+-
+refresh 349 \r>\shellhinto\e[K\r\e[6C 1 0 4 hello
+-
+refresh 350 \r>\shellhinto\e[K\r\e[6C 1 0 4 hello
+-
+refresh 351 \r>\shellhinto\e[K\r\e[6C 1 0 4 hello
+-
+refresh 352 \r>\shellhinto\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 4 hello
+-
+refresh 353 \r>\shellhinto\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 4 hello
+-
+refresh 354 \r>\shellhinto\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 4 hello
+-
+refresh 355 \r>\shellhinto\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 4 hello
+-
+refresh 356 \r>\shellhinto\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 4 hello
+-
+refresh 357 \r>\shellhinto\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 4 hello
+-
+refresh 358 \r>\shellhinto\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 4 hello
+-
+refresh 359 \r>\shellhinto\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 4 hello
+-
+refresh 360 \rps>\shello\e[K\r\e[8C 1 0 4 hello
+-
+refresh 361 \rps>\shello\e[K\r\e[8C 1 0 4 hello
+-
+refresh 362 \rps>\shello\e[K\r\e[8C 1 0 4 hello
+-
+refresh 363 \rps>\shello\e[K\r\e[8C 1 0 4 hello
+-
+refresh 364 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 4 hello
+-
+refresh 365 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 4 hello
+-
+refresh 366 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 4 hello
+-
+refresh 367 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 4 hello
+-
+refresh 368 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 4 hello
+-
+refresh 369 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 4 hello
+-
+refresh 370 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 4 hello
+-
+refresh 371 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 4 hello
+-
+refresh 372 \rps>\shellhinto\e[K\r\e[8C 1 0 4 hello
+-
+refresh 373 \rps>\shellhinto\e[K\r\e[8C 1 0 4 hello
+-
+refresh 374 \rps>\shellhinto\e[K\r\e[8C 1 0 4 hello
+-
+refresh 375 \rps>\shellhinto\e[K\r\e[8C 1 0 4 hello
+-
+refresh 376 \rps>\shellhinto\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 4 hello
+-
+refresh 377 \rps>\shellhinto\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 4 hello
+-
+refresh 378 \rps>\shellhinto\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 4 hello
+-
+refresh 379 \rps>\shellhinto\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 4 hello
+-
+refresh 380 \rps>\shellhinto\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 4 hello
+-
+refresh 381 \rps>\shellhinto\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 4 hello
+-
+refresh 382 \rps>\shellhinto\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 4 hello
+-
+refresh 383 \rps>\shellhinto\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 4 hello
+-
+refresh 384 \r>\shello\e[K\r\e[7C 1 0 5 hello
+-
+refresh 385 \r>\shello\e[K\r\e[7C 1 0 5 hello
+-
+refresh 386 \r>\shello\e[K\r\e[7C 1 0 5 hello
+-
+refresh 387 \r>\shello\e[K\r\e[7C 1 0 5 hello
+-
+refresh 388 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 hello
+-
+refresh 389 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 hello
+-
+refresh 390 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 hello
+-
+refresh 391 \r>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 hello
+-
+refresh 392 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 hello
+-
+refresh 393 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 hello
+-
+refresh 394 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 hello
+-
+refresh 395 \r>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 hello
+-
+refresh 396 \r>\shellohint\e[K\r\e[7C 1 0 5 hello
+-
+refresh 397 \r>\shellohint\e[K\r\e[7C 1 0 5 hello
+-
+refresh 398 \r>\shellohint\e[K\r\e[7C 1 0 5 hello
+-
+refresh 399 \r>\shellohint\e[K\r\e[7C 1 0 5 hello
+-
+refresh 400 \r>\shellohint\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 hello
+-
+refresh 401 \r>\shellohint\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 hello
+-
+refresh 402 \r>\shellohint\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 hello
+-
+refresh 403 \r>\shellohint\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 hello
+-
+refresh 404 \r>\shellohint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 hello
+-
+refresh 405 \r>\shellohint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 hello
+-
+refresh 406 \r>\shellohint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 hello
+-
+refresh 407 \r>\shellohint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 hello
+-
+refresh 408 \rps>\shello\e[K\r\e[9C 1 0 5 hello
+-
+refresh 409 \rps>\shello\e[K\r\e[9C 1 0 5 hello
+-
+refresh 410 \rps>\shello\e[K\r\e[9C 1 0 5 hello
+-
+refresh 411 \rps>\shello\e[K\r\e[9C 1 0 5 hello
+-
+refresh 412 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 5 hello
+-
+refresh 413 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 5 hello
+-
+refresh 414 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 5 hello
+-
+refresh 415 \rps>\shello\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 5 hello
+-
+refresh 416 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 5 hello
+-
+refresh 417 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 5 hello
+-
+refresh 418 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 5 hello
+-
+refresh 419 \rps>\shello\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 5 hello
+-
+refresh 420 \rps>\shellohint\e[K\r\e[9C 1 0 5 hello
+-
+refresh 421 \rps>\shellohint\e[K\r\e[9C 1 0 5 hello
+-
+refresh 422 \rps>\shellohint\e[K\r\e[9C 1 0 5 hello
+-
+refresh 423 \rps>\shellohint\e[K\r\e[9C 1 0 5 hello
+-
+refresh 424 \rps>\shellohint\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 5 hello
+-
+refresh 425 \rps>\shellohint\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 5 hello
+-
+refresh 426 \rps>\shellohint\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 5 hello
+-
+refresh 427 \rps>\shellohint\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 5 hello
+-
+refresh 428 \rps>\shellohint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 5 hello
+-
+refresh 429 \rps>\shellohint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 5 hello
+-
+refresh 430 \rps>\shellohint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 5 hello
+-
+refresh 431 \rps>\shellohint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 5 hello
+-
+refresh 432 \r>\shello\sworld\e[K\r\e[2C 1 0 0 hello\sworld
+-
+refresh 433 \r>\shello\sworld\e[K\r\e[2C 1 0 0 hello\sworld
+-
+refresh 434 \r>\shello\sworld\e[K\r\e[2C 1 0 0 hello\sworld
+-
+refresh 435 \r>\shello\sworld\e[K\r\e[2C 1 0 0 hello\sworld
+-
+refresh 436 \r>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello\sworld
+-
+refresh 437 \r>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello\sworld
+-
+refresh 438 \r>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello\sworld
+-
+refresh 439 \r>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello\sworld
+-
+refresh 440 \r>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello\sworld
+-
+refresh 441 \r>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello\sworld
+-
+refresh 442 \r>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello\sworld
+-
+refresh 443 \r>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello\sworld
+-
+refresh 444 \r>\shinthello\sworld\e[K\r\e[2C 1 0 0 hello\sworld
+-
+refresh 445 \r>\shinthello\sworld\e[K\r\e[2C 1 0 0 hello\sworld
+-
+refresh 446 \r>\shinthello\sworld\e[K\r\e[2C 1 0 0 hello\sworld
+-
+refresh 447 \r>\shinthello\sworld\e[K\r\e[2C 1 0 0 hello\sworld
+-
+refresh 448 \r>\shinthello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello\sworld
+-
+refresh 449 \r>\shinthello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello\sworld
+-
+refresh 450 \r>\shinthello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello\sworld
+-
+refresh 451 \r>\shinthello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 hello\sworld
+-
+refresh 452 \r>\shinthello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello\sworld
+-
+refresh 453 \r>\shinthello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello\sworld
+-
+refresh 454 \r>\shinthello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello\sworld
+-
+refresh 455 \r>\shinthello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 hello\sworld
+-
+refresh 456 \rps>\shello\sworld\e[K\r\e[4C 1 0 0 hello\sworld
+-
+refresh 457 \rps>\shello\sworld\e[K\r\e[4C 1 0 0 hello\sworld
+-
+refresh 458 \rps>\shello\sworld\e[K\r\e[4C 1 0 0 hello\sworld
+-
+refresh 459 \rps>\shello\sworld\e[K\r\e[4C 1 0 0 hello\sworld
+-
+refresh 460 \rps>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello\sworld
+-
+refresh 461 \rps>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello\sworld
+-
+refresh 462 \rps>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello\sworld
+-
+refresh 463 \rps>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello\sworld
+-
+refresh 464 \rps>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello\sworld
+-
+refresh 465 \rps>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello\sworld
+-
+refresh 466 \rps>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello\sworld
+-
+refresh 467 \rps>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello\sworld
+-
+refresh 468 \rps>\shinthello\sworld\e[K\r\e[4C 1 0 0 hello\sworld
+-
+refresh 469 \rps>\shinthello\sworld\e[K\r\e[4C 1 0 0 hello\sworld
+-
+refresh 470 \rps>\shinthello\sworld\e[K\r\e[4C 1 0 0 hello\sworld
+-
+refresh 471 \rps>\shinthello\sworld\e[K\r\e[4C 1 0 0 hello\sworld
+-
+refresh 472 \rps>\shinthello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello\sworld
+-
+refresh 473 \rps>\shinthello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello\sworld
+-
+refresh 474 \rps>\shinthello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello\sworld
+-
+refresh 475 \rps>\shinthello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 hello\sworld
+-
+refresh 476 \rps>\shinthello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello\sworld
+-
+refresh 477 \rps>\shinthello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello\sworld
+-
+refresh 478 \rps>\shinthello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello\sworld
+-
+refresh 479 \rps>\shinthello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 hello\sworld
+-
+refresh 480 \r>\shello\sworld\e[K\r\e[9C 1 0 7 hello\sworld
+-
+refresh 481 \r>\shello\sworld\e[K\r\e[9C 1 0 7 hello\sworld
+-
+refresh 482 \r>\shello\sworld\e[K\r\e[9C 1 0 7 hello\sworld
+-
+refresh 483 \r>\shello\sworld\e[K\r\e[9C 1 0 7 hello\sworld
+-
+refresh 484 \r>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 hello\sworld
+-
+refresh 485 \r>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 hello\sworld
+-
+refresh 486 \r>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 hello\sworld
+-
+refresh 487 \r>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 hello\sworld
+-
+refresh 488 \r>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 hello\sworld
+-
+refresh 489 \r>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 hello\sworld
+-
+refresh 490 \r>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 hello\sworld
+-
+refresh 491 \r>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 hello\sworld
+-
+refresh 492 \r>\shello\swhintorld\e[K\r\e[9C 1 0 7 hello\sworld
+-
+refresh 493 \r>\shello\swhintorld\e[K\r\e[9C 1 0 7 hello\sworld
+-
+refresh 494 \r>\shello\swhintorld\e[K\r\e[9C 1 0 7 hello\sworld
+-
+refresh 495 \r>\shello\swhintorld\e[K\r\e[9C 1 0 7 hello\sworld
+-
+refresh 496 \r>\shello\swhintorld\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 hello\sworld
+-
+refresh 497 \r>\shello\swhintorld\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 hello\sworld
+-
+refresh 498 \r>\shello\swhintorld\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 hello\sworld
+-
+refresh 499 \r>\shello\swhintorld\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 hello\sworld
+-
+refresh 500 \r>\shello\swhintorld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 hello\sworld
+-
+refresh 501 \r>\shello\swhintorld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 hello\sworld
+-
+refresh 502 \r>\shello\swhintorld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 hello\sworld
+-
+refresh 503 \r>\shello\swhintorld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 hello\sworld
+-
+refresh 504 \rps>\shello\sworld\e[K\r\e[11C 1 0 7 hello\sworld
+-
+refresh 505 \rps>\shello\sworld\e[K\r\e[11C 1 0 7 hello\sworld
+-
+refresh 506 \rps>\shello\sworld\e[K\r\e[11C 1 0 7 hello\sworld
+-
+refresh 507 \rps>\shello\sworld\e[K\r\e[11C 1 0 7 hello\sworld
+-
+refresh 508 \rps>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 hello\sworld
+-
+refresh 509 \rps>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 hello\sworld
+-
+refresh 510 \rps>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 hello\sworld
+-
+refresh 511 \rps>\shello\sworld\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 hello\sworld
+-
+refresh 512 \rps>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 hello\sworld
+-
+refresh 513 \rps>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 hello\sworld
+-
+refresh 514 \rps>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 hello\sworld
+-
+refresh 515 \rps>\shello\sworld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 hello\sworld
+-
+refresh 516 \rps>\shello\swhintorld\e[K\r\e[11C 1 0 7 hello\sworld
+-
+refresh 517 \rps>\shello\swhintorld\e[K\r\e[11C 1 0 7 hello\sworld
+-
+refresh 518 \rps>\shello\swhintorld\e[K\r\e[11C 1 0 7 hello\sworld
+-
+refresh 519 \rps>\shello\swhintorld\e[K\r\e[11C 1 0 7 hello\sworld
+-
+refresh 520 \rps>\shello\swhintorld\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 hello\sworld
+-
+refresh 521 \rps>\shello\swhintorld\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 hello\sworld
+-
+refresh 522 \rps>\shello\swhintorld\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 hello\sworld
+-
+refresh 523 \rps>\shello\swhintorld\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 hello\sworld
+-
+refresh 524 \rps>\shello\swhintorld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 hello\sworld
+-
+refresh 525 \rps>\shello\swhintorld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 hello\sworld
+-
+refresh 526 \rps>\shello\swhintorld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 hello\sworld
+-
+refresh 527 \rps>\shello\swhintorld\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 hello\sworld
+-
+refresh 528 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[2C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 529 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[2C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 530 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[2C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 531 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[2C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 532 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 533 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 534 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 535 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 536 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 537 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 538 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 539 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 540 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[2C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 541 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[2C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 542 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[2C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 543 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[2C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 544 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 545 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 546 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 547 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 548 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 549 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 550 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 551 \r>\shint01234567890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 552 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[4C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 553 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[4C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 554 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[4C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 555 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[4C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 556 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 557 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 558 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 559 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 560 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 561 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 562 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 563 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 564 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[4C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 565 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[4C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 566 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[4C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 567 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[4C 2 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 568 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 569 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 570 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 571 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 572 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 573 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 574 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 575 \rps>\shint012345678901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 0123456789012345678901234567890123456789012345
+-
+refresh 576 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[9C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 577 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[9C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 578 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[9C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 579 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[9C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 580 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[9C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 581 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[9C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 582 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[9C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 583 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[9C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 584 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[9C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 585 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[9C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 586 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[9C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 587 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[9C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 588 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[9C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 589 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[9C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 590 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[9C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 591 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[9C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 592 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[9C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 593 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[9C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 594 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[9C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 595 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[9C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 596 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[9C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 597 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[9C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 598 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[9C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 599 \r>\s0123456hint7890123456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[9C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 600 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[11C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 601 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[11C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 602 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[11C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 603 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[11C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 604 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[11C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 605 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[11C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 606 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[11C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 607 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[11C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 608 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[11C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 609 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[11C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 610 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[11C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 611 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[11C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 612 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[11C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 613 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[11C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 614 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[11C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 615 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[11C 2 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 616 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[11C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 617 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[11C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 618 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[11C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 619 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[11C 3 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 620 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[11C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 621 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[11C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 622 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[11C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 623 \rps>\s0123456hint78901234567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[11C 4 0 7 0123456789012345678901234567890123456789012345
+-
+refresh 624 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[16C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 625 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[16C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 626 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[16C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 627 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[16C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 628 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[16C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 629 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[16C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 630 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[16C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 631 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[16C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 632 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[16C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 633 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[16C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 634 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[16C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 635 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[16C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 636 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[16C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 637 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[16C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 638 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[16C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 639 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[16C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 640 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[16C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 641 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[16C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 642 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[16C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 643 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[16C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 644 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[16C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 645 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[16C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 646 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[16C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 647 \r>\s01234567890123hint456789012345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[16C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 648 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[18C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 649 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[18C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 650 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[18C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 651 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[18C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 652 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[18C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 653 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[18C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 654 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[18C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 655 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[18C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 656 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[18C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 657 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[18C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 658 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[18C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 659 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[18C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 660 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[18C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 661 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[18C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 662 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[18C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 663 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[18C 2 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 664 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[18C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 665 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[18C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 666 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[18C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 667 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[18C 3 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 668 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[18C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 669 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[18C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 670 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[18C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 671 \rps>\s01234567890123hint4567890123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[18C 4 0 14 0123456789012345678901234567890123456789012345
+-
+refresh 672 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[23C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 673 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[23C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 674 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[23C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 675 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[23C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 676 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[23C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 677 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[23C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 678 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[23C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 679 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[23C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 680 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[23C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 681 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[23C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 682 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[23C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 683 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[23C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 684 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[23C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 685 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[23C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 686 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[23C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 687 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[23C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 688 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[23C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 689 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[23C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 690 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[23C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 691 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[23C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 692 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[23C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 693 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[23C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 694 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[23C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 695 \r>\s012345678901234567890hint12345678901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[23C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 696 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[25C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 697 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[25C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 698 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[25C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 699 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[25C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 700 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[25C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 701 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[25C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 702 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[25C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 703 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[25C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 704 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[25C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 705 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[25C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 706 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[25C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 707 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[25C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 708 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[25C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 709 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[25C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 710 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[25C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 711 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[25C 2 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 712 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[25C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 713 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[25C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 714 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[25C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 715 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[25C 3 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 716 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[25C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 717 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[25C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 718 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[25C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 719 \rps>\s012345678901234567890hint123456789\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[25C 4 0 21 0123456789012345678901234567890123456789012345
+-
+refresh 720 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[30C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 721 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[30C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 722 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[30C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 723 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[30C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 724 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[30C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 725 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[30C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 726 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[30C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 727 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[30C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 728 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[30C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 729 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[30C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 730 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[30C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 731 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[30C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 732 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[30C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 733 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[30C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 734 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[30C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 735 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\r\e[1A\e[30C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 736 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[30C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 737 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[30C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 738 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[30C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 739 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[30C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 740 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[30C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 741 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[30C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 742 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[30C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 743 \r>\s0123456789012345678901234567hint8901\xe2\x86\x90\e[K\n|\s23456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[30C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 744 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[32C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 745 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[1A\e[32C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 746 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[32C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 747 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[1A\e[32C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 748 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[32C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 749 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[32C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 750 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[32C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 751 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[32C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 752 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[32C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 753 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[32C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 754 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[32C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 755 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[32C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 756 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[32C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 757 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\r\e[1A\e[32C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 758 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[32C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 759 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\r\e[1A\e[32C 2 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 760 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[32C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 761 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[32C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 762 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[32C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 763 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\nmenu\sline\e[K\r\e[2A\e[32C 3 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 764 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[32C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 765 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n\s\s|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[32C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 766 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[32C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 767 \rps>\s0123456789012345678901234567hint89\xe2\x86\x90\e[K\n|\s0123456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[32C 4 0 28 0123456789012345678901234567890123456789012345
+-
+refresh 768 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[37C 2 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 769 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[37C 2 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 770 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[37C 2 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 771 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[1A\e[37C 2 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 772 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[37C 3 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 773 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[37C 3 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 774 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[37C 3 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 775 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[2A\e[37C 3 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 776 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[37C 4 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 777 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[37C 4 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 778 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[37C 4 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 779 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[37C 4 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 780 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\r\e[1A\e[37C 2 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 781 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\r\e[1A\e[37C 2 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 782 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\r\e[1A\e[37C 2 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 783 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\r\e[1A\e[37C 2 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 784 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\nmenu\sline\e[K\r\e[2A\e[37C 3 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 785 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\nmenu\sline\e[K\r\e[2A\e[37C 3 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 786 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\nmenu\sline\e[K\r\e[2A\e[37C 3 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 787 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\nmenu\sline\e[K\r\e[2A\e[37C 3 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 788 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[37C 4 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 789 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[37C 4 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 790 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[37C 4 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 791 \r>\s01234567890123456789012345678901234h\xe2\x86\x90\e[K\n|\sint56789012345\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[37C 4 0 35 0123456789012345678901234567890123456789012345
+-
+refresh 792 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[5C 2 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 793 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[5C 2 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 794 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[3C 2 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 795 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[3C 2 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 796 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[1A\e[5C 3 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 797 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[1A\e[5C 3 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 798 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 799 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 800 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 4 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 801 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 4 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 802 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 803 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 804 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s4hint56789012345\e[K\r\e[5C 2 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 805 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s4hint56789012345\e[K\r\e[5C 2 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 806 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s4hint56789012345\e[K\r\e[3C 2 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 807 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s4hint56789012345\e[K\r\e[3C 2 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 808 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s4hint56789012345\e[K\nmenu\sline\e[K\r\e[1A\e[5C 3 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 809 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s4hint56789012345\e[K\nmenu\sline\e[K\r\e[1A\e[5C 3 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 810 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s4hint56789012345\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 811 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s4hint56789012345\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 812 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s4hint56789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 4 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 813 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s4hint56789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 4 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 814 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s4hint56789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 815 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s4hint56789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 35 0123456789012345678901234567890123456789012345
+-
+refresh 816 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[8C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 817 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[8C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 818 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[8C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 819 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\r\e[8C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 820 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[1A\e[8C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 821 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[1A\e[8C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 822 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[1A\e[8C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 823 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\nmenu\sline\e[K\r\e[1A\e[8C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 824 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 825 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 826 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 827 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s6789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 828 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\r\e[8C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 829 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\r\e[8C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 830 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\r\e[8C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 831 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\r\e[8C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 832 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\nmenu\sline\e[K\r\e[1A\e[8C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 833 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\nmenu\sline\e[K\r\e[1A\e[8C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 834 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\nmenu\sline\e[K\r\e[1A\e[8C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 835 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\nmenu\sline\e[K\r\e[1A\e[8C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 836 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 837 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 838 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 839 \r>\s012345678901234567890123456789012345\xe2\x86\x90\e[K\n|\s678901hint2345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 840 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[12C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 841 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\r\e[12C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 842 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[10C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 843 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\r\e[10C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 844 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[1A\e[12C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 845 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\nmenu\sline\e[K\r\e[1A\e[12C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 846 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[1A\e[10C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 847 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\nmenu\sline\e[K\r\e[1A\e[10C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 848 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[12C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 849 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[12C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 850 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[10C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 851 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s456789012345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[10C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 852 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s45678901hint2345\e[K\r\e[12C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 853 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s45678901hint2345\e[K\r\e[12C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 854 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s45678901hint2345\e[K\r\e[10C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 855 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s45678901hint2345\e[K\r\e[10C 2 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 856 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s45678901hint2345\e[K\nmenu\sline\e[K\r\e[1A\e[12C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 857 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s45678901hint2345\e[K\nmenu\sline\e[K\r\e[1A\e[12C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 858 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s45678901hint2345\e[K\nmenu\sline\e[K\r\e[1A\e[10C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 859 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s45678901hint2345\e[K\nmenu\sline\e[K\r\e[1A\e[10C 3 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 860 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s45678901hint2345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[12C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 861 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n\s\s|\s45678901hint2345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[12C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 862 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s45678901hint2345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[10C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 863 \rps>\s0123456789012345678901234567890123\xe2\x86\x90\e[K\n|\s45678901hint2345\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[10C 4 1 42 0123456789012345678901234567890123456789012345
+-
+refresh 864 \r>\sline1\e[K\n|\sline2\e[K\r\e[1A\e[2C 2 0 0 line1\nline2
+-
+refresh 865 \r>\sline1\e[K\n|\sline2\e[K\r\e[1A\e[2C 2 0 0 line1\nline2
+-
+refresh 866 \r>\sline1\e[K\n|\sline2\e[K\r\e[1A\e[2C 2 0 0 line1\nline2
+-
+refresh 867 \r>\sline1\e[K\n|\sline2\e[K\r\e[1A\e[2C 2 0 0 line1\nline2
+-
+refresh 868 \r>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 line1\nline2
+-
+refresh 869 \r>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 line1\nline2
+-
+refresh 870 \r>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 line1\nline2
+-
+refresh 871 \r>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 line1\nline2
+-
+refresh 872 \r>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 line1\nline2
+-
+refresh 873 \r>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 line1\nline2
+-
+refresh 874 \r>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 line1\nline2
+-
+refresh 875 \r>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 line1\nline2
+-
+refresh 876 \r>\shintline1\e[K\n|\sline2\e[K\r\e[1A\e[2C 2 0 0 line1\nline2
+-
+refresh 877 \r>\shintline1\e[K\n|\sline2\e[K\r\e[1A\e[2C 2 0 0 line1\nline2
+-
+refresh 878 \r>\shintline1\e[K\n|\sline2\e[K\r\e[1A\e[2C 2 0 0 line1\nline2
+-
+refresh 879 \r>\shintline1\e[K\n|\sline2\e[K\r\e[1A\e[2C 2 0 0 line1\nline2
+-
+refresh 880 \r>\shintline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 line1\nline2
+-
+refresh 881 \r>\shintline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 line1\nline2
+-
+refresh 882 \r>\shintline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 line1\nline2
+-
+refresh 883 \r>\shintline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[2C 3 0 0 line1\nline2
+-
+refresh 884 \r>\shintline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 line1\nline2
+-
+refresh 885 \r>\shintline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 line1\nline2
+-
+refresh 886 \r>\shintline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 line1\nline2
+-
+refresh 887 \r>\shintline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[2C 4 0 0 line1\nline2
+-
+refresh 888 \rps>\sline1\e[K\n\s\s|\sline2\e[K\r\e[1A\e[4C 2 0 0 line1\nline2
+-
+refresh 889 \rps>\sline1\e[K\n\s\s|\sline2\e[K\r\e[1A\e[4C 2 0 0 line1\nline2
+-
+refresh 890 \rps>\sline1\e[K\n|\sline2\e[K\r\e[1A\e[4C 2 0 0 line1\nline2
+-
+refresh 891 \rps>\sline1\e[K\n|\sline2\e[K\r\e[1A\e[4C 2 0 0 line1\nline2
+-
+refresh 892 \rps>\sline1\e[K\n\s\s|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 line1\nline2
+-
+refresh 893 \rps>\sline1\e[K\n\s\s|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 line1\nline2
+-
+refresh 894 \rps>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 line1\nline2
+-
+refresh 895 \rps>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 line1\nline2
+-
+refresh 896 \rps>\sline1\e[K\n\s\s|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 line1\nline2
+-
+refresh 897 \rps>\sline1\e[K\n\s\s|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 line1\nline2
+-
+refresh 898 \rps>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 line1\nline2
+-
+refresh 899 \rps>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 line1\nline2
+-
+refresh 900 \rps>\shintline1\e[K\n\s\s|\sline2\e[K\r\e[1A\e[4C 2 0 0 line1\nline2
+-
+refresh 901 \rps>\shintline1\e[K\n\s\s|\sline2\e[K\r\e[1A\e[4C 2 0 0 line1\nline2
+-
+refresh 902 \rps>\shintline1\e[K\n|\sline2\e[K\r\e[1A\e[4C 2 0 0 line1\nline2
+-
+refresh 903 \rps>\shintline1\e[K\n|\sline2\e[K\r\e[1A\e[4C 2 0 0 line1\nline2
+-
+refresh 904 \rps>\shintline1\e[K\n\s\s|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 line1\nline2
+-
+refresh 905 \rps>\shintline1\e[K\n\s\s|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 line1\nline2
+-
+refresh 906 \rps>\shintline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 line1\nline2
+-
+refresh 907 \rps>\shintline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[2A\e[4C 3 0 0 line1\nline2
+-
+refresh 908 \rps>\shintline1\e[K\n\s\s|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 line1\nline2
+-
+refresh 909 \rps>\shintline1\e[K\n\s\s|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 line1\nline2
+-
+refresh 910 \rps>\shintline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 line1\nline2
+-
+refresh 911 \rps>\shintline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[3A\e[4C 4 0 0 line1\nline2
+-
+refresh 912 \r>\sline1\e[K\n|\sline2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 913 \r>\sline1\e[K\n|\sline2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 914 \r>\sline1\e[K\n|\sline2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 915 \r>\sline1\e[K\n|\sline2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 916 \r>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 917 \r>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 918 \r>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 919 \r>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 920 \r>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 921 \r>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 922 \r>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 923 \r>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 924 \r>\sline1\e[K\n|\slhintine2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 925 \r>\sline1\e[K\n|\slhintine2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 926 \r>\sline1\e[K\n|\slhintine2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 927 \r>\sline1\e[K\n|\slhintine2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 928 \r>\sline1\e[K\n|\slhintine2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 929 \r>\sline1\e[K\n|\slhintine2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 930 \r>\sline1\e[K\n|\slhintine2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 931 \r>\sline1\e[K\n|\slhintine2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 932 \r>\sline1\e[K\n|\slhintine2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 933 \r>\sline1\e[K\n|\slhintine2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 934 \r>\sline1\e[K\n|\slhintine2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 935 \r>\sline1\e[K\n|\slhintine2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 936 \rps>\sline1\e[K\n\s\s|\sline2\e[K\r\e[5C 2 1 7 line1\nline2
+-
+refresh 937 \rps>\sline1\e[K\n\s\s|\sline2\e[K\r\e[5C 2 1 7 line1\nline2
+-
+refresh 938 \rps>\sline1\e[K\n|\sline2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 939 \rps>\sline1\e[K\n|\sline2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 940 \rps>\sline1\e[K\n\s\s|\sline2\e[K\nmenu\sline\e[K\r\e[1A\e[5C 3 1 7 line1\nline2
+-
+refresh 941 \rps>\sline1\e[K\n\s\s|\sline2\e[K\nmenu\sline\e[K\r\e[1A\e[5C 3 1 7 line1\nline2
+-
+refresh 942 \rps>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 943 \rps>\sline1\e[K\n|\sline2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 944 \rps>\sline1\e[K\n\s\s|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 4 1 7 line1\nline2
+-
+refresh 945 \rps>\sline1\e[K\n\s\s|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 4 1 7 line1\nline2
+-
+refresh 946 \rps>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 947 \rps>\sline1\e[K\n|\sline2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 948 \rps>\sline1\e[K\n\s\s|\slhintine2\e[K\r\e[5C 2 1 7 line1\nline2
+-
+refresh 949 \rps>\sline1\e[K\n\s\s|\slhintine2\e[K\r\e[5C 2 1 7 line1\nline2
+-
+refresh 950 \rps>\sline1\e[K\n|\slhintine2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 951 \rps>\sline1\e[K\n|\slhintine2\e[K\r\e[3C 2 1 7 line1\nline2
+-
+refresh 952 \rps>\sline1\e[K\n\s\s|\slhintine2\e[K\nmenu\sline\e[K\r\e[1A\e[5C 3 1 7 line1\nline2
+-
+refresh 953 \rps>\sline1\e[K\n\s\s|\slhintine2\e[K\nmenu\sline\e[K\r\e[1A\e[5C 3 1 7 line1\nline2
+-
+refresh 954 \rps>\sline1\e[K\n|\slhintine2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 955 \rps>\sline1\e[K\n|\slhintine2\e[K\nmenu\sline\e[K\r\e[1A\e[3C 3 1 7 line1\nline2
+-
+refresh 956 \rps>\sline1\e[K\n\s\s|\slhintine2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 4 1 7 line1\nline2
+-
+refresh 957 \rps>\sline1\e[K\n\s\s|\slhintine2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 4 1 7 line1\nline2
+-
+refresh 958 \rps>\sline1\e[K\n|\slhintine2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 959 \rps>\sline1\e[K\n|\slhintine2\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 4 1 7 line1\nline2
+-
+refresh 960 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 961 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 962 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 963 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 964 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 965 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 966 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 967 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 968 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 969 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 970 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 971 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 972 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 973 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 974 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 975 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 976 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 977 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 978 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 979 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 980 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 981 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 982 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 983 \r>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[2C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 984 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 985 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 986 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 987 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 988 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 989 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 990 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 991 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 992 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 993 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 994 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 995 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 996 \rps>\shinta\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 997 \rps>\shinta\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 998 \rps>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 999 \rps>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 7 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1000 \rps>\shinta\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1001 \rps>\shinta\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1002 \rps>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1003 \rps>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 8 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1004 \rps>\shinta\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1005 \rps>\shinta\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[5A\e[4C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1006 \rps>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1007 \rps>\shinta\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[5A\e[4C 9 0 0 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1008 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1009 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1010 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1011 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1012 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1013 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1014 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1015 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1016 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1017 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1018 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1019 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1020 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1021 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1022 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1023 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1024 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1025 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1026 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1027 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1028 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1029 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1030 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1031 \r>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1032 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1033 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1034 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1035 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1036 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1037 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1038 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1039 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1040 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1041 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sd\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1042 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1043 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sd\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1044 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sdhint\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1045 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sdhint\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1046 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1047 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 7 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1048 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sdhint\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1049 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sdhint\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1050 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1051 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 8 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1052 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sdhint\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1053 \rps>\sa\e[K\n\s\s|\sb\e[K\n\s\s|\sc\e[K\n\s\s|\sdhint\e[K\n\s\s|\se\e[K\n\s\s|\sf\e[K\r\e[2A\e[5C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1054 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1055 \rps>\sa\e[K\n|\sb\e[K\n|\sc\e[K\n|\sdhint\e[K\n|\se\e[K\n|\sf\e[K\r\e[2A\e[3C 9 3 7 a\nb\nc\nd\ne\nf\ng
+-
+refresh 1056 \r>\s(unbalanced\e[K\r\e[2C 1 0 0 (unbalanced
+-
+refresh 1057 \r>\s(unbalanced\e[K\r\e[2C 1 0 0 (unbalanced
+-
+refresh 1058 \r>\s(unbalanced\e[K\r\e[2C 1 0 0 (unbalanced
+-
+refresh 1059 \r>\s(unbalanced\e[K\r\e[2C 1 0 0 (unbalanced
+-
+refresh 1060 \r>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 (unbalanced
+-
+refresh 1061 \r>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 (unbalanced
+-
+refresh 1062 \r>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 (unbalanced
+-
+refresh 1063 \r>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 (unbalanced
+-
+refresh 1064 \r>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 (unbalanced
+-
+refresh 1065 \r>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 (unbalanced
+-
+refresh 1066 \r>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 (unbalanced
+-
+refresh 1067 \r>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 (unbalanced
+-
+refresh 1068 \r>\shint(unbalanced\e[K\r\e[2C 1 0 0 (unbalanced
+-
+refresh 1069 \r>\shint(unbalanced\e[K\r\e[2C 1 0 0 (unbalanced
+-
+refresh 1070 \r>\shint(unbalanced\e[K\r\e[2C 1 0 0 (unbalanced
+-
+refresh 1071 \r>\shint(unbalanced\e[K\r\e[2C 1 0 0 (unbalanced
+-
+refresh 1072 \r>\shint(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 (unbalanced
+-
+refresh 1073 \r>\shint(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 (unbalanced
+-
+refresh 1074 \r>\shint(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 (unbalanced
+-
+refresh 1075 \r>\shint(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 (unbalanced
+-
+refresh 1076 \r>\shint(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 (unbalanced
+-
+refresh 1077 \r>\shint(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 (unbalanced
+-
+refresh 1078 \r>\shint(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 (unbalanced
+-
+refresh 1079 \r>\shint(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 (unbalanced
+-
+refresh 1080 \rps>\s(unbalanced\e[K\r\e[4C 1 0 0 (unbalanced
+-
+refresh 1081 \rps>\s(unbalanced\e[K\r\e[4C 1 0 0 (unbalanced
+-
+refresh 1082 \rps>\s(unbalanced\e[K\r\e[4C 1 0 0 (unbalanced
+-
+refresh 1083 \rps>\s(unbalanced\e[K\r\e[4C 1 0 0 (unbalanced
+-
+refresh 1084 \rps>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 (unbalanced
+-
+refresh 1085 \rps>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 (unbalanced
+-
+refresh 1086 \rps>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 (unbalanced
+-
+refresh 1087 \rps>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 (unbalanced
+-
+refresh 1088 \rps>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 (unbalanced
+-
+refresh 1089 \rps>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 (unbalanced
+-
+refresh 1090 \rps>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 (unbalanced
+-
+refresh 1091 \rps>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 (unbalanced
+-
+refresh 1092 \rps>\shint(unbalanced\e[K\r\e[4C 1 0 0 (unbalanced
+-
+refresh 1093 \rps>\shint(unbalanced\e[K\r\e[4C 1 0 0 (unbalanced
+-
+refresh 1094 \rps>\shint(unbalanced\e[K\r\e[4C 1 0 0 (unbalanced
+-
+refresh 1095 \rps>\shint(unbalanced\e[K\r\e[4C 1 0 0 (unbalanced
+-
+refresh 1096 \rps>\shint(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 (unbalanced
+-
+refresh 1097 \rps>\shint(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 (unbalanced
+-
+refresh 1098 \rps>\shint(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 (unbalanced
+-
+refresh 1099 \rps>\shint(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 (unbalanced
+-
+refresh 1100 \rps>\shint(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 (unbalanced
+-
+refresh 1101 \rps>\shint(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 (unbalanced
+-
+refresh 1102 \rps>\shint(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 (unbalanced
+-
+refresh 1103 \rps>\shint(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 (unbalanced
+-
+refresh 1104 \r>\s(unbalanced\e[K\r\e[9C 1 0 7 (unbalanced
+-
+refresh 1105 \r>\s(unbalanced\e[K\r\e[9C 1 0 7 (unbalanced
+-
+refresh 1106 \r>\s(unbalanced\e[K\r\e[9C 1 0 7 (unbalanced
+-
+refresh 1107 \r>\s(unbalanced\e[K\r\e[9C 1 0 7 (unbalanced
+-
+refresh 1108 \r>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 (unbalanced
+-
+refresh 1109 \r>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 (unbalanced
+-
+refresh 1110 \r>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 (unbalanced
+-
+refresh 1111 \r>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 (unbalanced
+-
+refresh 1112 \r>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 (unbalanced
+-
+refresh 1113 \r>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 (unbalanced
+-
+refresh 1114 \r>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 (unbalanced
+-
+refresh 1115 \r>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 (unbalanced
+-
+refresh 1116 \r>\s(unbalahintnced\e[K\r\e[9C 1 0 7 (unbalanced
+-
+refresh 1117 \r>\s(unbalahintnced\e[K\r\e[9C 1 0 7 (unbalanced
+-
+refresh 1118 \r>\s(unbalahintnced\e[K\r\e[9C 1 0 7 (unbalanced
+-
+refresh 1119 \r>\s(unbalahintnced\e[K\r\e[9C 1 0 7 (unbalanced
+-
+refresh 1120 \r>\s(unbalahintnced\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 (unbalanced
+-
+refresh 1121 \r>\s(unbalahintnced\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 (unbalanced
+-
+refresh 1122 \r>\s(unbalahintnced\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 (unbalanced
+-
+refresh 1123 \r>\s(unbalahintnced\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 (unbalanced
+-
+refresh 1124 \r>\s(unbalahintnced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 (unbalanced
+-
+refresh 1125 \r>\s(unbalahintnced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 (unbalanced
+-
+refresh 1126 \r>\s(unbalahintnced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 (unbalanced
+-
+refresh 1127 \r>\s(unbalahintnced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 (unbalanced
+-
+refresh 1128 \rps>\s(unbalanced\e[K\r\e[11C 1 0 7 (unbalanced
+-
+refresh 1129 \rps>\s(unbalanced\e[K\r\e[11C 1 0 7 (unbalanced
+-
+refresh 1130 \rps>\s(unbalanced\e[K\r\e[11C 1 0 7 (unbalanced
+-
+refresh 1131 \rps>\s(unbalanced\e[K\r\e[11C 1 0 7 (unbalanced
+-
+refresh 1132 \rps>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 (unbalanced
+-
+refresh 1133 \rps>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 (unbalanced
+-
+refresh 1134 \rps>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 (unbalanced
+-
+refresh 1135 \rps>\s(unbalanced\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 (unbalanced
+-
+refresh 1136 \rps>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 (unbalanced
+-
+refresh 1137 \rps>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 (unbalanced
+-
+refresh 1138 \rps>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 (unbalanced
+-
+refresh 1139 \rps>\s(unbalanced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 (unbalanced
+-
+refresh 1140 \rps>\s(unbalahintnced\e[K\r\e[11C 1 0 7 (unbalanced
+-
+refresh 1141 \rps>\s(unbalahintnced\e[K\r\e[11C 1 0 7 (unbalanced
+-
+refresh 1142 \rps>\s(unbalahintnced\e[K\r\e[11C 1 0 7 (unbalanced
+-
+refresh 1143 \rps>\s(unbalahintnced\e[K\r\e[11C 1 0 7 (unbalanced
+-
+refresh 1144 \rps>\s(unbalahintnced\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 (unbalanced
+-
+refresh 1145 \rps>\s(unbalahintnced\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 (unbalanced
+-
+refresh 1146 \rps>\s(unbalahintnced\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 (unbalanced
+-
+refresh 1147 \rps>\s(unbalahintnced\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 (unbalanced
+-
+refresh 1148 \rps>\s(unbalahintnced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 (unbalanced
+-
+refresh 1149 \rps>\s(unbalahintnced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 (unbalanced
+-
+refresh 1150 \rps>\s(unbalahintnced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 (unbalanced
+-
+refresh 1151 \rps>\s(unbalahintnced\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 (unbalanced
+-
+refresh 1152 \r>\s[matched]\e[K\r\e[2C 1 0 0 [matched]
+-
+refresh 1153 \r>\s[matched]\e[K\r\e[2C 1 0 0 [matched]
+-
+refresh 1154 \r>\s[matched]\e[K\r\e[2C 1 0 0 [matched]
+-
+refresh 1155 \r>\s[matched]\e[K\r\e[2C 1 0 0 [matched]
+-
+refresh 1156 \r>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 [matched]
+-
+refresh 1157 \r>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 [matched]
+-
+refresh 1158 \r>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 [matched]
+-
+refresh 1159 \r>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 [matched]
+-
+refresh 1160 \r>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 [matched]
+-
+refresh 1161 \r>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 [matched]
+-
+refresh 1162 \r>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 [matched]
+-
+refresh 1163 \r>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 [matched]
+-
+refresh 1164 \r>\shint[matched]\e[K\r\e[2C 1 0 0 [matched]
+-
+refresh 1165 \r>\shint[matched]\e[K\r\e[2C 1 0 0 [matched]
+-
+refresh 1166 \r>\shint[matched]\e[K\r\e[2C 1 0 0 [matched]
+-
+refresh 1167 \r>\shint[matched]\e[K\r\e[2C 1 0 0 [matched]
+-
+refresh 1168 \r>\shint[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 [matched]
+-
+refresh 1169 \r>\shint[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 [matched]
+-
+refresh 1170 \r>\shint[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 [matched]
+-
+refresh 1171 \r>\shint[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 [matched]
+-
+refresh 1172 \r>\shint[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 [matched]
+-
+refresh 1173 \r>\shint[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 [matched]
+-
+refresh 1174 \r>\shint[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 [matched]
+-
+refresh 1175 \r>\shint[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 [matched]
+-
+refresh 1176 \rps>\s[matched]\e[K\r\e[4C 1 0 0 [matched]
+-
+refresh 1177 \rps>\s[matched]\e[K\r\e[4C 1 0 0 [matched]
+-
+refresh 1178 \rps>\s[matched]\e[K\r\e[4C 1 0 0 [matched]
+-
+refresh 1179 \rps>\s[matched]\e[K\r\e[4C 1 0 0 [matched]
+-
+refresh 1180 \rps>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 [matched]
+-
+refresh 1181 \rps>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 [matched]
+-
+refresh 1182 \rps>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 [matched]
+-
+refresh 1183 \rps>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 [matched]
+-
+refresh 1184 \rps>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 [matched]
+-
+refresh 1185 \rps>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 [matched]
+-
+refresh 1186 \rps>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 [matched]
+-
+refresh 1187 \rps>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 [matched]
+-
+refresh 1188 \rps>\shint[matched]\e[K\r\e[4C 1 0 0 [matched]
+-
+refresh 1189 \rps>\shint[matched]\e[K\r\e[4C 1 0 0 [matched]
+-
+refresh 1190 \rps>\shint[matched]\e[K\r\e[4C 1 0 0 [matched]
+-
+refresh 1191 \rps>\shint[matched]\e[K\r\e[4C 1 0 0 [matched]
+-
+refresh 1192 \rps>\shint[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 [matched]
+-
+refresh 1193 \rps>\shint[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 [matched]
+-
+refresh 1194 \rps>\shint[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 [matched]
+-
+refresh 1195 \rps>\shint[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 [matched]
+-
+refresh 1196 \rps>\shint[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 [matched]
+-
+refresh 1197 \rps>\shint[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 [matched]
+-
+refresh 1198 \rps>\shint[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 [matched]
+-
+refresh 1199 \rps>\shint[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 [matched]
+-
+refresh 1200 \r>\s[matched]\e[K\r\e[9C 1 0 7 [matched]
+-
+refresh 1201 \r>\s[matched]\e[K\r\e[9C 1 0 7 [matched]
+-
+refresh 1202 \r>\s[matched]\e[K\r\e[9C 1 0 7 [matched]
+-
+refresh 1203 \r>\s[matched]\e[K\r\e[9C 1 0 7 [matched]
+-
+refresh 1204 \r>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 [matched]
+-
+refresh 1205 \r>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 [matched]
+-
+refresh 1206 \r>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 [matched]
+-
+refresh 1207 \r>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 [matched]
+-
+refresh 1208 \r>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 [matched]
+-
+refresh 1209 \r>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 [matched]
+-
+refresh 1210 \r>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 [matched]
+-
+refresh 1211 \r>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 [matched]
+-
+refresh 1212 \r>\s[matchehintd]\e[K\r\e[9C 1 0 7 [matched]
+-
+refresh 1213 \r>\s[matchehintd]\e[K\r\e[9C 1 0 7 [matched]
+-
+refresh 1214 \r>\s[matchehintd]\e[K\r\e[9C 1 0 7 [matched]
+-
+refresh 1215 \r>\s[matchehintd]\e[K\r\e[9C 1 0 7 [matched]
+-
+refresh 1216 \r>\s[matchehintd]\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 [matched]
+-
+refresh 1217 \r>\s[matchehintd]\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 [matched]
+-
+refresh 1218 \r>\s[matchehintd]\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 [matched]
+-
+refresh 1219 \r>\s[matchehintd]\e[K\nmenu\sline\e[K\r\e[1A\e[9C 2 0 7 [matched]
+-
+refresh 1220 \r>\s[matchehintd]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 [matched]
+-
+refresh 1221 \r>\s[matchehintd]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 [matched]
+-
+refresh 1222 \r>\s[matchehintd]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 [matched]
+-
+refresh 1223 \r>\s[matchehintd]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[9C 3 0 7 [matched]
+-
+refresh 1224 \rps>\s[matched]\e[K\r\e[11C 1 0 7 [matched]
+-
+refresh 1225 \rps>\s[matched]\e[K\r\e[11C 1 0 7 [matched]
+-
+refresh 1226 \rps>\s[matched]\e[K\r\e[11C 1 0 7 [matched]
+-
+refresh 1227 \rps>\s[matched]\e[K\r\e[11C 1 0 7 [matched]
+-
+refresh 1228 \rps>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 [matched]
+-
+refresh 1229 \rps>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 [matched]
+-
+refresh 1230 \rps>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 [matched]
+-
+refresh 1231 \rps>\s[matched]\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 [matched]
+-
+refresh 1232 \rps>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 [matched]
+-
+refresh 1233 \rps>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 [matched]
+-
+refresh 1234 \rps>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 [matched]
+-
+refresh 1235 \rps>\s[matched]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 [matched]
+-
+refresh 1236 \rps>\s[matchehintd]\e[K\r\e[11C 1 0 7 [matched]
+-
+refresh 1237 \rps>\s[matchehintd]\e[K\r\e[11C 1 0 7 [matched]
+-
+refresh 1238 \rps>\s[matchehintd]\e[K\r\e[11C 1 0 7 [matched]
+-
+refresh 1239 \rps>\s[matchehintd]\e[K\r\e[11C 1 0 7 [matched]
+-
+refresh 1240 \rps>\s[matchehintd]\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 [matched]
+-
+refresh 1241 \rps>\s[matchehintd]\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 [matched]
+-
+refresh 1242 \rps>\s[matchehintd]\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 [matched]
+-
+refresh 1243 \rps>\s[matchehintd]\e[K\nmenu\sline\e[K\r\e[1A\e[11C 2 0 7 [matched]
+-
+refresh 1244 \rps>\s[matchehintd]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 [matched]
+-
+refresh 1245 \rps>\s[matchehintd]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 [matched]
+-
+refresh 1246 \rps>\s[matchehintd]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 [matched]
+-
+refresh 1247 \rps>\s[matchehintd]\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[11C 3 0 7 [matched]
+-
+refresh 1248 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[2C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1249 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[2C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1250 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[2C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1251 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[2C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1252 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1253 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1254 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1255 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1256 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1257 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1258 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1259 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1260 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[2C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1261 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[2C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1262 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[2C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1263 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[2C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1264 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1265 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1266 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1267 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[2C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1268 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1269 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1270 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1271 \r>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[2C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1272 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1273 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1274 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1275 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1276 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1277 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1278 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1279 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1280 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1281 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1282 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1283 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1284 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1285 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1286 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1287 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1288 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1289 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1290 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1291 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1292 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1293 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1294 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1295 \rps>\shint\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 0 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1296 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1297 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1298 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1299 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1300 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1301 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1302 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1303 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1304 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1305 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1306 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1307 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1308 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1309 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1310 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1311 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1312 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1313 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1314 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1315 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1316 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1317 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1318 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1319 \r>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1320 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1321 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1322 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1323 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1324 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1325 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1326 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1327 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1328 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1329 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1330 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1331 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1332 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1333 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1334 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1335 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1336 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1337 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1338 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1339 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1340 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1341 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1342 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1343 \rps>\s\xe6hint\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 1 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1344 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1345 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1346 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1347 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1348 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1349 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1350 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1351 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1352 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1353 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1354 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1355 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1356 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1357 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1358 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1359 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\r\e[3C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1360 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1361 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1362 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1363 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[3C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1364 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1365 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1366 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1367 \r>\s\xe6hint\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[3C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1368 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1369 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1370 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1371 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1372 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1373 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1374 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1375 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1376 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1377 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1378 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1379 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1380 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1381 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1382 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1383 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1384 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1385 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1386 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1387 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1388 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1389 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1390 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1391 \rps>\s\xe6hint\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 2 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1392 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1393 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1394 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1395 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[4C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1396 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1397 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1398 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1399 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1400 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1401 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1402 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1403 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1404 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\r\e[4C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1405 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\r\e[4C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1406 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\r\e[4C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1407 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\r\e[4C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1408 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1409 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1410 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1411 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[4C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1412 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1413 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1414 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1415 \r>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[4C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1416 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[6C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1417 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[6C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1418 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[6C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1419 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[6C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1420 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1421 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1422 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1423 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1424 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1425 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1426 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1427 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1428 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\r\e[6C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1429 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\r\e[6C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1430 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\r\e[6C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1431 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\r\e[6C 1 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1432 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1433 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1434 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1435 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1436 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1437 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1438 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1439 \rps>\s\xe6\x97\xa5hint\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 3 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1440 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1441 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1442 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1443 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1444 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1445 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1446 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1447 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1448 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1449 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1450 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1451 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1452 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\r\e[5C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1453 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\r\e[5C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1454 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\r\e[5C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1455 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\r\e[5C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1456 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1457 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1458 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1459 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1460 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1461 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1462 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1463 \r>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1464 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[7C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1465 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[7C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1466 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[7C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1467 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[7C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1468 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1469 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1470 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1471 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1472 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1473 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1474 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1475 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1476 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\r\e[7C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1477 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\r\e[7C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1478 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\r\e[7C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1479 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\r\e[7C 1 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1480 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1481 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1482 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1483 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1484 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1485 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1486 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1487 \rps>\s\xe6\x97\xa5\xe6hint\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 4 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1488 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1489 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1490 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1491 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[5C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1492 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1493 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1494 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1495 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1496 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1497 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1498 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1499 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1500 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\r\e[5C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1501 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\r\e[5C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1502 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\r\e[5C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1503 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\r\e[5C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1504 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1505 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1506 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1507 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\nmenu\sline\e[K\r\e[1A\e[5C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1508 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1509 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1510 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1511 \r>\s\xe6\x97\xa5\xe6hint\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[5C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1512 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[7C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1513 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[7C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1514 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[7C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1515 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[7C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1516 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1517 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1518 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1519 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1520 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1521 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1522 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1523 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1524 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\r\e[7C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1525 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\r\e[7C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1526 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\r\e[7C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1527 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\r\e[7C 1 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1528 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1529 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1530 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1531 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\nmenu\sline\e[K\r\e[1A\e[7C 2 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1532 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1533 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1534 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1535 \rps>\s\xe6\x97\xa5\xe6hint\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[7C 3 0 5 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1536 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[6C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1537 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[6C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1538 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[6C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1539 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[6C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1540 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1541 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1542 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1543 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1544 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1545 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1546 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1547 \r>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1548 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\r\e[6C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1549 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\r\e[6C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1550 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\r\e[6C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1551 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\r\e[6C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1552 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1553 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1554 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1555 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\nmenu\sline\e[K\r\e[1A\e[6C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1556 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1557 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1558 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1559 \r>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[6C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1560 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[8C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1561 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[8C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1562 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[8C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1563 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\r\e[8C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1564 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1565 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1566 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1567 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1568 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1569 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1570 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1571 \rps>\s\xe6\x97\xa5\xe6\x9c\xac\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1572 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\r\e[8C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1573 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\r\e[8C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1574 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\r\e[8C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1575 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\r\e[8C 1 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1576 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1577 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1578 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1579 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\nmenu\sline\e[K\r\e[1A\e[8C 2 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1580 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1581 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1582 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
+-
+refresh 1583 \rps>\s\xe6\x97\xa5\xe6\x9c\xachint\e[K\ntwo\e[K\nlines\e[K\r\e[2A\e[8C 3 0 6 \xe6\x97\xa5\xe6\x9c\xac
