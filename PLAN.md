@@ -166,7 +166,11 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    away, and the type of a real entry, which the corpus passes in rather than
    works out. `TestTypeOfRealEntries` covers that against a real tree, and
    skips the file types the system will not let a test make.
-10. `highlight.c`.
+10. `highlight.c`. Done. `highlight.go` holds the environment a highlighter
+   marks a line through, and the brace matching that colors the brace under
+   the cursor and its partner. `tools/build-probe-highlight.sh` builds the
+   ninth probe, and `testdata/highlight.txt` records 2346 cases: every line in
+   its corpus, against five sets of brace pairs, at every cursor position.
 11. `editline.c`. This is the edit loop and the key dispatch. The files
     `editline_help.c`, `editline_history.c` and `editline_completion.c` are
     textual includes of `editline.c`, not separate units.
@@ -360,6 +364,13 @@ allows a difference only in those cases. A difference anywhere else fails.
 position just past the end it reads a slot it never wrote. That is undefined
 behavior rather than a wrong answer, so there is nothing to reproduce at all.
 The port returns the empty attribute there.
+
+That one does fire in practice. `ic_highlight_formatted` walks the whole input
+and reads an attribute for each byte of it, so markup that spells out less text
+than the input reaches past the end. With an empty format it reads the slot
+straight away and the answer is a heap pointer that changes between runs, which
+is why `tools/probe-highlight.c` leaves that case out and
+`TestHighlightFormattedEmpty` covers it on the Go side instead.
 
 ### bbcode.c
 
