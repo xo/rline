@@ -322,6 +322,22 @@ blank line in the menu. A Go caller cannot pass the absence of a string, so
 the two are the same here. This is the only recorded case where the port
 answers differently on purpose, and the test says so where it checks it.
 
+The Windows function keys F11 and F12 are sent as vt codes 23 and 24, where
+the C sends 13 and 14. This is the one place the port cannot be faithful,
+because the C contradicts itself: `tty_waitc_console` encodes F11 as 13, and
+`esc_decode_vt` in the same program reads 13 as F4 and reads F11 from 23. So
+pressing F11 on Windows under isocline gives F4, and F12 gives F5.
+windows-vm confirmed that end to end against a real console before the port
+was changed, by pushing key records into the console input buffer and reading
+them back out through the decoder.
+
+Being faithful to the encoder would mean being unfaithful to the decoder, so
+there is no faithful answer to give. The decoder is the half with recorded
+cases behind it on two systems, 23 and 24 are the numbers every other
+terminal uses for those keys, and no recorded session anywhere carries the C
+answer, because nothing records on Windows. The port therefore sends what the
+decoder reads.
+
 The history file is written with no restriction on who can read it. The C
 code creates it with `fopen` and then calls `chmod` to make it owner only,
 and the port leaves both out. That is a decision rather than an oversight:

@@ -72,10 +72,14 @@ func TestWindowsKeyEventsBecomeSequences(t *testing.T) {
 		{"page down", keyRecord(true, vkNext, 0, 0), "\x1b[6;1~"},
 		{"the first function key", keyRecord(true, vkF1, 0, 0), "\x1b[10;1~"},
 		{"the sixth function key", keyRecord(true, vkF6, 0, 0), "\x1b[17;1~"},
-		// The last two carry on from where the first run left off rather
-		// than from the second, which is what the C table does.
-		{"the eleventh function key", keyRecord(true, vkF11, 0, 0), "\x1b[13;1~"},
-		{"the twelfth function key", keyRecord(true, vkF12, 0, 0), "\x1b[14;1~"},
+		// The last two depart from the C on purpose, which sends 13 and 14
+		// where its own decoder reads 23 and 24. These expectations used to
+		// hold the C numbers, which made them agree with the encoder rather
+		// than with the truth, so they stayed green while F11 arrived as F4.
+		// Only the round trip below caught it, and only for F12, because
+		// F11 had no case there. It has one now.
+		{"the eleventh function key", keyRecord(true, vkF11, 0, 0), "\x1b[23;1~"},
+		{"the twelfth function key", keyRecord(true, vkF12, 0, 0), "\x1b[24;1~"},
 		{"a key coming up is ignored", keyRecord(false, vkUp, 0, 0), ""},
 		{"a key with no rule is ignored", keyRecord(true, vkShift, 0, 0), ""},
 		// AltGr arrives as left ctrl and right alt together and means
@@ -147,6 +151,10 @@ func TestWindowsSequencesDecodeBack(t *testing.T) {
 		{"delete", keyRecord(true, vkDelete, 0, 0), key.Del},
 		{"page up with shift", keyRecord(true, vkPrior, 0, shiftPressed), key.PageUp | key.ModShift},
 		{"the first function key", keyRecord(true, vkF1, 0, 0), key.F1},
+		{"the fifth function key", keyRecord(true, vkF5, 0, 0), key.F5},
+		{"the sixth function key", keyRecord(true, vkF6, 0, 0), key.F6},
+		{"the tenth function key", keyRecord(true, vkF10, 0, 0), key.F10},
+		{"the eleventh function key", keyRecord(true, vkF11, 0, 0), key.F11},
 		{"the twelfth function key", keyRecord(true, vkF12, 0, 0), key.F12},
 		{"a letter with alt", keyRecord(true, 0, 'a', leftAltPressed), 'a' | key.ModAlt},
 	} {
@@ -193,12 +201,19 @@ func TestWindowsOpenTTYNeedsAConsole(t *testing.T) {
 // TestWindowsRawModeRoundTrip checks that raw mode is entered and left, and
 // that the console is put back the way it was.
 //
-// It needs a real console, so it says what it could not check when there is
-// none. Run it from a console window rather than through a pipe to have it
-// mean something.
+// It needs a real console on the standard input, and go test never gives the
+// test binary one: it hands it a null input whatever window it was started
+// from, so this skips even from a console. To make it run, build the binary
+// and start it yourself with only the output redirected:
+//
+//	go test -c -o rline.test.exe .
+//	rline.test.exe -test.run TestWindows -test.v > out.txt 2>&1
+//
+// A skip here means raw mode was not checked at all, which is worth knowing
+// rather than reading as a pass.
 func TestWindowsRawModeRoundTrip(t *testing.T) {
 	if !isATTY(0) {
-		t.Skip("no console on standard input: run this from a console window to check raw mode")
+		t.Skip("no console on standard input: see the comment above for how to run this so it checks raw mode")
 	}
 	d, err := openTTYDevice(0)
 	if err != nil {
@@ -238,10 +253,11 @@ func consoleMode(t *testing.T, d *ttyDevice) uint32 {
 
 // TestWindowsReadByteTimesOut checks that a wait with nothing typed ends
 // rather than hanging. It needs a real console, because that is the only
-// thing the wait can be made against.
+// thing the wait can be made against, and it is reached the same way
+// TestWindowsRawModeRoundTrip is.
 func TestWindowsReadByteTimesOut(t *testing.T) {
 	if !isATTY(0) {
-		t.Skip("no console on standard input: run this from a console window to check the wait")
+		t.Skip("no console on standard input: see TestWindowsRawModeRoundTrip for how to run this")
 	}
 	d, err := openTTYDevice(0)
 	if err != nil {

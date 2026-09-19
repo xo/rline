@@ -37,9 +37,15 @@ var errNotATerminal = errors.New("not a console")
 // and asks for the events that say the window changed size. It deliberately
 // leaves out the modes that would have the console interpret keys itself.
 const (
-	enableQuickEditMode = 0x0040
 	enableWindowInput   = 0x0008
-	rawConsoleMode      = enableQuickEditMode | enableWindowInput
+	enableQuickEditMode = 0x0040
+	// enableExtendedFlags has to be on for enableQuickEditMode to mean
+	// anything. The console turns it on by itself when quick edit is asked
+	// for and hands it back on the next read, so asking for it makes what
+	// comes back match what went in.
+	enableExtendedFlags = 0x0080
+
+	rawConsoleMode = enableExtendedFlags | enableQuickEditMode | enableWindowInput
 )
 
 // The virtual keys that have no character of their own.
@@ -308,9 +314,20 @@ func (d *ttyDevice) pushVirtualKey(mods key.Code, virt uint16) {
 	case vkReturn:
 		d.push(csiUnicodeSequence(mods, uint32(key.Enter)))
 	default:
-		// The function keys are numbered in three runs, and the third one
-		// carries on from where the first left off rather than from the
-		// second. That is what the C table does.
+		// The function keys are numbered in three runs.
+		//
+		// The third run departs from the C, which numbers it 13 and 14. Its
+		// own decoder reads 13 and 14 as F4 and F5, and reads F11 and F12
+		// from 23 and 24, so the two halves of the C disagree and pressing
+		// F11 on Windows gives F4. windows-vm confirmed that end to end
+		// against a real console before this was changed.
+		//
+		// There is no faithful answer here, because being faithful to the
+		// encoder means being unfaithful to the decoder. The decoder is the
+		// half with recorded cases behind it on two systems, 23 and 24 are
+		// the numbers every other terminal uses, and no recorded session
+		// carries the C's answer, because nothing records on Windows. So
+		// this sends what the decoder reads. PLAN.md has the whole of it.
 		var vtcode uint32
 		switch {
 		case virt >= vkF1 && virt <= vkF5:
@@ -318,7 +335,7 @@ func (d *ttyDevice) pushVirtualKey(mods key.Code, virt uint16) {
 		case virt >= vkF6 && virt <= vkF10:
 			vtcode = 17 + uint32(virt-vkF6)
 		case virt >= vkF11 && virt <= vkF12:
-			vtcode = 13 + uint32(virt-vkF11)
+			vtcode = 23 + uint32(virt-vkF11)
 		}
 		if vtcode > 0 {
 			d.push(csiVTSequence(mods, vtcode))
