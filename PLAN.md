@@ -203,14 +203,25 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     `editlineloop.go`, together with the hint, the resize and the reading of
     one line from start to finish.
 
-    `editline_help.c` and `editline_history.c` are done. `editlinehistory.go`
-    holds walking through the history and the incremental search that Ctrl-R
-    opens, which draws its own prompt below the line and reads its own keys.
+    `editline_help.c`, `editline_history.c` and `editline_completion.c`,
+    which are textual includes of `editline.c` rather than separate units,
+    are done as well. `editlinehistory.go` holds walking through the history
+    and the incremental search that Ctrl-R opens, which draws its own prompt
+    below the line and reads its own keys. `editlinecompletion.go` holds
+    offering completions and the menu, which draws itself the same way.
 
-    What is left is `editline_completion.c`. The three entry points the dispatch calls are
-    declared in `editlinehistory.go`, `editlinecompletion.go` and
-    `editlinehelp.go`, so the dispatch is complete and the seam sits in one
-    place.
+    The completion menu cannot be driven from outside, because it reads its
+    own keys: each recorded case loads the keys it types into the tty, calls
+    the menu once, and compares what was drawn against what the C drew for
+    the same keys. `tools/build-probe-completion-menu.sh` builds the probe
+    and `testdata/<variant>/completion-menu.txt` records 3360 cases over
+    fifteen sets of completions, fourteen key sequences, and both settings of
+    the preview, the auto tab and whether the completer had more to offer.
+    The recording is split by branch for the reason the redraw is: the menu
+    draws through the same redraw, and 152 of these carry the wrapped row
+    mark.
+
+    That is the whole of `editline.c` and its includes.
 12. `isocline.c`. Done in shape, and it is the one part that is not a
     translation. The C keeps a single environment in a process global and
     every public function reaches for it, so a program can have only one line
@@ -539,6 +550,40 @@ keeps the branch in `wrapmark_darwin.go` and `wrapmark_other.go`, because the
 recorded sessions are kept per system and each holds the glyph its own C build
 produced.
 
+### editline_completion.c
+
+`edit_completion_menu` tests the selected entry with
+`selected <= count_displayed`, one past the last entry it drew. Every path
+that moves the selection keeps it below that count, so the extra entry is
+unreachable within one drawing of the menu; the only way to reach it is a
+resize between two reads that makes the menu narrower than the selection it
+already holds, and then the menu previews an entry it is not showing. The
+port keeps the comparison as the C has it.
+
+The same function clears the completions in the Escape branch and again at
+the end, and nothing between the two reads them, so the first call does
+nothing. The port keeps it, because removing it would be a change rather
+than a port, and the recording shows it makes no difference.
+
+The six `IC_DISPLAY2_*` and `IC_DISPLAY3_*` constants, which name how wide a
+column may be in a two or three column menu, are read by nothing. The layout
+measures the entries with `edit_completions_max_width` instead, so the widths
+those constants describe are not the widths the menu uses. They are left out
+of the port.
+
+`count_displayed` is set to `count` when the menu starts and then set again
+by whichever layout branch runs, before anything reads it. That initial value
+is what the unreachable `selected <= count_displayed` above would have read
+if it were reachable, so the two are the same oversight seen from two sides.
+The port declares the count without a starting value, so that a branch which
+forgot to set it would not quietly read a plausible one.
+
+`edit_completions_max_width` measures a help of "" as two columns wider than
+no help at all, because C can tell an absent string from an empty one. Go
+cannot, so both read as no help, the same conflation `completions_get_display`
+already forced on the display. It is only reachable by a completer that offers
+an empty help on purpose.
+
 ### Found by running it
 
 `ic_editline` wraps the edit loop in raw mode on both the terminal and the
@@ -758,6 +803,20 @@ encoder produced, so the unit test agreed with the bug and stayed green while
 F11 arrived as F4. A directory case on Windows expected the one answer that
 every directory gives there, so it passed for the wrong reason and would have
 stayed green through a real regression.
+
+A corpus that cannot tell two answers apart. The completion menu recordings
+were first made against a `bbcode` with no styles defined, so every style name
+in the menu rendered to nothing and `[ic-info]` and `[ic-emphasis]` produced
+the same bytes. The recording looked complete and would have passed with the
+wrong style on every entry. Both the probe and the replay now define the
+styles a `Reader` defines, which is what makes the names observable at all.
+
+What is still not reached, stated rather than left to be assumed. The menu
+corpus drives `completionMenu` only, so `generateCompletions` — the Tab entry
+point, which beeps on nothing, applies a single answer, and puts in the
+longest shared prefix before opening the menu — has no recording behind it:
+deleting the longest-prefix call leaves every test green. That wants its own
+probe over `edit_generate_completions`.
 
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out. When

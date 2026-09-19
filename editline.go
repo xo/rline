@@ -52,6 +52,11 @@ type env struct {
 	// completeAutoTab keeps completing while there is only one answer.
 	completeAutoTab bool
 
+	// completeNoPreview stops the completion menu from showing what picking
+	// the selected entry would do. It is named for what it turns off because
+	// the C is, and because the preview is what happens by default.
+	completeNoPreview bool
+
 	// hintDelay is how long to wait before showing a hint. Zero shows it at
 	// once.
 	hintDelay time.Duration
