@@ -281,6 +281,14 @@ func isWordByte(c byte) bool {
 // This one walks its three word lists, which is enough to show how completion
 // is wired up.
 func complete(c *rline.Completion, prefix string) {
+	// The prefix is only what is in front of the cursor, so completing while
+	// the cursor sits inside a word would offer the rest of a word that is
+	// already there: with the cursor after "wh" in "where", the answer is
+	// "where" and taking it gives "whereere". The whole line says so.
+	line, cursor := c.Input()
+	if cursor < len(line) && isWordByte(line[cursor]) {
+		return
+	}
 	word := prefix
 	// Complete the last word rather than the whole line.
 	if i := strings.LastIndexAny(word, " \t\n(,"); i >= 0 {

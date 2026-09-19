@@ -606,3 +606,57 @@ func TestExampleCompletionMenuColumns(t *testing.T) {
 		})
 	}
 }
+
+// TestExampleNoHintInsideAWord checks that nothing is suggested while the
+// cursor sits inside a word.
+//
+// A hint is only ever the rest of a single answer, and the answer is worked
+// out from what is in front of the cursor. With the cursor after "wh" in
+// "where", the answer is "where" and the hint is "re", which is drawn between
+// the cursor and the "ere" already there: the line reads "whereere" with two
+// letters in the hint color. Taking it would produce that text for real.
+//
+// The completer is what fixes this, not the editor. It is handed the whole
+// line and the cursor, so it can see that a word follows and say nothing.
+func TestExampleNoHintInsideAWord(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name:  "hint inside a word",
+		About: "typing into the middle of a word suggests nothing",
+		Steps: []capture.Step{
+			{Send: "where", Wait: 600 * time.Millisecond},
+			{Send: capture.KeyLeft},
+			{Send: capture.KeyLeft},
+			{Send: capture.KeyLeft, Wait: 600 * time.Millisecond},
+			{Send: "e", Wait: 600 * time.Millisecond},
+			{Send: "r", Wait: 800 * time.Millisecond},
+			{Send: capture.CtrlU},
+			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system: %v", err)
+	}
+	// Only the redraws of the line itself, because the banner is written in
+	// the same color a hint uses.
+	var drawn []string
+	for _, ln := range strings.Split(capture.Escape(tr.Bytes()), "\n") {
+		if strings.Contains(ln, "wh") {
+			drawn = append(drawn, ln)
+		}
+	}
+	joined := strings.Join(drawn, "\n")
+	if strings.Contains(joined, `\e[90m`) {
+		t.Errorf("something was suggested inside a word.\nThe line was drawn as:\n%s", joined)
+	}
+	// What was typed is what is drawn, with nothing extra between.
+	if !strings.Contains(joined, "wherere") {
+		t.Errorf("the line was never drawn as typed.\nThe line was drawn as:\n%s", joined)
+	}
+}
