@@ -36,8 +36,12 @@ needs a pseudo console, which it creates with `CreatePseudoConsole`.
 
 The C headers give an acyclic order. Port the modules from the leaves up:
 
-1. `common.c` and `common.h`. This holds the allocator, the UTF-8 helpers and
-   the character classes. Delete the allocator. Go collects garbage.
+1. `common.c` and `common.h`. Done. The allocator, the `memmove` wrappers and
+   the `strlen` wrappers are gone, because Go collects garbage and carries the
+   length of a slice. What survives is the QUTF-8 codec in `qutf8.go` and the
+   ASCII case rules in `ascii.go`. Neither matches the standard library.
+   `tools/build-probe.sh` builds a probe that prints what the C functions
+   return, and `testdata/common.txt` records 18576 of those calls.
 2. `wcwidth.c`. This is the wcwidth function of Markus Kuhn. It returns 0 for
    combining marks and for control characters.
 3. `stringbuf.c`. This is a growable buffer that moves the cursor by character,
@@ -94,6 +98,25 @@ random input, and compare. Turn each difference into a test.
 
 Pin the Unicode version that the width tables use. The golden files change when
 that version changes.
+
+## Known departures from the C code
+
+The port keeps the behavior of the C code, even where that behavior is wrong,
+because recorded output from the C build is the test corpus. Each departure
+carries a comment where the code makes it. Three are known so far.
+
+The QUTF-8 decoder refuses the byte pair `0xED 0x80`, which encodes U+D000 to
+U+D03F. Those are ordinary characters. The test that refuses UTF-16 surrogate
+halves is one value too wide.
+
+The QUTF-8 encoder does encode a surrogate code point, and the decoder will not
+read one back. The encoder and the decoder disagree.
+
+Case-insensitive comparison compares C `char` values, and `char` is signed on
+x86 and on x86-64. Any byte above 0x7f therefore sorts before every ASCII
+character. `char` is unsigned by default on ARM, so the C code sorts completions
+differently there. The port keeps the x86 order, because that is where the
+corpus comes from. This needs a decision once the port runs on ARM.
 
 ## Checks
 
