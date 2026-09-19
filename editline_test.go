@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -153,8 +154,20 @@ func refreshReplay(t *testing.T) []string {
 }
 
 // refreshRegenerate runs the C probe and writes the corpus.
+//
+// It refuses to run anywhere but Linux and macOS. The "default" set is shared
+// by every system that is not macOS, so a system that recorded it would
+// overwrite the recording the others compare against. Today that cannot happen
+// by accident, because the probe opens a pseudo-terminal and so builds nowhere
+// else, but that is a property of the probe rather than a decision, and it
+// stays true only until someone writes a probe that does not need one.
 func refreshRegenerate(t *testing.T) {
 	t.Helper()
+	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+		t.Fatalf("refusing to record on %s: the %q recordings are shared with "+
+			"other systems, and only linux and darwin may write them",
+			runtime.GOOS, corpusVariant)
+	}
 	if _, err := os.Stat(refreshProbePath); err != nil {
 		t.Fatalf("no probe at %s: run tools/build-probe-refresh.sh", refreshProbePath)
 	}
