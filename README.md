@@ -54,6 +54,11 @@ for plain text, and `Print` writes markup such as `[red]text[/red]`.
 `example/` is a small SQL prompt. It shows input over more than one line,
 highlighting that changes as the line is typed, and a completer.
 
+A statement ends at a semicolon. Until then Enter starts another row inside the
+same line rather than handing it back, which is what `WithContinue` does. The
+rows are one buffer, so the up and down keys move the cursor between them and
+the whole statement comes back at once.
+
 Run it with:
 
 ```sh

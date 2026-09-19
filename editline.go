@@ -33,6 +33,11 @@ type env struct {
 	// highlighter marks up the line, and may be nil.
 	highlighter Highlighter
 
+	// isIncomplete reports whether a line is unfinished, so that Enter starts
+	// another row rather than handing the line back. It may be nil, which
+	// makes Enter always finish, as the C does.
+	isIncomplete func(string) bool
+
 	// Editing settings, shared with the operations in editor.go.
 	opts editOptions
 

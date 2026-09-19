@@ -50,6 +50,7 @@ func run() error {
 		rline.WithPrompt("sql> ", "...> "),
 		rline.WithHighlighter(highlight),
 		rline.WithCompleter(complete),
+		rline.WithContinue(incomplete),
 		rline.WithHistory("", 0),
 	}
 	if *logPath != "" {
@@ -78,17 +79,13 @@ func run() error {
 
 	r.Println("[b]rline[/b] SQL example.")
 	r.Println("[ic-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
-	r.Println("[ic-info]Ctrl-J puts a line break inside one line. Tab completes.[/]")
+	r.Println("[ic-info]Enter carries on until then, so up and down move between the rows.[/]")
 
-	var stmt strings.Builder
+	// When there is no terminal to edit on, ReadLine hands back one line at a
+	// time and WithContinue never runs, so the statement is joined here
+	// instead. A tool wants the same answer either way.
+	var pending strings.Builder
 	for {
-		// The first line of a statement is asked for differently from the
-		// ones that carry it on.
-		if stmt.Len() == 0 {
-			r.SetPrompt("sql> ", "...> ")
-		} else {
-			r.SetPrompt("...> ", "...> ")
-		}
 		line, err := r.ReadLine("")
 		if errors.Is(err, io.EOF) {
 			// The input ended rather than the user asking to leave, which is
@@ -99,29 +96,57 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("reading a line: %w", err)
 		}
-		// Leaving is decided by the line just typed rather than by the
-		// statement being built, so it works part way through an unfinished
-		// one. usql spells it the first way.
-		switch strings.TrimSpace(line) {
-		case `\q`, "exit", "quit":
-			return nil
+		if !r.Interactive() {
+			if pending.Len() > 0 {
+				pending.WriteByte('\n')
+			}
+			pending.WriteString(line)
+			line = pending.String()
+			if incomplete(line) {
+				continue
+			}
+			pending.Reset()
 		}
-		if stmt.Len() > 0 {
-			stmt.WriteByte('\n')
+		text := strings.TrimSpace(line)
+		if text == "" || isQuit(text) {
+			if isQuit(text) {
+				return nil
+			}
+			continue
 		}
-		stmt.WriteString(line)
-		text := strings.TrimSpace(stmt.String())
-		switch {
-		case text == "":
-			stmt.Reset()
-		case strings.HasSuffix(text, ";"):
-			// Plain, not markup: the statement came from the user and may hold
-			// a bracket, which Print would read as a tag.
-			_, _ = fmt.Fprintf(r, "ran %d line(s): %s\n", strings.Count(text, "\n")+1,
-				strings.ReplaceAll(text, "\n", " "))
-			stmt.Reset()
-		}
+		// Plain, not markup: the statement came from the user and may hold a
+		// bracket, which Print would read as a tag.
+		_, _ = fmt.Fprintf(r, "ran %d line(s): %s\n",
+			strings.Count(text, "\n")+1, strings.ReplaceAll(text, "\n", " "))
 	}
+}
+
+// isQuit reports whether a line asks to leave.
+//
+// The last row is what counts, because the whole statement is one line now and
+// a person types the word on the row they are on.
+func isQuit(text string) bool {
+	if i := strings.LastIndexByte(text, '\n'); i >= 0 {
+		text = text[i+1:]
+	}
+	switch strings.TrimSpace(text) {
+	case `\q`, "exit", "quit":
+		return true
+	}
+	return false
+}
+
+// incomplete reports whether a statement is unfinished, so that Enter starts
+// another row rather than running it.
+//
+// A statement is finished at a semicolon. A person asking to leave is finished
+// too, or the word would be swallowed into a statement that never ends.
+func incomplete(line string) bool {
+	text := strings.TrimSpace(line)
+	if text == "" || isQuit(text) {
+		return false
+	}
+	return !strings.HasSuffix(text, ";")
 }
 
 // sqlKeywords are the words the highlighter colors as keywords.

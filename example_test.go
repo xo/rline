@@ -225,12 +225,13 @@ func TestExampleHighlightsAndSpansLines(t *testing.T) {
 	}
 }
 
-// TestExamplePromptFollowsTheStatement checks which prompt is drawn as a
+// TestExamplePromptFollowsTheStatement checks which marker is drawn as a
 // statement is built up.
 //
-// A statement that has no semicolon yet carries on, and the continuation
-// marker says so. An empty line with nothing buffered starts over, and the
-// first marker comes back.
+// A statement now lives in one buffer across as many rows as it takes, so the
+// markers cannot be read as a sequence: every redraw draws every row, the
+// first with one marker and the rest with the other. What holds is which
+// markers appear at all.
 func TestExamplePromptFollowsTheStatement(t *testing.T) {
 	if testing.Short() {
 		t.Skip("building the example takes a moment")
@@ -239,39 +240,53 @@ func TestExamplePromptFollowsTheStatement(t *testing.T) {
 	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
-	tr, err := capture.Record(context.Background(), bin, capture.Session{
-		Name:  "prompts",
-		About: "which prompt is drawn as a statement is built up",
-		Steps: []capture.Step{
-			{Send: capture.KeyEnter},              // nothing buffered, starts over
-			{Send: "select 1" + capture.KeyEnter}, // no semicolon, carries on
-			{Send: capture.KeyEnter},              // still carrying on
-			{Send: "from t;" + capture.KeyEnter},  // ends it
-			{Send: `\q` + capture.KeyEnter, Wait: 400 * time.Millisecond},
+	for _, test := range []struct {
+		name          string
+		steps         []capture.Step
+		wantCont      bool
+		wantStatement string
+	}{
+		{
+			name:     "a statement finished on one row never continues",
+			steps:    []capture.Step{{Send: "select 1;" + capture.KeyEnter}},
+			wantCont: false, wantStatement: "ran 1 line(s): select 1;",
 		},
-	})
-	if err != nil {
-		t.Skipf("cannot record on this system: %v", err)
-	}
-	// Reduce the session to the order the markers appeared in.
-	var order []string
-	for _, ln := range strings.Split(capture.Escape(tr.Bytes()), "\n") {
-		var now string
-		switch {
-		case strings.Contains(ln, "ran "):
-			now = "ran"
-		case strings.Contains(ln, "...> "):
-			now = "...>"
-		case strings.Contains(ln, "sql> "):
-			now = "sql>"
-		}
-		if now != "" && (len(order) == 0 || order[len(order)-1] != now) {
-			order = append(order, now)
-		}
-	}
-	want := []string{"sql>", "...>", "ran", "sql>"}
-	if strings.Join(order, " ") != strings.Join(want, " ") {
-		t.Errorf("the prompts went %v, want %v", order, want)
+		{
+			name: "an unfinished statement carries on to another row",
+			steps: []capture.Step{
+				{Send: "select 1" + capture.KeyEnter},
+				{Send: "from t;" + capture.KeyEnter},
+			},
+			wantCont: true, wantStatement: "ran 2 line(s): select 1 from t;",
+		},
+		{
+			name:     "an empty line starts over rather than continuing",
+			steps:    []capture.Step{{Send: capture.KeyEnter}, {Send: capture.KeyEnter}},
+			wantCont: false,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			tr, err := capture.Record(context.Background(), bin, capture.Session{
+				Name:  "prompts",
+				About: test.name,
+				Steps: append(test.steps, capture.Step{
+					Send: `\q` + capture.KeyEnter, Wait: 400 * time.Millisecond,
+				}),
+			})
+			if err != nil {
+				t.Skipf("cannot record on this system: %v", err)
+			}
+			plain := stripEscapes(string(tr.Bytes()))
+			if got := strings.Contains(plain, "...> "); got != test.wantCont {
+				t.Errorf("the continuation marker appeared: %v, want %v", got, test.wantCont)
+			}
+			if !strings.Contains(plain, "sql> ") {
+				t.Error("the first marker was never drawn")
+			}
+			if test.wantStatement != "" && !strings.Contains(plain, test.wantStatement) {
+				t.Errorf("the run never showed %q.\nWhat it wrote:\n%s", test.wantStatement, plain)
+			}
+		})
 	}
 }
 
@@ -342,5 +357,45 @@ func TestExampleQuitsOnALine(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestExampleArrowsMoveBetweenRows checks that up and down move the cursor
+// between the rows of one statement.
+//
+// This is what the caller buys by saying a line is unfinished rather than
+// reading each row separately: the rows are one buffer, so the cursor can go
+// between them and the whole thing comes back at once.
+func TestExampleArrowsMoveBetweenRows(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name:  "arrows",
+		About: "up and down between the rows of one statement",
+		Steps: []capture.Step{
+			{Send: "select 1" + capture.KeyEnter},
+			{Send: "from t" + capture.KeyEnter},
+			{Send: capture.KeyUp},   // onto the second row
+			{Send: "X"},             // marks which row the cursor was on
+			{Send: capture.KeyDown}, // back to the third
+			{Send: ";" + capture.KeyEnter, Wait: 500 * time.Millisecond},
+			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system: %v", err)
+	}
+	plain := stripEscapes(string(tr.Bytes()))
+	// Up put the cursor at the start of the second row, so the mark landed in
+	// front of "from". Down then put it back on the third, where the semicolon
+	// went.
+	want := "ran 3 line(s): select 1 Xfrom t ;"
+	if !strings.Contains(plain, want) {
+		t.Errorf("the run never showed %q.\nWhat it wrote:\n%s", want, plain)
 	}
 }

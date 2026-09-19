@@ -172,6 +172,14 @@ func (ev *env) handleKey(e *editor, c key.Code) bool {
 			ev.act(e, e.multilineEOL())
 			return false
 		}
+		// The caller may say the line is not finished, which starts another
+		// row instead of handing it back. That is how a prompt keeps reading
+		// until a statement is closed.
+		if !ev.singlelineOnly && ev.isIncomplete != nil && ev.isIncomplete(e.input.string()) {
+			e.insertChar('\n')
+			ev.refreshHint(e)
+			return false
+		}
 		return true
 	case key.CtrlD:
 		// On an empty line this ends the input. Anywhere else it deletes.

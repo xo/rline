@@ -92,9 +92,11 @@ type config struct {
 	historyFile    string
 	historyEntries int
 
-	// What marks up a line, and what completes a word.
-	highlighter Highlighter
-	completer   Completer
+	// What marks up a line, what completes a word, and what decides whether a
+	// line is finished.
+	highlighter  Highlighter
+	completer    Completer
+	isIncomplete func(string) bool
 
 	// Editing settings.
 	opts editOptions
@@ -160,6 +162,20 @@ func WithHighlighter(fn Highlighter) Option {
 // WithCompleter offers completions for the word at the cursor.
 func WithCompleter(fn Completer) Option {
 	return func(c *config) { c.completer = fn }
+}
+
+// WithContinue decides whether Enter finishes the line or starts another row
+// inside it.
+//
+// The function is handed everything typed so far, across every row, and
+// answers true when the line is not finished. That is how a prompt keeps
+// reading until a statement is closed, and it keeps the whole statement in one
+// buffer, so the cursor can be moved between its rows and the whole thing is
+// handed back at once.
+//
+// Without this, Enter always finishes the line, which is what the C does.
+func WithContinue(fn func(line string) bool) Option {
+	return func(c *config) { c.isIncomplete = fn }
 }
 
 // WithoutColor writes no color, whatever the terminal supports.
@@ -311,6 +327,7 @@ func New(opts ...Option) (*Reader, error) {
 		promptMarker:      c.promptMarker,
 		cpromptMarker:     c.cpromptMarker,
 		highlighter:       c.highlighter,
+		isIncomplete:      c.isIncomplete,
 		opts:              c.opts,
 		noMultilineIndent: c.noMultilineIndent,
 		noHighlight:       c.noHighlight,
