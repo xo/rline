@@ -793,10 +793,23 @@ walking up the right number of rows to repaint a three row statement. The
 newlines survive into the line the caller is given, and the example's own
 summary flattens them to spaces, which is what `example/main.go` asks for.
 
-What it does not show, stated because a hand-driven run is worth exactly what
-was touched: he did not press an arrow key, Tab, or `\pass`, so the completion
-menu, walking the history and the password read are still covered only by
+A second run added the password read. `\pass`, sixteen characters and Enter:
+between the prompt being drawn and the newline, seventeen keys were read and
+nothing at all was written — no redraw, no masking character, nothing — so the
+password never reached the screen, and this is the read itself rather than a
+test standing in for it.
+
+What the two runs do not show, stated because a hand-driven run is worth
+exactly what was touched: nobody pressed an arrow key or Tab in either of
+them, so the completion menu and walking the history are still covered only by
 tests and by injected console records on that platform.
+
+That last sentence was nearly the opposite. windows-vm first counted the keys
+with a search for an escaped tab, which matched the `t` in `select`, and was
+about to report the menu as driven by hand when nobody had pressed Tab. The
+keys were then extracted from both logs rather than pattern-matched. It is the
+same shape as the rest of the section below: a result that cannot tell you it
+is measuring the wrong thing.
 
 Testing F11 needs Ctrl+F11. The console host claims a bare F11 for fullscreen,
 so it never reaches the program at all. That is the terminal rather than the
