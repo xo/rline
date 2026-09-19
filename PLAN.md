@@ -1012,9 +1012,30 @@ flicker the value exists to prevent. Found by ken-mba, who took their own
 earlier finding about discarded values seriously enough to sweep every one in
 the tests.
 
+A fourth, which is the same shape wearing a disguise, and which is worth
+recording with the measurement because it nearly became a second rule.
+
+`Style` and `StyleRunes` both refuse a negative position, and the comment
+cites the C as the reason. ken-mba reported that taking the guard out of
+either one left the whole suite green, and proposed a second class beside the
+first: what the port kept from the C on purpose, where the corpus records the
+behaviour but nothing records that the guard is why.
+
+Measured, that is half true and the half that is true is the first class
+again. `TestHighlightMatchesC` does hold `Style`'s guard — the corpus drives
+`Style` with positions of -6, -3 and -1, so removing it fails the replay.
+`StyleRunes`'s guard was held by nothing, and that is because `StyleRunes` is
+itself something the port has and the C does not: the C has one function with
+a sign convention where the port has two methods, so no recording can reach
+the second one. The proposed second class dissolves on measurement and the
+first one swallows it.
+
+The test ken-mba wrote is worth keeping either way. It holds `StyleRunes`'s
+guard, which nothing did, and it writes the promise down for both.
+
 So when looking for what to check next, "what does the port have that the C
 does not" is a better question than "what is uncovered". Coverage will not
-point at any of the three: all three lines ran, every time.
+point at any of these: every one of those lines ran, every time.
 
 ## Tests that pass without checking anything
 
