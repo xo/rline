@@ -1016,6 +1016,24 @@ expression as a backup suffix and patched nothing; and a `go test ... | grep
 assert the file actually changed, run the test, read the return code, restore
 the file.
 
+Reading the return code is not enough on its own, because a mutation that
+does not compile also returns non-zero, and reads as caught. `if false {`
+around a branch leaves the variable it tested unused, which Go refuses to
+build, so the test never ran and the claim that it would have failed is
+unproven. Found while seconding the interrupt work: the mutation that was
+meant to show `ReadLine` notices Ctrl-C did not compile, and a compiling
+version of the same mutation was needed to show it. So check the run
+compiled as well as that it failed, and treat "did not compile" as a third
+answer beside caught and not caught rather than folding it into either.
+
+Scope the run to the whole package, not to the test being defended. Three
+mutations in that same round read as not caught against the two tests the
+change had added, and all three were caught by other tests in the package
+that nobody had thought of as covering them. A mutation that only the rest
+of the suite catches is worth knowing about — it says the new test is
+narrower than it looks — but it is not a hole, and reporting it as one sends
+someone to write a test that already exists.
+
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.
 Before landing a corpus, break the code it covers on purpose, once per thing
