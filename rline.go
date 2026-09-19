@@ -21,7 +21,15 @@ var (
 	// ErrClosed is returned by a Reader that has been closed.
 	ErrClosed = errors.New("the reader is closed")
 
-	// ErrInterrupted is returned when the user pressed Ctrl-C, which asks for
-	// the reading to be abandoned rather than for the input to end.
+	// ErrInterrupted is returned when the user abandoned what was being read,
+	// which is Ctrl-C or Ctrl-G, and which asks for the reading to be given
+	// up rather than for the input to end.
+	//
+	// The C has no way to say this. It clears the line and hands back an
+	// empty string, so a caller cannot tell an abandoned line from Enter on
+	// an empty one. A shell has to: usql resets its statement buffer on an
+	// interrupt and carries on, and would otherwise run whatever Ctrl-C left
+	// behind. This is the one place where the port departs from the C over a
+	// behaviour rather than a fault.
 	ErrInterrupted = errors.New("interrupted")
 )

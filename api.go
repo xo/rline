@@ -396,6 +396,11 @@ func outputSizer(w io.Writer) sizer {
 //
 // It returns io.EOF when the user ended the input, which is Ctrl-D on an empty
 // line, and which is what the C answers with a null pointer.
+//
+// It returns ErrInterrupted when the user abandoned the line, which is Ctrl-C
+// or Ctrl-G. This is a deliberate departure: the C clears the line and hands
+// back an empty string, so a caller cannot tell an abandoned line from Enter
+// on an empty one, and a shell has to. See PLAN.md.
 func (r *Reader) ReadLine(prompt string) (string, error) {
 	if r.closed {
 		return "", ErrClosed
@@ -405,6 +410,9 @@ func (r *Reader) ReadLine(prompt string) (string, error) {
 	}
 	line, ok, err := r.env.readLine(prompt)
 	if err != nil {
+		if errors.Is(err, ErrInterrupted) {
+			r.log.note(logLine, "<interrupted>")
+		}
 		return "", err
 	}
 	if !ok {
@@ -471,6 +479,19 @@ func (r *Reader) Close() error {
 	return nil
 }
 
+// SetCompleter changes the function that offers completions.
+//
+// A program whose completions depend on something that changes while it runs
+// sets a new completer rather than building a new reader: usql replaces its
+// completer when the connection changes, so that the words offered come from
+// the database that is actually open. A nil completer offers nothing.
+func (r *Reader) SetCompleter(completer Completer) {
+	if r.env == nil || r.env.completions == nil {
+		return
+	}
+	r.env.completions.setCompleter(completer, nil)
+}
+
 // SetPrompt changes the marker written after the prompt text, and the one used
 // for the lines after the first.
 //
@@ -494,6 +515,11 @@ func (r *Reader) SetPrompt(marker, continuation string) {
 // because Print would read a bracket in it as a tag: "a[b]c" printed as markup
 // comes out as "ac". A Reader is therefore an io.Writer, so fmt.Fprintf works
 // on it.
+//
+// A program with its own output to write should write it here rather than to
+// os.Stdout, because the terminal this goes through is the one that knows
+// where the prompt is. An adapter that has to offer an io.Writer can return
+// the Reader itself.
 func (r *Reader) Write(p []byte) (int, error) {
 	if r.env == nil {
 		return len(p), nil

@@ -328,6 +328,12 @@ The port keeps the behavior of the C code, even where that behavior is wrong,
 because recorded output from the C build is the test corpus. Each departure
 carries a comment where the code makes it.
 
+One departure is over a behaviour rather than a fault, and is the only one.
+`ReadLine` answers `ErrInterrupted` when the user presses Ctrl-C or Ctrl-G,
+where the C clears the line and hands back an empty string that no caller can
+tell from Enter on an empty line. usql cannot work without that distinction.
+Ken decided for the program over the C. See "What usql needs" below.
+
 The QUTF-8 decoder refuses the byte pair `0xED 0x80`, which encodes U+D000 to
 U+D03F. Those are ordinary characters. The test that refuses UTF-16 surrogate
 halves is one value too wide.
@@ -1037,15 +1043,18 @@ password plainly from the input.
 Four want a thin wrapper. `Next` returns runes where `ReadLine` returns a
 string. `Prompt(string)` is a whole prompt where `SetPrompt` takes two
 markers. `Save(string) error` splits into `AddHistory` and `SaveHistory`.
-`Completer` adapts in shape but not in lifetime: usql sets its completer after
-the reader exists and replaces it when the connection changes, and there is
-only `WithCompleter` at construction. That is a missing setter rather than a
-rename.
+`Completer` adapted in shape but not in lifetime, because usql sets its
+completer after the reader exists and replaces it when the connection changes,
+and there was only `WithCompleter` at construction; `SetCompleter` now covers
+that.
 
 Four are not here at all. `Stdout()` and `Stderr()`: `*Reader` already
-implements `io.Writer`, and returning the Reader from `Stdout()` is both the
-easy answer and the right one, because writing through the Reader is what
-keeps program output off the prompt; `Stderr()` has no answer yet. `Cygwin()`
+implements `io.Writer`, and an adapter returns the Reader itself from
+`Stdout()`, which is both the easy answer and the right one, because the
+terminal it writes through is the one that knows where the prompt is. `Write`
+says so now. `Stderr()` still has no answer: there is no second stream here,
+and whether errors should go through the same terminal or straight to
+`os.Stderr` is undecided. `Cygwin()`
 may genuinely not be needed, since the Windows console is handled natively
 here, but that is a question rather than something to assume away.
 `SetOutput(func(string) string)` is the real mismatch: usql passes a filter
@@ -1057,24 +1066,27 @@ because a SQL statement spans them. Bridging means usql giving up cross-read
 highlighting inside the editor, or this accepting a filter over the drawn
 string.
 
-### Ctrl-C is the one that blocks
+### Ctrl-C now says so, which is the one behavioural departure
 
 usql cannot work without telling Ctrl-C from an empty line. Its loop reads
 `case err == rline.ErrInterrupt: h.buf.Reset(nil); continue`, which is how a
 user abandons a half-typed statement, and `main.go` lets that error out of the
 program without reporting a failure.
 
-This port cannot say it. Ctrl-C deletes the line and ends the loop, `editLine`
-sets its answer to false only for Ctrl-D on an empty line and for a stop
-event, so Ctrl-C returns an empty line with no error — byte for byte what
-Enter on an empty line returns.
+The C cannot say it. Ctrl-C deletes the line and ends the loop, and the C
+hands back an empty string, byte for byte what Enter on an empty line gives.
+That is deliberate rather than a fault: `editline.c:949` says "ctrl+G or
+ctrl+c cancels (and returns empty input)". So this was the one place where
+fidelity to the C and the needs of the program this port exists for pointed in
+opposite directions.
 
-That is faithful rather than broken. isocline does the same and says so at
-`editline.c:949`: "ctrl+G or ctrl+c cancels (and returns empty input)". So it
-is the one place where fidelity to the C and the needs of the program this
-port exists for point in opposite directions, which makes it a decision rather
-than a fix. `ErrInterrupted` already exists and `Password` already returns it,
-so if the decision goes that way only `ReadLine` has to change.
+Ken decided for the program. `ReadLine` answers `ErrInterrupted` for Ctrl-C
+and for Ctrl-G, which the C treats alike. Ctrl-D on an empty line still
+answers `io.EOF`, and the two are deliberately not folded together: one says
+the line was given up, the other says there is no more input.
+
+This is the only place where the port departs from the C over a behaviour
+rather than a fault, and it is listed under the departures as well.
 
 None of this is a defect. It is all downstream of having ported isocline
 faithfully, which is what was asked for, and it is the list of decisions that

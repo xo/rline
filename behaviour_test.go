@@ -1,7 +1,9 @@
 package rline
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"slices"
 	"strings"
 	"testing"
@@ -423,7 +425,7 @@ func TestEditLineSaysWhenTheInputEnded(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			ev, _ := feedEnv(t, test.keys, feedOpts{})
-			line, ok := ev.editLine("")
+			line, ok, _ := ev.editLine("")
 			if line != test.want {
 				t.Errorf("the line is %q, want %q", line, test.want)
 			}
@@ -453,7 +455,7 @@ func TestALineThatEndedIsRemembered(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			ev, _ := feedEnv(t, test.keys, feedOpts{})
-			ev.editLine("")
+			_, _, _ = ev.editLine("")
 			// The newest entry is at zero.
 			var got []string
 			for i := 0; ; i++ {
@@ -524,5 +526,78 @@ func TestTabFillsInWhatEveryAnswerShares(t *testing.T) {
 				t.Errorf("the cursor is at %d, want %d", cursor, test.cursor)
 			}
 		})
+	}
+}
+
+// TestReadLineTellsAnInterruptFromAnEmptyLine checks the one behaviour the
+// port does not take from the C.
+//
+// The C clears the line on Ctrl-C and hands back an empty string, so a caller
+// cannot tell an abandoned line from Enter on an empty one. usql has to: it
+// resets its statement buffer on an interrupt and carries on, and would
+// otherwise run whatever Ctrl-C left behind. So ReadLine answers
+// ErrInterrupted instead.
+func TestReadLineTellsAnInterruptFromAnEmptyLine(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		keys string
+		want string
+		err  error
+	}{
+		{"a line that was typed", "abc" + kEnter, "abc", nil},
+		{"enter on an empty line", kEnter, "", nil},
+		// The two keys the C treats alike, which both mean the line was
+		// given up rather than finished.
+		{"ctrl-c with something typed", "abc\x03", "", ErrInterrupted},
+		{"ctrl-c on an empty line", "\x03", "", ErrInterrupted},
+		{"ctrl-g", "abc\x07", "", ErrInterrupted},
+		// Ctrl-D on an empty line is the input ending, which is a different
+		// answer and must not be folded into the one above.
+		{"ctrl-d on an empty line", kCtrlD, "", io.EOF},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			ev, _ := feedEnv(t, test.keys, feedOpts{})
+			r := &Reader{env: ev}
+			line, err := r.ReadLine("")
+			if !errors.Is(err, test.err) {
+				t.Errorf("ReadLine gave %v, want %v", err, test.err)
+			}
+			if line != test.want {
+				t.Errorf("ReadLine gave the line %q, want %q", line, test.want)
+			}
+		})
+	}
+}
+
+// TestSetCompleterReplacesTheCompleter checks that a completer can be changed
+// after the reader exists, which is what a program whose completions depend on
+// something that changes while it runs needs.
+func TestSetCompleterReplacesTheCompleter(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "se"+kTab+kEsc+kPause+kEnter, feedOpts{})
+	r := &Reader{env: ev}
+
+	// Nothing is offered until a completer is set.
+	if ev.completions.completer != nil {
+		t.Fatal("a reader with no completer has one")
+	}
+	r.SetCompleter(manyWords("select", "selected"))
+	line, err := r.ReadLine("")
+	if err != nil {
+		t.Fatalf("ReadLine: %v", err)
+	}
+	// The shared start went in, so the completer that was set is the one that
+	// ran.
+	if line != "select" {
+		t.Errorf("the line is %q, want %q", line, "select")
+	}
+
+	// And it can be replaced, including with nothing.
+	r.SetCompleter(nil)
+	if ev.completions.completer != nil {
+		t.Error("setting a nil completer left the old one in place")
 	}
 }

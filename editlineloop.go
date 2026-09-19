@@ -348,12 +348,17 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 		return "", false, fmt.Errorf("switching the terminal to raw mode: %w", err)
 	}
 	ev.term.startRaw()
-	line, ok := ev.editLine(promptText)
+	line, ok, c := ev.editLine(promptText)
 	ev.term.endRaw(false)
 	ev.tty.endRaw()
 	// The finished line stays on screen and the cursor moves below it.
 	ev.term.writeln("")
 	ev.term.flush()
+	if c == key.CtrlC || c == key.Bell {
+		// The user abandoned the line rather than finishing it. See
+		// ErrInterrupted for why this is not what the C answers.
+		return "", false, ErrInterrupted
+	}
 	return line, ok, nil
 }
 
@@ -387,11 +392,13 @@ func (ev *env) runEditLoop(e *editor) key.Code {
 	}
 }
 
-// editLine reads one line from the terminal. It returns the line, and false
-// when the user ended the input rather than finishing a line.
+// editLine reads one line from the terminal. It returns the line, false when
+// the user ended the input rather than finishing a line, and the key that
+// finished it, which is how the caller tells an abandoned line from an empty
+// one.
 //
 //nolint:unused // started by the public API, step 12
-func (ev *env) editLine(promptText string) (string, bool) {
+func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	e := &editor{
 		opts:       ev.opts,
 		termW:      ev.term.getWidth(),
@@ -427,5 +434,5 @@ func (ev *env) editLine(promptText string) (string, bool) {
 		ev.history.removeLast()
 	}
 	_ = ev.history.save()
-	return line, ok
+	return line, ok, c
 }
