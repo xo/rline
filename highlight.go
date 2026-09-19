@@ -11,14 +11,17 @@ package rline
 // maxBraceNesting is how deep brace matching will go before it gives up.
 const maxBraceNesting = 64
 
-// highlightFunc marks up a line. It is given the line and an environment to
+// Highlighter marks up a line. It is given the line and an environment to
 // mark it through.
 //
 //nolint:unused // wired up by editline, step 11
-type highlightFunc func(env *highlightEnv, input string)
+type Highlighter func(env *Highlight, input string)
 
-// highlightEnv is what a highlighter marks a line through.
-type highlightEnv struct {
+// Highlight is what a highlighter marks a line through.
+//
+// A highlighter is handed one of these and calls Style on the stretches it
+// recognises. Anything it does not touch keeps the attributes of the terminal.
+type Highlight struct {
 	// What is being marked, and where the marks go.
 	input string
 	attrs *attrBuf
@@ -37,7 +40,7 @@ type highlightEnv struct {
 // highlighter mark it up. A nil highlighter leaves the line unmarked.
 //
 //nolint:unused // wired up by editline, step 11
-func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn highlightFunc) {
+func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn Highlighter) {
 	if len(s) == 0 {
 		return
 	}
@@ -45,7 +48,7 @@ func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn highlightFunc) {
 	if fn == nil {
 		return
 	}
-	env := &highlightEnv{input: s, attrs: attrs, bb: bb}
+	env := &Highlight{input: s, attrs: attrs, bb: bb}
 	fn(env, s)
 }
 
@@ -56,7 +59,7 @@ func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn highlightFunc) {
 // Nothing reaches the negative position case, because the one public entry
 // point refuses a negative position before it gets here. Only a negative count
 // can arrive.
-func (h *highlightEnv) posAdjust(pos, count int) (int, int) {
+func (h *Highlight) posAdjust(pos, count int) (int, int) {
 	if pos >= len(h.input) {
 		return pos, count
 	}
@@ -101,7 +104,7 @@ func (h *highlightEnv) posAdjust(pos, count int) (int, int) {
 }
 
 // mark lays a over count bytes from pos.
-func (h *highlightEnv) mark(pos, count int, a attr) {
+func (h *Highlight) mark(pos, count int, a attr) {
 	pos, count = h.posAdjust(pos, count)
 	if pos < 0 || count <= 0 {
 		return
@@ -109,25 +112,27 @@ func (h *highlightEnv) mark(pos, count int, a attr) {
 	h.attrs.updateAt(pos, count, a)
 }
 
-// Highlight marks count characters from pos with a named style.
+// Style marks count bytes from pos with a named style, such as "keyword" or
+// a color name such as "red".
 //
-// A negative pos is refused, even though posAdjust is written to take one as a
-// count of characters rather than bytes. That is what the C does, so the
-// character counted form can only ever arrive as the count.
-func (h *highlightEnv) Highlight(pos, count int, style string) {
+// A negative count means a number of characters rather than bytes, which is
+// what a caller counting characters wants. A negative pos is refused, which is
+// what the C does.
+func (h *Highlight) Style(pos, count int, style string) {
 	if style == "" || pos < 0 {
 		return
 	}
 	h.mark(pos, count, h.bb.style(style))
 }
 
-// HighlightFormatted marks up s using markup that spells out the same text.
+// Formatted marks up s using markup that spells out the same text, so that a
+// caller can describe a whole line at once rather than a stretch at a time.
 //
 // The markup is parsed for its attributes and the text it produces is thrown
 // away. When the two disagree in length the marks simply run out, and the rest
 // of the line keeps what it had. The C writes a debug line about it, which the
 // port drops because nothing reads it.
-func (h *highlightEnv) HighlightFormatted(s, format string) {
+func (h *Highlight) Formatted(s, format string) {
 	if s == "" {
 		return
 	}

@@ -31,7 +31,7 @@ type env struct {
 	cpromptMarker string
 
 	// highlighter marks up the line, and may be nil.
-	highlighter highlightFunc
+	highlighter Highlighter
 
 	// Editing settings, shared with the operations in editor.go.
 	opts editOptions

@@ -90,7 +90,7 @@ type config struct {
 	historyEntries int
 
 	// What marks up a line, and what completes a word.
-	highlighter highlightFunc
+	highlighter Highlighter
 	completer   completerFunc
 
 	// Editing settings.
@@ -147,7 +147,7 @@ func WithHistory(fname string, entries int) Option {
 }
 
 // WithHighlighter marks up each line as it is typed.
-func WithHighlighter(fn func(env *highlightEnv, input string)) Option {
+func WithHighlighter(fn Highlighter) Option {
 	return func(c *config) { c.highlighter = fn }
 }
 
@@ -390,6 +390,38 @@ func (r *Reader) Close() error {
 		return fmt.Errorf("closing the terminal: %w", err)
 	}
 	return nil
+}
+
+// SetPrompt changes the marker written after the prompt text, and the one used
+// for the lines after the first.
+//
+// A program that reads a statement over several calls changes the marker
+// between them, so that the first line is asked for differently from the ones
+// that carry on. An empty continuation repeats the first.
+func (r *Reader) SetPrompt(marker, continuation string) {
+	if r.env == nil {
+		return
+	}
+	if continuation == "" {
+		continuation = marker
+	}
+	r.env.promptMarker = marker
+	r.env.cpromptMarker = continuation
+}
+
+// Write writes plain text to the terminal, with no markup in it.
+//
+// This is what to use for anything that came from the user or from a file,
+// because Print would read a bracket in it as a tag: "a[b]c" printed as markup
+// comes out as "ac". A Reader is therefore an io.Writer, so fmt.Fprintf works
+// on it.
+func (r *Reader) Write(p []byte) (int, error) {
+	if r.env == nil {
+		return len(p), nil
+	}
+	r.env.term.writeBytes(p)
+	r.env.term.flush()
+	return len(p), nil
 }
 
 // Print writes markup such as "[red]text[/red]" to the terminal.

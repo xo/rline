@@ -106,8 +106,8 @@ func hlReplay(t *testing.T) []string {
 			for _, count := range counts {
 				var ab attrBuf
 				ab.setAt(0, len(in), attr{})
-				env := &highlightEnv{input: in, attrs: &ab, bb: bb}
-				env.Highlight(pos, count, "bold")
+				env := &Highlight{input: in, attrs: &ab, bb: bb}
+				env.Style(pos, count, "bold")
 				out = append(out, fmt.Sprintf("hl %d %d %d %s %d %d",
 					i, pos, count, hlAttrs(&ab), env.cachedUPos, env.cachedCPos))
 			}
@@ -126,8 +126,8 @@ func hlReplay(t *testing.T) []string {
 		if len(f[0]) > 0 {
 			ab.setAt(0, len(f[0]), attr{})
 		}
-		env := &highlightEnv{input: f[0], attrs: &ab, bb: bb}
-		env.HighlightFormatted(f[0], f[1])
+		env := &Highlight{input: f[0], attrs: &ab, bb: bb}
+		env.Formatted(f[0], f[1])
 		out = append(out, fmt.Sprintf("hlfmt %d %s", i, hlAttrs(&ab)))
 	}
 	return out
@@ -192,8 +192,8 @@ func TestHighlightFormattedEmpty(t *testing.T) {
 	bb := newBBCode(tm)
 	var ab attrBuf
 	ab.setAt(0, 5, attrFromSGR("31"))
-	env := &highlightEnv{input: "hello", attrs: &ab, bb: bb}
-	env.HighlightFormatted("hello", "")
+	env := &Highlight{input: "hello", attrs: &ab, bb: bb}
+	env.Formatted("hello", "")
 	want := attrFromSGR("31")
 	for i, got := range ab.slice(5) {
 		if got != want {

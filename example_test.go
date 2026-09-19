@@ -49,7 +49,7 @@ func TestExampleRunsUnderATerminal(t *testing.T) {
 		// it fails anywhere else.
 		Quiet: 1500 * time.Millisecond,
 		Steps: []capture.Step{
-			{Send: "hello" + capture.KeyEnter},
+			{Send: "select 1;" + capture.KeyEnter},
 			{Send: "exit" + capture.KeyEnter, Wait: 500 * time.Millisecond},
 		},
 	})
@@ -64,10 +64,10 @@ func TestExampleRunsUnderATerminal(t *testing.T) {
 	// "\e[1mrline\e[22m example", so searching the raw bytes for the words
 	// next to each other would fail on correct output.
 	for _, want := range []string{
-		"rline example. Type exit to leave.", // the banner, markup applied
-		"> ",                                 // the prompt marker
-		"hello",                              // what was typed, drawn back
-		"you said: hello",
+		"rline SQL example.", // the banner, markup applied
+		"sql> ",              // the prompt marker
+		"select 1;",          // what was typed, drawn back as it was typed
+		"ran 1 line(s)",      // the statement, echoed plainly
 	} {
 		if !strings.Contains(plain, want) {
 			t.Errorf("the session never showed %q.\nWhat it wrote:\n%s",
@@ -129,16 +129,16 @@ func TestExampleWithPipedInput(t *testing.T) {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	cmd := exec.Command(bin)
-	cmd.Stdin = strings.NewReader("hello\nworld\n")
+	cmd.Stdin = strings.NewReader("select 1;\nselect 2;\n")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("running the example: %v\n%s", err, out)
 	}
 	got := string(out)
 	for _, want := range []string{
-		"rline example",   // the banner
-		"you said: hello", // the first line, read and written back
-		"you said: world", // the second
+		"rline SQL example",        // the banner
+		"ran 1 line(s): select 1;", // the first statement
+		"ran 1 line(s): select 2;", // the second
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("the run never showed %q.\nWhat it wrote:\n%s", want, got)
@@ -150,7 +150,7 @@ func TestExampleWithPipedInput(t *testing.T) {
 	if strings.Contains(got, "\x1b") {
 		t.Errorf("an escape sequence reached a pipe:\n%q", got)
 	}
-	if strings.Contains(got, "> ") {
+	if strings.Contains(got, "sql> ") {
 		t.Errorf("a prompt was written to a pipe:\n%q", got)
 	}
 }
@@ -167,4 +167,72 @@ func exampleBinary(t *testing.T) string {
 		name += ".exe"
 	}
 	return filepath.Join(t.TempDir(), name)
+}
+
+// TestExampleHighlightsAndSpansLines drives the example through a statement
+// written over three lines and checks that the highlighter colored it.
+//
+// It covers the two things that are hard to see from any single piece of the
+// package: input running over more than one line, and attributes changing as
+// the line is typed.
+func TestExampleHighlightsAndSpansLines(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name:  "sql",
+		About: "one statement over three reads, then one over three rows",
+		Steps: []capture.Step{
+			// Three reads, joined by the caller at the semicolon.
+			{Send: "select id" + capture.KeyEnter},
+			{Send: "  from users -- note" + capture.KeyEnter},
+			{Send: "  where name = 'bob';" + capture.KeyEnter},
+			// One read holding three rows, joined by Ctrl-J.
+			{Send: "select 1" + capture.CtrlJ},
+			{Send: "  from dual" + capture.CtrlJ},
+			{Send: "  where true;" + capture.KeyEnter},
+			{Send: "exit" + capture.KeyEnter, Wait: 400 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system: %v", err)
+	}
+	raw := string(tr.Bytes())
+	plain := stripEscapes(raw)
+
+	// Both statements reached the program whole, three lines each.
+	for _, want := range []string{
+		"ran 3 line(s): select id   from users -- note   where name = 'bob';",
+		"ran 3 line(s): select 1   from dual   where true;",
+	} {
+		if !strings.Contains(plain, want) {
+			t.Errorf("the run never showed %q.\nWhat it wrote:\n%s", want, plain)
+		}
+	}
+	// The continuation prompt appeared, so the reader knew it was carrying on.
+	if !strings.Contains(plain, "...> ") {
+		t.Error("the continuation prompt was never drawn")
+	}
+	// The highlighter colored the keywords. A keyword is drawn inside a color
+	// sequence, so the word appears with one in front of it.
+	for _, word := range []string{"select", "from", "where"} {
+		if !strings.Contains(raw, "m"+word) {
+			t.Errorf("the keyword %q was never drawn with a color in front of it", word)
+		}
+	}
+	// A comment and a string are colored differently from a keyword, so the
+	// output holds more than one color.
+	colors := map[string]bool{}
+	for _, part := range strings.Split(raw, "\x1b[") {
+		if i := strings.IndexByte(part, 'm'); i > 0 {
+			colors[part[:i]] = true
+		}
+	}
+	if len(colors) < 4 {
+		t.Errorf("only %d distinct attributes were used, want several", len(colors))
+	}
 }
