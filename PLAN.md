@@ -860,6 +860,25 @@ shell or the virtual machine, and the modifier does not change which virtual
 key is reported, so a modifier is the way to reach any key the terminal has
 taken.
 
+## What the banner does not watch
+
+The banner the example prints is the cheapest check either peer has: it is
+written before any input, so it needs nobody at the keyboard, and it
+exercises the markup writer, the bbcode resolution, the colour decision and
+the terminal write in one go. windows-vm diffs it byte for byte against a
+kept baseline, which is what caught nothing moving through three reshapes.
+
+What it cannot watch is stated here so that nobody reads more into a green
+banner than it carries. The colour bleed ken-mba found — a newline written
+inside an attribute the markup left open — is only visible when a background
+colour is the thing left open, because a background fills the rest of the
+row and a foreground does not. The banner sets no background. A byte for byte
+diff does prove attributes are closed before their newline, which is the
+mechanism, but that is one step short of watching a row fill.
+
+Closing it needs one line in the example with a background left open, and a
+human at the console to see the row rather than a session reading bytes.
+
 ## Things that look like a platform bug and are not
 
 Two reports of "no colour on Windows" were the launcher rather than the port,
