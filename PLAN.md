@@ -937,12 +937,27 @@ that an attached run gives an exit code and nothing capturable. But the shape
 is worth naming, because it is the null standard input again in miniature:
 observing changes the thing observed.
 
+A corpus that was never attacked. A recording that is written and then only
+ever run green is the same failure as an expectation copied from an
+observation: it looks complete because nothing has tried to make it fail.
+Every recording on this port that was attacked turned out to have a hole.
+The completion menu could not tell one style name from another, and could
+not reach the two column layout at all, until cases were added for both.
+The shared start of a set of completions was recorded in four ways and the
+fifth, a shared start shorter than the amount the entries take away, needed
+a case that was not there; nothing said so until the guard was deleted and
+the corpus stayed green.
+
 What to do about it. Write the expected value from the C, the specification
-or the intent, never from running the code and recording what came out. When
-a test can skip, make the skip say what was not checked rather than why it
-could not be. And when a check is worth having on every system, make sure it
-compiles on every system, because a check that is absent is indistinguishable
-from a check that passed.
+or the intent, never from running the code and recording what came out.
+Before landing a corpus, break the code it covers on purpose, once per thing
+the corpus is meant to pin, and check that each break fails it; a break that
+does not fail it names either a missing case or a line that nothing reads,
+and both are worth knowing before the corpus is trusted. When a test can
+skip, make the skip say what was not checked rather than why it could not
+be. And when a check is worth having on every system, make sure it compiles
+on every system, because a check that is absent is indistinguishable from a
+check that passed.
 
 ## Checks
 
