@@ -38,9 +38,16 @@ if [ ! -x "$bin" ]; then
     mkdir -p "$dir" || exit 2
     # Built beside the final name and moved into place, so that two runs at
     # once cannot execute a half-written binary.
-    tmp=$bin.$$
-    go -C "$mod" build -o "$tmp" github.com/golangci/golangci-lint/v2/cmd/golangci-lint || { rm -f "$tmp"; exit 2; }
-    mv -f "$tmp" "$bin" || { rm -f "$tmp"; exit 2; }
+    #
+    # The name is deliberately not golangci-lint-something. It used to be
+    # $bin.$$, which the cleanup below matches, so a run that finished first
+    # deleted a run that was still building — measured by planting one and
+    # watching it go. The trap takes it away when this run ends however it
+    # ends, so a failed build leaves nothing behind either.
+    tmp=$dir/.building-golangci-lint-$$
+    trap 'rm -f "$tmp"' EXIT
+    go -C "$mod" build -o "$tmp" github.com/golangci/golangci-lint/v2/cmd/golangci-lint || exit 2
+    mv -f "$tmp" "$bin" || exit 2
     # Older builds of other pins are no longer reachable, so they go. The
     # pattern leaves the probes beside them, and leaves anything ending in
     # .exe, which is lint.ps1's cache: the two scripts key the pin
