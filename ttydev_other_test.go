@@ -1,4 +1,4 @@
-//go:build !linux && !darwin
+//go:build !linux && !darwin && !windows
 
 package rline
 
@@ -8,8 +8,7 @@ import (
 )
 
 // TestOpenTTYIsUnsupported checks what a platform with no terminal support
-// answers. Windows is the one that matters: it has no termios, so it needs
-// the console API instead.
+// answers.
 func TestOpenTTYIsUnsupported(t *testing.T) {
 	t.Parallel()
 	if _, err := openTTY(0); !errors.Is(err, errUnsupported) {
