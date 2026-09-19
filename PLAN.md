@@ -1118,6 +1118,16 @@ of the suite catches is worth knowing about — it says the new test is
 narrower than it looks — but it is not a hole, and reporting it as one sends
 someone to write a test that already exists.
 
+A premise nobody checked on the system it was about. A test for the error
+`LoadHistory` returns reached the opening half with a path that goes through a
+file, and its comment said that cannot be opened "on every system this builds
+for". It is ENOTDIR on Unix and reads as a missing path on Windows, and a
+missing file is deliberately not an error, so the whole subtest passed there
+with a nil error. Found by windows-vm running it. The universal claim was the
+fault, not the construct: nobody had asked two of the three systems. It uses
+a zero byte in the path now, which no system allows and none reports as a
+missing file.
+
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.
 Before landing a corpus, break the code it covers on purpose, once per thing

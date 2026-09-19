@@ -1134,6 +1134,67 @@ func TestLoadHistoryReportsWhatItCannotRead(t *testing.T) {
 		t.Parallel()
 		h := &history{}
 		s := &Session{env: &env{history: h}}
+		// A zero byte cannot appear in a path on any system, and the failure
+		// it causes is not a missing file, which is what this needs: the
+		// subtest below establishes that a missing file is deliberately not
+		// an error, so reaching the opening half needs a path that fails for
+		// some other reason.
+		//
+		// The first version of this used a path through a file, which is
+		// ENOTDIR on Unix and reads as a missing path on Windows, so the
+		// whole subtest passed a nil error there. windows-vm found it. The
+		// comment claimed "every system this builds for" without anyone
+		// having asked two of them, which is the same shape as the rest of
+		// the list in PLAN.md.
+		_ = h.loadFrom(filepath.Join(dir, "a\x00b.txt"), DefaultHistoryEntries)
+		err := s.LoadHistory()
+		if err == nil {
+			t.Fatal("LoadHistory on an unopenable path gave no error")
+		}
+		// Not a missing file, or this would be testing the case above.
+		if errors.Is(err, fs.ErrNotExist) {
+			t.Errorf("the error is %v, which reads as a missing file", err)
+		}
+		// The reason has to survive, so that a caller can tell one failure
+		// from another.
+		var pathErr *fs.PathError
+		if !errors.As(err, &pathErr) {
+			t.Errorf("the error is %v, which does not carry an *fs.PathError", err)
+		}
+		if !strings.Contains(err.Error(), "history file") {
+			t.Errorf("the error is %q, which does not say what was being done", err)
+		}
+	})
+
+	t.Run("a file that cannot be read is a failure too", func(t *testing.T) {
+		t.Parallel()
+		h := &history{}
+		s := &Session{env: &env{history: h}}
+		// Opening a directory succeeds on Unix and fails on the first read,
+		// so this reaches the reading half rather than the opening half.
+		_ = h.loadFrom(t.TempDir(), DefaultHistoryEntries)
+		if err := s.LoadHistory(); err == nil {
+			t.Error("LoadHistory on a directory gave no error")
+		}
+	})
+
+	t.Run("a file that is not there is not a failure", func(t *testing.T) {
+		t.Parallel()
+		h := &history{}
+		s := &Session{env: &env{history: h}}
+		_ = h.loadFrom(filepath.Join(dir, "never-written.txt"), DefaultHistoryEntries)
+		if err := s.LoadHistory(); err != nil {
+			t.Errorf("LoadHistory on a file that does not exist gave %v, want nil", err)
+		}
+		if got := s.History(); len(got) != 0 {
+			t.Errorf("the history holds %q", got)
+		}
+	})
+
+	t.Run("a path that cannot be opened is", func(t *testing.T) {
+		t.Parallel()
+		h := &history{}
+		s := &Session{env: &env{history: h}}
 		// A path that goes through a file rather than a directory cannot be
 		// opened at all, on every system this builds for. A directory would
 		// not do: opening one succeeds on Unix and fails on the first read,
