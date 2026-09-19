@@ -145,10 +145,18 @@ func TestDefaultStylesAreDefined(t *testing.T) {
 // This is where colour is decided, so getting it wrong writes escape
 // sequences into a redirected file. It was wrong on Windows, where the
 // question was answered about the standard input rather than about the
-// writer, and the mistake showed only when a console was on the standard
-// input at the same time. The check below is the same everywhere; on a system
-// where the standard input is not a console it passes without having had the
-// chance to catch that, which is why the log line says which it was.
+// writer, and that answer is only wrong while a console is on the standard
+// input at the same time.
+//
+// So read the log line before trusting this test on Windows. The go tool
+// hands the test binary a null standard input whatever window it was started
+// from, so an ordinary run takes the branch where there is no console, and
+// there this would have passed against the bug it was written to catch. A
+// false there means the run proved nothing, not that nothing was wrong.
+// TestConsoleWritesToTerminalOnAConsole in console_windows_test.go is the
+// same check where it can fail, with the recipe for running it. On Unix this
+// one is a real check, because isATTY there answers about the descriptor it
+// is given.
 func TestWritesToTerminalLooksAtTheWriter(t *testing.T) {
 	t.Parallel()
 	f, err := os.CreateTemp(t.TempDir(), "out")

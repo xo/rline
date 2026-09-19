@@ -20,14 +20,14 @@ import (
 // them, and kept here with small changes: the cursor is put back afterwards,
 // and the way to make them run is written down rather than assumed.
 //
-// Both need a console on the standard input, and go test never gives the test
-// binary one: it hands it a null input whatever window it was started from.
-// So they have to be built and started by hand:
+// Every one of them needs a console on the standard input, and go test never
+// gives the test binary one: it hands it a null input whatever window it was
+// started from. So they have to be built and started by hand:
 //
 //	go test -c -o rline.test.exe .
 //	rline.test.exe -test.run TestConsoleKeysRoundTrip -test.v > out.txt 2>&1
 //
-// The two differ in what they want of the standard output, and it matters.
+// They differ in what they want of the standard output, and it matters.
 // TestConsoleKeysRoundTrip does not care, so redirect it and read the file.
 // TestConsoleReadsEscapeSequences needs the output attached to the console,
 // because redirecting it is the one case where the flag it checks makes no
@@ -36,6 +36,10 @@ import (
 // read what it says on the console:
 //
 //	rline.test.exe -test.run TestConsoleReadsEscapeSequences -test.v
+//
+// TestConsoleEscapesFromOff and TestConsoleWritesToTerminalOnAConsole say
+// beside themselves what they want, and the second is worth running both
+// ways.
 //
 // A skip here means nothing was checked against a real console. That is worth
 // knowing rather than reading as a pass.
@@ -293,5 +297,49 @@ func TestConsoleEscapesFromOff(t *testing.T) {
 	say("after endRaw the mode is %#06x", back)
 	if back != off {
 		t.Errorf("endRaw left the console at %#06x, want the %#06x it found", back, off)
+	}
+}
+
+// TestConsoleWritesToTerminalOnAConsole is the check that
+// TestWritesToTerminalLooksAtTheWriter in api_test.go cannot make.
+//
+// Colour is turned off when the output is not a terminal, and the question
+// was answered on Windows by looking at the standard input, so a program with
+// its output redirected wrote escape sequences into the file. That answer is
+// only wrong while a console is on the standard input at the same time, and
+// go test never gives the test binary one, so the check in api_test.go passes
+// against the bug it was written to catch. Here it fails against it.
+//
+// Run it both ways. With the output attached, the temporary file below is the
+// case that matters. With the output redirected, os.Stdout is as well, and
+// that is the one a user meets:
+//
+//	rline.test.exe -test.run TestConsoleWritesToTerminalOnAConsole -test.v
+//	rline.test.exe -test.run TestConsoleWritesToTerminalOnAConsole -test.v > out.txt 2>&1
+//
+// Found by the windows-vm session, which measured isATTY answering true for a
+// redirected standard output while a console was on the standard input.
+func TestConsoleWritesToTerminalOnAConsole(t *testing.T) {
+	if !isATTY(0) {
+		t.Skip("no console on standard input, which is the only state this can fail in: " +
+			"see the comment at the top of this file")
+	}
+	f, err := os.CreateTemp(t.TempDir(), "out")
+	if err != nil {
+		t.Fatalf("making a file: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+	if writesToTerminal(f) {
+		t.Error("a plain file is taken for a terminal while a console is on the standard input, " +
+			"so colour would be written into a redirected output")
+	}
+
+	// And the writer a program actually passes. Whether this one is a console
+	// depends on how the binary was started, so the answer is checked against
+	// the console rather than fixed.
+	_, _, isConsole := consoleOutput()
+	t.Logf("the standard output is a console: %v", isConsole)
+	if got := writesToTerminal(os.Stdout); got != isConsole {
+		t.Errorf("writesToTerminal(os.Stdout) is %v, want %v", got, isConsole)
 	}
 }

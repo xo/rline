@@ -767,6 +767,41 @@ The flag is a property of the console rather than of the process, which
 matters for any test that reads it: a test asserting the ambient default is
 asserting what the machine happens to be set to, not what the port guarantees.
 
+The function keys are verified from a real keyboard. Ken pressed them and
+windows-vm read what arrived: `VK_F11` is `0x7A` and `VK_F12` is `0x7B`, the
+encoder sends VT codes 23 and 24, and they decode to `key.F11` and `key.F12`.
+That settles the departure from the C, whose encoder sends 13 and 14 there,
+which its own decoder reads as F4 and F5.
+
+Testing F11 needs Ctrl+F11. The console host claims a bare F11 for fullscreen,
+so it never reaches the program at all. That is the terminal rather than the
+shell or the virtual machine, and the modifier does not change which virtual
+key is reported, so a modifier is the way to reach any key the terminal has
+taken.
+
+## Things that look like a platform bug and are not
+
+Two reports of "no colour on Windows" were the launcher rather than the port,
+and both looked convincing. Written down because the next person will see the
+same thing.
+
+`NO_COLOR` is set in some agent environments and is inherited by any terminal
+started from one, so colour is correctly turned off and the program looks
+broken. Check the environment before the code.
+
+Clearing it per host is where the second one came from. In `cmd.exe`,
+`set NO_COLOR= && ...` sets the variable to a single space rather than
+emptying it, because cmd takes everything between the equals sign and the `&&`
+as the value. `set "NO_COLOR=" && ...` empties it. The convention says any
+non-empty value turns colour off whatever the value is, so a single space
+turning it off is right and is not to be softened. The visible result was
+colour in two Windows hosts and not the third, which is about as convincing a
+platform difference as could be invented, and was entirely the quoting.
+
+So: a colour difference between Windows hosts is more likely to be the
+launcher than the host, and a colour difference that appears everywhere is
+more likely to be the environment than the code.
+
 ## Where a corpus lives
 
 A corpus is a single file under `testdata/` when the bytes it records are the
@@ -831,9 +866,9 @@ at once and was never waiting on this.
 
 ## Tests that pass without checking anything
 
-The rule above is one case of a wider one, which has now cost time five
-times on this port. A test can report success while verifying nothing, and
-nothing about the run says so. The three ways it has happened here:
+The rule above is one case of a wider one, which has now cost time six times
+on this port. A test can report success while verifying nothing, and nothing
+about the run says so. The ways it has happened here:
 
 A skip that reads as a pass. The macOS recordings were skipped rather than
 compared, so the platform looked covered. The two Windows console tests skip
@@ -870,6 +905,17 @@ was named here is closed. What that test does not check is the beep, because
 C as well. A probe over `edit_generate_completions` would still be worth
 having, since a driven test says what the port does and a recording says what
 the C did.
+
+A check that cannot fail where it is run. `TestWritesToTerminalLooksAtTheWriter`
+asserts that a plain file is not taken for a terminal, which catches the
+Windows fault only while a console is on the standard input. The go tool hands
+the test binary a null standard input whatever window it was started from, so
+under `go test` on Windows that check passes against the bug it was written to
+catch, and it is only a real check on Unix. It logs which state it ran in
+rather than skipping, and `TestConsoleWritesToTerminalOnAConsole` makes the
+same check where it can fail. Measured by windows-vm, who ran both halves from
+one console window: `isATTY(0)` is false under `go test` and true in the same
+binary started directly.
 
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out. When
