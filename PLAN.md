@@ -11,6 +11,13 @@ The port is one Go package named `rline`. Each C module becomes one or more
 files in that package. The C headers contain a cycle, because `attr.c` includes
 `term.h` and `term.h` includes `attr.h`. One Go package removes that cycle.
 
+The one exception is `key`, which holds the key codes from `tty.h`. A program
+that binds keys or reads them names those codes, so they are exported from
+their own package and read as `key.Up`, `key.CtrlA` and `key.F(5)`. `key`
+imports nothing from `rline`, so it adds no cycle. Everything else stays
+unexported in `rline` until `isocline.c` is ported and the public API is
+decided.
+
 The port does not use cgo at any stage. cgo is the Go facility that calls C
 code. An earlier plan built a cgo binding layer first, to get a reference to
 compare against. We dropped that step for two reasons. The binding code gets
@@ -76,8 +83,18 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    `strwidth.go`, `strfind.go`, `charclass.go`, `rowcol.go`, `parse.go` and
    `stringbuf.go`. `tools/build-probe-stringbuf.sh` builds a second probe, and
    `testdata/stringbuf.txt` records 76164 of those calls.
-4. `tty.c` and `tty_esc.c`. This reads the terminal and decodes escape
-   sequences.
+4. `tty.c` and `tty_esc.c`. The decoding half is done. `tty_esc.c` is ported
+   whole, in `ttyesc.go`. From `tty.c` what is ported is the key codes, now
+   the exported `key` package, and the reader in `tty.go`: the two pushback
+   buffers, the UTF-8 assembly, the dispatch, and the rewriting of the keys
+   that terminals disagree about. `tools/build-probe-tty.sh` builds a third
+   probe, and `testdata/tty.txt` records 7157 decodes.
+
+   What is left is the terminal itself: raw mode through `termios`, detecting
+   whether the input is UTF-8, the resize event, stopping a read from another
+   goroutine, and `tty_read_esc_response`, which `term.c` uses to read back an
+   answer to a query. Those need a `byteReader` over a file descriptor, which
+   is the one piece of `tty.c` that a corpus cannot check.
 5. `attr.c`. This holds the text attributes.
 6. `term.c` and `term_color.c`. This writes to the terminal and reduces colors
    to what the terminal accepts.
@@ -185,9 +202,13 @@ does not matter in practice.
 
 ## Bugs found in the C code
 
-Three faults in `stringbuf.c` came out of writing the probe. None of them
-changes a recorded session, so none of them is a departure. The port does what
-each function means to do, and says so in a comment.
+These came out of writing the probes. None of them changes a recorded session,
+so none is a departure. The port does what each function means to do, and says
+so in a comment.
+
+### stringbuf.c
+
+Three faults.
 
 `sbuf_split_at` sets the new length of the left buffer and never writes the
 terminating zero. The left buffer then stops being a valid C string, and
@@ -210,6 +231,28 @@ passed to `strchr` finds the terminating zero of the set, so a zero byte is a
 separator and enters the escape branch. `str_prev_ofs` tests its pointer
 against null, so an empty buffer, which holds a null pointer, answers
 differently from an empty string, which does not.
+
+### tty.c
+
+`tty_cpush` guards the byte pushback buffer with the length of the *code*
+pushback buffer rather than its own, so the byte buffer can overrun. Nothing
+reaches it, because the decoder never pushes back more than three bytes at
+once. The port checks the buffer it is about to write to.
+
+`tty_readc_noblock` asks `FIONREAD` about file descriptor 0 rather than about
+its own. That is right only because isocline reads from standard input.
+
+`tty_read_timeout` returns its `code_t*` argument where its result type is
+`bool`. The pointer is never null, so it always means true, which is the
+answer it wants. The port returns a second value instead.
+
+`tty_readc_noblock` promises not to change the byte when nothing arrives, and
+usually does not, because a quiet terminal is not readable and the read never
+runs. But `tty_readc_blocking` clears the byte before it reads, so if the read
+does run and fails, the byte comes back as zero. That decides what `ESC [`
+alone decodes to: alt and `[` on a terminal, alt and NUL through a source that
+is always readable. `tools/probe-tty.c` uses an idle pipe rather than
+`/dev/null` for that reason, and the comment there explains it.
 
 ## Checks
 
