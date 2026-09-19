@@ -16,10 +16,15 @@ Complete and working on Linux, macOS and Windows, including cmd.exe, Windows
 PowerShell and pwsh. Every module of isocline is either ported or deliberately
 replaced.
 
-What works: editing a line, moving by character, word and line, the eleven
-kinds of delete, undo and redo, input over more than one line, syntax
-highlighting, matching braces, hints, markup for colored output, a history
-file, and reading a plain line when there is no terminal to edit on.
+What works:
+
+- Editing a line, and moving by character, word and line.
+- The eleven kinds of delete, with undo and redo.
+- Input over more than one line.
+- Syntax highlighting, matching braces, and hints.
+- Markup for colored output.
+- A history file.
+- Reading a plain line when there is no terminal to edit on.
 
 `Password` reads a line without showing it, without recording it, and without
 completion or highlighting.
@@ -29,12 +34,12 @@ and offers a menu when several remain. The menu lays out in columns, and how
 many depends on how wide the entries are: in the example, `c` then Tab gives
 three columns and `co` then Tab gives two.
 
-Inside, the port keeps the C's behaviour even where that behaviour is wrong,
+Inside, the port keeps the C's behavior even where that behavior is wrong,
 because recorded output from the C build is the test corpus. The interface is
-deliberately not a translation of the C one: it is shaped for Go. The one
-place a behaviour rather than a name departs is `ReadLine` answering
-`ErrInterrupted`, because the C cannot tell a line the user gave up from an
-empty one and a shell has to.
+deliberately not a translation of the C one: it is shaped for Go. One
+behavior departs rather than one name. `ReadLine` answers `ErrInterrupted`,
+because the C cannot tell a line the user gave up from an empty one, and a
+shell has to.
 
 ## Quickstart
 
@@ -68,7 +73,7 @@ for {
 `p.Password` and `p.Close` are the `Session`'s.
 
 A `Prompt` is an `io.Writer` for plain text, which is what most of what a
-program prints is — a bracket in it is not a tag. Markup goes through
+program prints is. A bracket in it is not a tag. Markup goes through
 `p.Markup()`, which is never nil:
 
 ```go
@@ -95,7 +100,7 @@ rows are one buffer, so the up and down keys move the cursor between them and
 the whole statement comes back at once.
 
 `\pass` reads a password and then echoes it back, so that what was collected
-can be checked against what was typed. A real program would not echo it.
+can be checked against what was typed. A real program does not echo it.
 
 Run it with:
 
@@ -104,7 +109,7 @@ go run ./example
 ```
 
 Do not build it with `go build -o example ./example`. The name given to `-o`
-is a directory that already exists, so the binary lands at `example/example`
+is a directory that already exists. So the binary lands at `example/example`
 rather than in the current directory, and an older binary of the same name
 goes on running. Use a different name:
 
@@ -131,40 +136,50 @@ recorded calls, and `tools/` holds the probe that produced each one.
 The whole editor is checked the same way. `internal/capture` starts a program
 under a pseudo-terminal, sends it keystrokes, and records every byte it wrote.
 
-This found faults that reading would not. It also found the limit of the
-method: a corpus checks that a function answers correctly, and nothing in a
-corpus checks that the functions are wired together, so the parts that only a
+This found faults that reading does not find. It also found the limit of the
+method. A corpus checks that a function answers correctly, and nothing in a
+corpus checks that the functions are wired together. So the parts that only a
 running program exercises are tested by running one.
 
-Between the two sits a third kind of test, which feeds a string of keystrokes
-to the editor and asserts on the line and the cursor that come out. That is
-what covers the key dispatch — which key reaches which operation — and it is
-where the behaviours other line editors test live: how a line ends, input
-that is not UTF-8, characters wider than one column, and a completion list
-too long to show.
+A third kind of test sits between the two. It feeds a string of keystrokes to
+the editor and asserts on the line and the cursor that come out. That covers
+the key dispatch, meaning which key reaches which operation. It is also where
+the behaviors other line editors test live: how a line ends, input that is
+not UTF-8, characters wider than one column, and a completion list too long
+to show.
 
-A test that was never attacked is not known to work, so before a corpus is
-trusted the code it covers is broken on purpose, once per thing the corpus is
-meant to pin, and each break has to fail it. `tools/mutate.sh` does that, and
-reports "did not compile" as its own answer rather than folding it into
-"caught".
+A test that nobody attacked is not known to work. So before a corpus is
+trusted, the code it covers is broken on purpose. One break per thing the
+corpus is meant to pin, and each break has to fail it. `tools/mutate.sh` does
+that. It reports "did not compile" as its own answer rather than folding it
+into "caught".
 
-Linux, macOS and Windows each have their own session running the same checks,
-and the Windows editor has been driven by hand from a real console — typing,
-highlighting, backspace, multi-row statements, the completion menu, the arrow
-keys between rows, the password read, and leaving — because everything else
-on that platform is a test or an injected record.
+Linux, macOS and Windows each have their own session running the same checks.
+A person also drove the Windows editor by hand from a real console.
+Everything else on that platform is a test or an injected record. The
+Platforms section below says what that run covered.
 
 `PLAN.md` records the port order, every place the port departs from the C, and
 why.
 
 ## Platforms
 
-Linux and macOS are supported and tested.
+Linux, macOS and Windows are supported and tested. Each has its own session
+running the same checks, and the full suite, the linter and `go vet` for all
+three targets pass on each. The race detector runs clean on Linux and macOS.
 
-Windows builds, and every corpus passes there. The terminal layer is written
-and the console asks to read escape sequences, which Windows 10 and later do.
-Recorded sessions for Windows do not exist yet, so that part is unproven.
+On Windows the editor works in `cmd.exe`, Windows PowerShell 5.1 and pwsh,
+under the classic console host. Everything passes there except the recorded
+sessions, which do not exist yet. Recording one needs a pseudo console, which
+Windows creates with `CreatePseudoConsole`, and that part is not written.
+Instead, a person drove the editor by hand from a real console: typing, syntax
+highlighting, backspace, statements over three and four rows, the completion
+menu, the arrow keys within and between rows, the password read, and leaving.
+Those runs found no fault.
+
+`rline` needs Windows 10 or later, because it asks the console to read escape
+sequences rather than driving the console through its API. Older consoles
+cannot read them.
 
 ## About
 
