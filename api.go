@@ -136,13 +136,20 @@ func WithOutput(w io.Writer) Option {
 // WithInput reads keys from r rather than from standard input.
 //
 // Editing needs a terminal, which is reached by file descriptor on Unix and
-// by handle on Windows, so a reader that is not an *os.File is read plainly
-// with no editing — the same as a pipe. Pass an *os.File for a terminal, and
-// anything else to feed a program that does not need editing.
+// by handle on Windows. So a reader that can say which descriptor it is — an
+// *os.File, or anything else with an Fd method — is edited on, and anything
+// else is read plainly with no editing, the same as a pipe.
+//
+// A *bufio.Reader cannot be edited on, whatever it wraps, because wrapping
+// hides the descriptor and takes bytes out of the terminal that the editor
+// then never sees. Pass the *os.File itself, or pass the reader here and the
+// descriptor with WithInputFd.
 func WithInput(r io.Reader) Option {
 	return func(c *config) {
 		c.in = r
-		if f, ok := r.(*os.File); ok {
+		// An anonymous interface rather than a check for *os.File, so that a
+		// wrapper which keeps the descriptor works too.
+		if f, ok := r.(interface{ Fd() uintptr }); ok {
 			c.inFd = int(f.Fd())
 		}
 	}
@@ -313,7 +320,7 @@ func WithLog(w io.Writer) Option {
 // It returns a Reader even when there is no terminal to edit on, such as when
 // the input is a pipe. ReadLine then reads a plain line with no editing, which
 // is what the C does and what a program reading a script expects.
-func New(opts ...Option) (*Reader, error) {
+func New(opts ...Option) (*Prompt, error) {
 	c := &config{
 		inFd:           -1,
 		out:            os.Stdout,
@@ -400,7 +407,7 @@ func New(opts ...Option) (*Reader, error) {
 	}
 	r.log = slog
 	r.noEdit = ttyErr != nil || !isInteractive()
-	return r, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
+	return &Prompt{Reader: r, markup: &Writer{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
 }
 
 // writesToTerminal reports whether w is a terminal. Anything that is not a
@@ -568,31 +575,6 @@ func (r *Reader) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Markup returns a writer that reads what is written to it as markup, such
-// as "[red]text[/red]", rather than as plain text.
-//
-// The Reader itself writes plain text, because most of what a program writes
-// came from a user or a file and a bracket in it is not a tag. Write markup
-// with fmt on this writer instead:
-//
-//	fmt.Fprintf(r.Markup(), "[ic-error]%s[/]\n", msg)
-func (r *Reader) Markup() io.Writer {
-	return markupWriter{r: r}
-}
-
-// markupWriter writes markup through a Reader.
-type markupWriter struct{ r *Reader }
-
-// Write satisfies io.Writer.
-func (w markupWriter) Write(p []byte) (int, error) {
-	if w.r.env == nil {
-		return len(p), nil
-	}
-	w.r.env.bb.print(string(p))
-	w.r.env.term.flush()
-	return len(p), nil
-}
-
 // Stdout returns where the program should write its own output.
 //
 // It is the Reader, because the terminal the Reader writes through is the one
@@ -606,6 +588,74 @@ func (r *Reader) Stdout() io.Writer { return r }
 // os.Stderr lands on top of the line being edited. A program that wants its
 // errors kept apart from its output should write them somewhere else itself.
 func (r *Reader) Stderr() io.Writer { return r }
+
+// Writer writes markup to a terminal, such as "[red]text[/red]".
+//
+// A Reader writes plain text, because most of what a program writes came from
+// a user or a file and a bracket in it is not a tag. This is the other half:
+// everything written here is read as markup.
+//
+// A Writer with nowhere to write throws away what it is given rather than
+// failing, which is what a program with no terminal gets. So a Writer is
+// never nil and never has to be checked before it is used.
+type Writer struct {
+	// env holds the terminal and the styles. It is nil when there is
+	// nowhere to write.
+	env *env
+}
+
+// Write satisfies io.Writer, reading what is written as markup.
+//
+// Use fmt to do the formatting:
+//
+//	fmt.Fprintf(p.Markup(), "[ic-error]%s[/]\n", msg)
+func (w *Writer) Write(p []byte) (int, error) {
+	if w == nil || w.env == nil {
+		return len(p), nil
+	}
+	w.env.bb.print(string(p))
+	w.env.term.flush()
+	return len(p), nil
+}
+
+// WriteString writes markup without making a byte slice of it first.
+func (w *Writer) WriteString(s string) (int, error) {
+	if w == nil || w.env == nil {
+		return len(s), nil
+	}
+	w.env.bb.print(s)
+	w.env.term.flush()
+	return len(s), nil
+}
+
+// Prompt is a Reader and the markup Writer that goes with it.
+//
+// The reading methods are promoted, so a Prompt is used like a Reader:
+// ReadLine, Password and Close all work on it directly. Markup is reached
+// through Markup, and a program that wants none simply never calls it.
+//
+// A Prompt is an io.Writer as well, through the Reader it holds, and writes
+// plain text that way. That is deliberate: fmt.Fprintln(p, s) writes what a
+// program has to say through the terminal that knows where the prompt is,
+// without reading a bracket in it as a tag.
+type Prompt struct {
+	*Reader
+
+	// markup writes styled output, and is never nil.
+	markup *Writer
+}
+
+// Markup returns the writer that reads what is written to it as markup.
+//
+// It is never nil. When there is no terminal, or when colour is off, what is
+// written to it is thrown away or written plainly, so a caller never has to
+// ask whether markup is on before using it.
+func (p *Prompt) Markup() *Writer {
+	if p == nil || p.markup == nil {
+		return &Writer{}
+	}
+	return p.markup
+}
 
 // DefineStyle gives a name to a set of attributes, so that markup can use it.
 // The spec is written the way the inside of a tag is, such as "bold color=red".

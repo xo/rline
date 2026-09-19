@@ -1,5 +1,7 @@
 package rline
 
+import "strings"
+
 // The state of a line being edited, and the operations that change it.
 //
 // Every operation here changes the text and the cursor and nothing else. The
@@ -34,8 +36,8 @@ type editor struct {
 
 	// Text shown below the line, and the hint shown inside it.
 	extra    buffer
-	hint     buffer
-	hintHelp buffer
+	hint     strings.Builder
+	hintHelp strings.Builder
 
 	// Where the line sits on screen.
 	curRows int

@@ -262,8 +262,8 @@ func menuReplay(t *testing.T) []string {
 							}
 							e.input.replace("a")
 							e.extra.clear()
-							e.hint.clear()
-							e.hintHelp.clear()
+							e.hint.Reset()
+							e.hintHelp.Reset()
 							e.pos = 1
 							e.termW = 41
 							e.curRows = 1

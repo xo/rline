@@ -195,17 +195,17 @@ func (ev *env) refresh(e *editor) {
 
 	// The hint goes into the line itself while it is drawn, and comes back out
 	// at the end, so that everything below measures it as part of the text.
-	if e.hint.length() > 0 {
-		e.attrs.insertAt(e.pos, e.hint.length(), ev.bb.style("ic-hint"))
-		e.input.insertAt(e.hint.string(), e.pos)
+	if e.hint.Len() > 0 {
+		e.attrs.insertAt(e.pos, e.hint.Len(), ev.bb.style("ic-hint"))
+		e.input.insertAt(e.hint.String(), e.pos)
 	}
 
 	// Anything shown below the line, such as a completion menu.
 	var extra *buffer
 	if e.extra.length() > 0 {
 		extra = &buffer{}
-		if e.hintHelp.length() > 0 {
-			ev.bb.appendTo(e.hintHelp.string(), extra, &e.attrsExtra)
+		if e.hintHelp.Len() > 0 {
+			ev.bb.appendTo(e.hintHelp.String(), extra, &e.attrsExtra)
 		}
 		ev.bb.appendTo(e.extra.string(), extra, &e.attrsExtra)
 	}
@@ -259,8 +259,8 @@ func (ev *env) refresh(e *editor) {
 	ev.term.setBufferMode(was)
 
 	// Take the hint back out, so the line is what the user typed again.
-	e.input.deleteAt(e.pos, e.hint.length())
-	e.extra.deleteAt(0, e.hintHelp.length())
+	e.input.deleteAt(e.pos, e.hint.Len())
+	e.extra.deleteAt(0, e.hintHelp.Len())
 	e.attrs.clear()
 	e.attrsExtra.clear()
 

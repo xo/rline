@@ -61,43 +61,44 @@ func run() error {
 		defer func() { _ = f.Close() }()
 		opts = append(opts, rline.WithLog(f))
 	}
-	r, err := rline.New(opts...)
+	p, err := rline.New(opts...)
 	if err != nil {
 		return fmt.Errorf("starting the reader: %w", err)
 	}
-	defer func() { _ = r.Close() }()
+	defer func() { _ = p.Close() }()
 
 	// The built in styles are the muted ones a code editor uses. This example
 	// defines its own, in the bright ANSI colors, so that the highlighting is
 	// obvious on any terminal and in any theme.
-	r.DefineStyle("sql-keyword", "bold ansi-red")
-	r.DefineStyle("sql-type", "bold ansi-yellow")
-	r.DefineStyle("sql-const", "bold ansi-fuchsia")
-	r.DefineStyle("sql-number", "bold ansi-aqua")
-	r.DefineStyle("sql-string", "bold ansi-lime")
-	r.DefineStyle("sql-comment", "ansi-gray")
+	out := p.Markup()
+	p.DefineStyle("sql-keyword", "bold ansi-red")
+	p.DefineStyle("sql-type", "bold ansi-yellow")
+	p.DefineStyle("sql-const", "bold ansi-fuchsia")
+	p.DefineStyle("sql-number", "bold ansi-aqua")
+	p.DefineStyle("sql-string", "bold ansi-lime")
+	p.DefineStyle("sql-comment", "ansi-gray")
 
-	fmt.Fprintln(r.Markup(), "[b]rline[/b] SQL example.")
-	fmt.Fprintln(r.Markup(), "[ic-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
-	fmt.Fprintln(r.Markup(), "[ic-info]Enter carries on until then, so up and down move between the rows.[/]")
-	fmt.Fprintln(r.Markup(), `[ic-info]\pass reads a password without showing it, then echoes it back.[/]`)
+	_, _ = fmt.Fprintln(out, "[b]rline[/b] SQL example.")
+	_, _ = fmt.Fprintln(out, "[ic-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
+	_, _ = fmt.Fprintln(out, "[ic-info]Enter carries on until then, so up and down move between the rows.[/]")
+	_, _ = fmt.Fprintln(out, `[ic-info]\pass reads a password without showing it, then echoes it back.[/]`)
 
 	// When there is no terminal to edit on, ReadLine hands back one line at a
 	// time and WithContinue never runs, so the statement is joined here
 	// instead. A tool wants the same answer either way.
 	var pending strings.Builder
 	for {
-		line, err := r.ReadLine("")
+		line, err := p.ReadLine("")
 		if errors.Is(err, io.EOF) {
 			// The input ended rather than the user asking to leave, which is
 			// what happens when the input is a file or a pipe that ran out.
-			fmt.Fprintln(r.Markup(), "")
+			_, _ = fmt.Fprintln(out, "")
 			return nil
 		}
 		if err != nil {
 			return fmt.Errorf("reading a line: %w", err)
 		}
-		if !r.Interactive() {
+		if !p.Interactive() {
 			if pending.Len() > 0 {
 				pending.WriteByte('\n')
 			}
@@ -119,10 +120,10 @@ func run() error {
 		if last == `\pass` {
 			// Reading something that must not be shown, the way usql asks for
 			// a database password.
-			pw, err := r.Password("password: ")
+			pw, err := p.Password("password: ")
 			switch {
 			case errors.Is(err, rline.ErrInterrupted):
-				fmt.Fprintln(r.Markup(), "[ic-info]cancelled[/]")
+				_, _ = fmt.Fprintln(out, "[ic-info]cancelled[/]")
 				continue
 			case errors.Is(err, io.EOF):
 				return nil
@@ -131,7 +132,7 @@ func run() error {
 			}
 			// Echoed on purpose, so that what Password collected can be
 			// checked against what was typed. A real program would not.
-			_, _ = fmt.Fprintf(r, "password was %q (%d bytes)\n", pw, len(pw))
+			_, _ = fmt.Fprintf(p, "password was %q (%d bytes)\n", pw, len(pw))
 			continue
 		}
 		if text == "" || isQuit(last) {
@@ -142,7 +143,7 @@ func run() error {
 		}
 		// Plain, not markup: the statement came from the user and may hold a
 		// bracket, which Print would read as a tag.
-		_, _ = fmt.Fprintf(r, "ran %d line(s): %s\n",
+		_, _ = fmt.Fprintf(p, "ran %d line(s): %s\n",
 			strings.Count(text, "\n")+1, strings.ReplaceAll(text, "\n", " "))
 	}
 }

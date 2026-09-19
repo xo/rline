@@ -18,13 +18,13 @@ import (
 //
 //nolint:unused // started by the public API, step 12
 func (e *editor) appendHintHelp(help string) {
-	e.hintHelp.clear()
+	e.hintHelp.Reset()
 	if help == "" {
 		return
 	}
-	e.hintHelp.replace("[ic-info]")
-	e.hintHelp.appendString(help)
-	e.hintHelp.appendString("[/ic-info]\n")
+	e.hintHelp.WriteString("[ic-info]")
+	e.hintHelp.WriteString(help)
+	e.hintHelp.WriteString("[/ic-info]\n")
 }
 
 // refreshHint draws the line and works out the hint to show inside it.
@@ -52,7 +52,8 @@ func (ev *env) refreshHint(e *editor) {
 	}
 	hint, help, ok := ev.completions.hintAt(0)
 	if ok {
-		e.hint.replace(hint)
+		e.hint.Reset()
+		e.hint.WriteString(hint)
 		e.appendHintHelp(help)
 		if ev.completeAutoTab {
 			ev.extendHint(e, hint)
@@ -85,7 +86,7 @@ func (ev *env) extendHint(e *editor, hint string) {
 			return
 		}
 		e.appendHintHelp(help)
-		e.hint.appendString(extra)
+		e.hint.WriteString(extra)
 		hint = extra
 	}
 }
@@ -102,12 +103,12 @@ func (ev *env) resize(e *editor) bool {
 	}
 	promptw, cpromptw := ev.promptWidth(e, false)
 	// The hint counts as part of the line while the rows are measured.
-	e.input.insertAt(e.hint.string(), e.pos)
+	e.input.insertAt(e.hint.String(), e.pos)
 	var extra *buffer
 	if e.extra.length() > 0 {
 		extra = &buffer{}
-		if e.hintHelp.length() > 0 {
-			ev.bb.appendTo(e.hintHelp.string(), extra, nil)
+		if e.hintHelp.Len() > 0 {
+			ev.bb.appendTo(e.hintHelp.String(), extra, nil)
 		}
 		ev.bb.appendTo(e.extra.string(), extra, nil)
 	}
@@ -123,7 +124,7 @@ func (ev *env) resize(e *editor) bool {
 	}
 	e.termW = newW
 	ev.refresh(e)
-	e.input.deleteAt(e.pos, e.hint.length())
+	e.input.deleteAt(e.pos, e.hint.Len())
 	return true
 }
 
@@ -132,17 +133,17 @@ func (ev *env) resize(e *editor) bool {
 //
 //nolint:unused // started by the public API, step 12
 func (ev *env) readKey(e *editor) key.Code {
-	if ev.hintDelay <= 0 || e.hint.length() == 0 {
+	if ev.hintDelay <= 0 || e.hint.Len() == 0 {
 		return ev.tty.read()
 	}
 	c, ok := ev.tty.readTimeout(ev.hintDelay)
 	if ok {
 		// Something was typed before the delay ran out, so the hint is stale.
-		e.hint.clear()
-		e.hintHelp.clear()
+		e.hint.Reset()
+		e.hintHelp.Reset()
 		return c
 	}
-	if e.hint.length() > 0 {
+	if e.hint.Len() > 0 {
 		ev.refresh(e)
 	}
 	return ev.tty.read()
@@ -378,9 +379,9 @@ func (ev *env) runEditLoop(e *editor) key.Code {
 		}
 		// The hint is dropped after a possible resize, so that the resize
 		// measures the rows the hint was drawn on.
-		hadHint := e.hint.length() > 0
-		e.hint.clear()
-		e.hintHelp.clear()
+		hadHint := e.hint.Len() > 0
+		e.hint.Reset()
+		e.hintHelp.Reset()
 		// Moving into a hint accepts it rather than stepping over nothing.
 		if (c == key.Right || c == key.End) && hadHint {
 			ev.generateCompletions(e, true)

@@ -125,9 +125,10 @@ func refreshReplay(t *testing.T) []string {
 						for _, noIndent := range []bool{false, true} {
 							for _, noBrace := range []bool{false, true} {
 								e.input.replace(text)
-								e.hint.replace(hint)
+								e.hint.Reset()
+								e.hint.WriteString(hint)
 								e.extra.replace(extra)
-								e.hintHelp.clear()
+								e.hintHelp.Reset()
 								e.pos = pos
 								e.termW = 40
 								e.curRows = 1
