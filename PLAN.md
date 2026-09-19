@@ -119,7 +119,13 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    to what the terminal accepts.
 7. `bbcode.c` and `bbcode_colors.c`. This parses markup such as
    `[red]text[/red]`.
-8. `history.c`, then `undo.c`.
+8. `history.c` and `undo.c`. Done. `history.go` holds the list of lines the
+   user typed and the file it is kept in, and `undo.go` the stack of saved
+   lines that stepping back through edits uses. The C keeps the list in a
+   fixed array with its own count; a Go slice carries both.
+   `tools/build-probe-history.sh` builds a fifth probe, and
+   `testdata/history.txt` records 424 cases, including the escaping of every
+   byte on its own.
 9. `completions.c`, then `completers.c`.
 10. `highlight.c`.
 11. `editline.c`. This is the edit loop and the key dispatch. The files
@@ -305,6 +311,25 @@ its own. That is right only because isocline reads from standard input.
 `tty_read_timeout` returns its `code_t*` argument where its result type is
 `bool`. The pointer is never null, so it always means true, which is the
 answer it wants. The port returns a second value instead.
+
+### history.c
+
+`history_search` hands the entry at each index straight to `strstr` without
+checking that the index names one. `history_get` answers with a null pointer
+outside the list, so a starting index at or past the count reads through it
+when the search runs forwards. The port stops at the end of the list and
+answers that it found nothing.
+
+The walk that removes an older duplicate does not step back after it removes
+one, so when two neighbours both match the new entry only the first goes. The
+port keeps the same walk, so that the two agree. Reaching it needs duplicates
+already in the list, which happens only when they were allowed earlier or came
+from the file.
+
+Two things about the file format are worth knowing rather than fixing. An
+entry that escapes to nothing writes no line at all, so an empty entry is not
+kept. And `\x00` reads as nothing, because the buffer it is appended to stops
+at a zero byte, so a line holding only that counts as empty and is skipped.
 
 `tty_readc_noblock` promises not to change the byte when nothing arrives, and
 usually does not, because a quiet terminal is not readable and the read never
