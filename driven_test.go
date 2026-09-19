@@ -107,6 +107,14 @@ type feedOpts struct {
 
 	// Hints turns the inline suggestion back on.
 	Hints bool
+
+	// Highlighter marks up the line as it is typed, and turns highlighting
+	// back on.
+	Highlighter Highlighter
+
+	// Continue decides whether Enter finishes the line or starts another row
+	// inside it, which is how a statement spans rows.
+	Continue func(string) bool
 }
 
 // feed runs the keys through a fresh editor and returns the line and where the
@@ -175,6 +183,13 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 	if opt.Hints {
 		ev.noHint = false
 		ev.hintDelay = 0
+	}
+	if opt.Highlighter != nil {
+		ev.noHighlight = false
+		ev.highlighter = opt.Highlighter
+	}
+	if opt.Continue != nil {
+		ev.isIncomplete = opt.Continue
 	}
 	return ev, sink
 }
@@ -913,5 +928,60 @@ func TestAKeyThatChangesNothingDrawsNothing(t *testing.T) {
 					without, with)
 			}
 		})
+	}
+}
+
+// TestHighlighterSeesTheWholeStatement checks the claim the plan rests usql's
+// path on: that a statement spanning rows reaches the highlighter whole.
+//
+// usql accumulates a statement across reads and re-parses it every keystroke,
+// because the reader it uses today hands it one line at a time. With
+// WithContinue the rows are one buffer, so the highlighter is handed all of
+// it and the accumulation has nothing left to do. That is the argument for
+// usql dropping SetOutput rather than this package growing a string filter,
+// so it is worth holding rather than asserting.
+func TestHighlighterSeesTheWholeStatement(t *testing.T) {
+	t.Parallel()
+
+	// Every line the highlighter was handed, in order.
+	var seen []string
+	h := HighlighterFunc(func(l *LineStyle) {
+		seen = append(seen, l.Text())
+	})
+	// Unfinished until a semicolon, which is what a SQL prompt does.
+	unfinished := func(line string) bool {
+		return !strings.HasSuffix(strings.TrimSpace(line), ";")
+	}
+
+	// Three rows: Enter carries on twice, and the semicolon ends it.
+	line, _, _, _ := feedSession(t, "select a,"+kEnter+"b"+kEnter+"c from t;"+kEnter, feedOpts{
+		Highlighter: h,
+		Continue:    unfinished,
+	})
+
+	const want = "select a,\nb\nc from t;"
+	if line != want {
+		t.Fatalf("the line came back as %q, want %q", line, want)
+	}
+	if len(seen) == 0 {
+		t.Fatal("the highlighter was never called")
+	}
+	// The last call is the one that matters: by then the whole statement is
+	// in the buffer, and the highlighter is handed all of it rather than the
+	// row being typed.
+	last := seen[len(seen)-1]
+	if last != want {
+		t.Errorf("the highlighter was last handed %q, want the whole statement %q", last, want)
+	}
+	// And it saw the rows join rather than only ever one row.
+	sawTwoRows := false
+	for _, s := range seen {
+		if strings.Count(s, "\n") >= 2 {
+			sawTwoRows = true
+			break
+		}
+	}
+	if !sawTwoRows {
+		t.Errorf("the highlighter never saw more than two rows at once, so it is being handed one row at a time: %q", seen)
 	}
 }
