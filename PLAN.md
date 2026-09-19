@@ -82,11 +82,11 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 
 1. `common.c` and `common.h`. Done. The allocator, the `memmove` wrappers and
    the `strlen` wrappers are gone, because Go collects garbage and carries the
-   length of a slice. What survives is the QUTF-8 codec in `qutf8.go` and the
-   ASCII case rules in `ascii.go`. Neither matches the standard library.
+   length of a slice. What survives is the QUTF-8 codec in `text.go` and the
+   ASCII case rules in `text.go`. Neither matches the standard library.
    `tools/build-probe.sh` builds a probe that prints what the C functions
    return, and `testdata/common.txt` records 18576 of those calls.
-2. `wcwidth.c`. Not ported. `width.go` calls `github.com/mattn/go-runewidth`
+2. `wcwidth.c`. Not ported. `text.go` calls `github.com/mattn/go-runewidth`
    instead. `testdata/wcwidth.txt` records the width that the C code gives
    every code point, and `testdata/wcwidth-delta.txt` records the 150 ranges
    where go-runewidth answers differently. `TestWidthDelta` keeps that record
@@ -96,18 +96,18 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    character, not by byte, together with the width, navigation and row and
    column code that the edit loop draws from. The allocator and the growth
    policy are gone, because a Go slice grows on demand. What survives is in
-   `strwidth.go`, `strfind.go`, `charclass.go`, `rowcol.go`, `parse.go` and
-   `stringbuf.go`. `tools/build-probe-stringbuf.sh` builds a second probe, and
+   `text.go`, `text.go`, `text.go`, `text.go`, `text.go` and
+   `text.go`. `tools/build-probe-stringbuf.sh` builds a second probe, and
    `testdata/stringbuf.txt` records 76164 of those calls.
 4. `tty.c` and `tty_esc.c`. The decoding half is done. `tty_esc.c` is ported
-   whole, in `ttyesc.go`. From `tty.c` what is ported is the key codes, now
+   whole, in `tty.go`. From `tty.c` what is ported is the key codes, now
    the exported `key` package, and the reader in `tty.go`: the two pushback
    buffers, the UTF-8 assembly, the dispatch, and the rewriting of the keys
    that terminals disagree about. `tools/build-probe-tty.sh` builds a third
    probe, and `testdata/tty.txt` records 7157 decodes.
 
-   The terminal itself is done too, in `ttydev_unix.go` with the per system
-   requests in `ttydev_linux.go` and `ttydev_darwin.go`: raw mode through
+   The terminal itself is done too, in `ttydev_posix.go` with the per system
+   requests in `ttydev_linux.go` and `sys_darwin.go`: raw mode through
    `termios`, the UTF-8 test, the resize event, interrupting a read, and
    `tty_read_esc_response`. Windows is still `errUnsupported`.
 
@@ -118,14 +118,14 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    terminal is put back. `tty_read_esc_response` is in the corpus, because it
    reads from the same byte source as the decoder.
 5. `attr.c`. Done. The attributes are a Go struct of comparable fields in
-   `attr.go`, rather than the 64 bit union of bit fields the C packs them into,
+   `color.go`, rather than the 64 bit union of bit fields the C packs them into,
    because Go compares a struct with `==` and nothing outside `attr.c` depends
    on the packed value. The colors came with it, in `color.go`, because the SGR
    parser needs them: `term_color.c` holds `ic_rgb`, `ic_rgbx` and
    `color_from_ansi256`, and the 256 color table was extracted from the C
    source rather than typed out. `tools/build-probe-attr.sh` builds a fourth
    probe, and `testdata/attr.txt` records 1678 of those calls.
-6. `term.c` and `term_color.c`. Done, apart from Windows. `termcolor.go` holds
+6. `term.c` and `term_color.c`. Done, apart from Windows. `color.go` holds
    the color reduction, which finds the nearest color a terminal can show when
    it understands fewer than a style asks for. `term.go` holds the terminal
    itself: the writer, the buffering, cursor movement, the attribute state, and
@@ -138,23 +138,23 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 
 7. `bbcode.c` and `bbcode_colors.c`. Done. `bbcode.go` turns markup such as
    `[red]text[/red]` into text plus one attribute for every byte of it, and
-   `bbcodecolors.go` holds the 172 HTML color names, extracted from the C
+   `bbcode.go` holds the 172 HTML color names, extracted from the C
    source rather than typed out. `tools/build-probe-bbcode.sh` builds the
    eighth probe, and `testdata/bbcode.txt` records 79 pieces of markup, each
    one parsed, measured and printed.
 8. `history.c` and `undo.c`. Done. `history.go` holds the list of lines the
-   user typed and the file it is kept in, and `undo.go` the stack of saved
+   user typed and the file it is kept in, and `editor.go` the stack of saved
    lines that stepping back through edits uses. The C keeps the list in a
    fixed array with its own count; a Go slice carries both.
    `tools/build-probe-history.sh` builds a fifth probe, and
    `testdata/history.txt` records 424 cases, including the escaping of every
    byte on its own.
 9. `completions.c` and `completers.c`. `completions.c` is done, in
-   `completions.go`: the list of what the user could type, how much of the
+   `complete.go`: the list of what the user could type, how much of the
    line each one takes away on either side of the cursor, the order the menu
    shows them in, and filling in the longest start they all share. From
    `completers.c`, word and quoted word completion are done in
-   `completers.go`, which is the part that works out which word the completer
+   `complete.go`, which is the part that works out which word the completer
    should see and puts the quoting back on what comes back.
 
    `tools/build-probe-completions.sh` builds a sixth probe, and
@@ -162,7 +162,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    word completion over every combination of quote, escape and character
    class.
 
-   Completing a file name is done as well, in `filenames.go`: reading a
+   Completing a file name is done as well, in `complete.go`: reading a
    directory, matching an extension, working out the type of an entry, and
    colouring it from `LS_COLORS` or `LSCOLORS`.
 
@@ -176,7 +176,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    away, and the type of a real entry, which the corpus passes in rather than
    works out. `TestTypeOfRealEntries` covers that against a real tree, and
    skips the file types the system will not let a test make.
-10. `highlight.c`. Done. `highlight.go` holds the environment a highlighter
+10. `highlight.c`. Done. `bbcode.go` holds the environment a highlighter
    marks a line through, and the brace matching that colors the brace under
    the cursor and its partner. `tools/build-probe-highlight.sh` builds the
    ninth probe, and `testdata/highlight.txt` records 2346 cases: every line in
@@ -192,7 +192,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     C redraws at the end of every one, and the port leaves that to the caller,
     which is what lets an operation be checked without a terminal.
 
-    The redraw is done too, in `editline.go`, together with the environment
+    The redraw is done too, in `prompt.go`, together with the environment
     type that carries everything the editor needs besides the line itself.
     `tools/build-probe-refresh.sh` builds the eleventh probe, and
     `testdata/refresh.txt` records 1584 redraws across ten lines, two prompts,
@@ -200,14 +200,14 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     settings of the indent and brace matching.
 
     The key dispatch and the main loop are done as well, in
-    `editlineloop.go`, together with the hint, the resize and the reading of
+    `prompt.go`, together with the hint, the resize and the reading of
     one line from start to finish.
 
     `editline_help.c`, `editline_history.c` and `editline_completion.c`,
     which are textual includes of `editline.c` rather than separate units,
-    are done as well. `editlinehistory.go` holds walking through the history
+    are done as well. `history.go` holds walking through the history
     and the incremental search that Ctrl-R opens, which draws its own prompt
-    below the line and reads its own keys. `editlinecompletion.go` holds
+    below the line and reads its own keys. `complete.go` holds
     offering completions and the menu, which draws itself the same way.
 
     The completion menu cannot be driven from outside, because it reads its
@@ -225,7 +225,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 12. `isocline.c`. Done in shape, and it is the one part that is not a
     translation. The C keeps a single environment in a process global and
     every public function reaches for it, so a program can have only one line
-    reader and cannot say which terminal it is on. `api.go` puts that state in
+    reader and cannot say which terminal it is on. `rline.go` puts that state in
     a `Reader` that the caller makes, with the settings passed as options when
     it is made rather than as global switches flipped afterwards.
 
@@ -571,7 +571,7 @@ and the port draws nothing there for the same reason.
 The mark at the end of a wrapped row is chosen at compile time: a return symbol
 on macOS and a left arrow everywhere else. That is a guess about which glyph a
 terminal is likely to have rather than anything about the system, but the port
-keeps the branch in `wrapmark_darwin.go` and `wrapmark_other.go`, because the
+keeps the branch in `sys_darwin.go` and `sys_nondarwin.go`, because the
 recorded sessions are kept per system and each holds the glyph its own C build
 produced.
 
@@ -739,7 +739,7 @@ The port does not carry the console emulation in `term.c`. About 400 lines
 there translate escape sequences into console API calls, for a console that
 cannot read escape sequences itself. The port writes escape sequences on every
 system and asks the console to read them, which two `SetConsoleMode` calls in
-`ttydev_windows.go` arrange as raw mode is entered and left.
+`sys_windows.go` arrange as raw mode is entered and left.
 
 That is now known to be necessary rather than precautionary, and the evidence
 took two readings to get right.
@@ -814,7 +814,7 @@ appending to it. Then a four row statement was edited in the middle: up into
 row 2, left, two characters typed, and the whole block repainted with the
 other rows' contents and highlighting intact. The arrow keys arrived as
 `\e[1;1A` and `\e[1;1B` and `\e[1;1D`, byte by byte, which is
-`ttydev_windows.go`'s encoder and the escape decoder agreeing under a human's
+`sys_windows.go`'s encoder and the escape decoder agreeing under a human's
 fingers rather than against records the tests wrote.
 
 So across three runs, everything the editor does on Windows has now been done
@@ -871,8 +871,8 @@ Two are split, and they are split differently, which is the point.
 
 `testdata/<variant>/refresh.txt` holds the redraws, split by the compile time
 branch that picks the mark at the end of a wrapped row: a return symbol on
-macOS and a left arrow everywhere else. `wrapmark_darwin.go` and
-`wrapmark_other.go` name the variant beside the glyph, so the two cannot drift
+macOS and a left arrow everywhere else. `sys_darwin.go` and
+`sys_nondarwin.go` name the variant beside the glyph, so the two cannot drift
 apart. 336 of the 1584 recorded redraws hold that mark. The split is by the
 branch and not by the system, because keying it on the system would be finer
 than the thing it stands for and would demand a separate recording from every
@@ -1053,6 +1053,37 @@ skip, make the skip say what was not checked rather than why it could not
 be. And when a check is worth having on every system, make sure it compiles
 on every system, because a check that is absent is indistinguishable from a
 check that passed.
+
+## Where things live
+
+One package, twenty source files and seventeen test files. The layout follows
+what a reader is looking for rather than what the C file it came from was
+called, so several C files land in one Go file and the header of each says
+which.
+
+  rline.go       the public interface, and the session log
+  prompt.go      reading one line: drawing, the hint, resize, dispatch, help
+  editor.go      the line being edited, its operations and the undo stack
+  text.go        the buffer, widths, word and line boundaries, rows and columns
+  complete.go    completions, completers, file names and the menu
+  history.go     the history list, its file, walking and searching
+  bbcode.go      markup and the highlighting built on it
+  color.go       colors, attributes and reducing one to what a terminal takes
+  term.go        writing to a terminal
+  tty.go         reading keys, and decoding escape sequences into them
+  winkey.go      turning Windows key events into sequences: untagged on purpose,
+                 so that it is tested on every system rather than only on Windows
+  password.go    reading a password with no echo
+
+Per system, one file each where the tags allow it. `sys_darwin.go`,
+`sys_nondarwin.go`, `sys_unix.go` and `sys_windows.go` each hold everything
+that shares their tag. Four files keep their own tags because no other file
+shares them: `ttydev_posix.go` is `linux || darwin`, `ttydev_linux.go` is
+`linux`, and `ttydev_other.go` and `termsize_other.go` are the fallbacks.
+
+Test files follow the source files rather than the old one-to-one pairing,
+with one exception: `driven_test.go` holds the keystroke harness and the tests
+built on it, because those are one thing and neither half is useful alone.
 
 ## Checks
 

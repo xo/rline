@@ -1,9 +1,20 @@
+// Markup, and the highlighting that is built on it.
+//
+// Markup is written like [red]text[/red]. The parser turns a tag into a set
+// of attributes, and the highlighter marks stretches of a line with the same
+// attributes without any tags being written.
+//
+// Ported from isocline/src/bbcode.c and isocline/src/highlight.c.
+
 package rline
 
 import (
 	"strconv"
 	"strings"
 )
+
+// --------------------------------------------------------------------------
+// bbcode.go
 
 // Markup for styled output, written like [red]text[/red].
 //
@@ -744,4 +755,478 @@ func (bb *bbCode) columnWidth(s string) int {
 	w := strWidth(bb.vout.bytes())
 	bb.vout.clear()
 	return w
+}
+
+// --------------------------------------------------------------------------
+// bbcodecolors.go
+
+// The HTML color names that bbcode markup accepts, such as [red]text[/red].
+//
+// The C keeps these in a sorted array and finds one with a binary search over
+// strcmp. A map answers the same question, because the search is only ever for
+// an exact match.
+//
+// Ported from isocline/src/bbcode_colors.c.
+
+// htmlColors maps a color name to the color it stands for. The names that
+// start with "ansi-" give a palette code, and the rest give an RGB value.
+var htmlColors = map[string]Color{
+	"aliceblue":            RGBHex(0xf0f8ff),
+	"ansi-aqua":            ANSIAqua,
+	"ansi-black":           ANSIBlack,
+	"ansi-blue":            ANSIBlue,
+	"ansi-cyan":            ANSICyan,
+	"ansi-darkgray":        ANSIDarkGray,
+	"ansi-darkgrey":        ANSIDarkGray,
+	"ansi-default":         ANSIDefault,
+	"ansi-fuchsia":         ANSIFuchsia,
+	"ansi-gray":            ANSIGray,
+	"ansi-green":           ANSIGreen,
+	"ansi-grey":            ANSIGray,
+	"ansi-lightgray":       ANSILightGray,
+	"ansi-lightgrey":       ANSILightGray,
+	"ansi-lime":            ANSILime,
+	"ansi-magenta":         ANSIMagenta,
+	"ansi-maroon":          ANSIMaroon,
+	"ansi-navy":            ANSINavy,
+	"ansi-olive":           ANSIOlive,
+	"ansi-purple":          ANSIPurple,
+	"ansi-red":             ANSIRed,
+	"ansi-silver":          ANSISilver,
+	"ansi-teal":            ANSITeal,
+	"ansi-white":           ANSIWhite,
+	"ansi-yellow":          ANSIYellow,
+	"antiquewhite":         RGBHex(0xfaebd7),
+	"aqua":                 RGBHex(0x00ffff),
+	"aquamarine":           RGBHex(0x7fffd4),
+	"azure":                RGBHex(0xf0ffff),
+	"beige":                RGBHex(0xf5f5dc),
+	"bisque":               RGBHex(0xffe4c4),
+	"black":                RGBHex(0x000000),
+	"blanchedalmond":       RGBHex(0xffebcd),
+	"blue":                 RGBHex(0x0000ff),
+	"blueviolet":           RGBHex(0x8a2be2),
+	"brown":                RGBHex(0xa52a2a),
+	"burlywood":            RGBHex(0xdeb887),
+	"cadetblue":            RGBHex(0x5f9ea0),
+	"chartreuse":           RGBHex(0x7fff00),
+	"chocolate":            RGBHex(0xd2691e),
+	"coral":                RGBHex(0xff7f50),
+	"cornflowerblue":       RGBHex(0x6495ed),
+	"cornsilk":             RGBHex(0xfff8dc),
+	"crimson":              RGBHex(0xdc143c),
+	"cyan":                 RGBHex(0x00ffff),
+	"darkblue":             RGBHex(0x00008b),
+	"darkcyan":             RGBHex(0x008b8b),
+	"darkgoldenrod":        RGBHex(0xb8860b),
+	"darkgray":             RGBHex(0xa9a9a9),
+	"darkgreen":            RGBHex(0x006400),
+	"darkgrey":             RGBHex(0xa9a9a9),
+	"darkkhaki":            RGBHex(0xbdb76b),
+	"darkmagenta":          RGBHex(0x8b008b),
+	"darkolivegreen":       RGBHex(0x556b2f),
+	"darkorange":           RGBHex(0xff8c00),
+	"darkorchid":           RGBHex(0x9932cc),
+	"darkred":              RGBHex(0x8b0000),
+	"darksalmon":           RGBHex(0xe9967a),
+	"darkseagreen":         RGBHex(0x8fbc8f),
+	"darkslateblue":        RGBHex(0x483d8b),
+	"darkslategray":        RGBHex(0x2f4f4f),
+	"darkslategrey":        RGBHex(0x2f4f4f),
+	"darkturquoise":        RGBHex(0x00ced1),
+	"darkviolet":           RGBHex(0x9400d3),
+	"deeppink":             RGBHex(0xff1493),
+	"deepskyblue":          RGBHex(0x00bfff),
+	"dimgray":              RGBHex(0x696969),
+	"dimgrey":              RGBHex(0x696969),
+	"dodgerblue":           RGBHex(0x1e90ff),
+	"firebrick":            RGBHex(0xb22222),
+	"floralwhite":          RGBHex(0xfffaf0),
+	"forestgreen":          RGBHex(0x228b22),
+	"fuchsia":              RGBHex(0xff00ff),
+	"gainsboro":            RGBHex(0xdcdcdc),
+	"ghostwhite":           RGBHex(0xf8f8ff),
+	"gold":                 RGBHex(0xffd700),
+	"goldenrod":            RGBHex(0xdaa520),
+	"gray":                 RGBHex(0x808080),
+	"green":                RGBHex(0x008000),
+	"greenyellow":          RGBHex(0xadff2f),
+	"grey":                 RGBHex(0x808080),
+	"honeydew":             RGBHex(0xf0fff0),
+	"hotpink":              RGBHex(0xff69b4),
+	"indianred":            RGBHex(0xcd5c5c),
+	"indigo":               RGBHex(0x4b0082),
+	"ivory":                RGBHex(0xfffff0),
+	"khaki":                RGBHex(0xf0e68c),
+	"lavender":             RGBHex(0xe6e6fa),
+	"lavenderblush":        RGBHex(0xfff0f5),
+	"lawngreen":            RGBHex(0x7cfc00),
+	"lemonchiffon":         RGBHex(0xfffacd),
+	"lightblue":            RGBHex(0xadd8e6),
+	"lightcoral":           RGBHex(0xf08080),
+	"lightcyan":            RGBHex(0xe0ffff),
+	"lightgoldenrodyellow": RGBHex(0xfafad2),
+	"lightgray":            RGBHex(0xd3d3d3),
+	"lightgreen":           RGBHex(0x90ee90),
+	"lightgrey":            RGBHex(0xd3d3d3),
+	"lightpink":            RGBHex(0xffb6c1),
+	"lightsalmon":          RGBHex(0xffa07a),
+	"lightseagreen":        RGBHex(0x20b2aa),
+	"lightskyblue":         RGBHex(0x87cefa),
+	"lightslategray":       RGBHex(0x778899),
+	"lightslategrey":       RGBHex(0x778899),
+	"lightsteelblue":       RGBHex(0xb0c4de),
+	"lightyellow":          RGBHex(0xffffe0),
+	"lime":                 RGBHex(0x00ff00),
+	"limegreen":            RGBHex(0x32cd32),
+	"linen":                RGBHex(0xfaf0e6),
+	"magenta":              RGBHex(0xff00ff),
+	"maroon":               RGBHex(0x800000),
+	"mediumaquamarine":     RGBHex(0x66cdaa),
+	"mediumblue":           RGBHex(0x0000cd),
+	"mediumorchid":         RGBHex(0xba55d3),
+	"mediumpurple":         RGBHex(0x9370db),
+	"mediumseagreen":       RGBHex(0x3cb371),
+	"mediumslateblue":      RGBHex(0x7b68ee),
+	"mediumspringgreen":    RGBHex(0x00fa9a),
+	"mediumturquoise":      RGBHex(0x48d1cc),
+	"mediumvioletred":      RGBHex(0xc71585),
+	"midnightblue":         RGBHex(0x191970),
+	"mintcream":            RGBHex(0xf5fffa),
+	"mistyrose":            RGBHex(0xffe4e1),
+	"moccasin":             RGBHex(0xffe4b5),
+	"navajowhite":          RGBHex(0xffdead),
+	"navy":                 RGBHex(0x000080),
+	"oldlace":              RGBHex(0xfdf5e6),
+	"olive":                RGBHex(0x808000),
+	"olivedrab":            RGBHex(0x6b8e23),
+	"orange":               RGBHex(0xffa500),
+	"orangered":            RGBHex(0xff4500),
+	"orchid":               RGBHex(0xda70d6),
+	"palegoldenrod":        RGBHex(0xeee8aa),
+	"palegreen":            RGBHex(0x98fb98),
+	"paleturquoise":        RGBHex(0xafeeee),
+	"palevioletred":        RGBHex(0xdb7093),
+	"papayawhip":           RGBHex(0xffefd5),
+	"peachpuff":            RGBHex(0xffdab9),
+	"peru":                 RGBHex(0xcd853f),
+	"pink":                 RGBHex(0xffc0cb),
+	"plum":                 RGBHex(0xdda0dd),
+	"powderblue":           RGBHex(0xb0e0e6),
+	"purple":               RGBHex(0x800080),
+	"rebeccapurple":        RGBHex(0x663399),
+	"red":                  RGBHex(0xff0000),
+	"rosybrown":            RGBHex(0xbc8f8f),
+	"royalblue":            RGBHex(0x4169e1),
+	"saddlebrown":          RGBHex(0x8b4513),
+	"salmon":               RGBHex(0xfa8072),
+	"sandybrown":           RGBHex(0xf4a460),
+	"seagreen":             RGBHex(0x2e8b57),
+	"seashell":             RGBHex(0xfff5ee),
+	"sienna":               RGBHex(0xa0522d),
+	"silver":               RGBHex(0xc0c0c0),
+	"skyblue":              RGBHex(0x87ceeb),
+	"slateblue":            RGBHex(0x6a5acd),
+	"slategray":            RGBHex(0x708090),
+	"slategrey":            RGBHex(0x708090),
+	"snow":                 RGBHex(0xfffafa),
+	"springgreen":          RGBHex(0x00ff7f),
+	"steelblue":            RGBHex(0x4682b4),
+	"tan":                  RGBHex(0xd2b48c),
+	"teal":                 RGBHex(0x008080),
+	"thistle":              RGBHex(0xd8bfd8),
+	"tomato":               RGBHex(0xff6347),
+	"turquoise":            RGBHex(0x40e0d0),
+	"violet":               RGBHex(0xee82ee),
+	"wheat":                RGBHex(0xf5deb3),
+	"white":                RGBHex(0xffffff),
+	"whitesmoke":           RGBHex(0xf5f5f5),
+	"yellow":               RGBHex(0xffff00),
+	"yellowgreen":          RGBHex(0x9acd32),
+}
+
+// --------------------------------------------------------------------------
+// highlight.go
+
+// Syntax highlighting.
+//
+// A highlighter is handed the line and marks stretches of it with a style. The
+// marks land in an attribute buffer, one attribute per byte, which the edit
+// loop then draws.
+//
+// Ported from isocline/src/highlight.c.
+
+// maxBraceNesting is how deep brace matching will go before it gives up.
+const maxBraceNesting = 64
+
+// Highlighter marks up a line. It is given the line and an environment to
+// mark it through.
+//
+//nolint:unused // wired up by editline, step 11
+type Highlighter interface {
+	Highlight(env *Highlight, input string)
+}
+
+// HighlighterFunc makes a Highlighter out of an ordinary function.
+type HighlighterFunc func(env *Highlight, input string)
+
+// Highlight satisfies Highlighter.
+func (f HighlighterFunc) Highlight(env *Highlight, input string) { f(env, input) }
+
+// Highlight is what a highlighter marks a line through.
+//
+// A highlighter is handed one of these and calls Style on the stretches it
+// recognises. Anything it does not touch keeps the attributes of the terminal.
+type Highlight struct {
+	// What is being marked, and where the marks go.
+	input string
+	attrs *attrBuf
+
+	// bb resolves a style name to attributes.
+	bb *bbCode
+
+	// The last character position that was turned into a byte position.
+	// Highlighters walk a line from the front, so remembering one place stops
+	// the walk being repeated from the start every time.
+	cachedUPos int
+	cachedCPos int
+}
+
+// runHighlight fills attrs with one attribute per byte of s and then lets the
+// highlighter mark it up. A nil highlighter leaves the line unmarked.
+//
+//nolint:unused // wired up by editline, step 11
+func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn Highlighter) {
+	if len(s) == 0 {
+		return
+	}
+	attrs.setAt(0, len(s), attr{})
+	if fn == nil {
+		return
+	}
+	fn.Highlight(&Highlight{input: s, attrs: attrs, bb: bb}, s)
+}
+
+// posAdjust turns a position and a count given in characters into one given in
+// bytes. A negative value means characters, which is how a caller that counts
+// in characters rather than bytes says so.
+//
+// Nothing reaches the negative position case, because the one public entry
+// point refuses a negative position before it gets here. Only a negative count
+// can arrive.
+func (h *Highlight) posAdjust(pos, count int) (int, int) {
+	if pos >= len(h.input) {
+		return pos, count
+	}
+	if pos >= 0 && count >= 0 {
+		return pos, count
+	}
+	if pos < 0 {
+		upos := -pos
+		cpos, ucount := 0, 0
+		if h.cachedUPos <= upos {
+			ucount, cpos = h.cachedUPos, h.cachedCPos
+		}
+		for ucount < upos {
+			next, _ := nextOfs([]byte(h.input), cpos)
+			if next <= 0 {
+				return pos, count
+			}
+			ucount++
+			cpos += next
+		}
+		pos = cpos
+		h.cachedUPos, h.cachedCPos = upos, cpos
+	}
+	if count < 0 {
+		want := -count
+		ucount, clen := 0, 0
+		for ucount < want {
+			next, _ := nextOfs([]byte(h.input), pos+clen)
+			if next <= 0 {
+				return pos, count
+			}
+			ucount++
+			clen += next
+		}
+		count = clen
+		if h.cachedCPos == pos {
+			h.cachedUPos += ucount
+			h.cachedCPos += clen
+		}
+	}
+	return pos, count
+}
+
+// mark lays a over count bytes from pos.
+func (h *Highlight) mark(pos, count int, a attr) {
+	pos, count = h.posAdjust(pos, count)
+	if pos < 0 || count <= 0 {
+		return
+	}
+	h.attrs.updateAt(pos, count, a)
+}
+
+// StyleBytes marks count bytes from pos with a named style, such as "keyword" or
+// a color name such as "red".
+//
+// A negative count means a number of characters rather than bytes, which is
+// what a caller counting characters wants. A negative pos is refused, which is
+// what the C does.
+func (h *Highlight) StyleBytes(pos, count int, style string) {
+	if style == "" || pos < 0 {
+		return
+	}
+	h.mark(pos, count, h.bb.style(style))
+}
+
+// StyleRunes marks count characters from pos with a named style. pos is still
+// counted in bytes, because that is where the caller found the word; only the
+// length is counted in characters.
+func (h *Highlight) StyleRunes(pos, count int, style string) {
+	if style == "" || pos < 0 {
+		return
+	}
+	h.mark(pos, -count, h.bb.style(style))
+}
+
+// Formatted marks up s using markup that spells out the same text, so that a
+// caller can describe a whole line at once rather than a stretch at a time.
+//
+// The markup is parsed for its attributes and the text it produces is thrown
+// away. When the two disagree in length the marks simply run out, and the rest
+// of the line keeps what it had. The C writes a debug line about it, which the
+// port drops because nothing reads it.
+func (h *Highlight) Formatted(s, format string) {
+	if s == "" {
+		return
+	}
+	var out buffer
+	var attrs attrBuf
+	h.bb.appendTo(format, &out, &attrs)
+	for i := range len(s) {
+		h.attrs.updateAt(i, 1, attrs.at(i))
+	}
+}
+
+//-------------------------------------------------------------
+// Brace matching
+//-------------------------------------------------------------
+
+// openBrace is a brace that has been opened and not yet closed.
+type openBrace struct {
+	// closer is the brace that would close this one.
+	closer byte
+
+	// pos is where the opening brace is.
+	pos int
+
+	// atCursor says the cursor sits just after the opening brace.
+	atCursor bool
+}
+
+// braceOpener returns the closing brace that c opens, and whether c opens one
+// at all. The braces are given in pairs, as in "()[]{}".
+func braceOpener(braces string, c byte) (byte, bool) {
+	for b := 0; b+1 < len(braces); b += 2 {
+		if c == braces[b] {
+			return braces[b+1], true
+		}
+	}
+	return 0, false
+}
+
+// isBraceCloser reports whether c closes a brace.
+func isBraceCloser(braces string, c byte) bool {
+	for b := 1; b < len(braces); b += 2 {
+		if c == braces[b] {
+			return true
+		}
+	}
+	return false
+}
+
+// highlightMatchBraces marks the brace under the cursor and the one that goes
+// with it, and marks a brace that has no partner as an error.
+//
+// An opening brace left unclosed at the end of the line is not marked, because
+// the line is probably still being typed.
+func highlightMatchBraces(s string, attrs *attrBuf, cursorPos int, braces string, matchAttr, errorAttr attr) {
+	var open [maxBraceNesting + 1]openBrace
+	nesting := 0
+	for i := range len(s) {
+		c := s[i]
+		if closer, ok := braceOpener(braces, c); ok {
+			if nesting >= maxBraceNesting {
+				return // too deep to be worth following
+			}
+			open[nesting] = openBrace{closer: closer, pos: i, atCursor: i == cursorPos-1}
+			nesting++
+			continue
+		}
+		if !isBraceCloser(braces, c) {
+			continue
+		}
+		if nesting <= 0 {
+			attrs.updateAt(i, 1, errorAttr)
+			continue
+		}
+		// One wrong opening brace can be stepped over, when the one before it
+		// is the partner. That turns "([)" into a single error rather than
+		// making everything after it wrong.
+		if open[nesting-1].closer != c && nesting > 1 && open[nesting-2].closer == c {
+			attrs.updateAt(open[nesting-1].pos, 1, errorAttr)
+			nesting--
+		}
+		if open[nesting-1].closer != c {
+			attrs.updateAt(i, 1, errorAttr)
+			continue
+		}
+		nesting--
+		if i == cursorPos-1 || (open[nesting].atCursor && open[nesting].pos != i-1) {
+			attrs.updateAt(open[nesting].pos, 1, matchAttr)
+			attrs.updateAt(i, 1, matchAttr)
+		}
+	}
+}
+
+// findMatchingBrace returns the position just after the brace that goes with
+// the one at the cursor, or -1 when there is none, and whether the whole line
+// is balanced.
+func findMatchingBrace(s string, cursorPos int, braces string) (int, bool) {
+	var open [maxBraceNesting + 1]openBrace
+	nesting := 0
+	match := -1
+	balanced := true
+	for i := range len(s) {
+		c := s[i]
+		if closer, ok := braceOpener(braces, c); ok {
+			if nesting >= maxBraceNesting {
+				return -1, false
+			}
+			open[nesting] = openBrace{closer: closer, pos: i, atCursor: i == cursorPos-1}
+			nesting++
+			continue
+		}
+		if !isBraceCloser(braces, c) {
+			continue
+		}
+		switch {
+		case nesting <= 0:
+			balanced = false
+		case open[nesting-1].closer != c:
+			balanced = false
+		default:
+			nesting--
+			if i == cursorPos-1 {
+				match = open[nesting].pos + 1
+			} else if open[nesting].atCursor {
+				match = i + 1
+			}
+		}
+	}
+	if nesting != 0 {
+		balanced = false
+	}
+	return match, balanced
 }
