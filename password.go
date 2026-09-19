@@ -38,6 +38,12 @@ func (r *Reader) Password(prompt string) (string, error) {
 	}
 	r.env.term.write(prompt)
 	r.env.term.flush()
+	// Echo off with canonical mode left on, where the terminal can see it.
+	// Where that is not available the line is still hidden, by reading it in
+	// raw mode, but the terminal has no way to know it is a password.
+	if dev, ok := r.env.tty.dev.(noEchoDevice); ok {
+		return r.readNoEcho(dev)
+	}
 	if err := r.env.tty.startRaw(); err != nil {
 		return "", fmt.Errorf("switching the terminal to raw mode: %w", err)
 	}
@@ -48,6 +54,44 @@ func (r *Reader) Password(prompt string) (string, error) {
 	r.env.term.writeln("")
 	r.env.term.flush()
 	return line, err
+}
+
+// noEchoDevice is a terminal that can turn off echo without turning off the
+// editing the terminal driver does, which is what a password prompt looks like
+// from outside.
+type noEchoDevice interface {
+	startNoEcho() error
+	endNoEcho()
+}
+
+// readNoEcho reads one line with echo off and the terminal driver still doing
+// the editing.
+func (r *Reader) readNoEcho(dev noEchoDevice) (string, error) {
+	if err := dev.startNoEcho(); err != nil {
+		return "", err
+	}
+	defer dev.endNoEcho()
+	var sb strings.Builder
+	for {
+		c, ok := r.env.tty.dev.readByte(-1)
+		switch {
+		case !ok:
+			// The input ended, which is Ctrl-D on an empty line.
+			if sb.Len() == 0 {
+				r.env.term.writeln("")
+				r.env.term.flush()
+				return "", io.EOF
+			}
+			return sb.String(), nil
+		case c == '\n' || c == '\r':
+			// The newline was not echoed either, so the cursor has to be moved
+			// on by hand.
+			r.env.term.writeln("")
+			r.env.term.flush()
+			return sb.String(), nil
+		}
+		sb.WriteByte(c)
+	}
 }
 
 // readHidden reads keys until the line ends, showing nothing.
