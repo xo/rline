@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -14,15 +13,20 @@ import (
 // refreshProbePath is where tools/build-probe-refresh.sh puts the probe.
 const refreshProbePath = ".build/probe-refresh"
 
-// refreshCorpusPath returns where the recordings for the running system live.
+// refreshCorpusPath returns where the recordings this build compares against
+// live.
 //
-// This corpus is kept per system, unlike the others, because the C code it
-// records is not the same on every system: the mark at the end of a wrapped
-// row is chosen at compile time. The rule is that a corpus goes under a system
-// directory when the C it records has a platform branch in it, and stays a
-// single file when it does not.
+// This corpus is split, unlike the others, because the redraw has a compile
+// time branch in it: the mark at the end of a wrapped row is a return symbol
+// on macOS and a left arrow everywhere else, and 336 of the 1584 recorded
+// redraws contain it.
+//
+// The split is by that branch and not by the system. Keying it on the system
+// would be finer than the thing it stands for, and would demand a separate
+// recording from every system that compiles the same branch. Windows and Linux
+// draw the same glyph, so they share one set, and only macOS needs its own.
 func refreshCorpusPath() string {
-	return filepath.Join("testdata", runtime.GOOS, "refresh.txt")
+	return filepath.Join("testdata", corpusVariant, "refresh.txt")
 }
 
 // The settings the probe redraws under.
@@ -47,10 +51,12 @@ func TestRefreshMatchesC(t *testing.T) {
 	path := refreshCorpusPath()
 	b, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("no recordings for %s: %v\n"+
-			"Record them on a %s machine with:\n"+
+		t.Fatalf("no recordings for the %q build: %v\n"+
+			"Record them on a machine that compiles the same wrap mark, which "+
+			"for %q means macOS and otherwise means anything but macOS, and "+
+			"that has a C compiler:\n"+
 			"  ./tools/build-probe-refresh.sh && go test . -run TestRefreshMatchesC -update",
-			runtime.GOOS, err, runtime.GOOS)
+			corpusVariant, err, corpusVariant)
 	}
 	want := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
 	got := refreshReplay(t)

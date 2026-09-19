@@ -562,21 +562,39 @@ belongs to whoever owns `tty.c` once a host exists.
 
 ## Where a corpus lives
 
-A corpus is a single file under `testdata/` when the C code it records is the
-same on every system, which is true of most of them. It goes under
-`testdata/<goos>/` when the C has a platform branch in it, because then each
-system has to compare against what its own C build produces.
+A corpus is a single file under `testdata/` when the bytes it records are the
+same everywhere, which is true of most of them. It is split when something
+changes those bytes from one build to another, and the split is by whatever
+actually changes them.
 
-Two are per system so far. `internal/capture/testdata/<goos>/` holds the
-recorded sessions, because `term.c` asks the terminal for its color palette
-only on macOS. `testdata/<goos>/refresh.txt` holds the redraws, because the
-mark at the end of a wrapped row is chosen at compile time.
+Two are split, and they are split differently, which is the point.
 
-Getting this wrong is quiet rather than loud. The code was made per system
-before the corpus was, and the result was that macOS compared its own glyph
-against a recording made on Linux and failed in 10 of 1584 cases. A missing
-corpus for the running system is therefore a failure with a message saying how
-to record one, never a skip.
+`testdata/<variant>/refresh.txt` holds the redraws, split by the compile time
+branch that picks the mark at the end of a wrapped row: a return symbol on
+macOS and a left arrow everywhere else. `wrapmark_darwin.go` and
+`wrapmark_other.go` name the variant beside the glyph, so the two cannot drift
+apart. 336 of the 1584 recorded redraws hold that mark. The split is by the
+branch and not by the system, because keying it on the system would be finer
+than the thing it stands for and would demand a separate recording from every
+system that compiles the same branch. Windows and Linux share one set.
+
+`internal/capture/testdata/<goos>/` holds the recorded sessions, and that one
+is per system. The sessions come from running the C demo, so they hold whatever
+that system's C build does, and `term.c` differs by more than one glyph:
+macOS asks the terminal for its color palette, and Windows has a whole console
+emulation that neither of the others compiles.
+
+Getting either wrong is quiet rather than loud, and both have gone wrong once.
+The redraw was made per system in the code before its corpus was, so macOS
+compared its own glyph against a recording made on Linux. Then the corpus was
+keyed on the system rather than on the branch, so Windows was told to record a
+set it already had. And the check for a missing set of recorded sessions lived
+in a file tagged to Linux and macOS, so on Windows it left the build and the
+package passed while testing nothing.
+
+A missing corpus is therefore a failure with a message saying how to record
+one, never a skip, and the check has to compile on the system that is missing
+it.
 
 ## Checks
 
