@@ -147,6 +147,18 @@ func run() error {
 		}
 		if text == "" || isQuit(last) {
 			if isQuit(last) {
+				// Leaving is not worth remembering. Without this, the
+				// newest entry in every session is the command that ended
+				// the one before it, and the up arrow brings that back
+				// first.
+				//
+				// The save is needed as well: ReadLine has already written
+				// the file by the time this runs, so forgetting the line in
+				// memory alone would leave it on disk.
+				p.RemoveLastHistory()
+				if err := p.SaveHistory(); err != nil {
+					return fmt.Errorf("saving the history: %w", err)
+				}
 				return nil
 			}
 			continue

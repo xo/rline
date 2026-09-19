@@ -868,6 +868,29 @@ the umask left. `DefaultHistoryFileMode` is 0600 now, set on the temporary
 file before anything is written into it, so the contents are never readable
 under a wider mode even for an instant. `WithHistoryFileMode` changes it.
 
+### What the C exposes and the port does not
+
+Found by Ken using the example and noticing that the up arrow brought back
+`\q` rather than the statement before it. Leaving is a line the user typed,
+so it is remembered like any other, and the newest entry in every session was
+the command that ended the one before it.
+
+The C has an answer: `ic_history_remove_last`, public, documented as removing
+the line `ic_readline` just added. The port had `removeLast` inside and never
+exposed it. `RemoveLastHistory` does now, and the example calls it before
+leaving, which is what the C's own demo does.
+
+One thing about it is worth stating because it caught this test twice.
+Removing changes the list and not the file, since `ReadLine` writes the file
+after every line it returns. By the time a caller decides a line was not
+worth keeping, the file already holds it, so `SaveHistory` has to follow.
+
+Four more of the C's public functions have no option behind them here, each
+with the state it would set already in place: `ic_enable_history_duplicates`,
+`ic_enable_completion_preview`, `ic_set_tty_esc_delay`, and the two prompt
+marker getters. None has been asked for, so none is built. They are listed
+so that the next person does not have to find out the same way Ken did.
+
 ### common.c
 
 A byte the terminal sends that UTF-8 cannot read is read as a code point in

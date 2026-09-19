@@ -1689,6 +1689,10 @@ func TestExampleRemembersBetweenRuns(t *testing.T) {
 	if !strings.Contains(string(saved), "select remembered;") {
 		t.Errorf("the history file holds %q, want the statement that was typed", string(saved))
 	}
+	// And not the command that ended the session, which nobody wants back.
+	if strings.Contains(string(saved), `\q`) {
+		t.Errorf("the history file holds %q, which includes the quit command", string(saved))
+	}
 	// Owner only, because a history file holds whatever was typed.
 	info, err := os.Stat(filepath.Join(dir, "rline_example_history"))
 	if err != nil {
@@ -1703,7 +1707,6 @@ func TestExampleRemembersBetweenRuns(t *testing.T) {
 		Term: "xterm-256color",
 		Dir:  dir,
 		Steps: []capture.Step{
-			{Send: capture.KeyUp},
 			{Send: capture.KeyUp},
 			// Escape clears the line, so the quit command is typed into an
 			// empty one rather than onto the end of what history brought

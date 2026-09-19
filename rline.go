@@ -960,6 +960,27 @@ func (s *Session) AddHistory(entry string) {
 	s.env.history.push(entry)
 }
 
+// RemoveLastHistory forgets the most recent entry.
+//
+// ReadLine adds every line it returns, so this is how a caller says that one
+// should not have been kept: a command that leaves the program, or a line
+// that turned out to hold a secret. The C offers the same thing as
+// ic_history_remove_last, and the port had it inside and never exposed it,
+// which the example noticed by remembering every \q anyone ever typed.
+//
+// It removes whatever is newest, so call it before reading another line.
+//
+// It changes the list rather than the file. ReadLine writes the file after
+// every line it returns, so by the time a caller decides a line was not
+// worth keeping, the file already holds it. Call SaveHistory afterwards to
+// write the shorter list, which is what the example does before it leaves.
+func (s *Session) RemoveLastHistory() {
+	if s.env == nil || s.env.history == nil {
+		return
+	}
+	s.env.history.removeLast()
+}
+
 // ClearHistory empties the history.
 func (s *Session) ClearHistory() {
 	if s.env == nil {
