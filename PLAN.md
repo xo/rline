@@ -229,9 +229,28 @@ non-blocking, or the Go poller never sees it and a read deadline never fires.
 The escape decoder uses a timeout to tell the Escape key from an escape
 sequence, so a clock must be injected before the timing tests are written.
 
-Add fuzz tests for the escape decoder and for the markup parser. A fuzz test
-feeds random input to find errors. Run the C code and the Go code on the same
-random input, and compare. Turn each difference into a test.
+The escape decoder is fuzzed against the C one. A fuzz test feeds generated
+input to find errors, and this one asks both decoders the same question and
+fails on any difference, because unlike the width tables there is no reason
+for these two to disagree.
+
+`tools/build-probe-ttyfuzz.sh` builds the C side as a server that takes one
+case per line, rather than a process per case, which would be too slow to be
+worth running. The channels need care. `tty_readc_noblock` asks `FIONREAD`
+about file descriptor 0 rather than about its own, so the terminal is a pipe
+put on file descriptor 0, and the commands arrive on file descriptor 3, which
+the Go side passes in. Commands on standard input would make the decoder
+believe terminal input was waiting and then block on an empty pipe.
+
+The seeds are every sequence in `testdata/tty.txt`, so the fuzzer starts from
+input that already reaches the interesting parts and spends its time on what
+nobody wrote down. Running `go test` without `-fuzz` replays the seeds, which
+is what a normal run does.
+
+It found a real difference within a second, which is in the `tty.c` list
+below. Since that was fixed, 6.3 million runs have found nothing else.
+
+The markup parser has no fuzz test yet.
 
 Pin the Unicode version that the width tables use. The golden files change when
 that version changes.
@@ -459,6 +478,15 @@ once. The port checks the buffer it is about to write to.
 
 `tty_readc_noblock` asks `FIONREAD` about file descriptor 0 rather than about
 its own. That is right only because isocline reads from standard input.
+
+`tty_cpush_char` cannot push a zero byte. It builds a string of one character
+and hands it to `tty_cpush`, which measures it with `strlen`, so a zero byte
+measures as nothing and no byte is pushed at all. This is reachable: the UTF-8
+assembly pushes back whatever it did not use, so a zero byte in the middle of
+an invalid sequence is dropped rather than read as a key. The port drops it
+too, because the recorded sessions come from a build that does. The
+differential fuzzer found it on the input `f5 00 30`, which is kept as a
+regression seed in `testdata/fuzz`.
 
 `tty_read_timeout` returns its `code_t*` argument where its result type is
 `bool`. The pointer is never null, so it always means true, which is the

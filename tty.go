@@ -100,8 +100,15 @@ func newTTY(src byteReader) *tty {
 }
 
 // pushByte puts a byte back, to be read before anything from src.
+//
+// A zero byte is dropped rather than pushed. The C code builds a string of
+// one character and hands it to a function that measures it with strlen, so a
+// zero byte measures as nothing and no byte is pushed at all. That matters:
+// the UTF-8 assembly pushes back whatever it did not use, so a zero byte in
+// the middle of an invalid sequence is lost rather than read as a key. The
+// differential fuzzer found this on the input f5 00 30.
 func (t *tty) pushByte(b byte) {
-	if len(t.pushedBytes) >= ttyPushMax {
+	if b == 0 || len(t.pushedBytes) >= ttyPushMax {
 		return
 	}
 	t.pushedBytes = append(t.pushedBytes, b)

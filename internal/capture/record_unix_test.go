@@ -77,25 +77,38 @@ func TestRecord(t *testing.T) {
 	}
 }
 
-// TestRecordIsStable records a session twice and checks that both runs agree.
-// A recording that changes between runs cannot prove anything about the port.
+// TestRecordIsStable records every session twice and checks that both runs
+// agree. A recording that changes between runs cannot prove anything about
+// the port, and a golden file made from one is worse than none.
+//
+// This used to record only the first session, which is why it did not catch
+// the one session that was not stable: completion-menu sends Escape, and the
+// demo waits as long to decide what that means as the harness waits for the
+// program to go quiet. Recording all of them costs one more pass of about
+// twelve seconds and would have caught it at once.
 func TestRecordIsStable(t *testing.T) {
 	if _, err := os.Stat(demoPath); err != nil {
 		t.Skipf("no demo at %s: run tools/build-demo.sh", demoPath)
 	}
-	session := Sessions[0]
-	first, err := Record(context.Background(), demoPath, session)
-	if err != nil {
-		t.Fatalf("first recording: %v", err)
-	}
-	second, err := Record(context.Background(), demoPath, session)
-	if err != nil {
-		t.Fatalf("second recording: %v", err)
-	}
-	if first.Encode() != second.Encode() {
-		line, a, b := firstDiff(first.Encode(), second.Encode())
-		t.Errorf("two recordings of %s differ on line %d\nfirst:  %s\nsecond: %s",
-			session.Name, line, a, b)
+	for _, session := range Sessions {
+		t.Run(session.Name, func(t *testing.T) {
+			first, err := Record(context.Background(), demoPath, session)
+			if err != nil {
+				t.Fatalf("first recording: %v", err)
+			}
+			second, err := Record(context.Background(), demoPath, session)
+			if err != nil {
+				t.Fatalf("second recording: %v", err)
+			}
+			if first.Encode() == second.Encode() {
+				return
+			}
+			line, a, b := firstDiff(first.Encode(), second.Encode())
+			t.Errorf("two recordings of %s differ on line %d\nfirst:  %s\nsecond: %s\n"+
+				"A session that records differently twice cannot have a golden file. "+
+				"Look for a wait in the session that is as long as something the demo waits for.",
+				session.Name, line, a, b)
+		})
 	}
 }
 
