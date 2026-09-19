@@ -126,8 +126,12 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    pseudo-terminal because the C asks the terminal for the cursor position when
    it cannot get the size any other way.
 
-7. `bbcode.c` and `bbcode_colors.c`. This parses markup such as
-   `[red]text[/red]`.
+7. `bbcode.c` and `bbcode_colors.c`. Done. `bbcode.go` turns markup such as
+   `[red]text[/red]` into text plus one attribute for every byte of it, and
+   `bbcodecolors.go` holds the 172 HTML color names, extracted from the C
+   source rather than typed out. `tools/build-probe-bbcode.sh` builds the
+   eighth probe, and `testdata/bbcode.txt` records 79 pieces of markup, each
+   one parsed, measured and printed.
 8. `history.c` and `undo.c`. Done. `history.go` holds the list of lines the
    user typed and the file it is kept in, and `undo.go` the stack of saved
    lines that stepping back through edits uses. The C keeps the list in a
@@ -356,6 +360,29 @@ allows a difference only in those cases. A difference anywhere else fails.
 position just past the end it reads a slot it never wrote. That is undefined
 behavior rather than a wrong answer, so there is nothing to reproduce at all.
 The port returns the empty attribute there.
+
+### bbcode.c
+
+Three faults, and the first two both reach real output.
+
+`attr_update_bool` uses each `strcmp` as a truth value instead of testing it
+against zero, and `strcmp` answers zero when the two strings are equal. The
+first branch is therefore taken for every value, so `[bold=off]` turns bold on,
+and so does `[bold=false]` and `[bold=0]`. The port keeps this, because the
+banner in the demo is written in this markup and the recorded sessions hold
+what it produces.
+
+Every tag name is thrown away. `attr_update_with_styles` means to record the
+name on the tag, but it guards the assignment with a test on the field it is
+about to write rather than on the value it is writing, and the field starts as
+a null pointer. So the name is never stored, `bbcode_close` matches the first
+tag it pops whatever it is called, and the whole unbalanced-tag branch below it
+is unreachable. `[b][i]x[/b][/i]` therefore behaves the same as
+`[b][i]x[/i][/b]`.
+
+The character classes for a name and for a value disagree about upper case. A
+name takes A to Z, and an unquoted value stops at F, so `[color=RED]` reads as
+an empty value while `[RED]` reads as the color. Quoting the value avoids it.
 
 ### term.c
 
