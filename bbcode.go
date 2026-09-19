@@ -177,7 +177,7 @@ func updateColor(field *Color, value string) {
 		// finds and does not widen a short value, so "#f00" is 0xf00 rather
 		// than 0xff0000.
 		if v, ok := scanHex(value[1:]); ok {
-			*field = RGB(v)
+			*field = RGBHex(v)
 		}
 		return
 	}

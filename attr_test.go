@@ -87,10 +87,10 @@ func attrCheck(t *testing.T, f []string, dumps map[string][]string) (string, str
 	t.Helper()
 	switch f[0] {
 	case "rgb":
-		return fmt.Sprintf("%08x", uint32(RGB(mustU32(t, f[1])))), f[2]
+		return fmt.Sprintf("%08x", uint32(RGBHex(mustU32(t, f[1])))), f[2]
 	case "rgbx":
 		r, g, b := mustInt(t, f[1]), mustInt(t, f[2]), mustInt(t, f[3])
-		return fmt.Sprintf("%08x", uint32(RGBX(r, g, b))), f[4]
+		return fmt.Sprintf("%08x", uint32(RGB(r, g, b))), f[4]
 	case "ansi256":
 		return fmt.Sprintf("%08x", uint32(colorFromANSI256(mustInt(t, f[1])))), f[2]
 	case "none":

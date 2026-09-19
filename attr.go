@@ -212,7 +212,7 @@ func sgrExtended(s string, i, cmd int, a *attr) int {
 		i++
 		var r, g, b int
 		if r, g, b, i, ok = sgrNextPar3(s, i); ok {
-			set(RGBX(r, g, b))
+			set(RGB(r, g, b))
 		}
 	}
 	return i

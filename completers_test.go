@@ -24,17 +24,17 @@ func TestCompleteQWordUsesTheUsualQuoting(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			inner := func(cenv *Completion, _ string) {
+			inner := CompleterFunc(func(cenv *Completion, _ string) {
 				cenv.add("my file.txt", "", "", 0, 0)
-			}
+			})
 			short := &completions{}
-			short.setCompleter(func(cenv *Completion, prefix string) {
+			short.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
 				completeQWord(cenv, prefix, inner, nil)
-			}, nil)
+			}), nil)
 			long := &completions{}
-			long.setCompleter(func(cenv *Completion, prefix string) {
+			long.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
 				completeQWordEx(cenv, prefix, inner, nil, defaultEscapeChar, defaultQuoteChars)
-			}, nil)
+			}), nil)
 
 			cursor := len(test.input)
 			got := collect(t, short, test.input, cursor, 10)
@@ -73,9 +73,9 @@ func TestAddCompletionsFiltersByPrefix(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			c := &completions{}
-			c.setCompleter(func(cenv *Completion, prefix string) {
+			c.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
 				addCompletions(cenv, prefix, words)
-			}, nil)
+			}), nil)
 			c.generate(test.prefix, len(test.prefix), 100)
 			if c.count() != len(test.want) {
 				t.Fatalf("offered %d %v, want %d %q", c.count(), c.items, len(test.want), test.want)
@@ -96,9 +96,9 @@ func TestAddCompletionsStopsWhenFull(t *testing.T) {
 	words := []string{"a1", "a2", "a3", "a4", "a5"}
 	c := &completions{}
 	finished := false
-	c.setCompleter(func(cenv *Completion, prefix string) {
+	c.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
 		finished = addCompletions(cenv, prefix, words)
-	}, nil)
+	}), nil)
 	c.generate("a", 1, 2)
 	if finished {
 		t.Error("the helper reported it got through the whole list")
@@ -158,10 +158,10 @@ func TestGenerateRefusesACursorPastTheEnd(t *testing.T) {
 	t.Parallel()
 	called := false
 	c := &completions{}
-	c.setCompleter(func(cenv *Completion, prefix string) {
+	c.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
 		called = true
 		cenv.add("x", "", "", 0, 0)
-	}, nil)
+	}), nil)
 	for _, cursor := range []int{-1, 4, 100} {
 		called = false
 		if got := c.generate("abc", cursor, 10); got != 0 {
@@ -184,9 +184,9 @@ func TestGeneratePassesTheCompleterArg(t *testing.T) {
 	want := &marker{n: 42}
 	var got any
 	c := &completions{}
-	c.setCompleter(func(cenv *Completion, _ string) {
+	c.setCompleter(CompleterFunc(func(cenv *Completion, _ string) {
 		got = cenv.arg
-	}, want)
+	}), want)
 	c.generate("x", 1, 10)
 	if got != any(want) {
 		t.Errorf("the completer was given %v, want %v", got, want)

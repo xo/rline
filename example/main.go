@@ -48,10 +48,10 @@ func run() error {
 
 	opts := []rline.Option{
 		rline.WithPrompt("sql> ", "...> "),
-		rline.WithHighlighter(highlight),
-		rline.WithCompleter(complete),
+		rline.WithHighlighter(rline.HighlighterFunc(highlight)),
+		rline.WithCompleter(rline.CompleterFunc(complete)),
 		rline.WithContinue(incomplete),
-		rline.WithHistory("", 0), // kept in memory, default size
+		rline.WithHistoryLimit(rline.DefaultHistoryEntries), // kept in memory, default size
 	}
 	if *logPath != "" {
 		f, err := os.Create(*logPath)
@@ -77,10 +77,10 @@ func run() error {
 	r.DefineStyle("sql-string", "bold ansi-lime")
 	r.DefineStyle("sql-comment", "ansi-gray")
 
-	r.Println("[b]rline[/b] SQL example.")
-	r.Println("[ic-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
-	r.Println("[ic-info]Enter carries on until then, so up and down move between the rows.[/]")
-	r.Println(`[ic-info]\pass reads a password without showing it, then echoes it back.[/]`)
+	fmt.Fprintln(r.Markup(), "[b]rline[/b] SQL example.")
+	fmt.Fprintln(r.Markup(), "[ic-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
+	fmt.Fprintln(r.Markup(), "[ic-info]Enter carries on until then, so up and down move between the rows.[/]")
+	fmt.Fprintln(r.Markup(), `[ic-info]\pass reads a password without showing it, then echoes it back.[/]`)
 
 	// When there is no terminal to edit on, ReadLine hands back one line at a
 	// time and WithContinue never runs, so the statement is joined here
@@ -91,7 +91,7 @@ func run() error {
 		if errors.Is(err, io.EOF) {
 			// The input ended rather than the user asking to leave, which is
 			// what happens when the input is a file or a pipe that ran out.
-			r.Println("")
+			fmt.Fprintln(r.Markup(), "")
 			return nil
 		}
 		if err != nil {
@@ -122,7 +122,7 @@ func run() error {
 			pw, err := r.Password("password: ")
 			switch {
 			case errors.Is(err, rline.ErrInterrupted):
-				r.Println("[ic-info]cancelled[/]")
+				fmt.Fprintln(r.Markup(), "[ic-info]cancelled[/]")
 				continue
 			case errors.Is(err, io.EOF):
 				return nil
@@ -226,7 +226,7 @@ func highlight(h *rline.Highlight, input string) {
 			if n < 0 {
 				n = len(input) - i
 			}
-			h.Style(i, n, "sql-comment")
+			h.StyleBytes(i, n, "sql-comment")
 			i += n
 		case input[i] == '\'':
 			// A string runs to the closing quote, or to the end if there is
@@ -237,14 +237,14 @@ func highlight(h *rline.Highlight, input string) {
 			} else {
 				n += 2
 			}
-			h.Style(i, n, "sql-string")
+			h.StyleBytes(i, n, "sql-string")
 			i += n
 		case isDigit(input[i]):
 			n := 0
 			for i+n < len(input) && (isDigit(input[i+n]) || input[i+n] == '.') {
 				n++
 			}
-			h.Style(i, n, "sql-number")
+			h.StyleBytes(i, n, "sql-number")
 			i += n
 		case isWordByte(input[i]):
 			n := 0
@@ -254,11 +254,11 @@ func highlight(h *rline.Highlight, input string) {
 			word := strings.ToLower(input[i : i+n])
 			switch {
 			case sqlKeywords[word]:
-				h.Style(i, n, "sql-keyword")
+				h.StyleBytes(i, n, "sql-keyword")
 			case sqlTypes[word]:
-				h.Style(i, n, "sql-type")
+				h.StyleBytes(i, n, "sql-type")
 			case sqlConstants[word]:
-				h.Style(i, n, "sql-const")
+				h.StyleBytes(i, n, "sql-const")
 			}
 			i += n
 		default:
@@ -285,8 +285,8 @@ func complete(c *rline.Completion, prefix string) {
 	// the cursor sits inside a word would offer the rest of a word that is
 	// already there: with the cursor after "wh" in "where", the answer is
 	// "where" and taking it gives "whereere". The whole line says so.
-	line, cursor := c.Input()
-	if cursor < len(line) && isWordByte(line[cursor]) {
+	in := c.Input()
+	if in.Cursor < len(in.Text) && isWordByte(in.Text[in.Cursor]) {
 		return
 	}
 	word := prefix
@@ -310,7 +310,7 @@ func complete(c *rline.Completion, prefix string) {
 	for _, w := range found {
 		// The replacement takes the place of the word already typed, so the
 		// part already there is deleted first.
-		if !c.AddFull(w, "", "", len(word), 0) {
+		if !c.AddEntry(rline.Entry{Replacement: w, DeleteBefore: len(word)}) {
 			return
 		}
 	}

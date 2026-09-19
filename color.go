@@ -1,5 +1,7 @@
 package rline
 
+import "image/color"
+
 // Colors.
 //
 // A Color is either an ANSI palette code or a 24 bit RGB value. Bit 24 is set
@@ -44,15 +46,53 @@ const (
 // code.
 const rgbFlag Color = 0x1000000
 
-// RGB returns the color with the 24 bit value hex.
-func RGB(hex uint32) Color {
+// RGBHex returns the color with the 24 bit value hex, written the way a web
+// color is: 0xFF8800 is orange.
+func RGBHex(hex uint32) Color {
 	return rgbFlag | Color(hex&0xFFFFFF)
 }
 
-// RGBX returns the color with the red, green and blue components r, g and b.
+// RGB returns the color with the red, green and blue components r, g and b.
 // Each component is capped to the range 0 to 255.
-func RGBX(r, g, b int) Color {
-	return RGB(cap8(r)<<16 | cap8(g)<<8 | cap8(b))
+func RGB(r, g, b int) Color {
+	return RGBHex(cap8(r)<<16 | cap8(g)<<8 | cap8(b))
+}
+
+// FromColor returns the nearest Color to c, which lets a caller pass a color
+// from image/color or from any package that builds on it.
+//
+// The alpha channel is dropped: a terminal has no transparency, so a color is
+// used whatever its alpha says, and a fully transparent color comes out black
+// rather than invisible.
+func FromColor(c color.Color) Color {
+	r, g, b, _ := c.RGBA()
+	// RGBA returns each channel in the range 0 to 0xFFFF.
+	return RGB(int(r>>8), int(g>>8), int(b>>8))
+}
+
+// RGBA satisfies color.Color, so a Color can be handed to anything that works
+// with the standard library's colors.
+//
+// A palette color answers what that slot looks like in the usual 256 color
+// table, because the terminal's own theme decides the real answer and is not
+// knowable from here. ColorNone and ANSIDefault both answer transparent
+// black, which is the only honest answer for "the terminal decides".
+func (c Color) RGBA() (r, g, b, a uint32) {
+	var hex uint32
+	switch {
+	case c == ColorNone || c == ANSIDefault:
+		return 0, 0, 0, 0
+	case c.isRGB():
+		hex = uint32(c) & 0xFFFFFF
+	case c >= ANSIBlack && c <= ANSISilver:
+		hex = ansi256[c-ANSIBlack]
+	case c >= ANSIGray && c <= ANSIWhite:
+		hex = ansi256[8+c-ANSIGray]
+	default:
+		return 0, 0, 0, 0
+	}
+	to16 := func(v uint32) uint32 { return v<<8 | v }
+	return to16((hex >> 16) & 0xFF), to16((hex >> 8) & 0xFF), to16(hex & 0xFF), 0xFFFF
 }
 
 // cap8 limits i to the range 0 to 255.
@@ -94,7 +134,7 @@ func colorFromANSI256(i int) Color {
 	case i >= 8 && i < 16:
 		return ANSIDarkGray + Color(i-8)
 	case i >= 16 && i <= 255:
-		return RGB(ansi256[i])
+		return RGBHex(ansi256[i])
 	}
 	return ANSIDefault
 }

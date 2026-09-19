@@ -119,6 +119,10 @@ type config struct {
 
 	// log records everything read and written, and may be nil.
 	log io.Writer
+
+	// in reads the keys when it is not a terminal, which is what a pipe or a
+	// test gives.
+	in io.Reader
 }
 
 // Option changes a setting on a Reader being made.
@@ -129,8 +133,26 @@ func WithOutput(w io.Writer) Option {
 	return func(c *config) { c.out = w }
 }
 
-// WithInputFd reads keys from the given file descriptor rather than from
-// standard input.
+// WithInput reads keys from r rather than from standard input.
+//
+// Editing needs a terminal, which is reached by file descriptor on Unix and
+// by handle on Windows, so a reader that is not an *os.File is read plainly
+// with no editing — the same as a pipe. Pass an *os.File for a terminal, and
+// anything else to feed a program that does not need editing.
+func WithInput(r io.Reader) Option {
+	return func(c *config) {
+		c.in = r
+		if f, ok := r.(*os.File); ok {
+			c.inFd = int(f.Fd())
+		}
+	}
+}
+
+// WithInputFd reads keys from the given file descriptor.
+//
+// This is for a terminal that the caller holds as a descriptor rather than as
+// a file, which is the one case WithInput cannot express. A negative
+// descriptor means standard input.
 func WithInputFd(fd int) Option {
 	return func(c *config) { c.inFd = fd }
 }
@@ -138,6 +160,10 @@ func WithInputFd(fd int) Option {
 // WithPrompt sets the marker written after the prompt text, and the one used
 // on the lines after the first. An empty continuation marker repeats the
 // first.
+//
+// The marker is not the prompt. ReadLine is handed the prompt text for that
+// one line, and the marker is what is drawn after it, so a prompt text of
+// "sql" and a marker of "> " are shown as "sql> ".
 func WithPrompt(marker, continuation string) Option {
 	return func(c *config) {
 		c.promptMarker = marker
@@ -148,35 +174,41 @@ func WithPrompt(marker, continuation string) Option {
 	}
 }
 
-// WithHistory keeps the history in the named file, holding at most entries of
-// them.
-//
-// An empty name keeps the history only while the program runs. A count of zero
-// or less means the default of 200. Use WithoutHistory to turn it off.
-func WithHistory(fname string, entries int) Option {
+// WithHistoryFile keeps the history in the named file, so that it outlives
+// the program. An empty name keeps it only while the program runs.
+func WithHistoryFile(fname string) Option {
+	return func(c *config) { c.historyFile = fname }
+}
+
+// WithHistoryLimit holds at most n entries. A limit of zero or less turns the
+// history off, so nothing is remembered between lines and the arrow keys have
+// nothing to walk through.
+func WithHistoryLimit(n int) Option {
+	return func(c *config) { c.historyEntries = max(n, 0) }
+}
+
+// WithHistory turns the history on or off, keeping whatever file and limit
+// were set.
+func WithHistory(enabled bool) Option {
 	return func(c *config) {
-		c.historyFile = fname
-		c.historyEntries = entries
-		if entries <= 0 {
-			c.historyEntries = DefaultHistoryEntries
+		if enabled {
+			if c.historyEntries <= 0 {
+				c.historyEntries = DefaultHistoryEntries
+			}
+			return
 		}
+		c.historyEntries = 0
 	}
 }
 
-// WithoutHistory keeps no history at all, so nothing is remembered between
-// lines and the arrow keys have nothing to walk through.
-func WithoutHistory() Option {
-	return func(c *config) { c.historyEntries = 0 }
-}
-
 // WithHighlighter marks up each line as it is typed.
-func WithHighlighter(fn Highlighter) Option {
-	return func(c *config) { c.highlighter = fn }
+func WithHighlighter(h Highlighter) Option {
+	return func(c *config) { c.highlighter = h }
 }
 
 // WithCompleter offers completions for the word at the cursor.
-func WithCompleter(fn Completer) Option {
-	return func(c *config) { c.completer = fn }
+func WithCompleter(completer Completer) Option {
+	return func(c *config) { c.completer = completer }
 }
 
 // WithContinue decides whether Enter finishes the line or starts another row
@@ -188,61 +220,64 @@ func WithCompleter(fn Completer) Option {
 // buffer, so the cursor can be moved between its rows and the whole thing is
 // handed back at once.
 //
-// Without this, Enter always finishes the line, which is what the C does.
+// Without this, Enter always finishes the line.
 func WithContinue(fn func(line string) bool) Option {
 	return func(c *config) { c.isIncomplete = fn }
 }
 
-// WithoutColor writes no color, whatever the terminal supports.
-func WithoutColor() Option {
-	return func(c *config) { c.noColor = true }
+// WithColor writes color when the terminal supports it. Turning it off writes
+// none, whatever the terminal supports.
+func WithColor(enabled bool) Option {
+	return func(c *config) { c.noColor = !enabled }
 }
 
-// WithoutBeep stays quiet where the editor would beep.
-func WithoutBeep() Option {
-	return func(c *config) { c.silent = true }
+// WithBeep beeps where the editor would. Turning it off stays quiet.
+func WithBeep(enabled bool) Option {
+	return func(c *config) { c.silent = !enabled }
 }
 
-// SingleLine refuses line breaks, so a line is always one line.
-func SingleLine() Option {
-	return func(c *config) { c.singlelineOnly = true }
+// WithMultiline allows line breaks inside one line. Turning it off refuses
+// them, so a line is always one row.
+func WithMultiline(enabled bool) Option {
+	return func(c *config) { c.singlelineOnly = !enabled }
 }
 
-// WithoutHighlighting turns off marking up the line.
-func WithoutHighlighting() Option {
-	return func(c *config) { c.noHighlight = true }
+// WithHighlighting marks up the line. Turning it off draws it plainly, and
+// the highlighter is not called.
+func WithHighlighting(enabled bool) Option {
+	return func(c *config) { c.noHighlight = !enabled }
 }
 
-// WithoutBraceMatching turns off highlighting the partner of a brace.
-func WithoutBraceMatching() Option {
-	return func(c *config) { c.noBraceMatch = true }
+// WithBraceMatching highlights the partner of the brace at the cursor.
+func WithBraceMatching(enabled bool) Option {
+	return func(c *config) { c.noBraceMatch = !enabled }
 }
 
-// WithoutBraceInsertion turns off closing a brace automatically.
-func WithoutBraceInsertion() Option {
-	return func(c *config) { c.opts.NoAutoBrace = true }
+// WithBraceInsertion closes a brace automatically when one is typed.
+func WithBraceInsertion(enabled bool) Option {
+	return func(c *config) { c.opts.NoAutoBrace = !enabled }
 }
 
-// WithoutHints turns off showing the rest of the only completion that fits.
-func WithoutHints() Option {
-	return func(c *config) { c.noHint = true }
+// WithHints shows the rest of the only completion that fits, in grey after
+// the cursor.
+func WithHints(enabled bool) Option {
+	return func(c *config) { c.noHint = !enabled }
 }
 
-// WithoutInlineHelp stops the short reminder that is shown below the line
-// while searching the history.
-func WithoutInlineHelp() Option {
-	return func(c *config) { c.noHelp = true }
+// WithInlineHelp shows the short reminder below the line while searching the
+// history.
+func WithInlineHelp(enabled bool) Option {
+	return func(c *config) { c.noHelp = !enabled }
 }
 
-// WithoutMultilineIndent stops the lines after the first lining up under the
-// prompt.
-func WithoutMultilineIndent() Option {
-	return func(c *config) { c.noMultilineIndent = true }
+// WithMultilineIndent lines the rows after the first up under the prompt.
+func WithMultilineIndent(enabled bool) Option {
+	return func(c *config) { c.noMultilineIndent = !enabled }
 }
 
 // WithAutoTab keeps completing while there is only one answer.
-func WithAutoTab() Option {
-	return func(c *config) { c.completeAutoTab = true }
+func WithAutoTab(enabled bool) Option {
+	return func(c *config) { c.completeAutoTab = enabled }
 }
 
 // WithHintDelay waits d before showing a hint. Zero shows it at once.
@@ -296,7 +331,11 @@ func New(opts ...Option) (*Reader, error) {
 		o(c)
 	}
 
-	r := &Reader{plain: bufio.NewReader(os.Stdin)}
+	in := io.Reader(os.Stdin)
+	if c.in != nil {
+		in = c.in
+	}
+	r := &Reader{plain: bufio.NewReader(in)}
 
 	// A missing keyboard is a mode rather than a failure: a program whose
 	// input is a pipe or a file still wants its lines, and gets them without
@@ -529,28 +568,44 @@ func (r *Reader) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Print writes markup such as "[red]text[/red]" to the terminal.
-func (r *Reader) Print(s string) {
-	if r.env == nil {
-		return
-	}
-	r.env.bb.print(s)
-	r.env.term.flush()
+// Markup returns a writer that reads what is written to it as markup, such
+// as "[red]text[/red]", rather than as plain text.
+//
+// The Reader itself writes plain text, because most of what a program writes
+// came from a user or a file and a bracket in it is not a tag. Write markup
+// with fmt on this writer instead:
+//
+//	fmt.Fprintf(r.Markup(), "[ic-error]%s[/]\n", msg)
+func (r *Reader) Markup() io.Writer {
+	return markupWriter{r: r}
 }
 
-// Println writes markup and ends the line.
-func (r *Reader) Println(s string) {
-	if r.env == nil {
-		return
+// markupWriter writes markup through a Reader.
+type markupWriter struct{ r *Reader }
+
+// Write satisfies io.Writer.
+func (w markupWriter) Write(p []byte) (int, error) {
+	if w.r.env == nil {
+		return len(p), nil
 	}
-	r.env.bb.println(s)
-	r.env.term.flush()
+	w.r.env.bb.print(string(p))
+	w.r.env.term.flush()
+	return len(p), nil
 }
 
-// Printf writes formatted markup.
-func (r *Reader) Printf(format string, args ...any) {
-	r.Print(fmt.Sprintf(format, args...))
-}
+// Stdout returns where the program should write its own output.
+//
+// It is the Reader, because the terminal the Reader writes through is the one
+// that knows where the prompt is. Writing to os.Stdout instead draws over the
+// line being edited.
+func (r *Reader) Stdout() io.Writer { return r }
+
+// Stderr returns where the program should write its errors.
+//
+// It is the Reader as well, for the same reason: an error written straight to
+// os.Stderr lands on top of the line being edited. A program that wants its
+// errors kept apart from its output should write them somewhere else itself.
+func (r *Reader) Stderr() io.Writer { return r }
 
 // DefineStyle gives a name to a set of attributes, so that markup can use it.
 // The spec is written the way the inside of a tag is, such as "bold color=red".
@@ -559,6 +614,29 @@ func (r *Reader) DefineStyle(name, spec string) {
 		return
 	}
 	r.env.bb.styleDef(name, spec)
+}
+
+// SetHighlighter changes the function that marks up the line.
+//
+// A nil highlighter draws the line plainly.
+func (r *Reader) SetHighlighter(h Highlighter) {
+	if r.env == nil {
+		return
+	}
+	r.env.highlighter = h
+}
+
+// LoadHistory reads the history back from the file it was given, throwing
+// away what is held.
+//
+// New does this already. This is for a program that changes the file while it
+// runs, or that wants what another process has written since.
+func (r *Reader) LoadHistory(fname string) error {
+	if r.env == nil || r.env.history == nil {
+		return nil
+	}
+	r.env.history.loadFrom(fname, r.env.history.max)
+	return nil
 }
 
 // AddHistory adds an entry to the history.

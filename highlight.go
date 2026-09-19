@@ -15,7 +15,15 @@ const maxBraceNesting = 64
 // mark it through.
 //
 //nolint:unused // wired up by editline, step 11
-type Highlighter func(env *Highlight, input string)
+type Highlighter interface {
+	Highlight(env *Highlight, input string)
+}
+
+// HighlighterFunc makes a Highlighter out of an ordinary function.
+type HighlighterFunc func(env *Highlight, input string)
+
+// Highlight satisfies Highlighter.
+func (f HighlighterFunc) Highlight(env *Highlight, input string) { f(env, input) }
 
 // Highlight is what a highlighter marks a line through.
 //
@@ -48,8 +56,7 @@ func runHighlight(bb *bbCode, s string, attrs *attrBuf, fn Highlighter) {
 	if fn == nil {
 		return
 	}
-	env := &Highlight{input: s, attrs: attrs, bb: bb}
-	fn(env, s)
+	fn.Highlight(&Highlight{input: s, attrs: attrs, bb: bb}, s)
 }
 
 // posAdjust turns a position and a count given in characters into one given in
@@ -112,17 +119,27 @@ func (h *Highlight) mark(pos, count int, a attr) {
 	h.attrs.updateAt(pos, count, a)
 }
 
-// Style marks count bytes from pos with a named style, such as "keyword" or
+// StyleBytes marks count bytes from pos with a named style, such as "keyword" or
 // a color name such as "red".
 //
 // A negative count means a number of characters rather than bytes, which is
 // what a caller counting characters wants. A negative pos is refused, which is
 // what the C does.
-func (h *Highlight) Style(pos, count int, style string) {
+func (h *Highlight) StyleBytes(pos, count int, style string) {
 	if style == "" || pos < 0 {
 		return
 	}
 	h.mark(pos, count, h.bb.style(style))
+}
+
+// StyleRunes marks count characters from pos with a named style. pos is still
+// counted in bytes, because that is where the caller found the word; only the
+// length is counted in characters.
+func (h *Highlight) StyleRunes(pos, count int, style string) {
+	if style == "" || pos < 0 {
+		return
+	}
+	h.mark(pos, -count, h.bb.style(style))
 }
 
 // Formatted marks up s using markup that spells out the same text, so that a

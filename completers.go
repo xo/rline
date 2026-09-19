@@ -69,7 +69,7 @@ func withWordPrefix(cenv *Completion, deleteBeforeAdjust int,
 			deleteBeforeAdjust+deleteBefore,
 			countEndOverlap(replacement, postfix)+deleteAfter)
 	}
-	fun(cenv, word)
+	fun.Complete(cenv, word)
 	cenv.add = prev
 }
 

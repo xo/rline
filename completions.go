@@ -59,7 +59,33 @@ type addFunc func(replacement, display, help string, deleteBefore, deleteAfter i
 //
 // It is handed the prefix to complete and calls Add for each answer. Returning
 // without adding anything means there is nothing to offer.
-type Completer func(c *Completion, prefix string)
+//
+// This is an interface rather than a function type so that a completer can
+// grow a second method without breaking everyone who has one. Wrap a plain
+// function in CompleterFunc.
+type Completer interface {
+	Complete(c *Completion, prefix string)
+}
+
+// CompleterFunc makes a Completer out of an ordinary function.
+type CompleterFunc func(c *Completion, prefix string)
+
+// Complete satisfies Completer.
+func (f CompleterFunc) Complete(c *Completion, prefix string) { f(c, prefix) }
+
+// Entry is one completion, said in full.
+//
+// Replacement is what goes into the line. Display is what the menu shows, and
+// an empty Display shows the Replacement itself. Help is a line shown below
+// the menu. DeleteBefore and DeleteAfter say how many bytes on each side of
+// the cursor the completion takes away.
+type Entry struct {
+	Replacement  string
+	Display      string
+	Help         string
+	DeleteBefore int
+	DeleteAfter  int
+}
 
 // Completion is what a completer is given: the whole line, where the cursor
 // sits in it, and the way to offer an answer.
@@ -81,26 +107,31 @@ type Completion struct {
 // completer. It reports whether more are wanted: a completer that is walking a
 // large directory should stop when it answers false.
 func (c *Completion) Add(replacement string) bool {
-	return c.AddFull(replacement, "", "", 0, 0)
+	return c.AddEntry(Entry{Replacement: replacement})
 }
 
-// AddFull offers one completion, saying how it should be shown and how much of
-// the line it replaces.
-//
-// display is what the menu shows, and an empty display shows the replacement
-// itself. help is a line shown below the menu. deleteBefore and deleteAfter
-// say how many bytes on each side of the cursor the completion takes away.
-func (c *Completion) AddFull(replacement, display, help string, deleteBefore, deleteAfter int) bool {
+// AddEntry offers one completion, said in full. It reports whether more are
+// wanted, as Add does.
+func (c *Completion) AddEntry(e Entry) bool {
 	if c == nil || c.add == nil {
 		return false
 	}
-	return c.add(replacement, display, help, deleteBefore, deleteAfter)
+	return c.add(e.Replacement, e.Display, e.Help, e.DeleteBefore, e.DeleteAfter)
+}
+
+// Input is the line a completer was called on.
+type Input struct {
+	// Text is the whole line, not only the part before the cursor.
+	Text string
+
+	// Cursor is where the cursor sits in Text, counted in bytes.
+	Cursor int
 }
 
 // Input returns the whole line and where the cursor sits in it, which a
 // completer needs when the word alone is not enough to decide.
-func (c *Completion) Input() (string, int) {
-	return c.input, c.cursor
+func (c *Completion) Input() Input {
+	return Input{Text: c.input, Cursor: c.cursor}
 }
 
 // completions holds what the completer offered, and the completer itself.
@@ -321,7 +352,7 @@ func (c *completions) generate(input string, pos, maxOffers int) int {
 		return c.add(replacement, display, help, deleteBefore, deleteAfter)
 	}
 	c.completerMax = maxOffers
-	c.completer(cenv, input[:pos])
+	c.completer.Complete(cenv, input[:pos])
 	return c.count()
 }
 

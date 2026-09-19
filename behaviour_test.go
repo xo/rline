@@ -188,15 +188,15 @@ func TestUTF8Editing(t *testing.T) {
 // in place and put the whole answer after it.
 func manyWords(words ...string) Completer {
 	words = slices.Sorted(slices.Values(words))
-	return func(c *Completion, prefix string) {
+	return CompleterFunc(func(c *Completion, prefix string) {
 		for _, w := range words {
 			if strings.HasPrefix(w, prefix) && w != prefix {
-				if !c.AddFull(w, "", "", len(prefix), 0) {
+				if !c.AddEntry(Entry{Replacement: w, DeleteBefore: len(prefix)}) {
 					return
 				}
 			}
 		}
-	}
+	})
 }
 
 // wordsStartingWith returns n words that all start with start and agree on

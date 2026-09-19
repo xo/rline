@@ -166,15 +166,15 @@ func checkFilesCase(t *testing.T, p *fieldReader) string {
 	setEnvOrUnset(t, "LSCOLORS", "")
 
 	c := &completions{}
-	c.setCompleter(func(cenv *Completion, word string) {
+	c.setCompleter(CompleterFunc(func(cenv *Completion, word string) {
 		completeFilename(cenv, word, noColor, dirSep, roots, extensions)
-	}, nil)
+	}), nil)
 	c.completerMax = 200
 	cenv := &Completion{input: prefix, cursor: len(prefix)}
 	cenv.add = func(replacement, display, help string, before, after int) bool {
 		return c.add(replacement, display, help, before, after)
 	}
-	c.completer(cenv, prefix)
+	c.completer.Complete(cenv, prefix)
 
 	got := make([]string, 0, c.count())
 	for _, cm := range c.items {

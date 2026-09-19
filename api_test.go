@@ -68,22 +68,34 @@ func TestOptions(t *testing.T) {
 		{"prompt with continuation", WithPrompt("$ ", "| "), func(c *config) bool {
 			return c.promptMarker == "$ " && c.cpromptMarker == "| "
 		}},
-		{"history", WithHistory("h.txt", 12), func(c *config) bool {
-			return c.historyFile == "h.txt" && c.historyEntries == 12
+		{"history file", WithHistoryFile("h.txt"), func(c *config) bool {
+			return c.historyFile == "h.txt"
 		}},
-		{"no color", WithoutColor(), func(c *config) bool { return c.noColor }},
-		{"no beep", WithoutBeep(), func(c *config) bool { return c.silent }},
-		{"single line", SingleLine(), func(c *config) bool { return c.singlelineOnly }},
-		{"no highlighting", WithoutHighlighting(), func(c *config) bool { return c.noHighlight }},
-		{"no brace matching", WithoutBraceMatching(), func(c *config) bool { return c.noBraceMatch }},
-		{"no brace insertion", WithoutBraceInsertion(), func(c *config) bool { return c.opts.NoAutoBrace }},
-		{"no hints", WithoutHints(), func(c *config) bool { return c.noHint }},
-		{"no indent", WithoutMultilineIndent(), func(c *config) bool { return c.noMultilineIndent }},
-		{"auto tab", WithAutoTab(), func(c *config) bool { return c.completeAutoTab }},
+		{"history limit", WithHistoryLimit(12), func(c *config) bool {
+			return c.historyEntries == 12
+		}},
+		{"history off", WithHistory(false), func(c *config) bool { return c.historyEntries == 0 }},
+		{"history on", WithHistory(true), func(c *config) bool {
+			return c.historyEntries == DefaultHistoryEntries
+		}},
+		{"no color", WithColor(false), func(c *config) bool { return c.noColor }},
+		{"color", WithColor(true), func(c *config) bool { return !c.noColor }},
+		{"no beep", WithBeep(false), func(c *config) bool { return c.silent }},
+		{"single line", WithMultiline(false), func(c *config) bool { return c.singlelineOnly }},
+		{"no highlighting", WithHighlighting(false), func(c *config) bool { return c.noHighlight }},
+		{"no brace matching", WithBraceMatching(false), func(c *config) bool { return c.noBraceMatch }},
+		{"no brace insertion", WithBraceInsertion(false), func(c *config) bool { return c.opts.NoAutoBrace }},
+		{"no hints", WithHints(false), func(c *config) bool { return c.noHint }},
+		{"no inline help", WithInlineHelp(false), func(c *config) bool { return c.noHelp }},
+		{"no indent", WithMultilineIndent(false), func(c *config) bool { return c.noMultilineIndent }},
+		{"auto tab", WithAutoTab(true), func(c *config) bool { return c.completeAutoTab }},
 		{"hint delay", WithHintDelay(time.Second), func(c *config) bool { return c.hintDelay == time.Second }},
 		{"match braces", WithMatchBraces("<>"), func(c *config) bool { return c.opts.MatchBraces == "<>" }},
 		{"auto braces", WithAutoBraces("<>"), func(c *config) bool { return c.opts.AutoBraces == "<>" }},
 		{"input fd", WithInputFd(3), func(c *config) bool { return c.inFd == 3 }},
+		{"input reader", WithInput(strings.NewReader("x")), func(c *config) bool {
+			return c.in != nil
+		}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

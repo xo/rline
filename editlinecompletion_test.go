@@ -145,13 +145,13 @@ var menuGenerated = []string{
 }
 
 // menuCompleter offers menuGenerated, whatever the prefix.
-func menuCompleter(c *Completion, _ string) {
+var menuCompleter = CompleterFunc(func(c *Completion, _ string) {
 	for _, name := range menuGenerated {
 		if !c.Add(name) {
 			return
 		}
 	}
-}
+})
 
 // plainEntries makes entries that have no display and no help of their own.
 func plainEntries(replacements ...string) []menuEntry {

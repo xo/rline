@@ -381,8 +381,8 @@ func completeFilename(cenv *Completion, prefix string, noColor bool,
 	// that belongs to the program, and leaves it pointing at a dead stack
 	// value afterwards. A closure carries them here instead, so the
 	// program's own argument is left alone.
-	inner := func(cenv *Completion, word string) {
+	inner := CompleterFunc(func(cenv *Completion, word string) {
 		filenameCompleter(cenv, word, noColor, dirSep, roots, extensions)
-	}
+	})
 	completeQWordEx(cenv, prefix, inner, charIsFileNameLetter, defaultEscapeChar, defaultQuoteChars)
 }

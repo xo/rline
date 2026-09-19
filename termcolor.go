@@ -65,7 +65,7 @@ func abs(i int) int {
 // thing is multiplied up to keep precision. The arithmetic needs 28 signed
 // bits, and the widest value it reaches is far inside an int32.
 func rgbDistance(paletteColor uint32, r2, g2, b2 int) int32 {
-	r1, g1, b1 := RGB(paletteColor).rgb()
+	r1, g1, b1 := RGBHex(paletteColor).rgb()
 	rmean := int32(r1+r2) / 2
 	dr2 := sqr(int32(r1 - r2))
 	dg2 := sqr(int32(g1 - g2))
@@ -93,7 +93,7 @@ func rgbMatch(table *[256]uint32, start, end int, color Color) int {
 	bestDist := int32(2147483647) / 4
 	for i := start; i < end; i++ {
 		dist := rgbDistance(table[i], r, g, b)
-		pr, pg, pb := RGB(table[i]).rgb()
+		pr, pg, pb := RGBHex(table[i]).rgb()
 		if isGrayish(pr, pg, pb) != gray {
 			// Swapping a gray for a color, or the other way, is worse than the
 			// raw distance suggests. With few colors to choose from there is
