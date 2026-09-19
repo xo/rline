@@ -55,10 +55,36 @@ character array, since Linux puts them at 6 and 5 while the BSDs put them at
 `unix.VMIN`, and `x/sys/unix` defines it as 0x6 on Linux, 0x10 on the BSDs
 and 0x4 on Solaris. So the named risk does not apply here.
 
-Ken started a FreeBSD virtual machine on 2026-09-20, which is what would turn
-the second group from compiled into tested. What it can run today is the
-whole package except one test: thirteen of the fourteen test files build for
-FreeBSD, and the terminal layer has eleven of its twelve tests there.
+FreeBSD and NetBSD are measured rather than compiled, as of 2026-09-20. Ken
+ran both as incus virtual machines on the Linux host.
+
+FreeBSD 15.1 with its own Go 1.25.14: 327 tests, no failures. NetBSD 11.0
+with Go 1.26.5 from pkgsrc: 325 passed, 14 skipped, no failures. Both built
+from source on the machine rather than from a binary cross-compiled for them.
+That settles the risk DeepSeek named when it argued against widening the tag,
+because `unix.VMIN` is 0x10 on both and 0x6 on Linux, and the whole suite
+passes on all three.
+
+Neither can record sessions, so `TestGoldenSetIsPresent` fails on both as it
+does on Windows. That is the expected gap and not a regression.
+
+NetBSD found a fault in a test rather than in the port, which is the second
+time the same test has rested on an unchecked claim about a filesystem. It
+opened a directory to reach the reading half of `history.load`, on the
+premise that opening one succeeds and reading it fails. Linux and macOS do
+that. NetBSD reads a directory as data, so both halves succeed and the test
+failed. It measures the behavior now and says what went unchecked when the
+behavior is not there. The first instance was a path through a file, which
+reads as a missing path on Windows.
+
+Neither machine reaches `incus exec`. FreeBSD and NetBSD have no
+virtio-vsock driver, so the incus agent runs in the guest with no transport
+and the host times out rather than being refused. SSH on port 22 is the way
+in, with a key added at the console.
+
+What a virtual machine would still add: the twelfth device test. Thirteen of
+the fourteen test files build for these systems, and the terminal layer has
+eleven of its twelve tests there.
 
 The twelfth is `TestTTYDeviceOnARealTerminal`, which needs a pseudo-terminal.
 `capture.OpenPTY` is written for Linux and macOS, and FreeBSD opens one

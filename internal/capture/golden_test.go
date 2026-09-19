@@ -51,10 +51,29 @@ func TestGoldenSetIsPresent(t *testing.T) {
 	t.Errorf("%s has no recording for %d of the %d sessions.\n"+
 		"Record them on a %s machine with:\n"+
 		"  ./tools/build-demo.sh && go test ./internal/capture -update\n"+
-		"Recording is written for linux and darwin only. On %s it needs "+
-		"Record to be written first, which for Windows means a pseudo console "+
-		"made with CreatePseudoConsole rather than a pseudo-terminal opened.",
-		dir, missing, len(Sessions), runtime.GOOS, runtime.GOOS)
+		"Record is written for linux and darwin only. On %s it has to be "+
+		"written first: %s",
+		dir, missing, len(Sessions), runtime.GOOS, runtime.GOOS, whyNotRecorded())
+}
+
+// whyNotRecorded says what writing Record on this system would take. The
+// answer is different on each, and a message that named only Windows was
+// printed on FreeBSD once, which is how this came to be a function.
+func whyNotRecorded() string {
+	switch runtime.GOOS {
+	case "windows":
+		return "a pseudo console made with CreatePseudoConsole, rather than a " +
+			"pseudo-terminal opened through a device file."
+	case "freebsd", "netbsd", "openbsd", "dragonfly":
+		return "a pseudo-terminal, which these systems open much as Linux and " +
+			"macOS do, so OpenPTY is the piece to write."
+	case "solaris", "illumos":
+		return "a pseudo-terminal through the streams interface, which is not " +
+			"what either of the two written here does."
+	default:
+		return "a way to open a pseudo-terminal on this system, which nobody " +
+			"has looked into."
+	}
 }
 
 // TestErrorTextMatchesTheName checks the rule the rline package follows: an

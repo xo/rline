@@ -1108,11 +1108,37 @@ func TestLoadHistoryReportsWhatItCannotRead(t *testing.T) {
 
 	t.Run("a file that cannot be read is a failure too", func(t *testing.T) {
 		t.Parallel()
+		// The reading half rather than the opening half. A directory is the
+		// only portable way near it: Linux and macOS open one and fail on
+		// the first read.
+		//
+		// NetBSD does not. It opens a directory and reads raw directory data
+		// out of it, so both halves succeed and LoadHistory correctly
+		// answers nil. That is the second time this test rested on an
+		// unchecked claim about a filesystem, after a path through a file
+		// read as a missing path on Windows. So the behavior is measured
+		// here rather than assumed, and when it is not available the test
+		// says what went unchecked instead of passing quietly.
+		dir := t.TempDir()
+		if f, err := os.Open(dir); err != nil {
+			t.Skipf("this system refuses to open a directory (%v), so the reading half "+
+				"of history.load is not reached here. It is reached on Linux and macOS, "+
+				"and the line that cannot be read is covered everywhere by "+
+				"TestHistoryLoadStopsAtABadLine.", err)
+		} else {
+			_, readErr := f.Read(make([]byte, 64))
+			_ = f.Close()
+			if readErr == nil {
+				t.Skipf("this system reads a directory as data, so opening and reading " +
+					"one both succeed and the reading half of history.load is not " +
+					"reached here. It is reached on Linux and macOS, and the line that " +
+					"cannot be read is covered everywhere by TestHistoryLoadStopsAtABadLine.")
+			}
+		}
+
 		h := &history{}
 		s := &Session{env: &env{history: h}}
-		// Opening a directory succeeds on Unix and fails on the first read,
-		// so this reaches the reading half rather than the opening half.
-		_ = h.loadFrom(t.TempDir(), DefaultHistoryEntries)
+		_ = h.loadFrom(dir, DefaultHistoryEntries)
 		if err := s.LoadHistory(); err == nil {
 			t.Error("LoadHistory on a directory gave no error")
 		}
