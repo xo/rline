@@ -209,8 +209,22 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     declared in `editlinehistory.go`, `editlinecompletion.go` and
     `editlinehelp.go`, so the dispatch is complete and the seam sits in one
     place.
-12. `isocline.c`. This is the public API. API means Application Programming
-    Interface.
+12. `isocline.c`. Done in shape, and it is the one part that is not a
+    translation. The C keeps a single environment in a process global and
+    every public function reaches for it, so a program can have only one line
+    reader and cannot say which terminal it is on. `api.go` puts that state in
+    a `Reader` that the caller makes, with the settings passed as options when
+    it is made rather than as global switches flipped afterwards.
+
+    `ReadLine` answers `io.EOF` where the C answers a null pointer, and reads
+    a plain line with no editing when there is no terminal to edit on, which
+    is what a program reading a pipe or a script gets.
+
+    `example/` is the smallest program that uses the package, and
+    `TestExampleRunsUnderATerminal` drives it through a pseudo-terminal. That
+    is the only test that runs the package as a program rather than checking
+    one piece against a recording, and it is what caught the missing raw mode
+    described below.
 
 `wcwidth.c` is a textual include of `stringbuf.c`. Since it is not ported,
 `stringbuf.c` ports on its own and calls `runeWidth`.
@@ -522,6 +536,16 @@ terminal is likely to have rather than anything about the system, but the port
 keeps the branch in `wrapmark_darwin.go` and `wrapmark_other.go`, because the
 recorded sessions are kept per system and each holds the glyph its own C build
 produced.
+
+### Found by running it
+
+`ic_editline` wraps the edit loop in raw mode on both the terminal and the
+keyboard, and writes a closing newline afterwards. The port had the loop and
+not the wrapper, which no corpus could catch, because every corpus drives a
+function rather than a program. The first end to end run found it in one
+reading: without raw mode the line discipline rewrites the Enter key into a
+line feed on its way in, so the editor saw the key that inserts a line break
+rather than the key that ends a line, and no line could ever be finished.
 
 ### completers.c
 

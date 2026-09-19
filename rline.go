@@ -13,3 +13,11 @@
 // sessions from the C build are the test corpus. Each such departure carries a
 // comment where the code makes it.
 package rline
+
+import "errors"
+
+// Error values.
+var (
+	// ErrClosed is returned by a Reader that has been closed.
+	ErrClosed = errors.New("the reader is closed")
+)

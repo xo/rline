@@ -1,6 +1,10 @@
 package rline
 
-import "github.com/xo/rline/key"
+import (
+	"fmt"
+
+	"github.com/xo/rline/key"
+)
 
 // Reading a line: the hint, resizing, the key dispatch and the loop.
 //
@@ -322,6 +326,27 @@ func (ev *env) cursorRowDown(e *editor) {
 	if ev.setPosAtRowCol(e, rc.row+1, rc.col) {
 		ev.refresh(e)
 	}
+}
+
+// readLine puts the terminal into raw mode, reads one line, and puts the
+// terminal back.
+//
+// Raw mode is what stops the line discipline doing the editing itself. Without
+// it the Enter key arrives as a line feed rather than a carriage return,
+// because the terminal rewrites it on the way in, and the editor never sees
+// the key that ends a line.
+func (ev *env) readLine(promptText string) (string, bool, error) {
+	if err := ev.tty.startRaw(); err != nil {
+		return "", false, fmt.Errorf("switching the terminal to raw mode: %w", err)
+	}
+	ev.term.startRaw()
+	line, ok := ev.editLine(promptText)
+	ev.term.endRaw(false)
+	ev.tty.endRaw()
+	// The finished line stays on screen and the cursor moves below it.
+	ev.term.writeln("")
+	ev.term.flush()
+	return line, ok, nil
 }
 
 // editLine reads one line from the terminal. It returns the line, and false
