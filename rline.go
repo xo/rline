@@ -659,8 +659,7 @@ func (w *Writer) Write(p []byte) (int, error) {
 	if w == nil || w.env == nil {
 		return len(p), nil
 	}
-	w.env.bb.print(string(p))
-	w.env.term.flush()
+	w.writeMarkup(string(p))
 	return len(p), nil
 }
 
@@ -669,9 +668,32 @@ func (w *Writer) WriteString(s string) (int, error) {
 	if w == nil || w.env == nil {
 		return len(s), nil
 	}
-	w.env.bb.print(s)
-	w.env.term.flush()
+	w.writeMarkup(s)
 	return len(s), nil
+}
+
+// writeMarkup draws s, keeping a newline at the end of it out of whatever
+// attributes the markup left open.
+//
+// The split is not tidiness. The drawing writes each run of text with the
+// attributes that run carries and resets only once the text is done, so a
+// newline inside the last run goes out while those attributes are still set.
+// With a background colour left open that fills the rest of the row, which
+// is the colour bleed a terminal shows at the end of a line. Println used to
+// hand the text and the newline over separately, so the reset came first;
+// fmt.Fprintln cannot, because it appends the newline to the string. So it
+// is taken off again here.
+//
+// Only a newline at the end is moved. One in the middle of the string was
+// written inside the run before this as well, and matching what was there is
+// the point.
+func (w *Writer) writeMarkup(s string) {
+	if after, ok := strings.CutSuffix(s, "\n"); ok {
+		w.env.bb.println(after)
+	} else {
+		w.env.bb.print(s)
+	}
+	w.env.term.flush()
 }
 
 // Prompt is a Reader and the markup Writer that goes with it.

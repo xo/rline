@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -843,5 +844,113 @@ func TestExampleNoHintInsideAWord(t *testing.T) {
 	// What was typed is what is drawn, with nothing extra between.
 	if !strings.Contains(joined, "wherere") {
 		t.Errorf("the line was never drawn as typed.\nThe line was drawn as:\n%s", joined)
+	}
+}
+
+// TestMarkupWriterKeepsANewlineOutOfTheColour checks that a newline written
+// through the markup writer is not drawn inside whatever attributes the
+// markup left open.
+//
+// The drawing writes each run of text with the attributes that run carries
+// and resets only afterwards, so a newline inside the last run goes out while
+// those attributes are still set. With a background colour left open that
+// fills the rest of the row. Println used to write the newline separately,
+// after the reset; fmt.Fprintln hands it over as part of the string, so it
+// has to be taken off again.
+//
+// The expectations are the bytes written out, rather than a comparison with
+// another code path, so that this still says what is wanted if that path
+// changes.
+func TestMarkupWriterKeepsANewlineOutOfTheColour(t *testing.T) {
+	restore := saveEnv(t)
+	defer restore()
+	setTermEnv("", "xterm-256color", "")
+
+	markupEnv := func() (*env, *bytes.Buffer) {
+		var sink bytes.Buffer
+		tm := newTerm(&sink, termOptions{Sizer: fixedSize{cols: 40, rows: 6}})
+		bb := newBBCode(tm)
+		for _, s := range defaultStyles {
+			bb.styleDef(s[0], s[1])
+		}
+		return &env{term: tm, bb: bb}, &sink
+	}
+
+	for _, test := range []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			// Nothing open, so nothing to get out of.
+			name: "plain text",
+			in:   "plain",
+			want: "\x1b[m" + "plain" + "\n",
+		},
+		{
+			// Closed markup resets before the newline either way.
+			name: "markup that closes itself",
+			in:   "[ic-info]closed[/]",
+			want: "\x1b[m" + "\x1b[90m" + "closed" + "\x1b[39m" + "\n",
+		},
+		{
+			// The reset has to come first. With the newline inside the run
+			// this reads "...open\n\x1b[39m".
+			name: "a colour left open",
+			in:   "[ic-info]left open",
+			want: "\x1b[m" + "\x1b[90m" + "left open" + "\x1b[39m" + "\n",
+		},
+		{
+			// The one that shows on screen rather than only in the bytes: a
+			// background still set when the row ends fills the rest of it.
+			name: "a background left open",
+			in:   "[bgcolor=navy]background left open",
+			want: "\x1b[m" + "\x1b[48;5;18m" + "background left open" + "\x1b[49m" + "\n",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ev, sink := markupEnv()
+			if _, err := fmt.Fprintln(&Writer{env: ev}, test.in); err != nil {
+				t.Fatalf("Fprintln gave %v", err)
+			}
+			ev.term.flush()
+			if got := sink.String(); got != test.want {
+				t.Errorf("Write gave %q, want %q", got, test.want)
+			}
+
+			// WriteString is the same promise by a shorter route, and is
+			// checked separately because it is a second copy of the rule:
+			// reverting it alone went unnoticed until this was added.
+			ev2, sink2 := markupEnv()
+			if _, err := (&Writer{env: ev2}).WriteString(test.in + "\n"); err != nil {
+				t.Fatalf("WriteString gave %v", err)
+			}
+			ev2.term.flush()
+			if got := sink2.String(); got != test.want {
+				t.Errorf("WriteString gave %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+// TestMarkupWriterWithNowhereToWrite checks the promise that a Writer with no
+// terminal behind it throws away what it is given rather than failing, which
+// is what lets a caller use Markup without asking whether there is one.
+//
+// A short write would make fmt report an error, so the count matters as much
+// as the absence of a panic.
+func TestMarkupWriterWithNowhereToWrite(t *testing.T) {
+	t.Parallel()
+	for _, w := range []*Writer{nil, {}, {env: nil}} {
+		n, err := fmt.Fprintf(w, "[ic-error]%s[/]\n", "message")
+		if err != nil {
+			t.Errorf("writing to a writer with nowhere to write gave %v", err)
+		}
+		if want := len("[ic-error]message[/]\n"); n != want {
+			t.Errorf("reported %d bytes written, want %d", n, want)
+		}
+		if _, err := w.WriteString("more\n"); err != nil {
+			t.Errorf("WriteString gave %v", err)
+		}
 	}
 }
