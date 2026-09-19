@@ -96,6 +96,15 @@ type Session struct {
 	Cols int
 	Rows int
 
+	// Dir is the directory the program runs in, and the home directory it
+	// is given. Empty means a fresh temporary one, which is what every
+	// recorded session uses so that a history file from an earlier run
+	// cannot change the output.
+	//
+	// A test that needs two runs to see each other's files sets it to the
+	// same directory for both.
+	Dir string
+
 	// Steps are the input chunks, sent in order. Record always collects the
 	// output of the program before the first step, so a session does not need
 	// an empty step to wait for a banner.

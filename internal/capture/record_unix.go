@@ -35,11 +35,19 @@ func Record(ctx context.Context, path string, s Session) (*Transcript, error) {
 	}
 	ctx, cancel := context.WithTimeout(ctx, s.Limit)
 	defer cancel()
-	home, err := os.MkdirTemp("", "rline-capture-")
-	if err != nil {
-		return nil, fmt.Errorf("creating home directory: %w", err)
+	// A directory the caller named is used as it is and left alone, so that
+	// two runs can see each other's files. Otherwise a fresh one is made
+	// and taken away afterwards, which is what every recorded session uses:
+	// a history file from an earlier run would change the output.
+	home := s.Dir
+	if home == "" {
+		made, err := os.MkdirTemp("", "rline-capture-")
+		if err != nil {
+			return nil, fmt.Errorf("creating home directory: %w", err)
+		}
+		defer func() { _ = os.RemoveAll(made) }()
+		home = made
 	}
-	defer func() { _ = os.RemoveAll(home) }()
 	leader, follower, err := OpenPTY()
 	if err != nil {
 		return nil, err

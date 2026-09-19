@@ -34,6 +34,12 @@ import (
 	"github.com/xo/rline"
 )
 
+// historyFile is where the example keeps its history between runs. It is a
+// plain name in the working directory rather than a hidden file in the home
+// directory: an example should not leave something behind where the person
+// running it is not looking.
+const historyFile = "rline_example_history"
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -51,7 +57,11 @@ func run() error {
 		rline.WithHighlighter(rline.HighlighterFunc(highlight)),
 		rline.WithCompleter(rline.CompleterFunc(complete)),
 		rline.WithContinue(incomplete),
-		rline.WithHistoryLimit(rline.DefaultHistoryEntries), // kept in memory, default size
+		// In the working directory rather than the home directory, so that
+		// running the example leaves nothing outside the directory it was
+		// run from. The name is in .gitignore for the same reason.
+		rline.WithHistoryFile(historyFile),
+		rline.WithHistoryLimit(rline.DefaultHistoryEntries),
 	}
 	if *logPath != "" {
 		f, err := os.Create(*logPath)

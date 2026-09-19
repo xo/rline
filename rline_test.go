@@ -306,6 +306,11 @@ func TestExampleWithPipedInput(t *testing.T) {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	cmd := exec.Command(bin)
+	// The example keeps its history in the working directory, so it runs in
+	// a temporary one. A pipe takes the path with no editing, which saves
+	// no history today, but a test that would write into the repository if
+	// that changed is a test waiting to make a mess.
+	cmd.Dir = t.TempDir()
 	cmd.Stdin = strings.NewReader("select 1;\nselect 2;\n")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -1634,5 +1639,83 @@ func TestHistorySaveIsAtomic(t *testing.T) {
 			names[i] = e.Name()
 		}
 		t.Errorf("the directory holds %q, want only the history file", names)
+	}
+}
+
+// TestExampleRemembersBetweenRuns checks that the example's history outlives
+// the program, which is what a history file is for.
+//
+// The example kept its history in memory only, because the option that named
+// the file was split in two and the name was dropped rather than carried
+// across. Every other feature it demonstrates is the real thing; this one was
+// a hollow version of it, and it is the feature whose file handling has the
+// most careful code behind it.
+//
+// Two runs in one directory. The first types a statement and leaves. The
+// second walks back to it with the up arrow and has to see it.
+//
+// It takes two presses, not one: leaving is itself a line the user typed, so
+// the newest entry from the first run is the quit command and the statement
+// is behind it. Expecting one press was this test's own first mistake.
+func TestExampleRemembersBetweenRuns(t *testing.T) {
+	t.Parallel()
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	dir := t.TempDir()
+
+	first, err := capture.Record(context.Background(), bin, capture.Session{
+		Name: "writes-history",
+		Term: "xterm-256color",
+		Dir:  dir,
+		Steps: []capture.Step{
+			{Send: "select remembered;" + capture.KeyEnter},
+			{Send: `\q` + capture.KeyEnter},
+		},
+	})
+	if err != nil {
+		t.Fatalf("the first run: %v", err)
+	}
+	if !strings.Contains(stripEscapes(string(first.Bytes())), "select remembered;") {
+		t.Fatal("the first run did not echo the statement, so it never got that far")
+	}
+
+	// The file itself, before anything reads it back.
+	saved, err := os.ReadFile(filepath.Join(dir, "rline_example_history"))
+	if err != nil {
+		t.Fatalf("the first run wrote no history file: %v", err)
+	}
+	if !strings.Contains(string(saved), "select remembered;") {
+		t.Errorf("the history file holds %q, want the statement that was typed", string(saved))
+	}
+	// Owner only, because a history file holds whatever was typed.
+	info, err := os.Stat(filepath.Join(dir, "rline_example_history"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got&0o077 != 0 {
+		t.Errorf("the history file is %04o, which others can read", got)
+	}
+
+	second, err := capture.Record(context.Background(), bin, capture.Session{
+		Name: "reads-history",
+		Term: "xterm-256color",
+		Dir:  dir,
+		Steps: []capture.Step{
+			{Send: capture.KeyUp},
+			{Send: capture.KeyUp},
+			// Escape clears the line, so the quit command is typed into an
+			// empty one rather than onto the end of what history brought
+			// back.
+			{Send: capture.KeyEscape},
+			{Send: `\q` + capture.KeyEnter},
+		},
+	})
+	if err != nil {
+		t.Fatalf("the second run: %v", err)
+	}
+	if drawn := stripEscapes(string(second.Bytes())); !strings.Contains(drawn, "select remembered;") {
+		t.Errorf("the up arrow in a new run did not bring back the statement\ndrawn: %q\nfile: %q", drawn, string(saved))
 	}
 }

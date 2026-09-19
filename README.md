@@ -102,6 +102,11 @@ the whole statement comes back at once.
 `\pass` reads a password and then echoes it back, so that what was collected
 can be checked against what was typed. A real program does not echo it.
 
+The history is kept in `rline_example_history`, in the directory the example
+was run from rather than the home directory, so that running it leaves
+nothing where the person running it is not looking. The up arrow brings back
+what was typed in an earlier run.
+
 Run it with:
 
 ```sh
