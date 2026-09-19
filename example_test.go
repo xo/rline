@@ -267,7 +267,7 @@ func TestExamplePromptFollowsTheStatement(t *testing.T) {
 			{Send: "select 1" + capture.KeyEnter}, // no semicolon, carries on
 			{Send: capture.KeyEnter},              // still carrying on
 			{Send: "from t;" + capture.KeyEnter},  // ends it
-			{Send: capture.CtrlD, Wait: 400 * time.Millisecond},
+			{Send: `\q` + capture.KeyEnter, Wait: 400 * time.Millisecond},
 		},
 	})
 	if err != nil {
@@ -295,10 +295,10 @@ func TestExamplePromptFollowsTheStatement(t *testing.T) {
 	}
 }
 
-// TestExampleBackslashQuit checks that \q leaves, including part way through
-// a statement, where exit and quit do not because they are matched against
-// the whole statement rather than the line just typed.
-func TestExampleBackslashQuit(t *testing.T) {
+// TestExampleQuitsOnALine checks the three ways of leaving, each of which acts
+// on the line just typed rather than on the statement being built, so that
+// they work part way through an unfinished one.
+func TestExampleQuitsOnALine(t *testing.T) {
 	if testing.Short() {
 		t.Skip("building the example takes a moment")
 	}
@@ -313,14 +313,32 @@ func TestExampleBackslashQuit(t *testing.T) {
 		gone  []string
 	}{
 		{
-			name:  "at a fresh prompt",
+			name:  `\q at a fresh prompt`,
 			input: "select 1;\n\\q\nselect 2;\n",
 			want:  []string{"ran 1 line(s): select 1;"},
 			gone:  []string{"select 2"},
 		},
 		{
-			name:  "part way through a statement",
+			name:  `\q part way through a statement`,
 			input: "select 1\n\\q\nfrom t;\n",
+			want:  []string{},
+			gone:  []string{"ran "},
+		},
+		{
+			name:  "exit at a fresh prompt",
+			input: "select 1;\nexit\nselect 2;\n",
+			want:  []string{"ran 1 line(s): select 1;"},
+			gone:  []string{"select 2"},
+		},
+		{
+			name:  "exit part way through a statement",
+			input: "select 1\nexit\nfrom t;\n",
+			want:  []string{},
+			gone:  []string{"ran "},
+		},
+		{
+			name:  "quit part way through a statement",
+			input: "select 1\nquit\nfrom t;\n",
 			want:  []string{},
 			gone:  []string{"ran "},
 		},
@@ -340,7 +358,7 @@ func TestExampleBackslashQuit(t *testing.T) {
 			}
 			for _, gone := range test.gone {
 				if strings.Contains(got, gone) {
-					t.Errorf("the run showed %q after \\q.\nWhat it wrote:\n%s", gone, got)
+					t.Errorf("the run showed %q after leaving.\nWhat it wrote:\n%s", gone, got)
 				}
 			}
 		})

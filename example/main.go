@@ -77,7 +77,7 @@ func run() error {
 	r.DefineStyle("sql-comment", "ansi-gray")
 
 	r.Println("[b]rline[/b] SQL example.")
-	r.Println("[ic-info]A statement ends at a semicolon. \\q or Ctrl-D leaves.[/]")
+	r.Println("[ic-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
 	r.Println("[ic-info]Ctrl-J puts a line break inside one line. Tab completes.[/]")
 
 	var stmt strings.Builder
@@ -91,16 +91,19 @@ func run() error {
 		}
 		line, err := r.ReadLine("")
 		if errors.Is(err, io.EOF) {
+			// The input ended rather than the user asking to leave, which is
+			// what happens when the input is a file or a pipe that ran out.
 			r.Println("")
 			return nil
 		}
 		if err != nil {
 			return fmt.Errorf("reading a line: %w", err)
 		}
-		// A backslash command acts on the line just typed rather than on the
-		// statement being built, so it works part way through one. usql
-		// spells quitting this way.
-		if strings.TrimSpace(line) == `\q` {
+		// Leaving is decided by the line just typed rather than by the
+		// statement being built, so it works part way through an unfinished
+		// one. usql spells it the first way.
+		switch strings.TrimSpace(line) {
+		case `\q`, "exit", "quit":
 			return nil
 		}
 		if stmt.Len() > 0 {
@@ -109,8 +112,6 @@ func run() error {
 		stmt.WriteString(line)
 		text := strings.TrimSpace(stmt.String())
 		switch {
-		case text == "exit" || text == "quit":
-			return nil
 		case text == "":
 			stmt.Reset()
 		case strings.HasSuffix(text, ";"):
