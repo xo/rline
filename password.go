@@ -29,30 +29,30 @@ import (
 // input, which is what a program driven by a script needs. Nothing is hidden
 // in that case, because there is no terminal to hide it from, and a caller
 // that must not read a password from a pipe should check Interactive first.
-func (r *Session) Password(prompt string) (string, error) {
+func (s *Session) Password(prompt string) (string, error) {
 	switch {
-	case r.closed:
+	case s.closed:
 		return "", ErrClosed
-	case r.noEdit:
-		return r.readPlainPassword(prompt)
+	case s.noEdit:
+		return s.readPlainPassword(prompt)
 	}
-	r.env.term.write(prompt)
-	r.env.term.flush()
+	s.env.term.write(prompt)
+	s.env.term.flush()
 	// Echo off with canonical mode left on, where the terminal can see it.
 	// Where that is not available the line is still hidden, by reading it in
 	// raw mode, but the terminal has no way to know it is a password.
-	if dev, ok := r.env.tty.dev.(noEchoDevice); ok {
-		return r.readNoEcho(dev)
+	if dev, ok := s.env.tty.dev.(noEchoDevice); ok {
+		return s.readNoEcho(dev)
 	}
-	if err := r.env.tty.startRaw(); err != nil {
+	if err := s.env.tty.startRaw(); err != nil {
 		return "", fmt.Errorf("switching the terminal to raw mode: %w", err)
 	}
-	line, err := r.readHidden()
-	r.env.tty.endRaw()
+	line, err := s.readHidden()
+	s.env.tty.endRaw()
 	// The line the user typed is invisible, so the cursor has to be moved on
 	// by hand or the next thing written lands beside the prompt.
-	r.env.term.writeln("")
-	r.env.term.flush()
+	s.env.term.writeln("")
+	s.env.term.flush()
 	return line, err
 }
 
@@ -66,28 +66,28 @@ type noEchoDevice interface {
 
 // readNoEcho reads one line with echo off and the terminal driver still doing
 // the editing.
-func (r *Session) readNoEcho(dev noEchoDevice) (string, error) {
+func (s *Session) readNoEcho(dev noEchoDevice) (string, error) {
 	if err := dev.startNoEcho(); err != nil {
 		return "", err
 	}
 	defer dev.endNoEcho()
 	var sb strings.Builder
 	for {
-		c, ok := r.env.tty.dev.readByte(-1)
+		c, ok := s.env.tty.dev.readByte(-1)
 		switch {
 		case !ok:
 			// The input ended, which is Ctrl-D on an empty line.
 			if sb.Len() == 0 {
-				r.env.term.writeln("")
-				r.env.term.flush()
+				s.env.term.writeln("")
+				s.env.term.flush()
 				return "", io.EOF
 			}
 			return sb.String(), nil
 		case c == '\n' || c == '\r':
 			// The newline was not echoed either, so the cursor has to be moved
 			// on by hand.
-			r.env.term.writeln("")
-			r.env.term.flush()
+			s.env.term.writeln("")
+			s.env.term.flush()
 			return sb.String(), nil
 		}
 		sb.WriteByte(c)
@@ -95,10 +95,10 @@ func (r *Session) readNoEcho(dev noEchoDevice) (string, error) {
 }
 
 // readHidden reads keys until the line ends, showing nothing.
-func (r *Session) readHidden() (string, error) {
+func (s *Session) readHidden() (string, error) {
 	var sb strings.Builder
 	for {
-		switch c := r.env.tty.read(); c {
+		switch c := s.env.tty.read(); c {
 		case key.Enter, key.Linefeed:
 			return sb.String(), nil
 		case key.CtrlC:
@@ -135,12 +135,12 @@ func (r *Session) readHidden() (string, error) {
 }
 
 // readPlainPassword reads a line when there is no terminal to hide it on.
-func (r *Session) readPlainPassword(prompt string) (string, error) {
-	if r.env != nil && r.env.tty != nil {
-		r.env.term.write(prompt)
-		r.env.term.flush()
+func (s *Session) readPlainPassword(prompt string) (string, error) {
+	if s.env != nil && s.env.tty != nil {
+		s.env.term.write(prompt)
+		s.env.term.flush()
 	}
-	line, err := r.plain.ReadString('\n')
+	line, err := s.plain.ReadString('\n')
 	if err != nil && (!errors.Is(err, io.EOF) || line == "") {
 		if errors.Is(err, io.EOF) {
 			return "", io.EOF

@@ -1103,20 +1103,24 @@ func (l *LineStyle) StyleRunes(pos, count int, style string) {
 	l.mark(pos, -count, l.bb.style(style))
 }
 
-// Formatted marks up s using markup that spells out the same text, so that a
-// caller can describe a whole line at once rather than a stretch at a time.
+// StyleMarkup styles the stretch of line that s covers, taking the styles
+// from markup that spells out the same text.
 //
-// The markup is parsed for its attributes and the text it produces is thrown
-// away. When the two disagree in length the marks simply run out, and the rest
-// of the line keeps what it had. The C writes a debug line about it, which the
+// It is for a caller that would rather describe a whole line at once than a
+// stretch at a time: pass the text and the same text with tags around it, and
+// the tags decide the attributes.
+//
+// Only the attributes are taken. The text the markup produces is thrown away,
+// and when the two disagree in length the marks simply run out and the rest of
+// the line keeps what it had. The C writes a debug line about that, which the
 // port drops because nothing reads it.
-func (l *LineStyle) Formatted(s, format string) {
+func (l *LineStyle) StyleMarkup(s, markup string) {
 	if s == "" {
 		return
 	}
 	var out buffer
 	var attrs attrBuf
-	l.bb.appendTo(format, &out, &attrs)
+	l.bb.appendTo(markup, &out, &attrs)
 	for i := range len(s) {
 		l.attrs.updateAt(i, 1, attrs.at(i))
 	}

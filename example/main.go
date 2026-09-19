@@ -287,8 +287,7 @@ func complete(c *rline.Completion, prefix string) {
 	// the cursor sits inside a word would offer the rest of a word that is
 	// already there: with the cursor after "wh" in "where", the answer is
 	// "where" and taking it gives "whereere". The whole line says so.
-	in := c.Input()
-	if in.Cursor < len(in.Text) && isWordByte(in.Text[in.Cursor]) {
+	if line, at := c.Text(), c.Cursor(); at < len(line) && isWordByte(line[at]) {
 		return
 	}
 	word := prefix

@@ -310,7 +310,7 @@ func hlReplay(t *testing.T) []string {
 			ab.setAt(0, len(f[0]), attr{})
 		}
 		env := &LineStyle{input: f[0], attrs: &ab, bb: bb}
-		env.Formatted(f[0], f[1])
+		env.StyleMarkup(f[0], f[1])
 		out = append(out, fmt.Sprintf("hlfmt %d %s", i, hlAttrs(&ab)))
 	}
 	return out
@@ -376,7 +376,7 @@ func TestHighlightFormattedEmpty(t *testing.T) {
 	var ab attrBuf
 	ab.setAt(0, 5, attrFromSGR("31"))
 	env := &LineStyle{input: "hello", attrs: &ab, bb: bb}
-	env.Formatted("hello", "")
+	env.StyleMarkup("hello", "")
 	want := attrFromSGR("31")
 	for i, got := range ab.slice(5) {
 		if got != want {

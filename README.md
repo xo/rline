@@ -57,9 +57,9 @@ for {
 }
 ```
 
-`New` returns a `*Prompt`: a `Reader` that reads lines, with the markup
+`New` returns a `*Prompt`: a `Session` that reads lines, with the markup
 `Writer` that goes with it. The reading methods are promoted, so `p.ReadLine`,
-`p.Password` and `p.Close` are the `Reader`'s.
+`p.Password` and `p.Close` are the `Session`'s.
 
 A `Prompt` is an `io.Writer` for plain text, which is what most of what a
 program prints is — a bracket in it is not a tag. Markup goes through
@@ -71,8 +71,8 @@ fmt.Fprintf(p.Markup(), "[ic-error]%s[/]\n", err)       // styled
 ```
 
 Write through the `Prompt` rather than to `os.Stdout`, because the terminal it
-writes through is the one that knows where the prompt is. `p.Stdout()` and
-`p.Stderr()` return it for a program that needs an `io.Writer` to hand on.
+writes through is the one that knows where the prompt is. A `Prompt` is an
+`io.Writer`, so hand it straight to anything that wants one.
 
 `ReadLine` answers `io.EOF` when the input ends and `ErrInterrupted` when the
 user gave the line up with Ctrl-C. Those are different answers on purpose: the

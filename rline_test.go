@@ -911,7 +911,7 @@ func TestMarkupWriterKeepsANewlineOutOfTheColour(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ev, sink := markupEnv()
-			if _, err := fmt.Fprintln(&Writer{env: ev}, test.in); err != nil {
+			if _, err := fmt.Fprintln(&MarkupWriter{env: ev}, test.in); err != nil {
 				t.Fatalf("Fprintln gave %v", err)
 			}
 			ev.term.flush()
@@ -923,7 +923,7 @@ func TestMarkupWriterKeepsANewlineOutOfTheColour(t *testing.T) {
 			// checked separately because it is a second copy of the rule:
 			// reverting it alone went unnoticed until this was added.
 			ev2, sink2 := markupEnv()
-			if _, err := (&Writer{env: ev2}).WriteString(test.in + "\n"); err != nil {
+			if _, err := (&MarkupWriter{env: ev2}).WriteString(test.in + "\n"); err != nil {
 				t.Fatalf("WriteString gave %v", err)
 			}
 			ev2.term.flush()
@@ -934,7 +934,7 @@ func TestMarkupWriterKeepsANewlineOutOfTheColour(t *testing.T) {
 	}
 }
 
-// TestMarkupWriterWithNowhereToWrite checks the promise that a Writer with no
+// TestMarkupWriterWithNowhereToWrite checks the promise that a MarkupWriter with no
 // terminal behind it throws away what it is given rather than failing, which
 // is what lets a caller use Markup without asking whether there is one.
 //
@@ -942,7 +942,7 @@ func TestMarkupWriterKeepsANewlineOutOfTheColour(t *testing.T) {
 // as the absence of a panic.
 func TestMarkupWriterWithNowhereToWrite(t *testing.T) {
 	t.Parallel()
-	for _, w := range []*Writer{nil, {}, {env: nil}} {
+	for _, w := range []*MarkupWriter{nil, {}, {env: nil}} {
 		n, err := fmt.Fprintf(w, "[ic-error]%s[/]\n", "message")
 		if err != nil {
 			t.Errorf("writing to a writer with nowhere to write gave %v", err)
@@ -1031,7 +1031,7 @@ func TestHistoryIsACopy(t *testing.T) {
 }
 
 // TestWriteStringMatchesWrite checks that the two ways of writing plain text
-// put out the same bytes, on the Session and on the markup Writer alike.
+// put out the same bytes, on the Session and on the markup MarkupWriter alike.
 func TestWriteStringMatchesWrite(t *testing.T) {
 	t.Parallel()
 	for _, test := range []struct {

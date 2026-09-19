@@ -16,7 +16,7 @@
 // completion and syntax highlighting.
 //
 // This file holds the public interface — the Prompt a program builds, the
-// Session inside it, the markup Writer beside it and the options that make
+// Session inside it, the markup writer beside it and the options that make
 // them — and the session log that records what passes through.
 package rline
 
@@ -453,7 +453,7 @@ func New(opts ...Option) (*Prompt, error) {
 	}
 	r.log = slog
 	r.noEdit = ttyErr != nil || !isInteractive()
-	return &Prompt{Session: r, markup: &Writer{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
+	return &Prompt{Session: r, markup: &MarkupWriter{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
 }
 
 // writesToTerminal reports whether w is a terminal. Anything that is not a
@@ -493,25 +493,25 @@ func outputSizer(w io.Writer) sizer {
 // or Ctrl-G. This is a deliberate departure: the C clears the line and hands
 // back an empty string, so a caller cannot tell an abandoned line from Enter
 // on an empty one, and a shell has to. See PLAN.md.
-func (r *Session) ReadLine(prompt string) (string, error) {
-	if r.closed {
+func (s *Session) ReadLine(prompt string) (string, error) {
+	if s.closed {
 		return "", ErrClosed
 	}
-	if r.noEdit {
-		return r.readPlain(prompt)
+	if s.noEdit {
+		return s.readPlain(prompt)
 	}
-	line, ok, err := r.env.readLine(prompt)
+	line, ok, err := s.env.readLine(prompt)
 	if err != nil {
 		if errors.Is(err, ErrInterrupted) {
-			r.log.note(logLine, "<interrupted>")
+			s.log.note(logLine, "<interrupted>")
 		}
 		return "", err
 	}
 	if !ok {
-		r.log.note(logLine, "<end of input>")
+		s.log.note(logLine, "<end of input>")
 		return "", io.EOF
 	}
-	r.log.note(logLine, line)
+	s.log.note(logLine, line)
 	return line, nil
 }
 
@@ -522,13 +522,13 @@ func (r *Session) ReadLine(prompt string) (string, error) {
 // typing at a terminal that cannot be edited on. When the input is a pipe
 // there is nobody to prompt and the prompt would only dirty the output, so it
 // is left out. That is what the C does as well.
-func (r *Session) readPlain(prompt string) (string, error) {
-	if r.env != nil && r.env.tty != nil {
-		r.env.term.write(prompt)
-		r.env.term.write(r.env.promptMarker)
-		r.env.term.flush()
+func (s *Session) readPlain(prompt string) (string, error) {
+	if s.env != nil && s.env.tty != nil {
+		s.env.term.write(prompt)
+		s.env.term.write(s.env.promptMarker)
+		s.env.term.flush()
 	}
-	line, err := r.plain.ReadString('\n')
+	line, err := s.plain.ReadString('\n')
 	if err != nil && (!errors.Is(err, io.EOF) || line == "") {
 		if errors.Is(err, io.EOF) {
 			return "", io.EOF
@@ -553,19 +553,19 @@ func trimSuffix(s, suffix string) string {
 }
 
 // Close puts the terminal back as it was. A Session cannot be used afterwards.
-func (r *Session) Close() error {
-	if r.closed {
+func (s *Session) Close() error {
+	if s.closed {
 		return nil
 	}
-	r.closed = true
-	if r.env == nil {
+	s.closed = true
+	if s.env == nil {
 		return nil
 	}
-	r.env.term.free()
-	if r.env.tty == nil {
+	s.env.term.free()
+	if s.env.tty == nil {
 		return nil
 	}
-	if err := r.env.tty.close(); err != nil {
+	if err := s.env.tty.close(); err != nil {
 		return fmt.Errorf("closing the terminal: %w", err)
 	}
 	return nil
@@ -577,11 +577,11 @@ func (r *Session) Close() error {
 // sets a new completer rather than building a new reader: usql replaces its
 // completer when the connection changes, so that the words offered come from
 // the database that is actually open. A nil completer offers nothing.
-func (r *Session) SetCompleter(completer Completer) {
-	if r.env == nil || r.env.completions == nil {
+func (s *Session) SetCompleter(completer Completer) {
+	if s.env == nil || s.env.completions == nil {
 		return
 	}
-	r.env.completions.setCompleter(completer, nil)
+	s.env.completions.setCompleter(completer, nil)
 }
 
 // SetPrompt changes the marker written after the prompt text, and the one used
@@ -590,15 +590,15 @@ func (r *Session) SetCompleter(completer Completer) {
 // A program that reads a statement over several calls changes the marker
 // between them, so that the first line is asked for differently from the ones
 // that carry on. An empty continuation repeats the first.
-func (r *Session) SetPrompt(marker, continuation string) {
-	if r.env == nil {
+func (s *Session) SetPrompt(marker, continuation string) {
+	if s.env == nil {
 		return
 	}
 	if continuation == "" {
 		continuation = marker
 	}
-	r.env.promptMarker = marker
-	r.env.cpromptMarker = continuation
+	s.env.promptMarker = marker
+	s.env.cpromptMarker = continuation
 }
 
 // Write writes plain text to the terminal, with no markup in it.
@@ -612,37 +612,37 @@ func (r *Session) SetPrompt(marker, continuation string) {
 // os.Stdout, because the terminal this goes through is the one that knows
 // where the prompt is. An adapter that has to offer an io.Writer can return
 // the Session itself.
-func (r *Session) Write(p []byte) (int, error) {
-	if r.env == nil {
+func (s *Session) Write(p []byte) (int, error) {
+	if s.env == nil {
 		return len(p), nil
 	}
-	r.env.term.writeBytes(p)
-	r.env.term.flush()
+	s.env.term.writeBytes(p)
+	s.env.term.flush()
 	return len(p), nil
 }
 
 // WriteString writes plain text without making a byte slice of it first,
-// which is what io.StringWriter asks for and what the markup Writer beside
+// which is what io.StringWriter asks for and what the markup writer beside
 // this one already does.
-func (r *Session) WriteString(s string) (int, error) {
-	if r.env == nil {
-		return len(s), nil
+func (s *Session) WriteString(text string) (int, error) {
+	if s.env == nil {
+		return len(text), nil
 	}
-	r.env.term.write(s)
-	r.env.term.flush()
-	return len(s), nil
+	s.env.term.write(text)
+	s.env.term.flush()
+	return len(text), nil
 }
 
-// Writer writes markup to a terminal, such as "[red]text[/red]".
+// MarkupWriter writes markup to a terminal, such as "[red]text[/red]".
 //
 // A Session writes plain text, because most of what a program writes came from
 // a user or a file and a bracket in it is not a tag. This is the other half:
 // everything written here is read as markup.
 //
-// A Writer with nowhere to write throws away what it is given rather than
-// failing, which is what a program with no terminal gets. So a Writer is
+// A MarkupWriter with nowhere to write throws away what it is given rather than
+// failing, which is what a program with no terminal gets. So a MarkupWriter is
 // never nil and never has to be checked before it is used.
-type Writer struct {
+type MarkupWriter struct {
 	// env holds the terminal and the styles. It is nil when there is
 	// nowhere to write.
 	env *env
@@ -653,7 +653,7 @@ type Writer struct {
 // Use fmt to do the formatting:
 //
 //	fmt.Fprintf(p.Markup(), "[ic-error]%s[/]\n", msg)
-func (w *Writer) Write(p []byte) (int, error) {
+func (w *MarkupWriter) Write(p []byte) (int, error) {
 	if w == nil || w.env == nil {
 		return len(p), nil
 	}
@@ -662,7 +662,7 @@ func (w *Writer) Write(p []byte) (int, error) {
 }
 
 // WriteString writes markup without making a byte slice of it first.
-func (w *Writer) WriteString(s string) (int, error) {
+func (w *MarkupWriter) WriteString(s string) (int, error) {
 	if w == nil || w.env == nil {
 		return len(s), nil
 	}
@@ -685,7 +685,7 @@ func (w *Writer) WriteString(s string) (int, error) {
 // Only a newline at the end is moved. One in the middle of the string was
 // written inside the run before this as well, and matching what was there is
 // the point.
-func (w *Writer) writeMarkup(s string) {
+func (w *MarkupWriter) writeMarkup(s string) {
 	if after, ok := strings.CutSuffix(s, "\n"); ok {
 		w.env.bb.println(after)
 	} else {
@@ -694,7 +694,7 @@ func (w *Writer) writeMarkup(s string) {
 	w.env.term.flush()
 }
 
-// Prompt is a Session and the markup Writer that goes with it.
+// Prompt is a Session and the markup writer that goes with it.
 //
 // The reading methods are promoted, so a Prompt is used like a Session:
 // ReadLine, Password and Close all work on it directly. Markup is reached
@@ -708,7 +708,7 @@ type Prompt struct {
 	*Session
 
 	// markup writes styled output, and is never nil.
-	markup *Writer
+	markup *MarkupWriter
 }
 
 // Markup returns the writer that reads what is written to it as markup.
@@ -716,30 +716,30 @@ type Prompt struct {
 // It is never nil. When there is no terminal, or when colour is off, what is
 // written to it is thrown away or written plainly, so a caller never has to
 // ask whether markup is on before using it.
-func (p *Prompt) Markup() *Writer {
+func (p *Prompt) Markup() *MarkupWriter {
 	if p == nil || p.markup == nil {
-		return &Writer{}
+		return &MarkupWriter{}
 	}
 	return p.markup
 }
 
 // DefineStyle gives a name to a set of attributes, so that markup can use it.
 // The spec is written the way the inside of a tag is, such as "bold color=red".
-func (r *Session) DefineStyle(name, spec string) {
-	if r.env == nil {
+func (s *Session) DefineStyle(name, spec string) {
+	if s.env == nil {
 		return
 	}
-	r.env.bb.styleDef(name, spec)
+	s.env.bb.styleDef(name, spec)
 }
 
 // SetHighlighter changes the function that marks up the line.
 //
 // A nil highlighter draws the line plainly.
-func (r *Session) SetHighlighter(h Highlighter) {
-	if r.env == nil {
+func (s *Session) SetHighlighter(h Highlighter) {
+	if s.env == nil {
 		return
 	}
-	r.env.highlighter = h
+	s.env.highlighter = h
 }
 
 // LoadHistory reads the history back from its file, throwing away what is
@@ -751,57 +751,60 @@ func (r *Session) SetHighlighter(h Highlighter) {
 //
 // It takes no file name, and SaveHistory takes none either: which file the
 // history lives in is one setting, not two arguments that could disagree.
-func (r *Session) LoadHistory() error {
-	if r.env == nil || r.env.history == nil {
+func (s *Session) LoadHistory() error {
+	if s.env == nil || s.env.history == nil {
 		return nil
 	}
-	r.env.history.loadFrom(r.env.history.fname, r.env.history.max)
+	s.env.history.loadFrom(s.env.history.fname, s.env.history.max)
 	return nil
 }
 
 // SetHistoryFile changes the file the history is kept in. It does not read
 // the new file; call LoadHistory for that.
-func (r *Session) SetHistoryFile(fname string) {
-	if r.env == nil || r.env.history == nil {
+func (s *Session) SetHistoryFile(fname string) {
+	if s.env == nil || s.env.history == nil {
 		return
 	}
-	r.env.history.fname = fname
+	s.env.history.fname = fname
 }
 
 // History returns the entries, newest first.
 //
+// The slice is a fresh one each time and is the caller's to keep or change;
+// changing it does not change the history.
+//
 // A program that wants to show the history, search it its own way, or write
 // it somewhere else needs to be able to read it, and adding, saving and
 // clearing were the only ways to touch it.
-func (r *Session) History() []string {
-	if r.env == nil || r.env.history == nil {
+func (s *Session) History() []string {
+	if s.env == nil || s.env.history == nil {
 		return nil
 	}
-	return r.env.history.all()
+	return s.env.history.all()
 }
 
 // AddHistory adds an entry to the history.
-func (r *Session) AddHistory(entry string) {
-	if r.env == nil {
+func (s *Session) AddHistory(entry string) {
+	if s.env == nil {
 		return
 	}
-	r.env.history.push(entry)
+	s.env.history.push(entry)
 }
 
 // ClearHistory empties the history.
-func (r *Session) ClearHistory() {
-	if r.env == nil {
+func (s *Session) ClearHistory() {
+	if s.env == nil {
 		return
 	}
-	r.env.history.clear()
+	s.env.history.clear()
 }
 
 // SaveHistory writes the history to the file it was given, if it was given one.
-func (r *Session) SaveHistory() error {
-	if r.env == nil {
+func (s *Session) SaveHistory() error {
+	if s.env == nil {
 		return nil
 	}
-	if err := r.env.history.save(); err != nil {
+	if err := s.env.history.save(); err != nil {
 		return fmt.Errorf("saving the history: %w", err)
 	}
 	return nil
@@ -809,8 +812,8 @@ func (r *Session) SaveHistory() error {
 
 // Interactive reports whether there is a terminal to edit on. When there is
 // not, ReadLine reads a plain line.
-func (r *Session) Interactive() bool {
-	return !r.noEdit
+func (s *Session) Interactive() bool {
+	return !s.noEdit
 }
 
 // --------------------------------------------------------------------------

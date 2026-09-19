@@ -92,14 +92,22 @@ func (f CompleterFunc) Complete(c *Completion, prefix string) { f(c, prefix) }
 
 // Candidate is one completion, said in full.
 //
-// Replacement is what goes into the line. Display is what the menu shows, and
-// an empty Display shows the Replacement itself. Help is a line shown below
-// the menu. DeleteBefore and DeleteAfter say how many bytes on each side of
-// the cursor the completion takes away.
+// Every count here is in bytes, as every position in this package is, because
+// that is what indexes a Go string. The one place characters are counted is
+// LineStyle.StyleRunes, which says so in its name.
 type Candidate struct {
-	Replacement  string
-	Display      string
-	Help         string
+	// Replacement is what goes into the line.
+	Replacement string
+
+	// Display is what the menu shows. An empty Display shows the
+	// Replacement itself.
+	Display string
+
+	// Help is a line shown below the menu.
+	Help string
+
+	// DeleteBefore and DeleteAfter are how many bytes on each side of the
+	// cursor this completion takes away.
 	DeleteBefore int
 	DeleteAfter  int
 }
@@ -136,19 +144,26 @@ func (c *Completion) AddCandidate(cand Candidate) bool {
 	return c.add(cand.Replacement, cand.Display, cand.Help, cand.DeleteBefore, cand.DeleteAfter)
 }
 
-// CompletionContext is the line a completer was called on.
-type CompletionContext struct {
-	// Text is the whole line, not only the part before the cursor.
-	Text string
-
-	// Cursor is where the cursor sits in Text, counted in bytes.
-	Cursor int
+// Text returns the whole line the completer was called on, not only the part
+// before the cursor.
+//
+// A completer is handed the prefix to complete, which is usually all it
+// needs. This is for the times it is not — deciding whether the cursor sits
+// inside a word, for one, which is what stops a completion being offered in
+// the middle of a word that is already there.
+func (c *Completion) Text() string {
+	if c == nil {
+		return ""
+	}
+	return c.input
 }
 
-// Input returns the whole line and where the cursor sits in it, which a
-// completer needs when the word alone is not enough to decide.
-func (c *Completion) Input() CompletionContext {
-	return CompletionContext{Text: c.input, Cursor: c.cursor}
+// Cursor returns where the cursor sits in Text, as a byte offset.
+func (c *Completion) Cursor() int {
+	if c == nil {
+		return 0
+	}
+	return c.cursor
 }
 
 // completions holds what the completer offered, and the completer itself.

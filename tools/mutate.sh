@@ -17,8 +17,18 @@
 set -u
 file=$1 find=$2 replace=$3 pattern=${4:-}
 [ -f "$file" ] || { echo "no such file: $file"; exit 2; }
+
+# A run owns the tree while it lasts. Anything else reading the tree meanwhile
+# reads mutated code and reports failures that belong to neither test, which
+# has now happened once here and twice to the Windows session with its own
+# harness. A lock says so rather than leaving it to convention.
+lock=.mutate.lock
+if ! mkdir "$lock" 2>/dev/null; then
+    echo "another mutation run holds $lock: wait for it, or remove the directory if it is stale"
+    exit 2
+fi
 orig=$(mktemp) || exit 2
-trap 'cp "$orig" "$file"; rm -f "$orig"' EXIT
+trap 'cp "$orig" "$file"; rm -f "$orig"; rmdir "$lock" 2>/dev/null' EXIT
 cp "$file" "$orig" || exit 2
 
 python3 - "$file" "$find" "$replace" <<'PY' || { echo "the text to replace is not in $file"; exit 2; }

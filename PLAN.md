@@ -1058,14 +1058,19 @@ compiling version says caught, and widening the condition with a key that
 never ends the loop says not caught, which is the "a line nothing reads" case
 rather than a missing test.
 
-Two more answers that are not holes, both met while attacking the API
-reshape. An equivalent mutation cannot be caught, because it changes nothing:
-`term.write(s)` swapped for `term.writeBytes([]byte(s))` reads as NOT CAUGHT
-and is the body of `write` written out, so a test for it could not exist.
-Read the mutation before believing the answer. And a mutation run owns the
-tree while it runs — a test started beside one in the background read a
-mutated `history.all` and reported two failures that were the harness's, not
-the code's.
+A fourth answer, which the harness cannot give and a reader has to. An
+equivalent mutation changes nothing, so NOT CAUGHT is correct and useless:
+`term.write(s)` swapped for `term.writeBytes([]byte(s))` is the body of
+`write` written out. Not caught, not uncovered, indistinguishable. Read the
+mutation before believing the answer, or it sends you to write a test that
+cannot exist.
+
+A run owns the tree while it lasts. A test started beside one in the
+background read a mutated `history.all` and reported two failures that
+belonged to neither test. `tools/mutate.sh` takes a lock directory now rather
+than leaving that to convention, at windows-vm's suggestion — they had hit
+the same shape twice with their own console harness, where a run builds a
+binary that another run is still writing.
 
 Scope the run to the whole package, not to the test being defended. Three
 mutations in that same round read as not caught against the two tests the

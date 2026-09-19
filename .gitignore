@@ -2,3 +2,4 @@
 /.build/
 /example/example
 /rlex
+.mutate.lock/
