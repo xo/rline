@@ -1026,6 +1026,15 @@ version of the same mutation was needed to show it. So check the run
 compiled as well as that it failed, and treat "did not compile" as a third
 answer beside caught and not caught rather than folding it into either.
 
+`tools/mutate.sh` does all of that, so nobody has to remember it: it asserts
+the patch applied and changed the file, builds before it tests, tells the
+three answers apart, runs the whole package unless given a pattern, and
+asserts the file came back. Its own three answers on the interrupt branch are
+the worked example — the `if false {` mutation says it did not compile, a
+compiling version says caught, and widening the condition with a key that
+never ends the loop says not caught, which is the "a line nothing reads" case
+rather than a missing test.
+
 Scope the run to the whole package, not to the test being defended. Three
 mutations in that same round read as not caught against the two tests the
 change had added, and all three were caught by other tests in the package
