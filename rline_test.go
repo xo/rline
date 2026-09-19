@@ -1013,6 +1013,37 @@ func TestHistoryIsReadableAndSymmetric(t *testing.T) {
 	}
 }
 
+// TestSaveHistoryReportsAFailure checks the one error SaveHistory can
+// return, which is the file refusing to be written.
+//
+// The round trip above only ever saves successfully, so nothing exercised
+// the failing half: dropping the error and returning nil went unnoticed.
+// The C gives up silently here and the port deliberately does not, so the
+// error reaching the caller is the promise being made.
+func TestSaveHistoryReportsAFailure(t *testing.T) {
+	t.Parallel()
+	h := &history{}
+	// A directory cannot be opened for writing, so saving into one fails
+	// the same way on every system this builds for.
+	h.loadFrom(t.TempDir(), DefaultHistoryEntries)
+	r := &Session{env: &env{history: h}}
+	r.AddHistory("something to save")
+
+	err := r.SaveHistory()
+	if err == nil {
+		t.Fatal("saving into a directory reported success")
+	}
+	// The wrapping has to keep the reason, or the caller learns nothing
+	// beyond that something went wrong.
+	var pathErr *os.PathError
+	if !errors.As(err, &pathErr) {
+		t.Errorf("the error is %v, which does not carry the reason underneath", err)
+	}
+	if !strings.Contains(err.Error(), "saving the history") {
+		t.Errorf("the error is %v, which does not say what was being done", err)
+	}
+}
+
 // TestHistoryIsACopy checks that changing what History returned does not
 // change the history.
 func TestHistoryIsACopy(t *testing.T) {
