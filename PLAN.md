@@ -1008,6 +1008,65 @@ with the toolchain of this module. A golangci-lint binary built elsewhere can
 fail to read the export data of a newer Go release, and then it reports every
 standard library import as an error.
 
+## What usql needs
+
+usql is the program this port exists for, and it talks to its reader through
+one interface, `usql/rline.IO`, with eleven methods. That interface is the
+surface to fit, not readline's own. Audited read-only by ken-mba against a
+usql checkout, and the two claims that decide anything were checked again
+here against a second checkout.
+
+Three methods fit as they are: `Close`, `Interactive` and `Password`, the last
+exactly. One behavioural difference under it: usql answers
+`ErrPasswordNotAvailable` when built non-interactive, where this reads the
+password plainly from the input.
+
+Four want a thin wrapper. `Next` returns runes where `ReadLine` returns a
+string. `Prompt(string)` is a whole prompt where `SetPrompt` takes two
+markers. `Save(string) error` splits into `AddHistory` and `SaveHistory`.
+`Completer` adapts in shape but not in lifetime: usql sets its completer after
+the reader exists and replaces it when the connection changes, and there is
+only `WithCompleter` at construction. That is a missing setter rather than a
+rename.
+
+Four are not here at all. `Stdout()` and `Stderr()`: `*Reader` already
+implements `io.Writer`, and returning the Reader from `Stdout()` is both the
+easy answer and the right one, because writing through the Reader is what
+keeps program output off the prompt; `Stderr()` has no answer yet. `Cygwin()`
+may genuinely not be needed, since the Windows console is handled natively
+here, but that is a question rather than something to assume away.
+`SetOutput(func(string) string)` is the real mismatch: usql passes a filter
+over the text about to be drawn, which re-parses its whole accumulated
+statement buffer and returns the last line with a colour-continuation prefix.
+`WithHighlighter` is handed one line and marks stretches with named styles,
+and cannot see outside that line. usql's is stateful across reads by design,
+because a SQL statement spans them. Bridging means usql giving up cross-read
+highlighting inside the editor, or this accepting a filter over the drawn
+string.
+
+### Ctrl-C is the one that blocks
+
+usql cannot work without telling Ctrl-C from an empty line. Its loop reads
+`case err == rline.ErrInterrupt: h.buf.Reset(nil); continue`, which is how a
+user abandons a half-typed statement, and `main.go` lets that error out of the
+program without reporting a failure.
+
+This port cannot say it. Ctrl-C deletes the line and ends the loop, `editLine`
+sets its answer to false only for Ctrl-D on an empty line and for a stop
+event, so Ctrl-C returns an empty line with no error — byte for byte what
+Enter on an empty line returns.
+
+That is faithful rather than broken. isocline does the same and says so at
+`editline.c:949`: "ctrl+G or ctrl+c cancels (and returns empty input)". So it
+is the one place where fidelity to the C and the needs of the program this
+port exists for point in opposite directions, which makes it a decision rather
+than a fix. `ErrInterrupted` already exists and `Password` already returns it,
+so if the decision goes that way only `ReadLine` has to change.
+
+None of this is a defect. It is all downstream of having ported isocline
+faithfully, which is what was asked for, and it is the list of decisions that
+turning it into usql's reader needs.
+
 ## Open questions
 
 Three questions have no answer yet.
