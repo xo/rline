@@ -35,7 +35,7 @@ func TestEscapeRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unescape(%q): %v", got, err)
 			}
-			if !bytes.Equal(back, test.in) && !(len(back) == 0 && len(test.in) == 0) {
+			if !bytes.Equal(back, test.in) {
 				t.Errorf("round trip of %q gave %q", test.in, back)
 			}
 		})

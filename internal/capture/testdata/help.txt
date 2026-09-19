@@ -1,0 +1,222 @@
+# rline capture transcript v1
+session: help
+about: open the help screen with F1
+term: xterm-256color
+size: 80x24
+
+## step 0
+send:
+
+recv:
+\e[m\e[1mIsocline\e[22m sample program:\r
+\n
+- Type 'exit' to quit. (or use \e[38;5;244m\e[4mctrl-d\e[39m\e[24m).\r
+\n
+- Press \e[38;5;244m\e[4mF1\e[39m\e[24m for help on editing commands.\r
+\n
+- Use \e[38;5;244m\e[4mshift-tab\e[39m\e[24m for multiline input. (or \e[38;5;244m\e[4mctrl-enter\e[39m\e[24m, or \e[38;5;244m\e[4mctrl-j\e[39m\e[24m)\r
+\n
+- Type 'p' (or 'id', 'f', or 'h') followed by tab for completion.\r
+\n
+- Type 'fun' or 'int' to see syntax highlighting\r
+\n
+- Use \e[38;5;244m\e[4mctrl-r\e[39m\e[24m to search the history.\r
+\n
+\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 1
+send:
+\eOP
+
+recv:
+\e[m\r
+\e[K\r
+\n
+\e[1A\e[90mIsocline v1.1, copyright (c) 2021-2026 Daan Leijen.\r
+\n
+This is free software; you can redistribute it and/or\r
+\n
+modify it under the terms of the MIT License.\r
+\n
+See <\e[4mhttps://github.com/daanx/isocline\e[24m> for further information.\r
+\n
+We use ^<key> as a shorthand for ctrl-<key>.\r
+\n
+\r
+\n
+Overview:\r
+\n
+\r
+\n
+\e[37m       home,ctrl-a      cursor     end,ctrl-e\r
+\n
+         ┌────────────────┼───────────────┐    (navigate)\r
+\n
+         │    ctrl-left   │  ctrl-right   │\r
+\n
+         │        ┌───────┼──────┐        │    ctrl-r   : search history\r
+\n
+         ▼        ▼       ▼      ▼        ▼    tab      : complete word\r
+\n
+  prompt> \e[90mit's the quintessential language\e[37m     shift-tab: insert new line\r
+\n
+         ▲        ▲              ▲        ▲    esc      : delete input, done\r
+\n
+         │        └──────────────┘        │    ctrl-z   : undo\r
+\n
+         │   alt-backsp        alt-d      │\r
+\n
+         └────────────────────────────────┘    (delete)\r
+\n
+       ctrl-u                          ctrl-k\r
+\n
+\e[39m\r
+\n
+\r
+\n
+\e[90mNavigation:\e[39m\r
+\n
+  \e[38;5;230mleft,^b      \e[37m: go one character to the left\e[39m\r
+\n
+  \e[38;5;230mright,^f     \e[37m: go one character to the right\e[39m\r
+\n
+  \e[38;5;230mup           \e[37m: go one row up, or back in the history\e[39m\r
+\n
+  \e[38;5;230mdown         \e[37m: go one row down, or forward in the history\e[39m\r
+\n
+  \e[38;5;230m^left        \e[37m: go to the start of the previous word\e[39m\r
+\n
+  \e[38;5;230m^right       \e[37m: go to the end the current word\e[39m\r
+\n
+  \e[38;5;230mhome,^a      \e[37m: go to the start of the current line\e[39m\r
+\n
+  \e[38;5;230mend,^e       \e[37m: go to the end of the current line\e[39m\r
+\n
+  \e[38;5;230mpgup,^home   \e[37m: go to the start of the current input\e[39m\r
+\n
+  \e[38;5;230mpgdn,^end    \e[37m: go to the end of the current input\e[39m\r
+\n
+  \e[38;5;230malt-m        \e[37m: jump to matching brace\e[39m\r
+\n
+  \e[38;5;230m^p           \e[37m: go back in the history\e[39m\r
+\n
+  \e[38;5;230m^n           \e[37m: go forward in the history\e[39m\r
+\n
+  \e[38;5;230m^r,^s        \e[37m: search the history starting with the current word\e[39m\r
+\n
+\r
+\n
+\e[90mDeletion:\e[39m\r
+\n
+  \e[38;5;230mdel,^d       \e[37m: delete the current character\e[39m\r
+\n
+  \e[38;5;230mbacksp,^h    \e[37m: delete the previous character\e[39m\r
+\n
+  \e[38;5;230m^w           \e[37m: delete to preceding white space\e[39m\r
+\n
+  \e[38;5;230malt-backsp   \e[37m: delete to the start of the current word\e[39m\r
+\n
+  \e[38;5;230malt-d        \e[37m: delete to the end of the current word\e[39m\r
+\n
+  \e[38;5;230m^u           \e[37m: delete to the start of the current line\e[39m\r
+\n
+  \e[38;5;230m^k           \e[37m: delete to the end of the current line\e[39m\r
+\n
+  \e[38;5;230mesc          \e[37m: delete the current input, or done with empty input\e[39m\r
+\n
+\r
+\n
+\e[90mEditing:\e[39m\r
+\n
+  \e[38;5;230menter        \e[37m: accept current input\e[39m\r
+\n
+  \e[38;5;230m^enter, ^j   \e[39m\r
+\n
+  \e[38;5;230mshift-tab    \e[37m: create a new line for multi-line input\e[39m\r
+\n
+  \e[38;5;230m^l           \e[37m: clear screen\e[39m\r
+\n
+  \e[38;5;230m^t           \e[37m: swap with previous character (move character backward)\e[39m\r
+\n
+  \e[38;5;230m^z,^_        \e[37m: undo\e[39m\r
+\n
+  \e[38;5;230m^y           \e[37m: redo\e[39m\r
+\n
+  \e[38;5;230mtab          \e[37m: try to complete the current input\e[39m\r
+\n
+\r
+\n
+\e[90mIn the completion menu:\e[39m\r
+\n
+  \e[38;5;230menter,left   \e[37m: use the currently selected completion\e[39m\r
+\n
+  \e[38;5;230m1 - 9        \e[37m: use completion N from the menu\e[39m\r
+\n
+  \e[38;5;230mtab,down     \e[37m: select the next completion\e[39m\r
+\n
+  \e[38;5;230mshift-tab,up \e[37m: select the previous completion\e[39m\r
+\n
+  \e[38;5;230mesc          \e[37m: exit menu without completing\e[39m\r
+\n
+  \e[38;5;230mpgdn,^j      \e[37m: show all further possible completions\e[39m\r
+\n
+\r
+\n
+\e[90mIn incremental history search:\e[39m\r
+\n
+  \e[38;5;230menter        \e[37m: use the currently found history entry\e[39m\r
+\n
+  \e[38;5;230mbacksp,^z    \e[37m: go back to the previous match (undo)\e[39m\r
+\n
+  \e[38;5;230mtab,^r       \e[37m: find the next match\e[39m\r
+\n
+  \e[38;5;230mshift-tab,^s \e[37m: find an earlier match\e[39m\r
+\n
+  \e[38;5;230mesc          \e[37m: exit search\e[39m\r
+\n
+  \e[38;5;230m             \e[39m\r
+\n
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C
+
+
+## step 2
+send:
+\x15
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C
+
+
+## step 3
+send:
+exit\r
+
+recv:
+\r
+\e[31misoclinε> \e[39me\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mex\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39mexi\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+exit\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+done\r
+\n
+

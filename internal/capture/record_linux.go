@@ -15,11 +15,13 @@ import (
 )
 
 // Record runs the program at path under a pseudo-terminal, sends the input of
-// the session, and returns every byte that the program wrote.
+// the session, and returns the transcript.
 //
-// Record sets HOME to an empty directory, so that a history file from an
-// earlier run does not change the output.
-func Record(ctx context.Context, path string, s Session) ([]byte, error) {
+// Record sets HOME and the working directory to an empty directory, so that a
+// history file from an earlier run does not change the output. It collects the
+// output of the program before the first step, so that a session does not need
+// an empty step to wait for a banner.
+func Record(ctx context.Context, path string, s Session) (*Transcript, error) {
 	if len(s.Steps) == 0 {
 		return nil, ErrNoSteps
 	}
@@ -36,14 +38,14 @@ func Record(ctx context.Context, path string, s Session) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating home directory: %w", err)
 	}
-	defer os.RemoveAll(home)
+	defer func() { _ = os.RemoveAll(home) }()
 	leader, follower, err := openPTY()
 	if err != nil {
 		return nil, err
 	}
-	defer leader.Close()
+	defer func() { _ = leader.Close() }()
 	if err := setWinsize(leader, s.Cols, s.Rows); err != nil {
-		follower.Close()
+		_ = follower.Close()
 		return nil, err
 	}
 	cmd := exec.CommandContext(ctx, path)
@@ -62,24 +64,37 @@ func Record(ctx context.Context, path string, s Session) ([]byte, error) {
 		Ctty:    0,
 	}
 	if err := cmd.Start(); err != nil {
-		follower.Close()
+		_ = follower.Close()
 		return nil, fmt.Errorf("starting %s: %w", path, err)
 	}
 	// The child owns the follower side now. The parent must let go of it, or
 	// the reads below never see the end of the stream.
-	follower.Close()
-	out, recErr := run(leader, s)
+	_ = follower.Close()
+	t := &Transcript{
+		Session: s.Name,
+		About:   s.About,
+		Term:    s.Term,
+		Cols:    s.Cols,
+		Rows:    s.Rows,
+	}
+	recErr := run(leader, s, t)
 	_ = cmd.Wait()
-	return out, recErr
+	return t, recErr
 }
 
-// run sends every step and collects the output.
-func run(leader *os.File, s Session) ([]byte, error) {
-	var out []byte
+// run collects the startup output, then sends every step and collects its
+// answer. It appends each exchange to the transcript as it goes, so that a
+// recording that fails still shows how far it reached.
+func run(leader *os.File, s Session, t *Transcript) error {
+	b, done, err := drain(leader, s.Quiet)
+	t.Exchanges = append(t.Exchanges, Exchange{Recv: b})
+	if err != nil || done {
+		return err
+	}
 	for i, step := range s.Steps {
 		if step.Send != "" {
 			if _, err := leader.WriteString(step.Send); err != nil {
-				return out, fmt.Errorf("sending step %d: %w", i, err)
+				return fmt.Errorf("sending step %d: %w", i, err)
 			}
 		}
 		quiet := step.Wait
@@ -87,18 +102,15 @@ func run(leader *os.File, s Session) ([]byte, error) {
 			quiet = s.Quiet
 		}
 		b, done, err := drain(leader, quiet)
-		out = append(out, b...)
+		t.Exchanges = append(t.Exchanges, Exchange{Send: []byte(step.Send), Recv: b})
 		if err != nil {
-			return out, err
+			return err
 		}
 		if done {
-			return out, nil
+			return nil
 		}
 	}
-	// Collect whatever the program writes as it exits.
-	b, _, err := drain(leader, s.Quiet)
-	out = append(out, b...)
-	return out, err
+	return nil
 }
 
 // drain reads until the program writes nothing for the quiet period. It
@@ -147,24 +159,24 @@ func openPTY() (*os.File, *os.File, error) {
 	var unlock int32
 	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd),
 		syscall.TIOCSPTLCK, uintptr(unsafe.Pointer(&unlock))); errno != 0 {
-		syscall.Close(fd)
+		_ = syscall.Close(fd)
 		return nil, nil, fmt.Errorf("unlocking pseudo-terminal: %w", errno)
 	}
 	var num uint32
 	if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd),
 		syscall.TIOCGPTN, uintptr(unsafe.Pointer(&num))); errno != 0 {
-		syscall.Close(fd)
+		_ = syscall.Close(fd)
 		return nil, nil, fmt.Errorf("reading pseudo-terminal number: %w", errno)
 	}
 	if err := syscall.SetNonblock(fd, true); err != nil {
-		syscall.Close(fd)
+		_ = syscall.Close(fd)
 		return nil, nil, fmt.Errorf("setting non-blocking mode: %w", err)
 	}
 	leader := os.NewFile(uintptr(fd), "/dev/ptmx")
 	name := fmt.Sprintf("/dev/pts/%d", num)
 	follower, err := os.OpenFile(name, os.O_RDWR|syscall.O_NOCTTY, 0)
 	if err != nil {
-		leader.Close()
+		_ = leader.Close()
 		return nil, nil, fmt.Errorf("opening %s: %w", name, err)
 	}
 	return leader, follower, nil

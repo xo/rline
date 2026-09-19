@@ -1,6 +1,6 @@
 # rline capture transcript v1
-session: highlight
-about: type a word that the highlighter colors
+session: utf8
+about: type text outside ASCII, including a wide character
 term: xterm-256color
 size: 80x24
 
@@ -29,53 +29,63 @@ recv:
 
 ## step 1
 send:
-fun
+αβγ
 
 recv:
 \r
-\e[31misoclinε> \e[39mf\e[K\r
+\e[31misoclinε> \e[39mα\e[K\r
 \e[11C\r
-\e[31misoclinε> \e[39mfu\e[K\r
+\e[31misoclinε> \e[39mαβ\e[K\r
 \e[12C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m\e[K\r
+\e[31misoclinε> \e[39mαβγ\e[K\r
 \e[13C
 
 
 ## step 2
 send:
- int
+ 日本語
 
 recv:
 \r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[K\r
+\e[31misoclinε> \e[39mαβγ \e[K\r
 \e[14C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m i\e[K\r
-\e[15C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m in\e[K\r
+\e[31misoclinε> \e[39mαβγ 日\e[K\r
 \e[16C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[38;5;30mint\e[39m\e[K\r
-\e[17C
+\e[31misoclinε> \e[39mαβγ 日本\e[K\r
+\e[18C\r
+\e[31misoclinε> \e[39mαβγ 日本語\e[K\r
+\e[20C
 
 
 ## step 3
+send:
+\x7f
+
+recv:
+\r
+\e[31misoclinε> \e[39mαβγ 日本\e[K\r
+\e[18C
+
+
+## step 4
 send:
 \r
 
 recv:
 \r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[38;5;30mint\e[39m\e[K\r
-\e[17C\r
+\e[31misoclinε> \e[39mαβγ 日本\e[K\r
+\e[18C\r
 \n
 \e[38;5;244m-----\e[39m\r
 \n
-fun int\r
+αβγ 日本\r
 \n
 \e[38;5;244m-----\e[39m\r
 \n
 \e[31misoclinε> \e[39m
 
 
-## step 4
+## step 5
 send:
 exit\r
 

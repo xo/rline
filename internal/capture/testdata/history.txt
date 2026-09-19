@@ -1,6 +1,6 @@
 # rline capture transcript v1
-session: highlight
-about: type a word that the highlighter colors
+session: history
+about: walk back through the history with the Up key
 term: xterm-256color
 size: 80x24
 
@@ -29,53 +29,107 @@ recv:
 
 ## step 1
 send:
-fun
+alpha\r
 
 recv:
 \r
-\e[31misoclinε> \e[39mf\e[K\r
+\e[31misoclinε> \e[39ma\e[K\r
 \e[11C\r
-\e[31misoclinε> \e[39mfu\e[K\r
+\e[31misoclinε> \e[39mal\e[K\r
 \e[12C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m\e[K\r
-\e[13C
-
-
-## step 2
-send:
- int
-
-recv:
-\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[K\r
+\e[31misoclinε> \e[39malp\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39malph\e[K\r
 \e[14C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m i\e[K\r
+\e[31misoclinε> \e[39malpha\e[K\r
 \e[15C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m in\e[K\r
-\e[16C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[38;5;30mint\e[39m\e[K\r
-\e[17C
-
-
-## step 3
-send:
-\r
-
-recv:
-\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[38;5;30mint\e[39m\e[K\r
-\e[17C\r
+\e[31misoclinε> \e[39malpha\e[K\r
+\e[15C\r
 \n
 \e[38;5;244m-----\e[39m\r
 \n
-fun int\r
+alpha\r
 \n
 \e[38;5;244m-----\e[39m\r
 \n
 \e[31misoclinε> \e[39m
 
 
+## step 2
+send:
+beta\r
+
+recv:
+\r
+\e[31misoclinε> \e[39mb\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mbe\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39mbet\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39mbeta\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39mbeta\e[K\r
+\e[14C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+beta\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 3
+send:
+\e[A
+
+recv:
+\r
+\e[31misoclinε> \e[39mbeta\e[K\r
+\e[14C
+
+
 ## step 4
+send:
+\e[A
+
+recv:
+\r
+\e[31misoclinε> \e[39malpha\e[K\r
+\e[15C
+
+
+## step 5
+send:
+\e[B
+
+recv:
+\r
+\e[31misoclinε> \e[39mbeta\e[K\r
+\e[14C
+
+
+## step 6
+send:
+\r
+
+recv:
+\r
+\e[31misoclinε> \e[39mbeta\e[K\r
+\e[14C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+beta\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 7
 send:
 exit\r
 

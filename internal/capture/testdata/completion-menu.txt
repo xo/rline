@@ -1,6 +1,6 @@
 # rline capture transcript v1
-session: highlight
-about: type a word that the highlighter colors
+session: completion-menu
+about: press Tab twice to open the completion menu
 term: xterm-256color
 size: 80x24
 
@@ -29,53 +29,76 @@ recv:
 
 ## step 1
 send:
-fun
+f
 
 recv:
 \r
 \e[31misoclinε> \e[39mf\e[K\r
-\e[11C\r
-\e[31misoclinε> \e[39mfu\e[K\r
-\e[12C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m\e[K\r
-\e[13C
+\e[11C
 
 
 ## step 2
 send:
- int
+\t
 
 recv:
 \r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[K\r
-\e[14C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m i\e[K\r
-\e[15C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m in\e[K\r
-\e[16C\r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[38;5;30mint\e[39m\e[K\r
-\e[17C
+\e[31misoclinε> \e[39mf\e[K\r
+\n
+\e[90m 1 \e[39mapples 🍎              \e[90m 4 \e[39mzero‍width-joiner       \e[K\r
+\n
+\e[90m 2 \e[39m猕猴桃 wide            \e[90m 5 \e[39m〈pear〉with brackets  \e[K\r
+\n
+\e[90m 3 \e[39mbanana 🍌 etc.           \e[K\r
+\e[3A\e[11C
 
 
 ## step 3
 send:
-\r
+\t
 
 recv:
 \r
-\e[31misoclinε> \e[39m\e[38;5;74mfun\e[39m \e[38;5;30mint\e[39m\e[K\r
-\e[17C\r
+\e[31misoclinε> \e[39mapples 🍎\e[K\r
 \n
-\e[38;5;244m-----\e[39m\r
+\e[90m→1 \e[38;5;230mapples 🍎            \e[39m  \e[90m 4 \e[39mzero‍width-joiner       \e[K\r
 \n
-fun int\r
+\e[90m 2 \e[39m猕猴桃 wide            \e[90m 5 \e[39m〈pear〉with brackets  \e[K\r
 \n
-\e[38;5;244m-----\e[39m\r
-\n
-\e[31misoclinε> \e[39m
+\e[90m 3 \e[39mbanana 🍌 etc.           \e[K\r
+\e[3A\e[19C
 
 
 ## step 4
+send:
+\e
+
+recv:
+\r
+\e[31misoclinε> \e[39mf\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\e[3A\e[11C
+
+
+## step 5
+send:
+\x15
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C
+
+
+## step 6
 send:
 exit\r
 

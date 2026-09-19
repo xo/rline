@@ -8,6 +8,6 @@ import "context"
 //
 // macOS needs a pseudo-terminal opened with posix_openpt, and Windows needs a
 // pseudo console, which it creates with CreatePseudoConsole.
-func Record(_ context.Context, _ string, _ Session) ([]byte, error) {
+func Record(_ context.Context, _ string, _ Session) (*Transcript, error) {
 	return nil, ErrUnsupported
 }

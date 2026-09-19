@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+// transcriptVersion marks the golden file format. Raise it when the format
+// changes, so that a stale golden file fails loudly.
+const transcriptVersion = 1
+
 // ErrBadEscape reports text that Unescape cannot read.
 type ErrBadEscape struct {
 	// Offset is the position of the fault in the text.
@@ -27,6 +31,9 @@ func (err *ErrBadEscape) Error() string {
 // readable. A real newline follows every "\r" and "\n", which breaks the text
 // into lines. Unescape ignores those newlines, so Escape and Unescape return
 // the original bytes.
+//
+// Escape never writes an empty line, because every real newline it adds comes
+// after an escape on the same line. A blank line can therefore end a block.
 func Escape(b []byte) string {
 	var sb strings.Builder
 	sb.Grow(len(b) * 2)
@@ -101,4 +108,39 @@ func Unescape(s string) ([]byte, error) {
 		i += 2
 	}
 	return out, nil
+}
+
+// Encode renders the transcript as the text of a golden file.
+//
+// The layout names the session, then each exchange in order. A blank line ends
+// every block, which is safe because Escape never writes an empty line.
+func (t *Transcript) Encode() string {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "# rline capture transcript v%d\n", transcriptVersion)
+	fmt.Fprintf(&sb, "session: %s\n", t.Session)
+	if t.About != "" {
+		fmt.Fprintf(&sb, "about: %s\n", t.About)
+	}
+	fmt.Fprintf(&sb, "term: %s\n", t.Term)
+	fmt.Fprintf(&sb, "size: %dx%d\n", t.Cols, t.Rows)
+	for i, e := range t.Exchanges {
+		fmt.Fprintf(&sb, "\n## step %d\n", i)
+		writeBlock(&sb, "send", e.Send)
+		writeBlock(&sb, "recv", e.Recv)
+	}
+	return sb.String()
+}
+
+// writeBlock writes one named block of escaped bytes, ended by a blank line.
+func writeBlock(sb *strings.Builder, name string, b []byte) {
+	sb.WriteString(name)
+	sb.WriteString(":\n")
+	if len(b) != 0 {
+		s := Escape(b)
+		sb.WriteString(s)
+		if !strings.HasSuffix(s, "\n") {
+			sb.WriteByte('\n')
+		}
+	}
+	sb.WriteByte('\n')
 }

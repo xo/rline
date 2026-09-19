@@ -1,0 +1,208 @@
+# rline capture transcript v1
+session: history-search
+about: search the history with Ctrl-R
+term: xterm-256color
+size: 80x24
+
+## step 0
+send:
+
+recv:
+\e[m\e[1mIsocline\e[22m sample program:\r
+\n
+- Type 'exit' to quit. (or use \e[38;5;244m\e[4mctrl-d\e[39m\e[24m).\r
+\n
+- Press \e[38;5;244m\e[4mF1\e[39m\e[24m for help on editing commands.\r
+\n
+- Use \e[38;5;244m\e[4mshift-tab\e[39m\e[24m for multiline input. (or \e[38;5;244m\e[4mctrl-enter\e[39m\e[24m, or \e[38;5;244m\e[4mctrl-j\e[39m\e[24m)\r
+\n
+- Type 'p' (or 'id', 'f', or 'h') followed by tab for completion.\r
+\n
+- Type 'fun' or 'int' to see syntax highlighting\r
+\n
+- Use \e[38;5;244m\e[4mctrl-r\e[39m\e[24m to search the history.\r
+\n
+\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 1
+send:
+alpha\r
+
+recv:
+\r
+\e[31misoclinε> \e[39ma\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mal\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39malp\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39malph\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39malpha\e[K\r
+\e[15C\r
+\e[31misoclinε> \e[39malpha\e[K\r
+\e[15C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+alpha\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 2
+send:
+beta\r
+
+recv:
+\r
+\e[31misoclinε> \e[39mb\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mbe\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39mbet\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39mbeta\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39mbeta\e[K\r
+\e[14C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+beta\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 3
+send:
+\x12
+
+recv:
+\r
+\e[31mhistory search> \e[39m\e[K\r
+\n
+\e[90m1. \e[37mbeta\e[39m\e[K\r
+\n
+\e[90m(use tab for the next match)\e[39m\e[K\r
+\n
+\e[K\r
+\e[3A\e[16C
+
+
+## step 4
+send:
+al
+
+recv:
+\r
+\e[31mhistory search> \e[39ma\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\e[3A\e[17C\r
+\e[31mhistory search> \e[39ma\e[K\r
+\n
+\e[90m1. \e[37mbet\e[38;5;230m\e[4ma\e[39m\e[24m\e[K\r
+\n
+\e[90m(use tab for the next match)\e[39m\e[K\r
+\n
+\e[K\r
+\e[3A\e[17C\r
+\e[31mhistory search> \e[39mal\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\e[3A\e[18C\r
+\e[31mhistory search> \e[39mal\e[K\r
+\n
+\e[90m2. \e[38;5;230m\e[4mal\e[37m\e[24mpha\e[39m\e[K\r
+\n
+\e[90m(use tab for the next match)\e[39m\e[K\r
+\n
+\e[K\r
+\e[3A\e[18C
+
+
+## step 5
+send:
+\r
+
+recv:
+\r
+\e[31misoclinε> \e[39malpha\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\e[3A\e[15C
+
+
+## step 6
+send:
+\r
+
+recv:
+\r
+\e[31misoclinε> \e[39malpha\e[K\r
+\e[15C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+alpha\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 7
+send:
+exit\r
+
+recv:
+\r
+\e[31misoclinε> \e[39me\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mex\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39mexi\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+exit\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+done\r
+\n
+

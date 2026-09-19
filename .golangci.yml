@@ -17,19 +17,9 @@ linters:
       asserts: true
       comparison: true
     gocritic:
+      # Only checks that gocritic does not already enable by default.
       enabled-checks:
-        - appendAssign
-        - argOrder
-        - badCall
-        - badCond
-        - dupArg
-        - dupBranchBody
-        - dupCase
-        - elseif
-        - flagDeref
         - nilValReturn
-        - singleCaseSwitch
-        - underef
         - unnecessaryBlock
     revive:
       rules:

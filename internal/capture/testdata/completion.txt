@@ -1,3 +1,13 @@
+# rline capture transcript v1
+session: completion
+about: complete a prefix with the Tab key
+term: xterm-256color
+size: 80x24
+
+## step 0
+send:
+
+recv:
 \e[m\e[1mIsocline\e[22m sample program:\r
 \n
 - Type 'exit' to quit. (or use \e[38;5;244m\e[4mctrl-d\e[39m\e[24m).\r
@@ -14,9 +24,25 @@
 \n
 \r
 \n
-\e[31misoclinε> \e[39m\r
+\e[31misoclinε> \e[39m
+
+
+## step 1
+send:
+p
+
+recv:
+\r
 \e[31misoclinε> \e[39mp\e[K\r
-\e[11C\r
+\e[11C
+
+
+## step 2
+send:
+\t
+
+recv:
+\r
 \e[31misoclinε> \e[39mpr\e[K\r
 \n
 \e[90m 1 \e[39mprint     \e[90m 4 \e[39mprintln   \e[K\r
@@ -24,7 +50,15 @@
 \e[90m 2 \e[39mprompt    \e[90m 5 \e[39mprintsln  \e[K\r
 \n
 \e[90m 3 \e[39mprinter     \e[K\r
-\e[3A\e[12C\r
+\e[3A\e[12C
+
+
+## step 3
+send:
+\r
+
+recv:
+\r
 \e[31misoclinε> \e[39mpr\e[K\r
 \n
 \r
@@ -45,7 +79,15 @@ pr\r
 \n
 \e[38;5;244m-----\e[39m\r
 \n
-\e[31misoclinε> \e[39m\r
+\e[31misoclinε> \e[39m
+
+
+## step 4
+send:
+exit\r
+
+recv:
+\r
 \e[31misoclinε> \e[39me\e[K\r
 \e[11C\r
 \e[31misoclinε> \e[39mex\e[K\r
@@ -65,3 +107,4 @@ exit\r
 \n
 done\r
 \n
+

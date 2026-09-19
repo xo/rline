@@ -1,0 +1,211 @@
+# rline capture transcript v1
+session: narrow
+about: wrap a long line in a narrow terminal
+term: xterm-256color
+size: 40x10
+
+## step 0
+send:
+
+recv:
+\e[m\e[1mIsocline\e[22m sample program:\r
+\n
+- Type 'exit' to quit. (or use \e[38;5;244m\e[4mctrl-d\e[39m\e[24m).\r
+\n
+- Press \e[38;5;244m\e[4mF1\e[39m\e[24m for help on editing commands.\r
+\n
+- Use \e[38;5;244m\e[4mshift-tab\e[39m\e[24m for multiline input. (or \e[38;5;244m\e[4mctrl-enter\e[39m\e[24m, or \e[38;5;244m\e[4mctrl-j\e[39m\e[24m)\r
+\n
+- Type 'p' (or 'id', 'f', or 'h') followed by tab for completion.\r
+\n
+- Type 'fun' or 'int' to see syntax highlighting\r
+\n
+- Use \e[38;5;244m\e[4mctrl-r\e[39m\e[24m to search the history.\r
+\n
+\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 1
+send:
+0123456789012345678901234567890123456789012345
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[38;5;151m0\e[39m\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01\e[39m\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012\e[39m\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123\e[39m\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01234\e[39m\e[K\r
+\e[15C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012345\e[39m\e[K\r
+\e[16C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456\e[39m\e[K\r
+\e[17C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01234567\e[39m\e[K\r
+\e[18C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012345678\e[39m\e[K\r
+\e[19C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456789\e[39m\e[K\r
+\e[20C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01234567890\e[39m\e[K\r
+\e[21C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012345678901\e[39m\e[K\r
+\e[22C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456789012\e[39m\e[K\r
+\e[23C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01234567890123\e[39m\e[K\r
+\e[24C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012345678901234\e[39m\e[K\r
+\e[25C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345\e[39m\e[K\r
+\e[26C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01234567890123456\e[39m\e[K\r
+\e[27C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012345678901234567\e[39m\e[K\r
+\e[28C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678\e[39m\e[K\r
+\e[29C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01234567890123456789\e[39m\e[K\r
+\e[30C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012345678901234567890\e[39m\e[K\r
+\e[31C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901\e[39m\e[K\r
+\e[32C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01234567890123456789012\e[39m\e[K\r
+\e[33C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012345678901234567890123\e[39m\e[K\r
+\e[34C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234\e[39m\e[K\r
+\e[35C\r
+\e[31misoclinε> \e[39m\e[38;5;151m01234567890123456789012345\e[39m\e[K\r
+\e[36C\r
+\e[31misoclinε> \e[39m\e[38;5;151m012345678901234567890123456\e[39m\e[K\r
+\e[37C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m\e[K\r
+\e[38C\r
+\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m8\e[39m\e[K\r
+\e[11C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m89\e[39m\e[K\r
+\e[12C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m890\e[39m\e[K\r
+\e[13C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m8901\e[39m\e[K\r
+\e[14C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m89012\e[39m\e[K\r
+\e[15C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m890123\e[39m\e[K\r
+\e[16C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m8901234\e[39m\e[K\r
+\e[17C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m89012345\e[39m\e[K\r
+\e[18C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m890123456\e[39m\e[K\r
+\e[19C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m8901234567\e[39m\e[K\r
+\e[20C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m89012345678\e[39m\e[K\r
+\e[21C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m890123456789\e[39m\e[K\r
+\e[22C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m8901234567890\e[39m\e[K\r
+\e[23C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m89012345678901\e[39m\e[K\r
+\e[24C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m890123456789012\e[39m\e[K\r
+\e[25C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m8901234567890123\e[39m\e[K\r
+\e[26C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m89012345678901234\e[39m\e[K\r
+\e[27C\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m890123456789012345\e[39m\e[K\r
+\e[28C
+
+
+## step 2
+send:
+\r
+
+recv:
+\r
+\e[1A\e[31misoclinε> \e[39m\e[38;5;151m0123456789012345678901234567\e[39m←\e[K\r
+\n
+\e[31m        > \e[39m\e[38;5;151m890123456789012345\e[39m\e[K\r
+\e[28C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+0123456789012345678901234567890123456789012345\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 3
+send:
+exit\r
+
+recv:
+\r
+\e[31misoclinε> \e[39me\e[K\r
+\e[11C\r
+\e[31misoclinε> \e[39mex\e[K\r
+\e[12C\r
+\e[31misoclinε> \e[39mexi\e[K\r
+\e[13C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\e[31misoclinε> \e[39mexit\e[K\r
+\e[14C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+exit\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+done\r
+\n
+

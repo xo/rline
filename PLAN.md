@@ -95,6 +95,20 @@ random input, and compare. Turn each difference into a test.
 Pin the Unicode version that the width tables use. The golden files change when
 that version changes.
 
+## Checks
+
+Three checks run on the Go code:
+
+1. `gofmt -l .` names any file that is not formatted.
+2. `go vet ./...` reports suspicious code.
+3. `go tool golangci-lint run ./...` runs the linters that `.golangci.yml`
+   names.
+
+`go.mod` pins golangci-lint with a `tool` directive, so `go tool` builds it
+with the toolchain of this module. A golangci-lint binary built elsewhere can
+fail to read the export data of a newer Go release, and then it reports every
+standard library import as an error.
+
 ## Open questions
 
 Four questions have no answer yet.

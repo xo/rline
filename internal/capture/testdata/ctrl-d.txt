@@ -1,6 +1,6 @@
 # rline capture transcript v1
-session: basic
-about: type a line, send it, then leave
+session: ctrl-d
+about: leave with Ctrl-D instead of typing exit
 term: xterm-256color
 size: 80x24
 
@@ -29,26 +29,24 @@ recv:
 
 ## step 1
 send:
-hello\r
+kept\r
 
 recv:
 \r
-\e[31misoclinε> \e[39mh\e[K\r
+\e[31misoclinε> \e[39mk\e[K\r
 \e[11C\r
-\e[31misoclinε> \e[39mhe\e[K\r
+\e[31misoclinε> \e[39mke\e[K\r
 \e[12C\r
-\e[31misoclinε> \e[39mhel\e[K\r
+\e[31misoclinε> \e[39mkep\e[K\r
 \e[13C\r
-\e[31misoclinε> \e[39mhell\e[K\r
+\e[31misoclinε> \e[39mkept\e[K\r
 \e[14C\r
-\e[31misoclinε> \e[39mhello\e[K\r
-\e[15C\r
-\e[31misoclinε> \e[39mhello\e[K\r
-\e[15C\r
+\e[31misoclinε> \e[39mkept\e[K\r
+\e[14C\r
 \n
 \e[38;5;244m-----\e[39m\r
 \n
-hello\r
+kept\r
 \n
 \e[38;5;244m-----\e[39m\r
 \n
@@ -57,26 +55,12 @@ hello\r
 
 ## step 2
 send:
-exit\r
+\x04
 
 recv:
 \r
-\e[31misoclinε> \e[39me\e[K\r
-\e[11C\r
-\e[31misoclinε> \e[39mex\e[K\r
-\e[12C\r
-\e[31misoclinε> \e[39mexi\e[K\r
-\e[13C\r
-\e[31misoclinε> \e[39mexit\e[K\r
-\e[14C\r
-\e[31misoclinε> \e[39mexit\e[K\r
-\e[14C\r
-\n
-\e[38;5;244m-----\e[39m\r
-\n
-exit\r
-\n
-\e[38;5;244m-----\e[39m\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C\r
 \n
 done\r
 \n
