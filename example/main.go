@@ -109,12 +109,14 @@ func run() error {
 			pending.Reset()
 		}
 		text := strings.TrimSpace(line)
-		if i := strings.LastIndexByte(text, '\n'); i >= 0 {
-			// A command is whatever is on the last row, so it works after a
-			// statement has been started.
-			text = strings.TrimSpace(text[i+1:])
+		// A command is whatever is on the last row, so it works after a
+		// statement has been started. The statement itself is still the whole
+		// of what was typed.
+		last := text
+		if i := strings.LastIndexByte(last, '\n'); i >= 0 {
+			last = strings.TrimSpace(last[i+1:])
 		}
-		if text == `\pass` {
+		if last == `\pass` {
 			// Reading something that must not be shown, the way usql asks for
 			// a database password.
 			pw, err := r.Password("password: ")
@@ -132,8 +134,8 @@ func run() error {
 			_, _ = fmt.Fprintf(r, "password was %q (%d bytes)\n", pw, len(pw))
 			continue
 		}
-		if text == "" || isQuit(text) {
-			if isQuit(text) {
+		if text == "" || isQuit(last) {
+			if isQuit(last) {
 				return nil
 			}
 			continue
