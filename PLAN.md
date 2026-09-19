@@ -137,7 +137,23 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    `tools/build-probe-history.sh` builds a fifth probe, and
    `testdata/history.txt` records 424 cases, including the escaping of every
    byte on its own.
-9. `completions.c`, then `completers.c`.
+9. `completions.c` and `completers.c`. `completions.c` is done, in
+   `completions.go`: the list of what the user could type, how much of the
+   line each one takes away on either side of the cursor, the order the menu
+   shows them in, and filling in the longest start they all share. From
+   `completers.c`, word and quoted word completion are done in
+   `completers.go`, which is the part that works out which word the completer
+   should see and puts the quoting back on what comes back.
+
+   `tools/build-probe-completions.sh` builds a sixth probe, and
+   `testdata/completions.txt` records 1635 cases, 302 of them word and quoted
+   word completion over every combination of quote, escape and character
+   class.
+
+   What is left is completing a file name, which is the rest of
+   `completers.c`: reading a directory, matching an extension, and colouring
+   an entry from `LS_COLORS`. That part reads the file system rather than a
+   string, so it needs its own way of being tested.
 10. `highlight.c`.
 11. `editline.c`. This is the edit loop and the key dispatch. The files
     `editline_help.c`, `editline_history.c` and `editline_completion.c` are
@@ -219,6 +235,20 @@ There is no `setlocale` in Go, so `localeIsUTF8` reads `LC_ALL`, `LC_CTYPE`
 and `LANG` in the order that `setlocale` reads them, and applies the same
 test. An environment that sets none of them leaves the locale at `C`, which
 the C code counts as UTF-8.
+
+A completion with an empty display shows its replacement. The C code keeps an
+absent display apart from an empty one, and shows the empty one, which draws a
+blank line in the menu. A Go caller cannot pass the absence of a string, so
+the two are the same here. This is the only recorded case where the port
+answers differently on purpose, and the test says so where it checks it.
+
+The history file is created with the mode that keeps it to its owner, rather
+than created and then tightened. The C code calls `fopen` and then `chmod`,
+which leaves a moment where a file holding everything the user typed can be
+read by anyone. Setting the mode at creation closes that, and the `chmod`
+stays so that a file which already existed with a looser mode is tightened as
+well, which the C code never does. A file mode cannot appear in terminal
+output, so no recorded session can tell the difference.
 
 Case-insensitive comparison compares C `char` values, and the result depends on
 whether `char` is signed. Any byte above 0x7f sorts before every ASCII
