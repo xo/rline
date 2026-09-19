@@ -64,29 +64,47 @@ jobs:
       # build tag no longer matches its source still compiles where both are
       # excluded, and only vet on a system where they disagree says so. That
       # happened once and went unnoticed for an hour.
+      #
+      # GOARCH is pinned to amd64 rather than left at the runner's. This
+      # loop is about build tags, which do not vary by architecture, and
+      # several of these systems have no arm64 port at all: the first arm64
+      # run failed on "unsupported GOOS/GOARCH pair dragonfly/arm64". The
+      # architecture of the runner is covered by the plain vet step above.
       - name: vet every system
         shell: bash
         run: |
           for goos in linux darwin windows freebsd netbsd openbsd dragonfly solaris illumos plan9; do
             echo "== $goos =="
-            GOOS=$goos go vet ./... || exit 1
+            GOOS=$goos GOARCH=amd64 go vet ./... || exit 1
           done
 
+      # One test is skipped on Windows rather than the package it lives in.
+      # TestGoldenSetIsPresent fails there by design, because recording a
+      # session needs a pseudo console that nobody has written, and a job
+      # that is always red teaches people to ignore it.
+      #
+      # Dropping the whole package was the first attempt and was wrong.
+      # windows-vm pointed out that it would take TestRecordIsUnsupported
+      # with it, which is tagged !linux && !darwin and exists to check this
+      # very platform, so the only automated Windows environment anyone has
+      # would stop running the one test written for it. That is the
+      # tagged-out shape from PLAN.md, chosen on purpose. Skipping the one
+      # test costs nothing and they measured it green.
       - name: test
         shell: bash
-        # internal/capture is left out on Windows: recording a session needs
-        # a pseudo console made with CreatePseudoConsole, which nobody has
-        # written, so there are no recordings to compare against and
-        # TestGoldenSetIsPresent fails by design. A job that is always red
-        # teaches people to ignore it, so the package is skipped here and the
-        # gap is recorded in PLAN.md instead.
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
-            go test -count=1 . ./key
+            go test -count=1 -skip TestGoldenSetIsPresent ./...
           else
             go test -count=1 ./...
           fi
 
+      # The one step in this project that needs a C toolchain on Windows.
+      # The race detector requires cgo there, and the hosted runner ships
+      # mingw-w64. A Windows contributor running these steps by hand without
+      # a compiler will be told "-race requires cgo" and reasonably think
+      # they have broken something. They have not: everything else here is
+      # arranged so that no compiler is needed.
       - name: test under the race detector
         run: go test -race -count=1 . ./key
 

@@ -1509,11 +1509,34 @@ consumers cannot use, and this one dropped to 1.25.0 so that FreeBSD could
 build it at all. Testing on a newer Go than the module names would not find
 the case where someone on 1.25 cannot compile it.
 
-It leaves `internal/capture` out on Windows. Recording a session there needs
-a pseudo console, which nobody has written, so there are no recordings and
-`TestGoldenSetIsPresent` fails by design. A job that is always red teaches
-people to ignore it, which costs more than the reminder is worth, so the gap
+It skips one test on Windows rather than the package that holds it. `TestGoldenSetIsPresent` fails there
+by design, because recording a session needs a pseudo console that nobody has
+written. A job that is always red teaches people to ignore it, so the gap
 lives in this document instead.
+
+Dropping the whole package was the first attempt and was wrong. windows-vm
+pointed out that it would take `TestRecordIsUnsupported` with it, which is
+tagged `!linux && !darwin` and exists to check that very platform. The only
+automated Windows environment anyone has would have stopped running the one
+test written for Windows, which is the tagged-out shape from the list below,
+chosen deliberately this time. `-skip TestGoldenSetIsPresent` costs nothing
+and they measured it green there.
+
+Two more things the first run found, both about assuming the runner is like
+this machine. The vet loop pins `GOARCH=amd64`, because it is about build
+tags rather than architectures and several of those systems have no arm64
+port: the arm64 job failed on `unsupported GOOS/GOARCH pair dragonfly/arm64`.
+And `.gitattributes` forces LF, because git on Windows checks out CRLF by
+default and gofmt then reports every file as unformatted — fifty-two of them,
+none actually changed. That one matters beyond formatting: the corpora are
+compared byte for byte, so a rewritten line ending would fail tests that are
+right, on the platform least able to explain why.
+
+The race detector step is the one thing in this project that needs a C
+toolchain on Windows. Everything else is arranged so that a Windows
+contributor needs no compiler, and someone running these steps by hand
+without one will be told `-race requires cgo` and think they have broken
+something. The hosted runner ships mingw-w64.
 
 One thing to know before trusting a green run: the arm64 Linux runner is
 free for public repositories and needs a paid plan for private ones. On a

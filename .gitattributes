@@ -1,0 +1,11 @@
+# Every file in this repository is text, and every one of them is LF.
+#
+# Without this, git on Windows checks out CRLF by default, and then gofmt
+# reports every Go file as unformatted. The CI run on windows-latest did
+# exactly that: fifty-two files listed, none of them actually changed.
+#
+# It matters for more than gofmt. The recorded corpora and the session
+# transcripts are compared byte for byte, so a line ending rewritten on
+# checkout would fail tests that are right, on the one platform least able
+# to explain why.
+* text=auto eol=lf

@@ -44,8 +44,15 @@ if (-not (Test-Path $bin)) {
     # Move-Item -Force onto a binary another process is running fails on
     # Windows rather than replacing it, so two runs at once end with one of
     # them stopping here. That is better than running a half-written binary,
-    # and it is a hard stop rather than a retry, which is worth knowing
-    # before it is met.
+    # and it is a hard stop rather than a retry.
+    #
+    # The message it gives is misleading, which is the part worth knowing:
+    # "Cannot create a file when that file already exists." -Force deletes
+    # the destination first, the running process refuses that delete, and
+    # the rename then fails on a file that is still there. So it reports the
+    # thing anyone can see rather than the cause. Measured on Windows by
+    # windows-vm, who needed a cold cache to reproduce it, because a warm
+    # run exits before it can be caught holding the file.
     $tmp = Join-Path $dir ".building-golangci-lint-$PID"
     try {
         & go -C $mod build -o $tmp github.com/golangci/golangci-lint/v2/cmd/golangci-lint
