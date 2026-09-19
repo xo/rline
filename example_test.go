@@ -236,3 +236,53 @@ func TestExampleHighlightsAndSpansLines(t *testing.T) {
 		t.Errorf("only %d distinct attributes were used, want several", len(colors))
 	}
 }
+
+// TestExamplePromptFollowsTheStatement checks which prompt is drawn as a
+// statement is built up.
+//
+// A statement that has no semicolon yet carries on, and the continuation
+// marker says so. An empty line with nothing buffered starts over, and the
+// first marker comes back.
+func TestExamplePromptFollowsTheStatement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("building the example takes a moment")
+	}
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name:  "prompts",
+		About: "which prompt is drawn as a statement is built up",
+		Steps: []capture.Step{
+			{Send: capture.KeyEnter},              // nothing buffered, starts over
+			{Send: "select 1" + capture.KeyEnter}, // no semicolon, carries on
+			{Send: capture.KeyEnter},              // still carrying on
+			{Send: "from t;" + capture.KeyEnter},  // ends it
+			{Send: capture.CtrlD, Wait: 400 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system: %v", err)
+	}
+	// Reduce the session to the order the markers appeared in.
+	var order []string
+	for _, ln := range strings.Split(capture.Escape(tr.Bytes()), "\n") {
+		var now string
+		switch {
+		case strings.Contains(ln, "ran "):
+			now = "ran"
+		case strings.Contains(ln, "...> "):
+			now = "...>"
+		case strings.Contains(ln, "sql> "):
+			now = "sql>"
+		}
+		if now != "" && (len(order) == 0 || order[len(order)-1] != now) {
+			order = append(order, now)
+		}
+	}
+	want := []string{"sql>", "...>", "ran", "sql>"}
+	if strings.Join(order, " ") != strings.Join(want, " ") {
+		t.Errorf("the prompts went %v, want %v", order, want)
+	}
+}
