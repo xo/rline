@@ -1145,6 +1145,14 @@ expression as a backup suffix and patched nothing; and a `go test ... | grep
 assert the file actually changed, run the test, read the return code, restore
 the file.
 
+Where to spend a test, when everything cannot have one. An error stream is
+worth more than most writers, because it is where a program says what went
+wrong: one that fails silently turns a shell into one that has stopped
+reporting errors and does not say so. The failure mode is the absence of the
+thing that would have told you, which is the hardest kind to notice and the
+cheapest kind to prevent. ken-mba's argument, made while finding that
+`Session.Stderr` swallowed a failed write and dropped the reason with it.
+
 Reading the return code is not enough on its own, because a mutation that
 does not compile also returns non-zero, and reads as caught. `if false {`
 around a branch leaves the variable it tested unused, which Go refuses to
@@ -1318,6 +1326,16 @@ grow a second way of doing it that matches what usql has.
 
 So the eleven methods of `usql/rline.IO` are read here as a list of things
 usql will need to do, not as a list of shapes to fit.
+
+That change of question is also why the section can stop drifting. "What usql
+needs" is a question about a moving target, and it produced two wrong answers
+from two people in opposite directions, both by asking what would fit. "What
+rline offers" does not depend on what usql happens to do this month. The
+error stream is the clean instance: usql's two streams interleave however the
+operating system buffers them, so the thing worth building was never a second
+destination — it was the ordering guarantee, and that only became visible
+once the question changed. ken-mba's observation, and the best argument for
+the principle that either of us has made.
 
 Five need nothing. `Close`, `Interactive` and `Password` map straight across.
 `Completer` maps to `SetCompleter`, which also lets usql replace the completer
