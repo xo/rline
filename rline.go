@@ -426,7 +426,11 @@ func New(opts ...Option) (*Prompt, error) {
 		bb.styleDef(s[0], s[1])
 	}
 	h := &history{}
-	h.loadFrom(c.historyFile, c.historyEntries)
+	// A history that cannot be read is not a reason to refuse to run: the
+	// file may not exist yet, or may belong to someone else, and a program
+	// that cannot prompt because of it is worse than one with no history.
+	// LoadHistory is how a caller that wants to know asks.
+	_ = h.loadFrom(c.historyFile, c.historyEntries)
 	cs := &completions{}
 	if c.completer != nil {
 		cs.setCompleter(c.completer, nil)
@@ -751,12 +755,16 @@ func (s *Session) SetHighlighter(h Highlighter) {
 //
 // It takes no file name, and SaveHistory takes none either: which file the
 // history lives in is one setting, not two arguments that could disagree.
+//
+// A file that is not there yet is not a failure — that is the ordinary state
+// of a program on its first run — but a file that cannot be opened or read
+// is, and the reason comes back wrapped. The C ignores all of it and reads
+// nothing, silently.
 func (s *Session) LoadHistory() error {
 	if s.env == nil || s.env.history == nil {
 		return nil
 	}
-	s.env.history.loadFrom(s.env.history.fname, s.env.history.max)
-	return nil
+	return s.env.history.loadFrom(s.env.history.fname, s.env.history.max)
 }
 
 // SetHistoryFile changes the file the history is kept in. It does not read

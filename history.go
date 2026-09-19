@@ -7,6 +7,10 @@ package rline
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -170,41 +174,50 @@ func (h *history) search(from int, needle string, backward bool) (int, int, bool
 //
 // A maxEntries of zero leaves the list unusable, and every push is refused. A
 // negative number, or one above maxHistory, is held at maxHistory.
-func (h *history) loadFrom(fname string, maxEntries int) {
+func (h *history) loadFrom(fname string, maxEntries int) error {
 	h.clear()
 	h.fname = fname
 	if maxEntries == 0 {
 		h.max = 0
-		return
+		return nil
 	}
 	if maxEntries < 0 || maxEntries > maxHistory {
 		maxEntries = maxHistory
 	}
 	h.max = maxEntries
-	h.load()
+	return h.load()
 }
 
 // load reads the file into the list. A file that is not there, or that cannot
 // be opened, leaves the list as it is.
-func (h *history) load() {
+func (h *history) load() error {
 	if h.fname == "" {
-		return
+		return nil
 	}
 	f, err := os.Open(h.fname)
 	if err != nil {
-		return
+		// A history file that is not there yet is the ordinary state of a
+		// program on its first run, and is not a failure. Anything else is.
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("opening the history file %s: %w", h.fname, err)
 	}
 	defer func() { _ = f.Close() }()
 	r := bufio.NewReader(f)
 	var buf buffer
 	for {
 		if _, err := r.Peek(1); err != nil {
-			return
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return fmt.Errorf("reading the history file %s: %w", h.fname, err)
 		}
 		if !h.readEntry(r, &buf) {
 			// A line that cannot be read stops the whole file, because
-			// anything after it is as likely to be wrong.
-			return
+			// anything after it is as likely to be wrong. What was read
+			// before it is kept.
+			return fmt.Errorf("reading the history file %s: a line could not be read", h.fname)
 		}
 	}
 }

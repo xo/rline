@@ -327,7 +327,7 @@ func newResizeEnv(t *testing.T) (*env, *editor, *bytes.Buffer, *resizableSize) {
 	sz := &resizableSize{cols: 80, rows: 24}
 	tm := newTerm(sink, termOptions{NoColor: true, Sizer: sz})
 	h := &history{}
-	h.loadFrom("", DefaultHistoryEntries)
+	_ = h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
 		term:          tm,
 		tty:           newTTY(&feedKeys{}),

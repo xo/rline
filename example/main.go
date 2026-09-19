@@ -228,7 +228,7 @@ func highlight(h *rline.LineStyle) {
 			if n < 0 {
 				n = len(input) - i
 			}
-			h.StyleBytes(i, n, "sql-comment")
+			h.Style(i, n, "sql-comment")
 			i += n
 		case input[i] == '\'':
 			// A string runs to the closing quote, or to the end if there is
@@ -239,14 +239,14 @@ func highlight(h *rline.LineStyle) {
 			} else {
 				n += 2
 			}
-			h.StyleBytes(i, n, "sql-string")
+			h.Style(i, n, "sql-string")
 			i += n
 		case isDigit(input[i]):
 			n := 0
 			for i+n < len(input) && (isDigit(input[i+n]) || input[i+n] == '.') {
 				n++
 			}
-			h.StyleBytes(i, n, "sql-number")
+			h.Style(i, n, "sql-number")
 			i += n
 		case isWordByte(input[i]):
 			n := 0
@@ -256,11 +256,11 @@ func highlight(h *rline.LineStyle) {
 			word := strings.ToLower(input[i : i+n])
 			switch {
 			case sqlKeywords[word]:
-				h.StyleBytes(i, n, "sql-keyword")
+				h.Style(i, n, "sql-keyword")
 			case sqlTypes[word]:
-				h.StyleBytes(i, n, "sql-type")
+				h.Style(i, n, "sql-type")
 			case sqlConstants[word]:
-				h.StyleBytes(i, n, "sql-const")
+				h.Style(i, n, "sql-const")
 			}
 			i += n
 		default:

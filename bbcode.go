@@ -968,7 +968,7 @@ func (f HighlighterFunc) Highlight(l *LineStyle) { f(l) }
 // LineStyle is a line and the attributes drawn over it.
 //
 // A highlighter is handed one of these, reads the line with Text, and calls
-// StyleBytes or StyleRunes on the stretches it recognises. Anything it does
+// Style or StyleRunes on the stretches it recognises. Anything it does
 // not touch keeps the attributes of the terminal.
 type LineStyle struct {
 	// What is being marked, and where the marks go.
@@ -1070,22 +1070,26 @@ func (l *LineStyle) mark(pos, count int, a attr) {
 	l.attrs.updateAt(pos, count, a)
 }
 
-// StyleBytes marks count bytes from pos with a named style, such as "keyword" or
+// Style marks count bytes from pos with a named style, such as "keyword" or
 // a color name such as "red".
 //
 // A negative count means a number of characters rather than bytes, which is
 // what a caller counting characters wants. A negative pos is refused, which is
 // what the C does.
-func (l *LineStyle) StyleBytes(pos, count int, style string) {
+func (l *LineStyle) Style(pos, count int, style string) {
 	if style == "" || pos < 0 {
 		return
 	}
 	l.mark(pos, count, l.bb.style(style))
 }
 
-// StyleRunes marks count characters from pos with a named style. pos is still
-// counted in bytes, because that is where the caller found the word; only the
-// length is counted in characters.
+// StyleRunes marks count characters from pos with a named style.
+//
+// pos is still counted in bytes, because that is where the caller found the
+// word; only the length is counted in characters. The name carries the unit
+// because characters are the exception here: everywhere else in this package
+// a count or an offset is in bytes, which is what indexes a Go string, and
+// goes unnamed for the same reason strings.Index does not name it.
 func (l *LineStyle) StyleRunes(pos, count int, style string) {
 	if style == "" || pos < 0 {
 		return

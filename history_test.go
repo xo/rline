@@ -257,7 +257,7 @@ func checkHistoryFile(t *testing.T, p *fieldReader) string {
 	name := filepath.Join(t.TempDir(), "history.txt")
 	h := &history{}
 	h.enableDuplicates(dups)
-	h.loadFrom(name, maxEntries)
+	_ = h.loadFrom(name, maxEntries)
 	for _, entry := range in {
 		h.push(entry)
 	}
@@ -279,7 +279,7 @@ func checkHistoryFile(t *testing.T, p *fieldReader) string {
 
 	reloaded := &history{}
 	reloaded.enableDuplicates(dups)
-	reloaded.loadFrom(name, maxEntries)
+	_ = reloaded.loadFrom(name, maxEntries)
 	return diffEntries(reloaded, p)
 }
 
@@ -305,7 +305,7 @@ func diffEntries(h *history, p *fieldReader) string {
 func newTestHistory(maxEntries int, dups bool) *history {
 	h := &history{}
 	h.enableDuplicates(dups)
-	h.loadFrom("/nonexistent/rline-probe-history", maxEntries)
+	_ = h.loadFrom("/nonexistent/rline-probe-history", maxEntries)
 	return h
 }
 
@@ -354,7 +354,7 @@ func TestHistoryLoadStopsAtABadLine(t *testing.T) {
 		t.Fatalf("writing the file: %v", err)
 	}
 	h := &history{}
-	h.loadFrom(name, 8)
+	_ = h.loadFrom(name, 8)
 	if got, want := h.entries, []string{"first", "second"}; !equalStrings(got, want) {
 		t.Errorf("loaded %q, want %q", got, want)
 	}
@@ -377,13 +377,13 @@ func TestHistoryRoundTripsEveryByte(t *testing.T) {
 
 	name := filepath.Join(t.TempDir(), "history.txt")
 	h := &history{}
-	h.loadFrom(name, 8)
+	_ = h.loadFrom(name, 8)
 	h.push(entry)
 	if err := h.save(); err != nil {
 		t.Fatalf("saving: %v", err)
 	}
 	back := &history{}
-	back.loadFrom(name, 8)
+	_ = back.loadFrom(name, 8)
 	got, ok := back.get(0)
 	if !ok {
 		t.Fatal("nothing came back")

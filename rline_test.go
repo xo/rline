@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -971,7 +972,7 @@ func TestHistoryIsReadableAndSymmetric(t *testing.T) {
 	fname := filepath.Join(dir, "history.txt")
 
 	h := &history{}
-	h.loadFrom(fname, DefaultHistoryEntries)
+	_ = h.loadFrom(fname, DefaultHistoryEntries)
 	r := &Session{env: &env{history: h}}
 
 	for _, line := range []string{"first", "second", "third"} {
@@ -1025,7 +1026,7 @@ func TestSaveHistoryReportsAFailure(t *testing.T) {
 	h := &history{}
 	// A directory cannot be opened for writing, so saving into one fails
 	// the same way on every system this builds for.
-	h.loadFrom(t.TempDir(), DefaultHistoryEntries)
+	_ = h.loadFrom(t.TempDir(), DefaultHistoryEntries)
 	r := &Session{env: &env{history: h}}
 	r.AddHistory("something to save")
 
@@ -1049,7 +1050,7 @@ func TestSaveHistoryReportsAFailure(t *testing.T) {
 func TestHistoryIsACopy(t *testing.T) {
 	t.Parallel()
 	h := &history{}
-	h.loadFrom("", DefaultHistoryEntries)
+	_ = h.loadFrom("", DefaultHistoryEntries)
 	r := &Session{env: &env{history: h}}
 	r.AddHistory("one")
 	r.AddHistory("two")
@@ -1089,4 +1090,72 @@ func TestWriteStringMatchesWrite(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestLoadHistoryReportsWhatItCannotRead checks that the error LoadHistory
+// returns can actually happen.
+//
+// It could not. history.load swallowed a missing file, an unreadable one and
+// a line it could not parse alike, and loadFrom returned nothing, so the
+// error was structurally unreachable and a caller checking it had written
+// dead code. ken-mba found that while attacking the history API. A method
+// that promises an error it cannot deliver is the same species of lie as a
+// Reader that does not Read, which is what this whole pass has been about.
+func TestLoadHistoryReportsWhatItCannotRead(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+
+	t.Run("a file that cannot be read is a failure too", func(t *testing.T) {
+		t.Parallel()
+		h := &history{}
+		s := &Session{env: &env{history: h}}
+		// Opening a directory succeeds on Unix and fails on the first read,
+		// so this reaches the reading half rather than the opening half.
+		_ = h.loadFrom(t.TempDir(), DefaultHistoryEntries)
+		if err := s.LoadHistory(); err == nil {
+			t.Error("LoadHistory on a directory gave no error")
+		}
+	})
+
+	t.Run("a file that is not there is not a failure", func(t *testing.T) {
+		t.Parallel()
+		h := &history{}
+		s := &Session{env: &env{history: h}}
+		_ = h.loadFrom(filepath.Join(dir, "never-written.txt"), DefaultHistoryEntries)
+		if err := s.LoadHistory(); err != nil {
+			t.Errorf("LoadHistory on a file that does not exist gave %v, want nil", err)
+		}
+		if got := s.History(); len(got) != 0 {
+			t.Errorf("the history holds %q", got)
+		}
+	})
+
+	t.Run("a path that cannot be opened is", func(t *testing.T) {
+		t.Parallel()
+		h := &history{}
+		s := &Session{env: &env{history: h}}
+		// A path that goes through a file rather than a directory cannot be
+		// opened at all, on every system this builds for. A directory would
+		// not do: opening one succeeds on Unix and fails on the first read,
+		// which is the other error path and was the one this test reached
+		// when it used one.
+		blocker := filepath.Join(dir, "not-a-directory")
+		if err := os.WriteFile(blocker, nil, 0o600); err != nil {
+			t.Fatalf("making the file in the way: %v", err)
+		}
+		_ = h.loadFrom(filepath.Join(blocker, "history.txt"), DefaultHistoryEntries)
+		err := s.LoadHistory()
+		if err == nil {
+			t.Fatal("LoadHistory on an unopenable path gave no error")
+		}
+		// The reason has to survive, so that a caller can tell a permission
+		// failure from a missing file.
+		var pathErr *fs.PathError
+		if !errors.As(err, &pathErr) {
+			t.Errorf("the error is %v, which does not carry an *fs.PathError", err)
+		}
+		if !strings.Contains(err.Error(), "history file") {
+			t.Errorf("the error is %q, which does not say what was being done", err)
+		}
+	})
 }

@@ -148,7 +148,7 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 	sink := &bytes.Buffer{}
 	tm := newTerm(sink, termOptions{NoColor: true, Sizer: fixedSize{cols: 80, rows: 24}})
 	h := &history{}
-	h.loadFrom("", DefaultHistoryEntries)
+	_ = h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
 		term:          tm,
 		tty:           newTTY(&feedKeys{keys: keys}),

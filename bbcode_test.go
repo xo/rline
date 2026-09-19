@@ -290,7 +290,7 @@ func hlReplay(t *testing.T) []string {
 				var ab attrBuf
 				ab.setAt(0, len(in), attr{})
 				env := &LineStyle{input: in, attrs: &ab, bb: bb}
-				env.StyleBytes(pos, count, "bold")
+				env.Style(pos, count, "bold")
 				out = append(out, fmt.Sprintf("hl %d %d %d %s %d %d",
 					i, pos, count, hlAttrs(&ab), env.cachedUPos, env.cachedCPos))
 			}
