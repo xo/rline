@@ -863,3 +863,55 @@ func TestSetCompleterReplacesTheCompleter(t *testing.T) {
 		t.Error("setting a nil completer left the old one in place")
 	}
 }
+
+// TestAKeyThatChangesNothingDrawsNothing checks the value every editing
+// operation returns: whether it changed anything, which is the only thing
+// deciding whether the line is drawn again.
+//
+// Nothing checked it before. The operations are recorded against the C, but
+// the C has no such value — it returns early instead — so the corpus cannot
+// carry it, and the tests here read the line that came back rather than what
+// was drawn, and the line is right either way because the position still
+// moves. Making cursorLeft always answer false, or always answer true, left
+// the whole suite green.
+//
+// Both directions matter. Always false means a key does nothing on screen
+// until something else forces a redraw, with the cursor left behind. Always
+// true means drawing the line again for a key that did nothing, which is the
+// flicker the value exists to avoid.
+//
+// It is checked by adding one key to a session and comparing what was drawn
+// against the same session without it, because "changed nothing" is exactly
+// the claim that the extra key put nothing on the terminal.
+func TestAKeyThatChangesNothingDrawsNothing(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name  string
+		typed string
+		key   string
+		draws bool
+	}{
+		// Nowhere to go, so nothing should be sent at all.
+		{"left at the start", kCtrlA, kLeft, false},
+		{"right at the end", "", kRight, false},
+		{"backspace at the start", kCtrlA, kBackspace, false},
+		{"delete at the end", "", kDel, false},
+		// Somewhere to go, so the screen has to follow.
+		{"left with room to move", "", kLeft, true},
+		{"home from the end", "", kHome, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			const typed = "abc"
+			_, _, _, without := feedSession(t, typed+test.typed+kEnter, feedOpts{})
+			_, _, _, with := feedSession(t, typed+test.typed+test.key+kEnter, feedOpts{})
+			switch {
+			case test.draws && with == without:
+				t.Errorf("the key drew nothing, so the screen never followed it.\nBoth drew:\n%q", without)
+			case !test.draws && with != without:
+				t.Errorf("the key drew something although it changed nothing.\nWithout it:\n%q\nWith it:\n%q",
+					without, with)
+			}
+		})
+	}
+}
