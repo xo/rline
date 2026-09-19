@@ -1,0 +1,100 @@
+# The checks PLAN.md lists, run on every system that has a hosted runner.
+#
+# The matrix is the three supported systems plus Linux on arm64. macOS
+# runners are arm64 and Windows runners are amd64, so between them the four
+# jobs cover both architectures on two of the three systems.
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64
+            runner: ubuntu-latest
+          - name: linux-arm64
+            runner: ubuntu-24.04-arm
+          - name: windows-amd64
+            runner: windows-latest
+          - name: macos-arm64
+            runner: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The version the module asks for, rather than the newest. A library
+      # that only builds with the newest Go is one its consumers cannot use,
+      # and this one dropped to 1.25.0 so that FreeBSD could build it.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: go version
+        run: go version
+
+      - name: gofmt
+        shell: bash
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "these files are not formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: build
+        run: go build ./...
+
+      - name: vet
+        run: go vet ./...
+
+      # Every system, not only the one this job runs on. A test file whose
+      # build tag no longer matches its source still compiles where both are
+      # excluded, and only vet on a system where they disagree says so. That
+      # happened once and went unnoticed for an hour.
+      - name: vet every system
+        shell: bash
+        run: |
+          for goos in linux darwin windows freebsd netbsd openbsd dragonfly solaris illumos plan9; do
+            echo "== $goos =="
+            GOOS=$goos go vet ./... || exit 1
+          done
+
+      - name: test
+        shell: bash
+        # internal/capture is left out on Windows: recording a session needs
+        # a pseudo console made with CreatePseudoConsole, which nobody has
+        # written, so there are no recordings to compare against and
+        # TestGoldenSetIsPresent fails by design. A job that is always red
+        # teaches people to ignore it, so the package is skipped here and the
+        # gap is recorded in PLAN.md instead.
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            go test -count=1 . ./key
+          else
+            go test -count=1 ./...
+          fi
+
+      - name: test under the race detector
+        run: go test -race -count=1 . ./key
+
+      - name: lint
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            pwsh -NoProfile -File tools/lint.ps1
+          else
+            ./tools/lint.sh
+          fi

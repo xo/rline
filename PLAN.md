@@ -1494,6 +1494,32 @@ Test files follow the source files rather than the old one-to-one pairing,
 with one exception: `driven_test.go` holds the keystroke harness and the tests
 built on it, because those are one thing and neither half is useful alone.
 
+## Continuous integration
+
+`.github/workflows/test.yml` runs the checks below on four hosted runners:
+Linux on amd64, Linux on arm64, Windows on amd64 and macOS on arm64. Between
+them the three supported systems are covered, and two of them on both
+architectures.
+
+Two things about it are deliberate rather than convenient.
+
+It installs the Go the module asks for, through `go-version-file`, rather
+than the newest. A library that builds only with the newest Go is one its
+consumers cannot use, and this one dropped to 1.25.0 so that FreeBSD could
+build it at all. Testing on a newer Go than the module names would not find
+the case where someone on 1.25 cannot compile it.
+
+It leaves `internal/capture` out on Windows. Recording a session there needs
+a pseudo console, which nobody has written, so there are no recordings and
+`TestGoldenSetIsPresent` fails by design. A job that is always red teaches
+people to ignore it, which costs more than the reminder is worth, so the gap
+lives in this document instead.
+
+One thing to know before trusting a green run: the arm64 Linux runner is
+free for public repositories and needs a paid plan for private ones. On a
+private repository that job can sit queued rather than fail, and a queued job
+is not a passing one.
+
 ## Checks
 
 Three checks run on the Go code:
