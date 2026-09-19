@@ -1675,7 +1675,11 @@ func TestExampleRemembersBetweenRuns(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("the first run: %v", err)
+		// Recording needs a pseudo-terminal, which is written for Linux and
+		// macOS. Windows would need a pseudo console. So this checks
+		// nothing there, and says so rather than passing.
+		t.Skipf("cannot record on this system, so nothing was checked about the "+
+			"example keeping its history between runs: %v", err)
 	}
 	if !strings.Contains(stripEscapes(string(first.Bytes())), "select remembered;") {
 		t.Fatal("the first run did not echo the statement, so it never got that far")
@@ -1720,5 +1724,55 @@ func TestExampleRemembersBetweenRuns(t *testing.T) {
 	}
 	if drawn := stripEscapes(string(second.Bytes())); !strings.Contains(drawn, "select remembered;") {
 		t.Errorf("the up arrow in a new run did not bring back the statement\ndrawn: %q\nfile: %q", drawn, string(saved))
+	}
+}
+
+// TestExampleCarriesOnAfterAnInterrupt checks that ctrl-C gives up on the
+// line rather than on the program.
+//
+// The example used to return the error, so ctrl-C on an empty line printed
+// "error: reading a line: interrupted" and quit. Ken found it by pressing
+// it. That is the opposite of why ReadLine answers ErrInterrupted at all:
+// the C cannot tell an abandoned line from an empty one, so a program built
+// on it cannot throw away a half-typed statement and carry on. This one can,
+// and now does.
+func TestExampleCarriesOnAfterAnInterrupt(t *testing.T) {
+	t.Parallel()
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name: "interrupt",
+		Term: "xterm-256color",
+		Dir:  t.TempDir(),
+		Steps: []capture.Step{
+			// A statement begun and then given up on.
+			{Send: "select half_typed"},
+			{Send: "\x03"},
+			// The prompt has to come back and still work.
+			{Send: "select after;" + capture.KeyEnter},
+			{Send: `\q` + capture.KeyEnter},
+		},
+	})
+	if err != nil {
+		// As above: no pseudo-terminal here, so nothing was checked about
+		// what ctrl-C does.
+		t.Skipf("cannot record on this system, so nothing was checked about ctrl-C "+
+			"giving up on the line rather than the program: %v", err)
+	}
+	drawn := stripEscapes(string(tr.Bytes()))
+
+	if strings.Contains(drawn, "error:") {
+		t.Errorf("the example reported an error after ctrl-C\ndrawn: %s", drawn)
+	}
+	// The statement typed after the interrupt has to have run, which is the
+	// proof that the prompt came back rather than the program ending.
+	if !strings.Contains(drawn, "ran 1 line(s): select after;") {
+		t.Errorf("the statement after the interrupt did not run\ndrawn: %s", drawn)
+	}
+	// And the abandoned half must not be carried into it.
+	if strings.Contains(drawn, "half_typed select after;") {
+		t.Errorf("the abandoned statement was kept\ndrawn: %s", drawn)
 	}
 }

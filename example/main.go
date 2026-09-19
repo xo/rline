@@ -105,6 +105,18 @@ func run() error {
 			_, _ = fmt.Fprintln(out, "")
 			return nil
 		}
+		if errors.Is(err, rline.ErrInterrupted) {
+			// Ctrl-C gives up on the line rather than on the program. The
+			// statement being built is thrown away and the prompt comes
+			// back, which is what a shell does and what usql does with the
+			// same error.
+			//
+			// This is the whole reason ReadLine answers ErrInterrupted
+			// rather than an empty line: the C cannot tell the two apart,
+			// so a program built on it cannot do this.
+			pending.Reset()
+			continue
+		}
 		if err != nil {
 			return fmt.Errorf("reading a line: %w", err)
 		}
