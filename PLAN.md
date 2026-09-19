@@ -1033,6 +1033,20 @@ first one swallows it.
 The test ken-mba wrote is worth keeping either way. It holds `StyleRunes`'s
 guard, which nothing did, and it writes the promise down for both.
 
+How the claim came to be half right is its own finding, and it is not the one
+I first guessed. I wrote that the run had been scoped too narrowly; it had
+not, it covered the whole package. `Style` and `StyleRunes` differ by one
+character — the sign on the count — so the mutation matched `StyleRunes`
+alone, and the result was reported for both. `Style`'s guard was never
+asked about. Two methods that differ by one character are two mutations, and
+one was run.
+
+That is the mirror of something ken-mba hit from the other end earlier: a
+markup test covered `Write` and not `WriteString`, so reverting `WriteString`
+alone came back not caught. A rule written twice needs mutating twice and
+testing twice, and the only difference between the two mistakes is whether
+the copy that was skipped sat in the test or in the mutation.
+
 So when looking for what to check next, "what does the port have that the C
 does not" is a better question than "what is uncovered". Coverage will not
 point at any of these: every one of those lines ran, every time.
@@ -1156,6 +1170,19 @@ equivalent mutation changes nothing, so NOT CAUGHT is correct and useless:
 `write` written out. Not caught, not uncovered, indistinguishable. Read the
 mutation before believing the answer, or it sends you to write a test that
 cannot exist.
+
+How to attribute a catch, which is the half the harness cannot do. A "caught"
+is a pass and there is nothing to re-run, so nothing in the tooling will tell
+you that the test you think is responsible is not. The only way to find out
+is to run the same mutation scoped to that test alone and see whether it goes
+red by itself. That is how `Style`'s guard was shown to be held by the corpus
+replay rather than by the test beside it, and how ken-mba confirmed it
+independently on macOS — scoping to the one test also ruled out their own new
+test as the thing catching it.
+
+So: if a mutation is not caught, suspect the case before the code, and the
+harness will now widen the run for you. If it is caught, suspect the
+attribution before believing it, and that one is yours to check.
 
 A run owns the tree while it lasts. A test started beside one in the
 background read a mutated `history.all` and reported two failures that
