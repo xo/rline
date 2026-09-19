@@ -1,0 +1,51 @@
+version: "2"
+linters:
+  # errcheck, govet, ineffassign, staticcheck and unused are on by default in
+  # golangci-lint v2; gosimple was folded into staticcheck.
+  enable:
+    - errorlint
+    - gocritic
+    - nilerr
+    - prealloc
+    - revive
+    - unconvert
+    - usetesting
+    - wrapcheck
+  settings:
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    gocritic:
+      enabled-checks:
+        - appendAssign
+        - argOrder
+        - badCall
+        - badCond
+        - dupArg
+        - dupBranchBody
+        - dupCase
+        - elseif
+        - flagDeref
+        - nilValReturn
+        - singleCaseSwitch
+        - underef
+        - unnecessaryBlock
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: exported
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: package-comments
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: var-naming
