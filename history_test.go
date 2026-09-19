@@ -354,9 +354,23 @@ func TestHistoryLoadStopsAtABadLine(t *testing.T) {
 		t.Fatalf("writing the file: %v", err)
 	}
 	h := &history{}
-	_ = h.loadFrom(name, 8)
+	err := h.loadFrom(name, 8)
 	if got, want := h.entries, []string{"first", "second"}; !equalStrings(got, want) {
 		t.Errorf("loaded %q, want %q", got, want)
+	}
+	// Stopping is reported as well as done. This is the third of the three
+	// ways loading can fail, and the only one reachable with a file that
+	// opens and reads perfectly well, so nothing else can reach it: the
+	// error was thrown away here until a mutation that swallowed it came
+	// back uncaught.
+	if err == nil {
+		t.Fatal("a line that could not be read was passed over without a word")
+	}
+	if !strings.Contains(err.Error(), name) {
+		t.Errorf("the error is %v, which does not name the file", err)
+	}
+	if !strings.Contains(err.Error(), "could not be read") {
+		t.Errorf("the error is %v, which does not say what went wrong", err)
 	}
 }
 
