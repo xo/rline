@@ -186,6 +186,14 @@ func TestExampleHighlightsAndSpansLines(t *testing.T) {
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
 		Name:  "sql",
 		About: "one statement over three reads, then one over three rows",
+		// The same wait the other session needs, and for the same reason:
+		// the harness reads until the program goes quiet and cannot tell a
+		// program that has finished writing from one that has not started,
+		// so a freshly built binary is still starting when the first line
+		// goes out. The terminal echoes that line and raw mode then discards
+		// it, which shows up here as the first of the three reads going
+		// missing. See the comment in TestExampleRunsUnderATerminal.
+		Quiet: 1500 * time.Millisecond,
 		Steps: []capture.Step{
 			// Three reads, joined by the caller at the semicolon.
 			{Send: "select id" + capture.KeyEnter},

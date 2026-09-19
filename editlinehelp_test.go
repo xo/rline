@@ -3,17 +3,29 @@ package rline
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
+// helpProbePath is where tools/build-probe-help.sh puts the probe, and
+// helpDefaultProbePath the second one it builds on macOS, which has the
+// branch turned off so that the other variant can be recorded from here too.
 const (
-	// helpCorpusPath holds the lines the C help screen is built from.
-	helpCorpusPath = "testdata/help.txt"
-
-	// helpProbePath is where tools/build-probe-help.sh puts the probe.
-	helpProbePath = ".build/probe-help"
+	helpProbePath        = ".build/probe-help"
+	helpDefaultProbePath = ".build/probe-help-default"
 )
+
+// helpCorpusPath is where the lines the C help screen is built from are kept
+// for this build.
+//
+// Three rows of the help name a different key on macOS, and one of them is
+// two rows there rather than one, so the recording is per branch in the same
+// way the redraw is. corpusVariant comes from the same place, beside the wrap
+// mark, so the two cannot disagree about which branch this is.
+func helpCorpusPath() string {
+	return filepath.Join("testdata", corpusVariant, "help.txt")
+}
 
 // TestHelpMatchesC checks the help screen against the C, line by line.
 //
@@ -26,9 +38,10 @@ func TestHelpMatchesC(t *testing.T) {
 	if *update {
 		regenerateHelp(t)
 	}
-	b, err := os.ReadFile(helpCorpusPath)
+	b, err := os.ReadFile(helpCorpusPath())
 	if err != nil {
-		t.Fatalf("reading the corpus: %v (run tools/build-probe-help.sh, then go test -update)", err)
+		t.Fatalf("reading %s: %v\nThis build has no recording for its branch. Record one with\n  ./tools/build-probe-help.sh && go test . -run TestHelpMatchesC -update",
+			helpCorpusPath(), err)
 	}
 	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
 
@@ -37,7 +50,7 @@ func TestHelpMatchesC(t *testing.T) {
 	for i, line := range lines {
 		kind, body, found := strings.Cut(line, " ")
 		if !found {
-			t.Fatalf("%s:%d: cannot read %q", helpCorpusPath, i+1, line)
+			t.Fatalf("%s:%d: cannot read %q", helpCorpusPath(), i+1, line)
 		}
 		switch kind {
 		case "banner":
@@ -45,7 +58,7 @@ func TestHelpMatchesC(t *testing.T) {
 		case "row":
 			want = append(want, string(mustHex(t, body)))
 		default:
-			t.Fatalf("%s:%d: unknown kind %q", helpCorpusPath, i+1, kind)
+			t.Fatalf("%s:%d: unknown kind %q", helpCorpusPath(), i+1, kind)
 		}
 	}
 	if wantBanner == "" {
@@ -69,18 +82,37 @@ func TestHelpMatchesC(t *testing.T) {
 	}
 }
 
-// regenerateHelp runs the C probe and writes the corpus.
+// regenerateHelp runs the C probe and writes the corpus for this branch.
+//
+// On macOS it writes the other branch as well, from the second probe that is
+// built with the branch turned off. The help table is the only thing that
+// probe reads, and nothing else in the C reaches it, so turning the branch
+// off gives exactly the table the other build has. That is why one machine
+// can record both, unlike the redraw, where the recording comes from running
+// the whole editor.
 func regenerateHelp(t *testing.T) {
 	t.Helper()
-	if _, err := os.Stat(helpProbePath); err != nil {
-		t.Fatalf("no probe at %s: run tools/build-probe-help.sh", helpProbePath)
+	record(t, helpProbePath, helpCorpusPath())
+	if _, err := os.Stat(helpDefaultProbePath); err == nil {
+		record(t, helpDefaultProbePath, filepath.Join("testdata", "default", "help.txt"))
 	}
-	out, err := exec.Command(helpProbePath).Output()
+}
+
+// record runs a probe and writes what it printed.
+func record(t *testing.T, probe, path string) {
+	t.Helper()
+	if _, err := os.Stat(probe); err != nil {
+		t.Fatalf("no probe at %s: run tools/build-probe-help.sh", probe)
+	}
+	out, err := exec.Command(probe).Output()
 	if err != nil {
-		t.Fatalf("running the probe: %v", err)
+		t.Fatalf("running %s: %v", probe, err)
 	}
-	if err := os.WriteFile(helpCorpusPath, out, 0o644); err != nil {
-		t.Fatalf("writing %s: %v", helpCorpusPath, err)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("making %s: %v", filepath.Dir(path), err)
 	}
-	t.Logf("wrote %s: %d bytes", helpCorpusPath, len(out))
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatalf("writing %s: %v", path, err)
+	}
+	t.Logf("wrote %s: %d bytes", path, len(out))
 }
