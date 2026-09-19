@@ -181,13 +181,14 @@ Those runs found no fault.
 sequences rather than driving the console through its API. Older consoles
 cannot read them.
 
-FreeBSD 15.1 and NetBSD 11.0 pass the whole suite, built from source on the
-machine with the Go each one ships. They cannot record sessions, so that one
-test fails there as it does on Windows.
+FreeBSD 15.1, NetBSD 11.0 and OmniOS r151058 pass the whole suite, built from
+source on the machine with the Go each one ships. None of them can record
+sessions, so that one test fails there as it does on Windows.
 
-OpenBSD, Dragonfly, Solaris and illumos compile and are not tested. They take
-the same terminal code, with their own ioctl numbers. Compiling is not the
-same as being supported, so treat the editor there as unproven.
+OpenBSD, Dragonfly and Solaris compile and are not tested. They take the same
+terminal code as their measured relatives, with their own ioctl numbers.
+Compiling is not the same as being supported, so treat the editor there as
+unproven.
 
 Any other system builds and reads plain lines with no editing. That is a
 mode rather than a failure: the prompt still works, and the keys are not

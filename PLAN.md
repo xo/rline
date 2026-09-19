@@ -55,21 +55,43 @@ character array, since Linux puts them at 6 and 5 while the BSDs put them at
 `unix.VMIN`, and `x/sys/unix` defines it as 0x6 on Linux, 0x10 on the BSDs
 and 0x4 on Solaris. So the named risk does not apply here.
 
-FreeBSD and NetBSD are measured rather than compiled, as of 2026-09-20. Ken
-ran both as incus virtual machines on the Linux host.
+FreeBSD, NetBSD and illumos are measured rather than compiled, as of
+2026-09-20. Ken ran all three as incus virtual machines on the Linux host.
 
 FreeBSD 15.1 with its own Go 1.25.14: 327 tests, no failures. NetBSD 11.0
-with Go 1.26.5 from pkgsrc: 325 passed, 14 skipped, no failures. Both built
-from source on the machine rather than from a binary cross-compiled for them.
-That settles the risk DeepSeek named when it argued against widening the tag,
-because `unix.VMIN` is 0x10 on both and 0x6 on Linux, and the whole suite
-passes on all three.
+with Go 1.26.5 from pkgsrc: 325 passed, 14 skipped, no failures. OmniOS
+r151058 with Go 1.25.12 from its own repository: 326 passed, 13 skipped, no
+failures. All three built from source on the machine rather than from a
+binary cross-compiled for them.
+
+That settles the risk DeepSeek named when it argued against widening the tag.
+`unix.VMIN` is 0x6 on Linux, 0x10 on the BSDs and 0x4 on illumos, three
+different values, and the suite passes on all of them.
+
+illumos is the one that earned its console time. It is the only system that
+runs `ttydev_solaris.go`, and the only one that takes `ttydev_nosti.go`,
+since FreeBSD and NetBSD both have `TIOCSTI`. Those two files had nothing
+behind them before it.
 
 Neither can record sessions, so `TestGoldenSetIsPresent` fails on both as it
 does on Windows. That is the expected gap and not a regression.
 
-NetBSD found a fault in a test rather than in the port, which is the second
-time the same test has rested on an unchecked claim about a filesystem. It
+Each of the two found a fault in a test rather than in the port, and both
+were the same mistake.
+
+illumos failed `TestTypeOfRealEntries` on a case whose comment read "a
+character device that every system has", naming `/dev/null`. On illumos that
+is a symlink to `../devices/pseudo/mm@0:null`, and `typeOf` uses `Lstat` as
+the C does, so it correctly answered symlink. The test follows the path to
+whatever it really is now, checks the symlink case where the system has one,
+and says what it skipped where it does not.
+
+That was the third such claim, after a path through a file on Windows and a
+directory that reads as data on NetBSD. Three systems, three tests, one
+mistake: a universal claim about filesystems, written in a comment, which is
+the sentence nobody re-reads.
+
+NetBSD's was the second. It
 opened a directory to reach the reading half of `history.load`, on the
 premise that opening one succeeds and reading it fails. Linux and macOS do
 that. NetBSD reads a directory as data, so both halves succeed and the test

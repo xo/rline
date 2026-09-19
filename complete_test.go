@@ -3,6 +3,7 @@ package rline
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -869,13 +870,43 @@ func TestTypeOfRealEntries(t *testing.T) {
 		})
 	}
 
-	// A character device that every system has.
+	// A character device, found rather than assumed.
+	//
+	// This used to name /dev/null and say it is a character device every
+	// system has. On illumos it is a symlink to
+	// ../devices/pseudo/mm@0:null, and typeOf uses Lstat as the C does, so
+	// it correctly answered "symlink" and the test failed. That was the
+	// third time a test here rested on an unchecked claim about a
+	// filesystem, after a path through a file on Windows and a directory
+	// that reads as data on NetBSD.
+	//
+	// So the path is followed to whatever it really is, and each kind is
+	// checked where the system has one.
 	t.Run("a character device", func(t *testing.T) {
-		if _, err := os.Stat("/dev/null"); err != nil {
-			t.Skip("there is no /dev/null here")
+		info, err := os.Lstat("/dev/null")
+		if err != nil {
+			t.Skip("there is no /dev/null here, so no character device was checked")
 		}
-		if got := typeOf("/dev/null"); got != ftChar {
-			t.Errorf("typeOf(/dev/null) = %d, want %d", got, ftChar)
+		path := "/dev/null"
+		if info.Mode()&fs.ModeSymlink != 0 {
+			// The link itself is a symlink, which is its own case below.
+			if got := typeOf(path); got != ftSym {
+				t.Errorf("typeOf(%s) = %d, want %d: it is a symlink here", path, got, ftSym)
+			}
+			if path, err = filepath.EvalSymlinks(path); err != nil {
+				t.Skipf("/dev/null is a symlink that does not resolve (%v), "+
+					"so no character device was checked", err)
+			}
+			if info, err = os.Lstat(path); err != nil {
+				t.Skipf("%s does not stat (%v), so no character device was checked", path, err)
+			}
+		}
+		if info.Mode()&fs.ModeCharDevice == 0 {
+			t.Skipf("%s is %v rather than a character device, so none was checked",
+				path, info.Mode())
+		}
+		if got := typeOf(path); got != ftChar {
+			t.Errorf("typeOf(%s) = %d, want %d", path, got, ftChar)
 		}
 	})
 }
