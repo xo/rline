@@ -12,7 +12,9 @@ by Daan Leijen, under the MIT license.
 
 ## Status
 
-The editor works. Two parts are not finished.
+Complete and working on Linux, macOS and Windows, including cmd.exe, Windows
+PowerShell and pwsh. Every module of isocline is either ported or deliberately
+replaced.
 
 What works: editing a line, moving by character, word and line, the eleven
 kinds of delete, undo and redo, input over more than one line, syntax
@@ -27,8 +29,12 @@ and offers a menu when several remain. The menu lays out in columns, and how
 many depends on how wide the entries are: in the example, `c` then Tab gives
 three columns and `co` then Tab gives two.
 
-The port is complete. Every module of isocline is either ported or deliberately
-replaced.
+Inside, the port keeps the C's behaviour even where that behaviour is wrong,
+because recorded output from the C build is the test corpus. The interface is
+deliberately not a translation of the C one: it is shaped for Go. The one
+place a behaviour rather than a name departs is `ReadLine` answering
+`ErrInterrupted`, because the C cannot tell a line the user gave up from an
+empty one and a shell has to.
 
 ## Quickstart
 
@@ -129,6 +135,25 @@ This found faults that reading would not. It also found the limit of the
 method: a corpus checks that a function answers correctly, and nothing in a
 corpus checks that the functions are wired together, so the parts that only a
 running program exercises are tested by running one.
+
+Between the two sits a third kind of test, which feeds a string of keystrokes
+to the editor and asserts on the line and the cursor that come out. That is
+what covers the key dispatch — which key reaches which operation — and it is
+where the behaviours other line editors test live: how a line ends, input
+that is not UTF-8, characters wider than one column, and a completion list
+too long to show.
+
+A test that was never attacked is not known to work, so before a corpus is
+trusted the code it covers is broken on purpose, once per thing the corpus is
+meant to pin, and each break has to fail it. `tools/mutate.sh` does that, and
+reports "did not compile" as its own answer rather than folding it into
+"caught".
+
+Linux, macOS and Windows each have their own session running the same checks,
+and the Windows editor has been driven by hand from a real console — typing,
+highlighting, backspace, multi-row statements, the completion menu, the arrow
+keys between rows, the password read, and leaving — because everything else
+on that platform is a test or an injected record.
 
 `PLAN.md` records the port order, every place the port departs from the C, and
 why.
