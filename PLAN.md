@@ -773,6 +773,31 @@ encoder sends VT codes 23 and 24, and they decode to `key.F11` and `key.F12`.
 That settles the departure from the C, whose encoder sends 13 and 14 there,
 which its own decoder reads as F4 and F5.
 
+The example has been driven by hand on a real console. Ken typed
+`select * where a = true`, Enter, Enter, `zzz ;`, Enter and `\q` into
+`cmd.exe`, 36 keys with one backspace, and windows-vm kept the log. It is the
+first evidence on Windows that is neither a unit test nor a banner nobody
+typed at, and it covers the whole chain at once: a key pressed on a keyboard,
+through the console input buffer, `ReadConsoleInput`, the virtual key
+translation, the sequence builder, the escape decoder, the editor, the
+highlighter, the redraw, and out through a console output handle that reads
+escape sequences only because `startOutputEscapes` asked it to. Every one of
+those had been verified on its own first.
+
+What the log shows: highlighting applied as a word completes rather than on
+submit, so the final letter of `select` turns the whole word bright red in the
+same redraw that echoes the keystroke; backspace removing a character,
+redrawing and putting the cursor back a column; Enter opening a continuation
+row with the `...>` prompt rather than submitting; and each later redraw
+walking up the right number of rows to repaint a three row statement. The
+newlines survive into the line the caller is given, and the example's own
+summary flattens them to spaces, which is what `example/main.go` asks for.
+
+What it does not show, stated because a hand-driven run is worth exactly what
+was touched: he did not press an arrow key, Tab, or `\pass`, so the completion
+menu, walking the history and the password read are still covered only by
+tests and by injected console records on that platform.
+
 Testing F11 needs Ctrl+F11. The console host claims a bare F11 for fullscreen,
 so it never reaches the program at all. That is the terminal rather than the
 shell or the virtual machine, and the modifier does not change which virtual
