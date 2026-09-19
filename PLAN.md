@@ -1192,12 +1192,24 @@ surface to fit, not readline's own. Audited read-only by ken-mba against a
 usql checkout, re-checked here against a second one, and restated below
 against the API as it now stands after three passes of reshaping.
 
-Five fit as they are. `Close`, `Interactive` and `Password` did already.
-`Stdout` and `Stderr` now do too, in the sense that matters: both wanted an
-`io.Writer` that keeps program output off the prompt, and a `*Prompt` is one,
-so the adapter returns it from both and writes no code. The methods that used
-to exist here for them are gone, because returning the receiver said nothing
-the type did not.
+Four fit as they are. `Close`, `Interactive` and `Password` did already, and
+`Stdout` does now: it wanted an `io.Writer` that keeps program output off the
+prompt, and a `*Prompt` is one, so the adapter returns it and writes no code.
+The method that used to exist here for it is gone, because returning the
+receiver said nothing the type did not.
+
+`Stderr` does not fit, and an earlier version of this section said it did.
+Returning the `*Prompt` from both is only right while both go to the same
+place, and in usql they do not: `rline.New` sends the standard output to a
+file when `-o` is given and leaves the standard error on the terminal
+whatever happens, `usql/rline/rline.go:147` against `:161`. usql reaches for
+`Stderr()` in seven places, `handler.go:818`, `:877`, `:1006` and `:1246`
+among them, so an adapter that answered the `*Prompt` for both would put
+error text inside the output file and take it off the screen, quietly, in exactly the case a caller chose a file because they
+wanted the output clean. Nothing here can say "write this to the error
+stream": `WithOutput` sets one writer, and `WithLog` is for the port's own
+tracing rather than for the program's errors. So `Stderr` wants something
+built, and it is the second decision left rather than the first.
 
 One behavioural difference under `Password`: usql answers
 `ErrPasswordNotAvailable` when built non-interactive, where this reads the
@@ -1250,9 +1262,21 @@ the line was given up, the other says there is no more input.
 This is the only place where the port departs from the C over a behaviour
 rather than a fault, and it is listed under the departures as well.
 
+### What the count is now
+
+Four fit, three want a thin wrapper, `Completer` fits since `SetCompleter`,
+`Cygwin` is a question, and two want something built: `Stderr` and
+`SetOutput`. That is the eleven.
+
 None of this is a defect. It is all downstream of having ported isocline
 faithfully, which is what was asked for, and it is the list of decisions that
 turning it into usql's reader needs.
+
+This section is checked against a usql checkout rather than remembered, and
+it has drifted once already: `Stderr` was recorded as fitting because a
+`*Prompt` is an `io.Writer`, which is true and is not the question. Anything
+written here about what usql does should be re-read against the source before
+it is relied on, with the file and line beside it as above.
 
 ## Open questions
 
