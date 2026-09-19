@@ -18,6 +18,12 @@ imports nothing from `rline`, so it adds no cycle. Everything else stays
 unexported in `rline` until `isocline.c` is ported and the public API is
 decided.
 
+The port takes two dependencies. `github.com/mattn/go-runewidth` measures
+character width, in place of the table in `wcwidth.c`. `golang.org/x/sys/unix`
+reads and writes the terminal settings, because the standard `syscall` package
+does not name `TCSETSF` on Linux, so `termios` cannot be done there with the
+standard library alone.
+
 The port does not use cgo at any stage. cgo is the Go facility that calls C
 code. An earlier plan built a cgo binding layer first, to get a reference to
 compare against. We dropped that step for two reasons. The binding code gets
@@ -90,11 +96,17 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    that terminals disagree about. `tools/build-probe-tty.sh` builds a third
    probe, and `testdata/tty.txt` records 7157 decodes.
 
-   What is left is the terminal itself: raw mode through `termios`, detecting
-   whether the input is UTF-8, the resize event, stopping a read from another
-   goroutine, and `tty_read_esc_response`, which `term.c` uses to read back an
-   answer to a query. Those need a `byteReader` over a file descriptor, which
-   is the one piece of `tty.c` that a corpus cannot check.
+   The terminal itself is done too, in `ttydev_unix.go` with the per system
+   requests in `ttydev_linux.go` and `ttydev_darwin.go`: raw mode through
+   `termios`, the UTF-8 test, the resize event, interrupting a read, and
+   `tty_read_esc_response`. Windows is still `errUnsupported`.
+
+   That half needs a real terminal, which a corpus cannot give, so
+   `TestTTYDeviceOnARealTerminal` opens a pseudo-terminal through
+   `capture.OpenPTY`, goes into raw mode, checks that echo and line mode and
+   the signal keys are off, reads keys through the decoder, and checks the
+   terminal is put back. `tty_read_esc_response` is in the corpus, because it
+   reads from the same byte source as the decoder.
 5. `attr.c`. This holds the text attributes.
 6. `term.c` and `term_color.c`. This writes to the terminal and reduces colors
    to what the terminal accepts.
@@ -166,6 +178,23 @@ halves is one value too wide.
 
 The QUTF-8 encoder does encode a surrogate code point, and the decoder will not
 read one back. The encoder and the decoder disagree.
+
+The port does not catch `SIGSEGV`, `SIGTRAP` or `SIGBUS`. isocline catches
+them so that it can put the terminal back before the program dies. The Go
+runtime owns those signals, needs them to print a stack trace, and taking them
+over would break more than a tidy terminal is worth. The signals that a
+program can be expected to survive, from `SIGTERM` to `SIGTTOU`, are caught,
+and the terminal is restored before the signal is passed on.
+
+`tty_read_esc_response` returns nothing when it fails. The C code fills its
+buffer as it goes and writes the terminating zero only once it succeeds, so a
+failure leaves bytes there that are not a string. No caller may read them, and
+`term.c` does not.
+
+There is no `setlocale` in Go, so `localeIsUTF8` reads `LC_ALL`, `LC_CTYPE`
+and `LANG` in the order that `setlocale` reads them, and applies the same
+test. An environment that sets none of them leaves the locale at `C`, which
+the C code counts as UTF-8.
 
 Case-insensitive comparison compares C `char` values, and the result depends on
 whether `char` is signed. Any byte above 0x7f sorts before every ASCII

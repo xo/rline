@@ -138,6 +138,59 @@ static void code_cases(void) {
   }
 }
 
+
+/* tty_read_esc_response reads back the answer to a query that term.c wrote.
+   The answer is recorded along with whatever was left unread, because the
+   function pushes bytes back when it looks one too far ahead. */
+static void esc_response_cases(void) {
+  static const struct { const char* in; char start; int final_st; int buflen; } cases[] = {
+    { "\x1B[24;80R", '[', 0, 64 },
+    { "\x1B[?1;2c", '[', 0, 64 },
+    { "\x1B[0n", '[', 0, 64 },
+    { "\x1B[24;80R rest", '[', 0, 64 },
+    { "\x1B[24;80R", '[', 0, 4 },
+    { "\x1B[1234567890;1234567890R", '[', 0, 8 },
+    { "\x1B]4;0;rgb:1111/2222/3333\x07", ']', 1, 64 },
+    { "\x1B]4;0;rgb:11/22/33\x1B\\", ']', 1, 64 },
+    { "\x1B]11;?\x02", ']', 1, 64 },
+    { "\x1B]0;a\x1BZb\x07", ']', 1, 64 },
+    { "\x1B]0;unterminated", ']', 1, 64 },
+    { "\x1B]0;abc\x07tail", ']', 1, 64 },
+    { "\x1BX24;80R", '[', 0, 64 },
+    { "abc", '[', 0, 64 },
+    { "\x1B", '[', 0, 64 },
+    { "\x1B[", '[', 0, 64 },
+    { "\x1B[24;80", '[', 0, 64 },
+    { "\x1B]", ']', 1, 64 },
+  };
+  for (int i = 0; i < (int)(sizeof(cases)/sizeof(cases[0])); i++) {
+    const uint8_t* in = (const uint8_t*)cases[i].in;
+    const int n = (int)strlen(cases[i].in);
+    if (n > MAXCASE) continue;
+    char buf[128+1];
+    memset(buf, 0, sizeof(buf));
+    tty_reset(in, n, true);
+    bool ok = tty_read_esc_response(&probe_tty, cases[i].start,
+                                    cases[i].final_st != 0, buf, cases[i].buflen);
+    printf("escresp ");
+    print_bytes(in, n);
+    printf(" %02x %d %d %d ", (unsigned char)cases[i].start, cases[i].final_st,
+           cases[i].buflen, ok ? 1 : 0);
+    print_bytes((const uint8_t*)buf, (int)strlen(buf));
+    /* Whatever is left, so that pushing a byte back is recorded too. */
+    printf(" ");
+    uint8_t rest[MAXCASE + 1];
+    int rn = 0;
+    while (rn < MAXCASE) {
+      uint8_t c;
+      if (!tty_readc_noblock(&probe_tty, &c, 0)) break;
+      rest[rn++] = c;
+    }
+    print_bytes(rest, rn);
+    printf("\n");
+  }
+}
+
 int main(void) {
   /* An empty pipe whose write end stays open: never readable, never at end
      of file, which is how a terminal looks when no one is typing. */
@@ -150,6 +203,7 @@ int main(void) {
 
   table_cases();
   code_cases();
+  esc_response_cases();
 
   /* Every single byte, in both input modes. */
   for (int b = 0; b < 256; b++) {

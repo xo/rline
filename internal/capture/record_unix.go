@@ -40,7 +40,7 @@ func Record(ctx context.Context, path string, s Session) (*Transcript, error) {
 		return nil, fmt.Errorf("creating home directory: %w", err)
 	}
 	defer func() { _ = os.RemoveAll(home) }()
-	leader, follower, err := openPTY()
+	leader, follower, err := OpenPTY()
 	if err != nil {
 		return nil, err
 	}

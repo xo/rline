@@ -10,7 +10,7 @@ import (
 	"unsafe"
 )
 
-// openPTY opens a pseudo-terminal. It returns the leader side, which this
+// OpenPTY opens a pseudo-terminal. It returns the leader side, which this
 // process drives, and the follower side, which the child uses as its terminal.
 //
 // macOS opens the same /dev/ptmx that Linux does, but the three requests that
@@ -22,7 +22,7 @@ import (
 // The leader fd is put in non-blocking mode before os.NewFile wraps it. A
 // blocking terminal fd does not reach the Go poller, and then SetReadDeadline
 // accepts a deadline but never interrupts a read.
-func openPTY() (*os.File, *os.File, error) {
+func OpenPTY() (*os.File, *os.File, error) {
 	fd, err := syscall.Open("/dev/ptmx", syscall.O_RDWR|syscall.O_NOCTTY, 0)
 	if err != nil {
 		return nil, nil, fmt.Errorf("opening /dev/ptmx: %w", err)

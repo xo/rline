@@ -32,9 +32,8 @@ const ttyPushMax = 32
 // means waiting. macOS waits longer, because it sends an escape and the key
 // for alt and a key, so a real sequence can arrive slowly.
 const (
-	defaultEscInitialTimeout      = 100 * time.Millisecond
-	defaultEscInitialTimeoutMacOS = 200 * time.Millisecond
-	defaultEscTimeout             = 10 * time.Millisecond
+	defaultEscInitialTimeout = 100 * time.Millisecond
+	defaultEscTimeout        = 10 * time.Millisecond
 )
 
 // byteReader supplies the bytes that a tty decodes.
@@ -63,6 +62,31 @@ type tty struct {
 	// to be read again. Both are taken from the end.
 	pushedBytes []byte
 	pushedCodes []key.Code
+
+	// dev is the terminal, when src is one. It is nil when the bytes come
+	// from somewhere else, such as a test.
+	dev terminalDevice
+}
+
+// terminalDevice is a byteReader that is a terminal, so its settings can be
+// changed and its signals watched.
+type terminalDevice interface {
+	byteReader
+
+	// startRaw makes keys arrive one at a time, and endRaw puts the terminal
+	// back the way it was.
+	startRaw() error
+	endRaw()
+
+	// resizeEvent reports whether the window changed size since the last
+	// call.
+	resizeEvent() bool
+
+	// asyncStop makes a waiting read return.
+	asyncStop() bool
+
+	// close puts the terminal back and stops watching its signals.
+	close() error
 }
 
 // newTTY returns a tty that reads from src.
@@ -73,13 +97,6 @@ func newTTY(src byteReader) *tty {
 		escInitialTimeout: defaultEscInitialTimeout,
 		escTimeout:        defaultEscTimeout,
 	}
-}
-
-// setEscDelay sets how long the decoder waits for the byte after an escape,
-// and for each byte after that.
-func (t *tty) setEscDelay(initial, follow time.Duration) {
-	t.escInitialTimeout = initial
-	t.escTimeout = follow
 }
 
 // pushByte puts a byte back, to be read before anything from src.
@@ -224,4 +241,129 @@ func modifyCode(code key.Code) key.Code {
 		code &^= key.ModCtrl
 	}
 	return code
+}
+
+// startRaw makes keys arrive one at a time. It does nothing when the bytes do
+// not come from a terminal.
+func (t *tty) startRaw() error {
+	if t.dev == nil {
+		return nil
+	}
+	return t.dev.startRaw()
+}
+
+// endRaw puts the terminal back the way it was.
+func (t *tty) endRaw() {
+	if t.dev != nil {
+		t.dev.endRaw()
+	}
+}
+
+// close puts the terminal back and stops watching its signals.
+func (t *tty) close() error {
+	if t.dev == nil {
+		return nil
+	}
+	return t.dev.close()
+}
+
+// resizeEvent reports whether the window changed size since the last call. It
+// answers yes when there is no terminal to ask, because then there is no way
+// to tell and redrawing costs less than being wrong.
+func (t *tty) resizeEvent() bool {
+	if t.dev == nil {
+		return true
+	}
+	return t.dev.resizeEvent()
+}
+
+// asyncStop makes a read that is waiting for a key return.
+func (t *tty) asyncStop() bool {
+	if t.dev == nil {
+		return false
+	}
+	return t.dev.asyncStop()
+}
+
+// escDelayMax is the longest wait that setEscDelay accepts. The C code clamps
+// to the same value.
+const escDelayMax = time.Second
+
+// setEscDelay sets how long the decoder waits for the byte after an escape,
+// and for each byte after that. Each is held between zero and one second.
+func (t *tty) setEscDelay(initial, follow time.Duration) {
+	t.escInitialTimeout = clampDelay(initial)
+	t.escTimeout = clampDelay(follow)
+}
+
+// clampDelay holds d between zero and escDelayMax.
+func clampDelay(d time.Duration) time.Duration {
+	switch {
+	case d < 0:
+		return 0
+	case d > escDelayMax:
+		return escDelayMax
+	}
+	return d
+}
+
+// readEscResponse reads back the answer to a query that was written to the
+// terminal, such as where the cursor is or what a palette colour is.
+//
+// escStart is the byte that follows the escape, and finalST says the answer
+// ends at a bell or at ESC backslash rather than at the first byte that is
+// not part of a number. max is the most bytes to keep.
+//
+// The first wait is twice the initial escape wait, because the terminal has
+// to be given time to answer at all.
+//
+// Nothing useful comes back when this fails. The C code fills its buffer as
+// it goes and only writes the terminating zero once it succeeds, so a failure
+// leaves bytes there that are not a string and that no caller may read. This
+// returns an empty string instead.
+func (t *tty) readEscResponse(escStart byte, finalST bool, max int) (string, bool) {
+	c, ok := t.readByte(2 * t.escInitialTimeout)
+	if !ok || c != '\x1B' {
+		return "", false
+	}
+	if c, ok = t.readByte(t.escTimeout); !ok || c != escStart {
+		return "", false
+	}
+	buf := make([]byte, 0, max)
+	for len(buf) < max {
+		c, ok := t.readByte(t.escTimeout)
+		if !ok {
+			return "", false
+		}
+		if finalST {
+			// An operating system command ends at a bell, at ESC backslash,
+			// or at the start of text byte.
+			if c == '\x07' || c == '\x02' {
+				break
+			}
+			if c == '\x1B' {
+				c1, ok := t.readByte(t.escTimeout)
+				if !ok {
+					return "", false
+				}
+				if c1 == '\\' {
+					break
+				}
+				t.pushByte(c1)
+			}
+		} else {
+			if c == '\x02' {
+				break
+			}
+			partOfNumber := (c >= '0' && c <= '9') || charSetHas("<=>?;:", c)
+			if !partOfNumber {
+				// Keep the byte that ended it, which names what the answer
+				// was about.
+				buf = append(buf, c)
+				break
+			}
+		}
+		buf = append(buf, c)
+	}
+	return string(buf), true
 }

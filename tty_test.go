@@ -72,7 +72,7 @@ func TestTTYPort(t *testing.T) {
 	if bad > maxReported {
 		t.Errorf("%d differences in total, %d shown", bad, maxReported)
 	}
-	for _, kind := range []string{"vt", "xterm", "ss3", "code", "keys"} {
+	for _, kind := range []string{"vt", "xterm", "ss3", "code", "keys", "escresp"} {
 		if counts[kind] == 0 {
 			t.Errorf("the corpus holds no %s cases", kind)
 		}
@@ -138,6 +138,39 @@ func checkTTYLine(t *testing.T, line string) (string, string) {
 				return f[0], fmt.Sprintf("key %d is %08x, want %08x (got %s, want %s)",
 					i, got[i], want[i], showCodes(got), showCodes(want))
 			}
+		}
+	case "escresp":
+		in, start := mustHex(t, f[1]), mustHex(t, f[2])[0]
+		finalST, max := mustInt(t, f[3]) == 1, mustInt(t, f[4])
+		wantOK, wantBuf, wantRest := mustInt(t, f[5]) == 1, f[6], f[7]
+		term := newTTY(&idleReader{bytes: in})
+		term.setEscDelay(0, 0)
+		got, ok := term.readEscResponse(start, finalST, max)
+		if ok != wantOK {
+			return f[0], fmt.Sprintf("readEscResponse reported %v, want %v", ok, wantOK)
+		}
+		// The C code fills its buffer as it goes and only terminates it when
+		// it succeeds, so what is in there after a failure is not a string at
+		// all and no caller may read it. The port returns nothing instead, so
+		// the answer is only compared when the call succeeded.
+		if ok {
+			if h := hexOrDash([]byte(got)); h != wantBuf {
+				return f[0], fmt.Sprintf("readEscResponse gave %s, want %s", h, wantBuf)
+			}
+		} else if got != "" {
+			return f[0], fmt.Sprintf("readEscResponse failed but gave %q, want nothing", got)
+		}
+		// Whatever is left unread, which records the bytes put back.
+		var rest []byte
+		for range ttyPushMax {
+			b, more := term.readByte(0)
+			if !more {
+				break
+			}
+			rest = append(rest, b)
+		}
+		if h := hexOrDash(rest); h != wantRest {
+			return f[0], fmt.Sprintf("readEscResponse left %s unread, want %s", h, wantRest)
 		}
 	default:
 		return f[0], "unknown kind of case"
