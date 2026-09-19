@@ -41,8 +41,14 @@ if [ ! -x "$bin" ]; then
     tmp=$bin.$$
     go -C "$mod" build -o "$tmp" github.com/golangci/golangci-lint/v2/cmd/golangci-lint || { rm -f "$tmp"; exit 2; }
     mv -f "$tmp" "$bin" || { rm -f "$tmp"; exit 2; }
-    # Older builds of other pins are no longer reachable, so they go.
-    find "$dir" -maxdepth 1 -name 'golangci-lint-*' ! -name "$(basename "$bin")" -exec rm -f {} + 2>/dev/null
+    # Older builds of other pins are no longer reachable, so they go. The
+    # pattern leaves the probes beside them, and leaves anything ending in
+    # .exe, which is lint.ps1's cache: the two scripts key the pin
+    # differently, so each cleans up only its own names. Without that, a
+    # machine that runs both rebuilds on every alternate run and says
+    # nothing about it.
+    find "$dir" -maxdepth 1 -name 'golangci-lint-*' ! -name '*.exe' \
+        ! -name "$(basename "$bin")" -exec rm -f {} + 2>/dev/null
 fi
 cd "$root" || exit 2
 exec "$bin" run "$@"
