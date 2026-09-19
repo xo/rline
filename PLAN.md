@@ -566,6 +566,20 @@ is always readable. `tools/probe-tty.c` uses an idle pipe rather than
 
 ## Windows
 
+The port does not carry the console emulation in `term.c`. About 400 lines
+there translate escape sequences into console API calls, for a Windows that
+cannot read escape sequences itself. The port writes escape sequences on every
+system and assumes the console reads them, which Windows 10 and later do once
+virtual terminal processing is turned on, and which the C also prefers when it
+is available.
+
+This has not been decided so much as arrived at, and it deserves a decision.
+The evidence for it is that the Windows host passes every corpus unchanged,
+including all 1584 redraws against a set recorded on Linux, so nothing in the
+port needs the emulation today. The argument against is that it drops support
+for consoles older than Windows 10, which the C still carries.
+
+
 Windows support for `tty.c` is deliberately not written yet, and it waits for a
 Windows host. The console API reads key events and needs its own pushback,
 which is a rewrite rather than a port, and the capture harness cannot record on
