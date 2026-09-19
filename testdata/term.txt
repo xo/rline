@@ -1,0 +1,256 @@
+palette 0 2 0 4
+out discard \e[m
+palette 1 4 0 24
+out discard \e[m
+palette 2 4 0 24
+out discard \e[m
+palette 3 4 0 24
+out discard \e[m
+palette 4 3 0 8
+out discard \e[m
+palette 5 3 0 8
+out discard \e[m
+palette 6 2 0 4
+out discard \e[m
+palette 7 2 0 4
+out discard \e[m
+palette 8 1 0 3
+out discard \e[m
+palette 9 1 0 3
+out discard \e[m
+palette 10 0 0 1
+out discard \e[m
+palette 11 0 0 1
+out discard \e[m
+palette 12 0 0 1
+out discard \e[m
+palette 13 2 0 4
+out discard \e[m
+palette 14 3 0 8
+out discard \e[m
+palette 15 4 0 24
+out discard \e[m
+palette 16 4 0 24
+out discard \e[m
+palette 17 4 0 24
+out discard \e[m
+palette 18 3 0 8
+out discard \e[m
+palette 19 2 0 4
+out discard \e[m
+palette 20 1 0 3
+out discard \e[m
+palette 21 0 0 1
+out discard \e[m
+palette 22 0 0 1
+out discard \e[m
+palette 23 2 0 4
+out discard \e[m
+palette 24 4 0 24
+out discard \e[m
+palette 25 2 1 4
+out discard -
+palette 26 2 1 4
+out discard -
+palette 27 2 0 4
+out discard \e[m
+interactive dumb 0
+out discard \e[m
+interactive DUMB 0
+out discard \e[m
+interactive cons25 0
+out discard \e[m
+interactive emacs 0
+out discard \e[m
+interactive EMACS 0
+out discard \e[m
+interactive xterm 1
+out discard \e[m
+interactive - 0
+out discard \e[m
+interactive b|DUMB 0
+out discard \e[m
+interactive umb 0
+out discard \e[m
+interactive 25|CONS 0
+out discard \e[m
+interactive | 0
+out discard \e[m
+interactive dum 0
+out discard \e[m
+interactive screen 1
+out discard \e[m
+out discard \e[m
+out write -
+attrafter 0 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write a
+attrafter 1 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write hello
+attrafter 2 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write line\nnext
+attrafter 3 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write tab\there
+attrafter 4 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write cr\rhere
+attrafter 5 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write -
+attrafter 6 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \x07bell
+attrafter 7 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \x08back
+attrafter 8 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \x0b\x0c
+attrafter 9 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write -
+attrafter 10 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \e[
+attrafter 11 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \e[m
+attrafter 12 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \e[31m
+attrafter 13 0000001f 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \e[1;4mbold
+attrafter 14 00000027 00000027 1 -1 -1 1
+out discard -
+out discard \e[m
+out write \e[0m
+attrafter 15 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \e]0;title\x07
+attrafter 16 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \xc3\xa9
+attrafter 17 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \xe6\x97\xa5\xe6\x9c\xac
+attrafter 18 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \xff
+attrafter 19 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write a\xffb
+attrafter 20 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write \xf0\x9f\x98\x80
+attrafter 21 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out write mixed \e[32mgreen\e[39m end
+attrafter 22 00000027 00000027 -1 -1 -1 -1
+out discard -
+out discard \e[m
+out left -
+out right -
+out up -
+out down -
+out left -
+out right -
+out up -
+out down -
+out left \e[1D
+out right \e[1C
+out up \e[1A
+out down \e[1B
+out left \e[2D
+out right \e[2C
+out up \e[2A
+out down \e[2B
+out left \e[10D
+out right \e[10C
+out up \e[10A
+out down \e[10B
+out left \e[999D
+out right \e[999C
+out up \e[999A
+out down \e[999B
+out clearline \r\e[K
+out cleareol \e[K
+out startline \r
+out attrreset \e[m
+out ul1 \e[4m
+out ul0 \e[24m
+out rev1 \e[7m
+out rev0 \e[27m
+out bold1 \e[1m
+out bold0 \e[22m
+out it1 \e[3m
+out it0 \e[23m
+out writeln ln\n
+out writechar x
+out writecharnl \n
+out repeat3 ababab
+out repeat0 -
+out repeatneg -
+dim 80 24
+out discard -
+out discard \e[m
+out setattr \e[1m
+attrstate 0 00000027 00000027 1 -1 -1 -1
+out setattr -
+attrstate 1 00000027 00000027 1 -1 -1 -1
+out setattr \e[31m
+attrstate 2 0000001f 00000027 1 -1 -1 -1
+out setattr -
+attrstate 3 0000001f 00000027 1 -1 -1 -1
+out setattr \e[39m\e[22m
+attrstate 4 00000027 00000027 -1 -1 -1 -1
+out setattr \e[4m
+attrstate 5 00000027 00000027 -1 -1 -1 1
+out setattr \e[38;5;33m
+attrstate 6 010087ff 00000027 -1 -1 -1 1
+out setattr \e[38;5;16m
+attrstate 7 01010203 00000027 -1 -1 -1 1
+out setattr -
+attrstate 8 01010203 00000027 -1 -1 -1 1
+out setattr -
+attrstate 9 01010203 00000027 -1 -1 -1 1
+out discard -
+out discard \e[m
+out formatted \e[31mred\e[39mplain\e[1mbold\e[22m
+out formattednull redplainbold
+out discard -
+out discard -
+bufmode 1
+out buffered_nothing -
+out buffered_flushed \e[mbuffered
+bufmode 2
+out line_nothing -
+out line_flushed no newline and\n
+bufmode 1
+out unbuffered_switch -
+out unbuffered direct
+out discard -

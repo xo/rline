@@ -115,19 +115,17 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    `color_from_ansi256`, and the 256 color table was extracted from the C
    source rather than typed out. `tools/build-probe-attr.sh` builds a fourth
    probe, and `testdata/attr.txt` records 1678 of those calls.
-6. `term.c` and `term_color.c`. The color reduction is done, in
-   `termcolor.go`. A terminal that understands fewer colors than a style asks
-   for needs the nearest one it does have, which is a weighted euclidean
-   distance whose weights shift with how much red is in the color, plus a
-   penalty for trading a gray for a color. `tools/build-probe-termcolor.sh`
-   builds a sixth probe, and `testdata/termcolor.txt` records 5522 of those
-   calls. The C keeps a sixteen entry cache in front of the match, which the
-   port leaves out, because the answer depends on nothing but the palette and
-   the color.
+6. `term.c` and `term_color.c`. Done, apart from Windows. `termcolor.go` holds
+   the color reduction, which finds the nearest color a terminal can show when
+   it understands fewer than a style asks for. `term.go` holds the terminal
+   itself: the writer, the buffering, cursor movement, the attribute state, and
+   working out the size and how much color the terminal supports.
+   `tools/build-probe-termcolor.sh` and `tools/build-probe-term.sh` build the
+   sixth and seventh probes. `testdata/termcolor.txt` records 5522 calls and
+   `testdata/term.txt` records a script of 256 steps, driven through a real
+   pseudo-terminal because the C asks the terminal for the cursor position when
+   it cannot get the size any other way.
 
-   What is left is `term.c` itself: the writer, the buffering, cursor
-   movement, the attribute state, and working out the size of the terminal
-   and how much color it supports.
 7. `bbcode.c` and `bbcode_colors.c`. This parses markup such as
    `[red]text[/red]`.
 8. `history.c` and `undo.c`. Done. `history.go` holds the list of lines the
@@ -338,6 +336,33 @@ allows a difference only in those cases. A difference anywhere else fails.
 position just past the end it reads a slot it never wrote. That is undefined
 behavior rather than a wrong answer, so there is nothing to reproduce at all.
 The port returns the empty attribute there.
+
+### term.c
+
+Two faults and one thing that only looks like one.
+
+`term_is_interactive` passes its two arguments to `strstr` the wrong way round,
+so it asks whether `TERM` is part of the list rather than whether the list
+holds `TERM`. The names it means to catch do answer yes, but so does any piece
+of one, such as `umb` or `25|CONS`, and so does an empty `TERM`, because an
+empty string is part of every string. The port keeps this, because changing it
+would change which terminals the editor refuses to run on. `gocritic` finds it
+on the Go side too, so the line carries a `nolint` that says why.
+
+`term_update_ansi16` reads the sixteen palette colors from the Linux console
+with `GIO_CMAP` and then writes them to `ansi256[i]` where `i` steps by three,
+so it scatters them across indices 0, 3, 6 and so on up to 45, which overwrites
+part of the color cube and fills in only six of the sixteen it meant to. It
+fires only on a Linux virtual console, because the request fails on a
+pseudo-terminal, so no recorded session reaches it.
+
+`term_set_attr` looks as though it forgets to store what it just set, and it
+does not. The state is kept by the write path: setting an attribute means
+writing an escape sequence, and `term_append_esc` reads every such sequence
+that goes past and folds it into the stored attributes. The two assignments
+inside `term_set_attr` cover the one case that defeats this, which is a color
+the palette cannot show, where the sequence names the nearest color instead and
+reading it back would record the approximation.
 
 ### tty.c
 
