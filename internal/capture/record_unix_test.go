@@ -8,7 +8,6 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -18,24 +17,6 @@ var update = flag.Bool("update", false, "rewrite the golden files")
 
 // demoPath is where tools/build-demo.sh puts the compiled isocline demo.
 const demoPath = "../../.build/example"
-
-// goldenDir returns the directory holding the golden files for the system
-// the test is running on.
-//
-// A recording is only comparable against one made on the same system, because
-// isocline itself writes different bytes on each. term_update_ansi16 is
-// guarded by "#if __APPLE__", so on macOS the demo asks the terminal for its
-// color palette with an OSC 4 sequence and waits for an answer. A bare
-// pseudo-terminal never answers, so the demo waits out its timeout, which
-// both adds the query to the output and moves the rest of the startup text
-// into the next exchange. On Linux the query is not compiled in at all.
-//
-// So each system keeps its own set, and each one checks bytes. A set that is
-// missing is a failure rather than a skip: a skip would put back the hole
-// this layout exists to close.
-func goldenDir() string {
-	return filepath.Join("testdata", runtime.GOOS)
-}
 
 // TestRecord records every session and compares it against its golden file.
 func TestRecord(t *testing.T) {
