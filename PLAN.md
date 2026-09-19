@@ -866,7 +866,7 @@ at once and was never waiting on this.
 
 ## Tests that pass without checking anything
 
-The rule above is one case of a wider one, which has now cost time six times
+The rule above is one case of a wider one, which has now cost time seven times
 on this port. A test can report success while verifying nothing, and nothing
 about the run says so. The ways it has happened here:
 
@@ -925,6 +925,17 @@ rather than skipping, and `TestConsoleWritesToTerminalOnAConsole` makes the
 same check where it can fail. Measured by windows-vm, who ran both halves from
 one console window: `isATTY(0)` is false under `go test` and true in the same
 binary started directly.
+
+A diagnostic that cannot be read in the case it was written for.
+`TestConsoleWritesToTerminalOnAConsole` logs whether the standard output is a
+console, and `t.Logf` writes to the standard output, so capturing the line is
+what makes it say false. It can never be captured saying true. Found by
+windows-vm while running the test both ways as asked. The answer here is not
+more machinery for one line: the assertion asks the console what the answer
+should be rather than fixing it, so it checks itself, and the comment now says
+that an attached run gives an exit code and nothing capturable. But the shape
+is worth naming, because it is the null standard input again in miniature:
+observing changes the thing observed.
 
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out. When

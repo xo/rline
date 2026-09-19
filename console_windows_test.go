@@ -317,6 +317,14 @@ func TestConsoleEscapesFromOff(t *testing.T) {
 //	rline.test.exe -test.run TestConsoleWritesToTerminalOnAConsole -test.v
 //	rline.test.exe -test.run TestConsoleWritesToTerminalOnAConsole -test.v > out.txt 2>&1
 //
+// The attached run gives an exit code and nothing a reader can capture, the
+// same as TestConsoleReadsEscapeSequences: what it says appears on the
+// console itself, for a human to read. So the log line below can only ever be
+// captured saying false, because capturing it is what makes it false. That is
+// the null standard input again in miniature — observing changes the thing
+// observed — and it is why the assertion asks the console what the answer
+// should be rather than leaving it to the reader of a log line.
+//
 // Found by the windows-vm session, which measured isATTY answering true for a
 // redirected standard output while a console was on the standard input.
 func TestConsoleWritesToTerminalOnAConsole(t *testing.T) {
