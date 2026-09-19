@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 	"time"
+
+	"github.com/xo/rline/key"
 )
 
 // Driving the whole editor over a fixed set of keystrokes.
@@ -32,6 +34,7 @@ const (
 	kUp        = "\x1b[A"
 	kDown      = "\x1b[B"
 	kHome      = "\x1b[H"
+	kPageDown  = "\x1b[6~"
 	kEnd       = "\x1b[F"
 	kCtrlA     = "\x01"
 	kCtrlB     = "\x02"
@@ -85,6 +88,19 @@ func (f *feedKeys) readByte(_ time.Duration) (byte, bool) {
 	return 0, false
 }
 
+// feedOpts are the settings a test changes from the plain ones.
+type feedOpts struct {
+	// NotUTF8 says the terminal sends something other than UTF-8, so a byte
+	// above 0x7f is kept as the byte it was rather than read as a character.
+	NotUTF8 bool
+
+	// Completer offers completions, which the menu and the hints need.
+	Completer Completer
+
+	// Hints turns the inline suggestion back on.
+	Hints bool
+}
+
 // feed runs the keys through a fresh editor and returns the line and where the
 // cursor ended up.
 //
@@ -92,8 +108,37 @@ func (f *feedKeys) readByte(_ time.Duration) (byte, bool) {
 // the text and nothing about how it was drawn.
 func feed(t *testing.T, keys string) (string, int) {
 	t.Helper()
-	var sink bytes.Buffer
-	tm := newTerm(&sink, termOptions{NoColor: true, Sizer: fixedSize{cols: 80, rows: 24}})
+	text, cursor, _ := feedWith(t, keys, feedOpts{})
+	return text, cursor
+}
+
+// feedWith runs the keys through an editor set up as the options say, and also
+// returns the key that finished the line, which is what tells an ordinary
+// finish from an interrupt or the end of the input.
+func feedWith(t *testing.T, keys string, opt feedOpts) (string, int, key.Code) {
+	t.Helper()
+	text, cursor, ended, _ := feedSession(t, keys, opt)
+	return text, cursor, ended
+}
+
+// feedSession is feedWith with what was written to the terminal as well,
+// which is the only way to see something that is drawn but never reaches the
+// line, such as the list of every completion.
+func feedSession(t *testing.T, keys string, opt feedOpts) (string, int, key.Code, string) {
+	t.Helper()
+	ev, sink := feedEnv(t, keys, opt)
+	e := &editor{opts: ev.opts, termW: 80, curRows: 1}
+	c := ev.runEditLoop(e)
+	ev.term.flush()
+	return e.input.string(), e.pos, c, sink.String()
+}
+
+// feedEnv builds an editor environment that reads the keys and writes to a
+// buffer, which is what every test here drives.
+func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
+	t.Helper()
+	sink := &bytes.Buffer{}
+	tm := newTerm(sink, termOptions{NoColor: true, Sizer: fixedSize{cols: 80, rows: 24}})
 	h := &history{}
 	h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
@@ -113,9 +158,17 @@ func feed(t *testing.T, keys string) (string, int) {
 		noBraceMatch: true,
 		noHint:       true,
 	}
-	e := &editor{opts: ev.opts, termW: 80, curRows: 1}
-	ev.runEditLoop(e)
-	return e.input.string(), e.pos
+	if opt.NotUTF8 {
+		ev.tty.isUTF8 = false
+	}
+	if opt.Completer != nil {
+		ev.completions.setCompleter(opt.Completer, nil)
+	}
+	if opt.Hints {
+		ev.noHint = false
+		ev.hintDelay = 0
+	}
+	return ev, sink
 }
 
 // TestFeedEditing drives the editor over a set of keystrokes and checks the
