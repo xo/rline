@@ -1378,14 +1378,14 @@ Three checks run on the Go code:
 
 1. `gofmt -l .` names any file that is not formatted.
 2. `go vet ./...` reports suspicious code.
-2. `GOOS=plan9 go build ./...`, and any other system that is none of the
+3. `GOOS=plan9 go build ./...`, and any other system that is none of the
    three, checks that the fallback still compiles. `ttydev_other.go` exists so
    that such a system builds and reads plain lines, and a function added with
    implementations for only two of the three tag groups breaks it invisibly:
    vet for linux, darwin and windows all pass, and nobody builds the rest.
    That happened at 95ec387, when `fileIsTerminal` was split out of `isATTY`
    with no answer here, and nothing said so for a day.
-3. `go tool golangci-lint run ./...` runs the linters that `.golangci.yml`
+4. `go tool golangci-lint run ./...` runs the linters that `.golangci.yml`
    names.
 
 `go.mod` pins golangci-lint with a `tool` directive, so `go tool` builds it
