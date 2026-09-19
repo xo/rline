@@ -48,6 +48,10 @@ const (
 	rawConsoleMode = enableExtendedFlags | enableQuickEditMode | enableWindowInput
 )
 
+// enableVirtualTerminalProcessing makes the console read the escape
+// sequences that are written to it, rather than printing them.
+const enableVirtualTerminalProcessing = 0x0004
+
 // The virtual keys that have no character of their own.
 const (
 	vkTab    = 0x09
@@ -80,6 +84,13 @@ type ttyDevice struct {
 	mu         sync.Mutex
 	origMode   uint32
 	rawEnabled bool
+
+	// outHandle is the console being written to, and origOutMode how it was
+	// set up, kept only when this turned the escape sequence flag on and so
+	// has something to put back.
+	outHandle   windows.Handle
+	origOutMode uint32
+	outChanged  bool
 
 	// pending holds the bytes of the sequence built from the last key event,
 	// in the order they are to be read.
@@ -138,7 +149,59 @@ func (d *ttyDevice) startRaw() error {
 	if err := windows.SetConsoleMode(d.handle, rawConsoleMode); err != nil {
 		return fmt.Errorf("putting the console into raw mode: %w", err)
 	}
+	if err := d.startOutputEscapes(); err != nil {
+		// Put the input back rather than leave the console half changed.
+		_ = windows.SetConsoleMode(d.handle, d.origMode)
+		return err
+	}
 	d.rawEnabled = true
+	return nil
+}
+
+// consoleOutput returns the console that output goes to, and how it is set
+// up. It reports false when the output is not a console at all, which is not
+// an error: it means the output was redirected.
+func consoleOutput() (windows.Handle, uint32, bool) {
+	h, err := windows.GetStdHandle(windows.STD_OUTPUT_HANDLE)
+	if err != nil {
+		return 0, 0, false
+	}
+	var mode uint32
+	if windows.GetConsoleMode(h, &mode) != nil {
+		return 0, 0, false
+	}
+	return h, mode, true
+}
+
+// startOutputEscapes makes sure the console reads the escape sequences that
+// are written to it.
+//
+// The port has no Windows branch in term.go: it writes escape sequences on
+// every system and expects the console to read them, where the C instead
+// carries several hundred lines that turn them into console calls. Windows
+// has read them by default since Windows 10, and that was measured on a
+// plain console host rather than assumed. But it is one process wide bit
+// that any other code in the same program can clear, so this asks for it
+// rather than hoping, and puts it back afterwards.
+//
+// A console that refuses the flag is the one host where the C emulation
+// would have been needed. That fails here, loudly, rather than printing the
+// escape sequences to the user as text.
+func (d *ttyDevice) startOutputEscapes() error {
+	h, mode, ok := consoleOutput()
+	if !ok {
+		// The output is going to a file or a pipe rather than a console, so
+		// the escape sequences go with it the same as on any other system
+		// and there is nothing to turn on.
+		return nil
+	}
+	if mode&enableVirtualTerminalProcessing != 0 {
+		return nil // already on, so there is nothing to put back either
+	}
+	if err := windows.SetConsoleMode(h, mode|enableVirtualTerminalProcessing); err != nil {
+		return fmt.Errorf("this console will not read escape sequences, and rline writes them: %w", err)
+	}
+	d.outHandle, d.origOutMode, d.outChanged = h, mode, true
 	return nil
 }
 
@@ -151,6 +214,10 @@ func (d *ttyDevice) endRaw() {
 	}
 	if err := windows.SetConsoleMode(d.handle, d.origMode); err != nil {
 		return
+	}
+	if d.outChanged {
+		_ = windows.SetConsoleMode(d.outHandle, d.origOutMode)
+		d.outChanged = false
 	}
 	d.rawEnabled = false
 }

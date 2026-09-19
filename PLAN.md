@@ -644,6 +644,65 @@ the systems it excludes. Each of the three was found by making something else
 per system, never by a test noticing, and each one looked green from the
 machine the work was done on.
 
+## Tests that pass without checking anything
+
+The rule above is one case of a wider one, which has now cost time five
+times on this port. A test can report success while verifying nothing, and
+nothing about the run says so. The three ways it has happened here:
+
+A skip that reads as a pass. The macOS recordings were skipped rather than
+compared, so the platform looked covered. The two Windows console tests skip
+unless the standard input is a console, which `go test` never gives them, so
+following the instruction that was written above them produced a skip that a
+reader would have reported as a pass.
+
+A check that leaves the build. The test for a missing set of recordings sat
+in a file tagged to Linux and macOS, so on Windows it was not compiled and
+the package passed while testing nothing at all.
+
+A test that asserts what the code does rather than what is true. Two
+expectations for the Windows function keys held the same wrong numbers the
+encoder produced, so the unit test agreed with the bug and stayed green while
+F11 arrived as F4. A directory case on Windows expected the one answer that
+every directory gives there, so it passed for the wrong reason and would have
+stayed green through a real regression.
+
+What to do about it. Write the expected value from the C, the specification
+or the intent, never from running the code and recording what came out. When
+a test can skip, make the skip say what was not checked rather than why it
+could not be. And when a check is worth having on every system, make sure it
+compiles on every system, because a check that is absent is indistinguishable
+from a check that passed.
+
+## Virtual terminal processing on Windows
+
+`term.go` has no Windows branch, so the port writes escape sequences on every
+system and assumes the console reads them. That assumption was measured
+rather than hoped for. On Windows 11 Pro 10.0.26200, windows-vm opened
+`CONOUT$` directly rather than the standard output, so that redirection could
+not confuse the reading, and found `ENABLE_VIRTUAL_TERMINAL_PROCESSING`
+already on. It then checked that the console acts on it rather than merely
+permitting it, by writing a cursor movement and asking the console where the
+cursor went: the cursor moved, rather than seven characters being printed.
+
+What makes that evidence rather than an anecdote is that it was not Windows
+Terminal. `WT_SESSION`, `TERM` and `TERM_PROGRAM` were all empty, so this was
+the plain console host, which is the one in doubt. Windows Terminal always
+does this.
+
+On by default is not the same as guaranteed, and it is one process wide bit
+that any other code in the same program can clear. So `startRaw` asks for the
+flag on the output handle and `endRaw` puts it back, the same way both
+already do for the input handle. Two calls turn the assumption into a
+guarantee, and a host that refuses the flag fails loudly rather than printing
+the escape sequences as text. That is separate from the question of whether
+the roughly 400 lines of console emulation in `term.c` are ported, which is
+still open.
+
+The input handle keeps `ENABLE_VIRTUAL_TERMINAL_INPUT` off, and should. The
+port reads console records and builds the escape sequences itself, so turning
+it on would give two sources of the same thing.
+
 ## Checks
 
 Three checks run on the Go code:
