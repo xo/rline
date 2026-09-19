@@ -3,7 +3,9 @@
 package rline
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -211,4 +213,85 @@ func openConsoleForTest(t *testing.T) (*tty, *ttyDevice) {
 	term.isUTF8 = localeIsUTF8()
 	term.escInitialTimeout = defaultEscInitial
 	return term, d
+}
+
+// TestConsoleEscapesFromOff runs the one path nothing else reaches: a console
+// that starts with escape sequences turned off, so that startRaw has to turn
+// them on rather than finding them on already.
+//
+// Written by the windows-vm session, which found that a console can start
+// either way. Its findings go to a file rather than to the standard output,
+// and that is not tidiness: startOutputEscapes looks at the standard output
+// handle and does nothing at all when it is redirected, so sending the
+// findings there would redirect the very thing being measured. windows-vm
+// lost a run to exactly that and reported a silent failure that was its own
+// harness.
+//
+// The original mode is put back first thing, so that a failure part way
+// through does not leave the console changed.
+//
+// On the console that refuses the flag, which nobody has found: startRaw
+// returning an error is the port working as promised, so that is reported
+// rather than failed. What is a failure is startRaw saying yes and the flag
+// still being off, because that is the port breaking silently.
+func TestConsoleEscapesFromOff(t *testing.T) {
+	if !isATTY(0) {
+		t.Skip("no console on standard input: see the comment at the top of this file")
+	}
+	h, ambient, ok := consoleOutput()
+	if !ok {
+		t.Skip("the standard output is not a console, so the flag cannot be reached: " +
+			"run this with the output attached rather than redirected")
+	}
+	report, err := os.Create(filepath.Join(t.TempDir(), "escapes-from-off.txt"))
+	if err != nil {
+		t.Fatalf("making the report: %v", err)
+	}
+	defer func() { _ = report.Close() }()
+	say := func(format string, a ...any) {
+		_, _ = fmt.Fprintf(report, format+"\n", a...)
+		t.Logf(format, a...)
+	}
+	defer func() { _ = windows.SetConsoleMode(h, ambient) }()
+
+	say("the console started at %#06x with escape sequences %v",
+		ambient, ambient&enableVirtualTerminalProcessing != 0)
+	if err := windows.SetConsoleMode(h, ambient&^enableVirtualTerminalProcessing); err != nil {
+		t.Skipf("this console will not have the flag cleared, so the path cannot be reached: %v", err)
+	}
+	var off uint32
+	if err := windows.GetConsoleMode(h, &off); err != nil {
+		t.Fatalf("reading the mode back: %v", err)
+	}
+	if off&enableVirtualTerminalProcessing != 0 {
+		t.Skip("this console refused to have the flag cleared, so the path cannot be reached")
+	}
+	say("with the flag cleared the mode is %#06x", off)
+
+	_, d := openConsoleForTest(t)
+	if err := d.startRaw(); err != nil {
+		// This is the host the C emulation would have been for, and failing
+		// here is what the port promises to do on it.
+		say("startRaw refused the flag: %v", err)
+		t.Skipf("this console refuses the flag, which is the loud failure the port promises: %v", err)
+	}
+	var on uint32
+	if err := windows.GetConsoleMode(h, &on); err != nil {
+		t.Fatalf("reading the mode after raw mode: %v", err)
+	}
+	say("after startRaw the mode is %#06x", on)
+	if on&enableVirtualTerminalProcessing == 0 {
+		t.Error("startRaw reported success and left escape sequences off, " +
+			"so the editor would draw them as text with nothing to say so")
+	}
+
+	d.endRaw()
+	var back uint32
+	if err := windows.GetConsoleMode(h, &back); err != nil {
+		t.Fatalf("reading the mode after leaving raw mode: %v", err)
+	}
+	say("after endRaw the mode is %#06x", back)
+	if back != off {
+		t.Errorf("endRaw left the console at %#06x, want the %#06x it found", back, off)
+	}
 }
