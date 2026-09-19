@@ -107,7 +107,14 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    the signal keys are off, reads keys through the decoder, and checks the
    terminal is put back. `tty_read_esc_response` is in the corpus, because it
    reads from the same byte source as the decoder.
-5. `attr.c`. This holds the text attributes.
+5. `attr.c`. Done. The attributes are a Go struct of comparable fields in
+   `attr.go`, rather than the 64 bit union of bit fields the C packs them into,
+   because Go compares a struct with `==` and nothing outside `attr.c` depends
+   on the packed value. The colors came with it, in `color.go`, because the SGR
+   parser needs them: `term_color.c` holds `ic_rgb`, `ic_rgbx` and
+   `color_from_ansi256`, and the 256 color table was extracted from the C
+   source rather than typed out. `tools/build-probe-attr.sh` builds a fourth
+   probe, and `testdata/attr.txt` records 1678 of those calls.
 6. `term.c` and `term_color.c`. This writes to the terminal and reduces colors
    to what the terminal accepts.
 7. `bbcode.c` and `bbcode_colors.c`. This parses markup such as
@@ -231,9 +238,11 @@ does not matter in practice.
 
 ## Bugs found in the C code
 
-These came out of writing the probes. None of them changes a recorded session,
-so none is a departure. The port does what each function means to do, and says
-so in a comment.
+These came out of writing the probes. The port does what each function means
+to do, and says so in a comment. All but one are unreachable or invisible, so
+they change no recorded session. The exception is the deletion fault in
+`attr.c`, which has a live caller, and `testdata/attr-delta.txt` records what
+the C does there.
 
 ### stringbuf.c
 
@@ -261,6 +270,28 @@ separator and enters the escape branch. `str_prev_ofs` tests its pointer
 against null, so an empty buffer, which holds a null pointer, answers
 differently from an empty string, which does not.
 
+### attr.c
+
+Two faults, and the first one is live.
+
+`attrbuf_delete_at` hands `ic_memmove` a count of attributes where every other
+call in the file hands it a count of bytes. An attribute is eight bytes, so the
+deletion shifts one eighth of what it should and leaves stale attributes behind
+everything it moved. `bbcode.c` calls it twice, at lines 670 and 682, so this
+reaches real output.
+
+The port does not reproduce it, and the reason is not only that it is wrong.
+`attr_t` is a union of C bit fields, so which bytes the fault leaves behind
+depends on how a compiler packs those fields. The wrong answer is therefore not
+portable, which makes it useless as a reference. `testdata/attr-delta.txt`
+records what the C build on this host returns, and `TestAttrPortMatchesC`
+allows a difference only in those cases. A difference anywhere else fails.
+
+`attrbuf_attr_at` tests `pos > count` where it means `pos >= count`, so at the
+position just past the end it reads a slot it never wrote. That is undefined
+behavior rather than a wrong answer, so there is nothing to reproduce at all.
+The port returns the empty attribute there.
+
 ### tty.c
 
 `tty_cpush` guards the byte pushback buffer with the length of the *code*
@@ -282,6 +313,15 @@ does run and fails, the byte comes back as zero. That decides what `ESC [`
 alone decodes to: alt and `[` on a terminal, alt and NUL through a source that
 is always readable. `tools/probe-tty.c` uses an idle pipe rather than
 `/dev/null` for that reason, and the comment there explains it.
+
+## Windows
+
+Windows support for `tty.c` is deliberately not written yet, and it waits for a
+Windows host. The console API reads key events and needs its own pushback,
+which is a rewrite rather than a port, and the capture harness cannot record on
+Windows either. Code that nobody can run and no corpus can check is worse than
+a gap that is written down. `ttydev_other.go` returns an error there. This
+belongs to whoever owns `tty.c` once a host exists.
 
 ## Checks
 
