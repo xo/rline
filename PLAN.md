@@ -48,8 +48,13 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    where go-runewidth answers differently. `TestWidthDelta` keeps that record
    current, so an upgrade of go-runewidth shows up as a change to a committed
    file.
-3. `stringbuf.c`. This is a growable buffer that moves the cursor by character,
-   not by byte.
+3. `stringbuf.c`. Done. This is a growable buffer that moves the cursor by
+   character, not by byte, together with the width, navigation and row and
+   column code that the edit loop draws from. The allocator and the growth
+   policy are gone, because a Go slice grows on demand. What survives is in
+   `strwidth.go`, `strfind.go`, `charclass.go`, `rowcol.go`, `parse.go` and
+   `stringbuf.go`. `tools/build-probe-stringbuf.sh` builds a second probe, and
+   `testdata/stringbuf.txt` records 76164 of those calls.
 4. `tty.c` and `tty_esc.c`. This reads the terminal and decodes escape
    sequences.
 5. `attr.c`. This holds the text attributes.
@@ -104,11 +109,18 @@ random input, and compare. Turn each difference into a test.
 Pin the Unicode version that the width tables use. The golden files change when
 that version changes.
 
+`testdata/stringbuf-delta.txt` holds the recorded calls whose answer differs
+because the port measures width with go-runewidth. There are 86 of them, all
+for the two byte form of U+0080, which the C table calls width -1 and
+go-runewidth calls width 0. `TestStringbufPort` fails a width difference in any
+string that holds no disputed character, so the file cannot grow to cover a
+port bug.
+
 ## Known departures from the C code
 
 The port keeps the behavior of the C code, even where that behavior is wrong,
 because recorded output from the C build is the test corpus. Each departure
-carries a comment where the code makes it. Three are known so far.
+carries a comment where the code makes it.
 
 The QUTF-8 decoder refuses the byte pair `0xED 0x80`, which encodes U+D000 to
 U+D03F. Those are ordinary characters. The test that refuses UTF-16 surrogate
@@ -149,6 +161,34 @@ them width 1.
 U+D800 to U+DFFF are the UTF-16 surrogate halves, and they account for 2048 of
 the 3877. They cannot appear in text that the decoder accepts, so this part
 does not matter in practice.
+
+## Bugs found in the C code
+
+Three faults in `stringbuf.c` came out of writing the probe. None of them
+changes a recorded session, so none of them is a departure. The port does what
+each function means to do, and says so in a comment.
+
+`sbuf_split_at` sets the new length of the left buffer and never writes the
+terminating zero. The left buffer then stops being a valid C string, and
+`sbuf_string` asserts on it in a build that keeps assertions. Nothing in
+isocline calls the function.
+
+`sbuf_strdup_from_utf8` allocates one byte for each byte of the buffer, and
+then writes a terminating zero at the index it stopped at. A buffer that holds
+only single byte characters stops at the length, so the write lands one byte
+past the end of the allocation. The Go port has no terminator to write.
+
+`skip_esc` says yes to every byte that follows an escape, because the branch
+for the sequences that run to a terminator falls through when it never reaches
+one, and the two branches below it do the same thing as each other. The test
+on the set `" #%()*+"` therefore changes nothing, and an unterminated `ESC [`
+counts as two bytes.
+
+Two more are quirks rather than faults, and the port keeps both. A zero byte
+passed to `strchr` finds the terminating zero of the set, so a zero byte is a
+separator and enters the escape branch. `str_prev_ofs` tests its pointer
+against null, so an empty buffer, which holds a null pointer, answers
+differently from an empty string, which does not.
 
 ## Checks
 
