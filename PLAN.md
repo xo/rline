@@ -983,6 +983,39 @@ to each session that happens to show the problem.
 Nothing in the recorded sessions moved, because the C demo writes its banner
 at once and was never waiting on this.
 
+## The blind spot a recorded corpus has
+
+A corpus records what the C answered. So it cannot record anything the C has
+no answer for, and everything this port added over the C sits in a hole
+exactly its own shape. That is not a gap in the corpora; it is what a corpus
+is.
+
+Three findings have now come out of it, and none could have come from
+anywhere else.
+
+`ReadLine` answering `ErrInterrupted`. The C clears the line and returns an
+empty string, so there is nothing to record and no recording could disagree.
+
+`LoadHistory` returning an error. The C ignores every failure while reading
+the history file, so the error is the port's own and the corpus has no
+opinion about it. It was unreachable for a long time and nothing said so.
+
+Every editing operation returning whether it changed anything, which is what
+decides whether the line is drawn again. The C has no such value — it returns
+early instead — so `editor_test.go` discards it with a comment saying the
+corpus does not record it. That comment is correct, and it is the whole
+problem: making `cursorLeft` always answer false, or always answer true, left
+the entire suite green in both directions, and both are faults. Always false
+leaves a key doing nothing on screen until something else forces a redraw.
+Always true draws the line again for a key that did nothing, which is the
+flicker the value exists to prevent. Found by ken-mba, who took their own
+earlier finding about discarded values seriously enough to sweep every one in
+the tests.
+
+So when looking for what to check next, "what does the port have that the C
+does not" is a better question than "what is uncovered". Coverage will not
+point at any of the three: all three lines ran, every time.
+
 ## Tests that pass without checking anything
 
 The rule above is one case of a wider one, which has now cost time seven times
