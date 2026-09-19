@@ -5,6 +5,7 @@ package rline
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -114,6 +115,16 @@ func isATTY(_ int) bool {
 	}
 	var mode uint32
 	return windows.GetConsoleMode(h, &mode) == nil
+}
+
+// fileIsTerminal reports whether f is a console.
+//
+// This asks about f, unlike isATTY, which asks about the standard input
+// whatever it is handed. A handle is what Windows answers for, and f.Fd()
+// returns one rather than a descriptor, so it can be asked about directly.
+func fileIsTerminal(f *os.File) bool {
+	var mode uint32
+	return windows.GetConsoleMode(windows.Handle(f.Fd()), &mode) == nil
 }
 
 // openTTYDevice prepares the console for reading keys. The file descriptor is

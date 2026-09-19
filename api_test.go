@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -135,5 +136,32 @@ func TestDefaultStylesAreDefined(t *testing.T) {
 		if bb.style(name) == (attr{}) {
 			t.Errorf("the style %q sets nothing", name)
 		}
+	}
+}
+
+// TestWritesToTerminalLooksAtTheWriter checks that a plain file is not taken
+// for a terminal, whatever is on the standard input.
+//
+// This is where colour is decided, so getting it wrong writes escape
+// sequences into a redirected file. It was wrong on Windows, where the
+// question was answered about the standard input rather than about the
+// writer, and the mistake showed only when a console was on the standard
+// input at the same time. The check below is the same everywhere; on a system
+// where the standard input is not a console it passes without having had the
+// chance to catch that, which is why the log line says which it was.
+func TestWritesToTerminalLooksAtTheWriter(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp(t.TempDir(), "out")
+	if err != nil {
+		t.Fatalf("making a file: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+	t.Logf("the standard input is a terminal: %v", isATTY(int(os.Stdin.Fd())))
+	if writesToTerminal(f) {
+		t.Errorf("a plain file is taken for a terminal, so colour would be written into it")
+	}
+	// A writer that is not a file is the caller's own, and is left alone.
+	if !writesToTerminal(&bytes.Buffer{}) {
+		t.Error("a writer that is not a file is not taken for a terminal")
 	}
 }

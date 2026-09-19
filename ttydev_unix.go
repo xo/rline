@@ -77,6 +77,13 @@ func isATTY(fd int) bool {
 	return err == nil
 }
 
+// fileIsTerminal reports whether f is a terminal. On Unix this is the same
+// question as isATTY, because a terminal is reached by file descriptor
+// whichever way it is being used.
+func fileIsTerminal(f *os.File) bool {
+	return isATTY(int(f.Fd()))
+}
+
 // openTTYDevice prepares fd for reading keys. A negative fd means standard
 // input, as it does in the C code.
 //

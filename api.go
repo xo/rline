@@ -367,12 +367,19 @@ func New(opts ...Option) (*Reader, error) {
 // writesToTerminal reports whether w is a terminal. Anything that is not a
 // file is taken to be one, since a caller that passes its own writer has said
 // where the output goes and is not redirecting it by accident.
+//
+// This asks fileIsTerminal rather than isATTY, because the two questions are
+// not the same one. isATTY asks whether there is a keyboard, and on Windows
+// it answers about the standard input whatever it is handed, since a console
+// is reached there by handle rather than by descriptor. Asking it about the
+// output gave the right answer on Unix and the wrong one on Windows, where a
+// program with its output redirected wrote escape sequences into the file.
 func writesToTerminal(w io.Writer) bool {
 	f, ok := w.(*os.File)
 	if !ok {
 		return true
 	}
-	return isATTY(int(f.Fd()))
+	return fileIsTerminal(f)
 }
 
 // outputSizer returns something that can report the size of the terminal
