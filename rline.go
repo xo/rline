@@ -1,6 +1,39 @@
-// Package rline is a readline package written in pure Go. A readline package
-// reads a line of text from a terminal, and gives the user editing, history,
-// and completion.
+// Package rline reads lines from a terminal, with editing, history,
+// completion and syntax highlighting.
+//
+// [New] returns a [Prompt]. A Prompt embeds a [Session], which does the
+// reading, and holds a [MarkupWriter], which writes styled output:
+//
+//	p, err := rline.New(rline.WithPrompt("> ", "| "))
+//	if err != nil {
+//		return err
+//	}
+//	defer p.Close()
+//
+//	for {
+//		line, err := p.ReadLine("")
+//		switch {
+//		case errors.Is(err, io.EOF):
+//			return nil // the input ended
+//		case errors.Is(err, rline.ErrInterrupted):
+//			continue // the line was given up
+//		case err != nil:
+//			return err
+//		}
+//		fmt.Fprintf(p, "read: %s\n", line)
+//	}
+//
+// A Prompt is an [io.Writer] for plain text, which is what most of what a
+// program prints is: a bracket in it is not a tag. Write through it rather
+// than to os.Stdout, because the terminal it writes through is the one that
+// knows where the prompt is. Markup such as "[red]text[/red]" goes through
+// [Prompt.Markup].
+//
+// Every position and count this package takes is a byte offset, which is what
+// indexes a Go string. The one exception is [LineStyle.StyleRunes], which
+// says so in its name.
+//
+// # Its origin
 //
 // rline is a port of isocline, a readline replacement written in C by Daan
 // Leijen. isocline carries the MIT license, and this copyright notice covers
@@ -8,16 +41,13 @@
 //
 //	Copyright (c) 2021, Daan Leijen
 //
-// The port does not use cgo. It keeps the behavior of the C code, including
-// the places where that behavior departs from a standard, because recorded
-// sessions from the C build are the test corpus. Each such departure carries a
-// comment where the code makes it.
-// Package rline reads lines from a terminal, with editing, history,
-// completion and syntax highlighting.
-//
-// This file holds the public interface — the Prompt a program builds, the
-// Session inside it, the markup writer beside it and the options that make
-// them — and the session log that records what passes through.
+// The port does not use cgo. Inside, it keeps the behavior of the C code even
+// where that behavior is wrong, because recorded sessions from the C build
+// are the test corpus, and each departure carries a comment where the code
+// makes it. The interface above is deliberately not a translation of the C
+// one: it is shaped for Go. [ReadLine] answering [ErrInterrupted] is the one
+// place where a behavior rather than a name departs, because the C cannot
+// tell an abandoned line from an empty one and a shell has to.
 package rline
 
 import (
@@ -37,7 +67,7 @@ import (
 // Error values.
 var (
 	// ErrClosed is returned by a Session that has been closed.
-	ErrClosed = errors.New("the reader is closed")
+	ErrClosed = errors.New("the session is closed")
 
 	// ErrInterrupted is returned when the user abandoned what was being read,
 	// which is Ctrl-C or Ctrl-G, and which asks for the reading to be given
@@ -129,7 +159,7 @@ type Session struct {
 
 // config carries what New needs before it builds a Session.
 type config struct {
-	// Where the reader reads and writes. A negative fd means standard input.
+	// Where the session reads and writes. A negative fd means standard input.
 	inFd int
 	out  io.Writer
 
@@ -349,7 +379,7 @@ func WithAutoBraces(pairs string) Option {
 	return func(c *config) { c.opts.AutoBraces = pairs }
 }
 
-// WithLog records everything the reader reads from the keyboard and writes to
+// WithLog records everything the session reads from the keyboard and writes to
 // the terminal, so that a session can be read back afterwards by someone who
 // was not watching it.
 //
@@ -400,7 +430,7 @@ func New(opts ...Option) (*Prompt, error) {
 	if ttyErr == nil {
 		isUTF8 = t.isUTF8
 	}
-	// The log sits between the reader and the terminal. The size and the
+	// The log sits between the session and the terminal. The size and the
 	// question of whether the output is a terminal are still asked of the real
 	// output, not of the log.
 	var slog *sessionLog
