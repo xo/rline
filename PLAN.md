@@ -171,9 +171,20 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    the cursor and its partner. `tools/build-probe-highlight.sh` builds the
    ninth probe, and `testdata/highlight.txt` records 2346 cases: every line in
    its corpus, against five sets of brace pairs, at every cursor position.
-11. `editline.c`. This is the edit loop and the key dispatch. The files
-    `editline_help.c`, `editline_history.c` and `editline_completion.c` are
-    textual includes of `editline.c`, not separate units.
+11. `editline.c`. Started. `editor.go` holds the state of a line being
+    edited and every operation that changes it: moving the cursor, the eleven
+    kinds of delete, swapping, inserting with the brace that closes itself,
+    and the undo and redo stacks. `tools/build-probe-editline.sh` builds the
+    tenth probe, and `testdata/editline.txt` records 4177 operations, each one
+    run against thirteen lines at every cursor position.
+
+    Each operation here changes the text and the cursor and nothing else. The
+    C redraws at the end of every one, and the port leaves that to the caller,
+    which is what lets an operation be checked without a terminal.
+
+    What is left is the redraw, the key dispatch and the main loop, and then
+    `editline_help.c`, `editline_history.c` and `editline_completion.c`, which
+    are textual includes of `editline.c` rather than separate units.
 12. `isocline.c`. This is the public API. API means Application Programming
     Interface.
 
