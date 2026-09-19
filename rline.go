@@ -55,6 +55,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"strings"
 	"sync"
@@ -145,6 +146,22 @@ const (
 
 	// DefaultHistoryEntries is how many lines are remembered.
 	DefaultHistoryEntries = 200
+
+	// DefaultHistoryFileMode is the permission a history file is created
+	// with: readable and writable by its owner and by nobody else.
+	//
+	// A history file holds whatever was typed at the prompt, which for a
+	// shell can include a connection string with a password in it. The C
+	// takes the same view, calling chmod after fopen to force 0600, except
+	// on Windows where it does not try. The port dropped that call and
+	// created the file 0666, so the mode was whatever the umask left,
+	// usually 0644 and readable by everyone on the machine. This is the
+	// mode being chosen rather than inherited.
+	//
+	// The umask still applies, and it can only narrow this. An existing
+	// file keeps the mode it has, because a mode is only used when a file
+	// is created. Use WithHistoryFileMode to widen or narrow it.
+	DefaultHistoryFileMode fs.FileMode = 0o600
 )
 
 // defaultStyles are the styles that markup can use without defining them. The
@@ -206,8 +223,12 @@ type config struct {
 	cpromptMarker string
 
 	// Where the history is kept, and how much of it.
-	historyFile    string
-	historyEntries int
+	historyFile string
+
+	// historyFileMode is the permission a history file is created with.
+	// Zero means DefaultHistoryFileMode.
+	historyFileMode fs.FileMode
+	historyEntries  int
 
 	// What marks up a line, what completes a word, and what decides whether a
 	// line is finished.
@@ -315,6 +336,15 @@ func WithPrompt(marker, continuation string) Option {
 // the program. An empty name keeps it only while the program runs.
 func WithHistoryFile(fname string) Option {
 	return func(c *config) { c.historyFile = fname }
+}
+
+// WithHistoryFileMode sets the permission a history file is created with,
+// rather than DefaultHistoryFileMode.
+//
+// The umask still applies and can only narrow it, and an existing file keeps
+// the mode it already has.
+func WithHistoryFileMode(mode fs.FileMode) Option {
+	return func(c *config) { c.historyFileMode = mode }
 }
 
 // WithHistoryLimit holds at most n entries. A limit of zero or less turns the
@@ -515,6 +545,7 @@ func New(opts ...Option) (*Prompt, error) {
 		bb.styleDef(s[0], s[1])
 	}
 	h := &history{}
+	h.mode = c.historyFileMode
 	// A history that cannot be read is not a reason to refuse to run: the
 	// file may not exist yet, or may belong to someone else, and a program
 	// that cannot prompt because of it is worse than one with no history.

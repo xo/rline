@@ -832,6 +832,42 @@ happen. Every path out of the loop sets the key to zero first, and every other
 path goes round again, so `tty_code_pushback` is unreachable. The port leaves
 it out rather than writing a line that cannot run.
 
+### history.c
+
+`history_save` truncates the file and writes the list it holds. `history_load`
+stops at a line it cannot read and keeps what it read before it. Together
+those destroy history: one malformed line, and every line after it is gone on
+the next save. Measured before it was believed — a file of fifty bytes became
+nineteen, and it happens on the next line the user types, because the edit
+loop saves after every read.
+
+The port did the same until Ken asked whether the file was being truncated.
+Two departures now, both stated here because they are behaviour and not a
+fault of the C's own logic.
+
+Saving is refused when the file was not read in full, because the list held
+is then shorter than the file and writing it would destroy the rest. The
+caller is told, which is what `SaveHistory` returning an error is for.
+
+Saving writes a temporary file beside the history file and renames it over.
+A rename is atomic on every system this builds for, so the file is either the
+old one or the new one and never a half-written one. Truncating first means a
+failure part way through leaves the file shorter than it was, with nothing to
+say so.
+
+`O_APPEND` instead of `O_TRUNC` was the first thing suggested, and it does
+not work with a save that writes the whole list each time: measured, three
+saves of one, two and three entries left a file of six lines rather than
+three. Appending would need the save to write only what is new, which is a
+different design — a log that is compacted, as a shell does, rather than a
+file that mirrors the list.
+
+The C also calls `chmod` after `fopen` to force 0600, except on Windows. The
+port dropped that call and created the file 0666, so the mode was whatever
+the umask left. `DefaultHistoryFileMode` is 0600 now, set on the temporary
+file before anything is written into it, so the contents are never readable
+under a wider mode even for an instant. `WithHistoryFileMode` changes it.
+
 ### common.c
 
 A byte the terminal sends that UTF-8 cannot read is read as a code point in

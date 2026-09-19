@@ -1025,9 +1025,16 @@ func TestHistoryIsReadableAndSymmetric(t *testing.T) {
 func TestSaveHistoryReportsAFailure(t *testing.T) {
 	t.Parallel()
 	h := &history{}
-	// A directory cannot be opened for writing, so saving into one fails
-	// the same way on every system this builds for.
-	_ = h.loadFrom(t.TempDir(), DefaultHistoryEntries)
+	// A file inside a directory that does not exist. The load finds nothing
+	// and reports nothing, which is the ordinary state of a first run, so
+	// the save below fails for the reason this test is about.
+	//
+	// It used to name a directory as the history file, which failed on
+	// every system for a reason that held. It stopped holding when saving
+	// began refusing to write over a file it had not read in full: loading
+	// a directory fails, so the refusal came first and carried no reason
+	// underneath. The construct changed rather than the assertions.
+	_ = h.loadFrom(filepath.Join(t.TempDir(), "no-such-directory", "h.txt"), DefaultHistoryEntries)
 	r := &Session{env: &env{history: h}}
 	r.AddHistory("something to save")
 
@@ -1456,4 +1463,176 @@ func sentinelText(name string) string {
 		}
 	}
 	return strings.ToLower(strings.Join(append(words, name[start:]), " "))
+}
+
+// TestHistoryFileMode checks the permission a history file is created with.
+//
+// A history file holds whatever was typed at the prompt, which for a shell
+// can include a connection string with a password in it. The C forces 0600
+// with a chmod after fopen; the port dropped that call and created the file
+// 0666, so the mode was whatever the umask left. This holds the mode being
+// chosen rather than inherited.
+func TestHistoryFileMode(t *testing.T) {
+	t.Parallel()
+
+	// The umask narrows a mode and cannot widen it, so a test asserting an
+	// exact mode is asserting the umask as much as the code. It is measured
+	// rather than asked for: syscall.Umask does not exist on Windows or
+	// plan9, and creating a file with every bit set shows which bits the
+	// system took away. That is the same answer without a build tag.
+	//
+	// A system that does not keep the permission bits at all is skipped,
+	// with what went unchecked named rather than passed over.
+	probe := filepath.Join(t.TempDir(), "umask-probe")
+	if err := os.WriteFile(probe, nil, 0o777); err != nil {
+		t.Fatalf("making the probe file: %v", err)
+	}
+	probeInfo, err := os.Stat(probe)
+	if err != nil {
+		t.Fatalf("reading the probe file: %v", err)
+	}
+	allowed := probeInfo.Mode().Perm()
+	if allowed&0o077 == 0o077 && allowed&0o700 != 0o700 {
+		t.Skipf("this system reports %04o for a file asked to be 0777, so it does not "+
+			"keep the permission bits and no mode was checked", allowed)
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("this system does not keep the permission bits, so no mode was checked")
+	}
+
+	for _, test := range []struct {
+		name string
+		opt  fs.FileMode
+		want fs.FileMode
+	}{
+		{"the default is owner only", 0, DefaultHistoryFileMode},
+		{"a caller can widen it", 0o644, 0o644},
+		{"a caller can narrow it", 0o400, 0o400},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			fname := filepath.Join(t.TempDir(), "history.txt")
+			h := &history{mode: test.opt}
+			if err := h.loadFrom(fname, DefaultHistoryEntries); err != nil {
+				t.Fatalf("loadFrom: %v", err)
+			}
+			h.push("select 1")
+			if err := h.save(); err != nil {
+				t.Fatalf("save: %v", err)
+			}
+			info, err := os.Stat(fname)
+			if err != nil {
+				t.Fatalf("stat: %v", err)
+			}
+			// Whatever the umask took from the probe, it takes from this.
+			want := test.want & allowed
+			if got := info.Mode().Perm(); got != want {
+				t.Errorf("the history file is %04o, want %04o (a file asked for 0777 became %04o)",
+					got, want, allowed)
+			}
+		})
+	}
+}
+
+// TestHistorySaveReportsAWriteFailure checks that a failure to write is
+// reported rather than swallowed, which is what the C does.
+func TestHistorySaveReportsAWriteFailure(t *testing.T) {
+	t.Parallel()
+	// A directory that does not exist, so the temporary file beside the
+	// history file cannot be made. The history itself loaded cleanly from
+	// nothing, so the refusal below is about writing rather than about the
+	// file having been read in part.
+	h := &history{}
+	missing := filepath.Join(t.TempDir(), "no-such-directory", "h.txt")
+	if err := h.loadFrom(missing, DefaultHistoryEntries); err != nil {
+		t.Fatalf("loadFrom on a missing file should be no error: %v", err)
+	}
+	h.push("select 1")
+	err := h.save()
+	if err == nil {
+		t.Fatal("save into a directory that does not exist gave no error")
+	}
+	if !strings.Contains(err.Error(), "history file") {
+		t.Errorf("the error is %q, which does not say what was being done", err)
+	}
+	var pathErr *fs.PathError
+	if !errors.As(err, &pathErr) {
+		t.Errorf("the error is %v, which does not carry an *fs.PathError", err)
+	}
+}
+
+// TestHistoryIsNotTruncatedWhenItWasNotFullyRead is the fault Ken spotted.
+//
+// save rewrites the file from the list held in memory, and load stops at a
+// line it cannot read. So one malformed line used to cost every line after
+// it: measured at fifty bytes becoming nineteen, on the next line the user
+// typed, because editLine saves after every read.
+func TestHistoryIsNotTruncatedWhenItWasNotFullyRead(t *testing.T) {
+	t.Parallel()
+	fname := filepath.Join(t.TempDir(), "h.txt")
+	body := "one\ntwo\nthree\nfour\nbad\\q\nsix\nseven\neight\nnine\nten\n"
+	if err := os.WriteFile(fname, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	h := &history{}
+	if err := h.loadFrom(fname, DefaultHistoryEntries); err == nil {
+		t.Fatal("loading a file with an unreadable line gave no error")
+	}
+	if len(h.entries) == 0 {
+		t.Fatal("nothing was read at all, so this is not the case being tested")
+	}
+
+	h.push("eleven")
+	if err := h.save(); err == nil {
+		t.Error("saving over a file that was not read in full gave no error")
+	}
+	after, err := os.ReadFile(fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != body {
+		t.Errorf("the file changed:\n got %q\nwant %q", string(after), body)
+	}
+}
+
+// TestHistorySaveIsAtomic checks that the file is replaced rather than
+// truncated and rewritten, so that a failure part way through cannot leave it
+// shorter than it was.
+func TestHistorySaveIsAtomic(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	fname := filepath.Join(dir, "h.txt")
+
+	h := &history{}
+	if err := h.loadFrom(fname, DefaultHistoryEntries); err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range []string{"one", "two", "three"} {
+		h.push(line)
+		if err := h.save(); err != nil {
+			t.Fatalf("save: %v", err)
+		}
+	}
+	// Saving repeatedly writes the list, not the list again and again: the
+	// file mirrors what is held rather than growing.
+	got, err := os.ReadFile(fname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "one\ntwo\nthree\n"; string(got) != want {
+		t.Errorf("the file holds %q, want %q", string(got), want)
+	}
+	// And nothing is left beside it.
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		names := make([]string, len(entries))
+		for i, e := range entries {
+			names[i] = e.Name()
+		}
+		t.Errorf("the directory holds %q, want only the history file", names)
+	}
 }
