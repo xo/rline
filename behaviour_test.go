@@ -469,3 +469,60 @@ func TestALineThatEndedIsRemembered(t *testing.T) {
 		})
 	}
 }
+
+// TestTabFillsInWhatEveryAnswerShares checks the step Tab takes before it
+// opens the menu.
+//
+// The menu recordings drive the menu alone, so this is the only check on the
+// Tab entry point: that nothing beeps into the line, that one answer goes
+// straight in, and that several answers fill in as much of themselves as they
+// agree on.
+func TestTabFillsInWhatEveryAnswerShares(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name   string
+		words  []string
+		keys   string
+		want   string
+		cursor int
+	}{
+		{
+			// Every answer carries on "sel", so that much goes in and the
+			// menu opens on what is left.
+			name:  "as much as they share",
+			words: []string{"select", "selected", "selecting"},
+			keys:  "se" + kTab + kEsc + kPause + kEnter,
+			want:  "select", cursor: 6,
+		},
+		{
+			name:  "nothing when they share nothing",
+			words: []string{"select", "settle"},
+			keys:  "se" + kTab + kEsc + kPause + kEnter,
+			want:  "se", cursor: 2,
+		},
+		{
+			name:  "the whole answer when there is one",
+			words: []string{"select", "settle"},
+			keys:  "sel" + kTab + kEnter,
+			want:  "select", cursor: 6,
+		},
+		{
+			name:  "nothing at all when none fits",
+			words: []string{"select"},
+			keys:  "zz" + kTab + kEnter,
+			want:  "zz", cursor: 2,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			got, cursor, _ := feedWith(t, test.keys, feedOpts{Completer: manyWords(test.words...)})
+			if got != test.want {
+				t.Errorf("the line is %q, want %q", got, test.want)
+			}
+			if cursor != test.cursor {
+				t.Errorf("the cursor is at %d, want %d", cursor, test.cursor)
+			}
+		})
+	}
+}

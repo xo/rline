@@ -291,6 +291,25 @@ is what a normal run does.
 It found a real difference within a second, which is in the `tty.c` list
 below. Since that was fixed, 6.3 million runs have found nothing else.
 
+The corpora and the recorded sessions leave a gap between them: a corpus
+checks that a function answers correctly, and a session checks that the whole
+program works, but neither checks which key reaches which operation. Three
+faults were found only by running the program, which is what that gap looks
+like from the other side.
+
+`feed_test.go` covers it. It feeds a string of keystrokes to the editor and
+asserts on the line and the cursor that come out, which is the shape
+python-prompt-toolkit uses in `tests/test_cli.py`. It is the only comparable
+project with a test suite worth copying: GNU readline ships example programs
+rather than tests, and linenoise has none. jline3 has a large one, and its
+list of what it tests is where `behaviour_test.go` comes from: how a line
+ends, input that is not UTF-8, characters of more than one byte, and a
+completion list too long to show.
+
+`behaviour_test.go` also reaches one layer up, calling `editLine` rather than
+the key loop, because what the caller is told apart from the text — the line
+ended, the input ended — is a mapping of its own and was not covered.
+
 The markup parser has no fuzz test yet.
 
 Pin the Unicode version that the width tables use. The golden files change when
@@ -615,6 +634,23 @@ Neither could be caught by a corpus, for the same reason the missing raw mode
 could not: a corpus drives a function, and these are about how the program is
 started and what it is attached to.
 
+### And found by running it on Windows
+
+The colour fix above was only half a fix. `writesToTerminal` asked `isATTY`,
+which on Windows answers about the standard input whatever descriptor it is
+handed, because a console there is reached by handle rather than by
+descriptor. So a Windows program with its output redirected still wrote
+escape sequences into the file. The Unix `isATTY` does honour its argument,
+so the fault was there only on Windows, and only while a console was on the
+standard input at the same time to make the wrong answer a plausible one.
+`fileIsTerminal` now asks about the file it is given, and `isATTY` keeps the
+standard input it was written for. Found by windows-vm, by measuring both
+answers with the output redirected rather than by reading the code.
+
+This is the wrap mark again in a different costume: one function standing for
+two questions that are the same on one system and not on another, so the
+system where they differ is the one that finds out.
+
 ### completers.c
 
 `ls_valid_esc` is defined and never called. It looks like it was meant to
@@ -628,6 +664,18 @@ The search ends by pushing a key back for the edit loop to read, and it cannot
 happen. Every path out of the loop sets the key to zero first, and every other
 path goes round again, so `tty_code_pushback` is unreachable. The port leaves
 it out rather than writing a line that cannot run.
+
+### common.c
+
+A byte the terminal sends that UTF-8 cannot read is read as a code point in
+the raw plane, and the encoder turns that code point back into the one byte,
+so the line holds the byte itself. Two such bytes that happen to form a valid
+UTF-8 sequence therefore become one character in the line: nothing afterwards
+can tell them from a character that was typed, and `decodeFromLocale` drops
+them on the way back to a terminal that does not read UTF-8. Latin-1 "Ã©" is
+an example, being the UTF-8 for "é". The port keeps the hole, and
+`TestBytesThatLookLikeUTF8AreMergedIntoOne` records it so that fixing it is a
+deliberate change rather than a surprise.
 
 ### tty.c
 
@@ -814,9 +862,14 @@ styles a `Reader` defines, which is what makes the names observable at all.
 What is still not reached, stated rather than left to be assumed. The menu
 corpus drives `completionMenu` only, so `generateCompletions` — the Tab entry
 point, which beeps on nothing, applies a single answer, and puts in the
-longest shared prefix before opening the menu — has no recording behind it:
-deleting the longest-prefix call leaves every test green. That wants its own
-probe over `edit_generate_completions`.
+longest shared prefix before opening the menu — has no recording behind it.
+`TestTabFillsInWhatEveryAnswerShares` now drives it through the editor
+instead, and taking the longest-prefix call out fails it, so the hole that
+was named here is closed. What that test does not check is the beep, because
+`term_beep` writes to standard error rather than through the terminal, in the
+C as well. A probe over `edit_generate_completions` would still be worth
+having, since a driven test says what the port does and a recording says what
+the C did.
 
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out. When
