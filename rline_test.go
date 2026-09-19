@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -952,5 +953,109 @@ func TestMarkupWriterWithNowhereToWrite(t *testing.T) {
 		if _, err := w.WriteString("more\n"); err != nil {
 			t.Errorf("WriteString gave %v", err)
 		}
+	}
+}
+
+// ----------------------------------------------------------------------------
+// The history a program can read and write
+
+// TestHistoryIsReadableAndSymmetric checks the four ways a program touches the
+// history: adding, reading back, saving and loading.
+//
+// Reading it back was missing entirely — a program could add, save and clear
+// but never look — and saving took no file name while loading took one, so
+// which file the history lived in was two settings that could disagree.
+func TestHistoryIsReadableAndSymmetric(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	fname := filepath.Join(dir, "history.txt")
+
+	h := &history{}
+	h.loadFrom(fname, DefaultHistoryEntries)
+	r := &Session{env: &env{history: h}}
+
+	for _, line := range []string{"first", "second", "third"} {
+		r.AddHistory(line)
+	}
+	// Newest first, which is the order the up arrow walks.
+	if got, want := r.History(), []string{"third", "second", "first"}; !slices.Equal(got, want) {
+		t.Errorf("History gave %q, want %q", got, want)
+	}
+
+	if err := r.SaveHistory(); err != nil {
+		t.Fatalf("SaveHistory: %v", err)
+	}
+	r.ClearHistory()
+	if got := r.History(); len(got) != 0 {
+		t.Errorf("after ClearHistory the history holds %q", got)
+	}
+
+	// Loading takes no file name either, so it reads the one that was saved.
+	if err := r.LoadHistory(); err != nil {
+		t.Fatalf("LoadHistory: %v", err)
+	}
+	if got, want := r.History(), []string{"third", "second", "first"}; !slices.Equal(got, want) {
+		t.Errorf("after LoadHistory the history holds %q, want %q", got, want)
+	}
+
+	// And the file can be changed, which is the reason LoadHistory exists
+	// rather than the reason it takes an argument.
+	other := filepath.Join(dir, "other.txt")
+	if err := os.WriteFile(other, []byte("elsewhere\n"), 0o600); err != nil {
+		t.Fatalf("writing the other file: %v", err)
+	}
+	r.SetHistoryFile(other)
+	if err := r.LoadHistory(); err != nil {
+		t.Fatalf("LoadHistory after SetHistoryFile: %v", err)
+	}
+	if got, want := r.History(), []string{"elsewhere"}; !slices.Equal(got, want) {
+		t.Errorf("after changing the file the history holds %q, want %q", got, want)
+	}
+}
+
+// TestHistoryIsACopy checks that changing what History returned does not
+// change the history.
+func TestHistoryIsACopy(t *testing.T) {
+	t.Parallel()
+	h := &history{}
+	h.loadFrom("", DefaultHistoryEntries)
+	r := &Session{env: &env{history: h}}
+	r.AddHistory("one")
+	r.AddHistory("two")
+
+	got := r.History()
+	got[0] = "changed"
+	if again := r.History(); again[0] != "two" {
+		t.Errorf("changing what History returned changed the history: %q", again)
+	}
+}
+
+// TestWriteStringMatchesWrite checks that the two ways of writing plain text
+// put out the same bytes, on the Session and on the markup Writer alike.
+func TestWriteStringMatchesWrite(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name string
+		text string
+	}{
+		{"plain", "hello\n"},
+		{"a bracket is not a tag", "a[b]c\n"},
+		{"no line ending", "no ending"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			var a, b bytes.Buffer
+			ra := &Session{env: &env{term: newTerm(&a, termOptions{NoColor: true})}}
+			rb := &Session{env: &env{term: newTerm(&b, termOptions{NoColor: true})}}
+			if _, err := ra.Write([]byte(test.text)); err != nil {
+				t.Fatalf("Write: %v", err)
+			}
+			if _, err := rb.WriteString(test.text); err != nil {
+				t.Fatalf("WriteString: %v", err)
+			}
+			if a.String() != b.String() {
+				t.Errorf("Write gave %q and WriteString gave %q", a.String(), b.String())
+			}
+		})
 	}
 }
