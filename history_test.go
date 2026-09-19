@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -335,6 +336,21 @@ func regenerateHistory(t *testing.T) {
 
 // TestHistorySaveIsOwnerOnly checks that the file the history is kept in
 // cannot be read by anyone else. It holds what the user typed.
+//
+// This cannot be checked on Windows, and the reason is worth stating rather
+// than skipping quietly. Go's os.Chmod there maps only the owner write bit
+// onto the read-only attribute and drops the rest, so a file always reads
+// back as 0666 and asking for 0600 cannot be expressed at all. What actually
+// keeps the file private under a user profile is the access control list it
+// inherits from the directory, which on a checked Windows host held only
+// SYSTEM, Administrators and the user. Nothing in this package puts that
+// there. Write the history somewhere with a looser inherited list and the
+// protection is gone with no sign of it.
+//
+// Making that a guarantee would mean setting an explicit access control list
+// on Windows, which is a change in behaviour rather than a port, so it is a
+// question for the author of the package and not something to slip in here.
+// Until it is answered, this checks what it can and says what it cannot.
 func TestHistorySaveIsOwnerOnly(t *testing.T) {
 	t.Parallel()
 	name := filepath.Join(t.TempDir(), "history.txt")
@@ -352,6 +368,14 @@ func TestHistorySaveIsOwnerOnly(t *testing.T) {
 	info, err := os.Stat(name)
 	if err != nil {
 		t.Fatalf("reading the mode: %v", err)
+	}
+	if runtime.GOOS == "windows" {
+		// The save has to have worked, even though what it asked for cannot
+		// be read back.
+		if info.Size() == 0 {
+			t.Error("the history file is empty")
+		}
+		t.Skip("this system does not keep the permission bits, so owner-only cannot be checked here")
 	}
 	if got := info.Mode().Perm(); got != 0o600 {
 		t.Errorf("the history file is mode %o, want 600", got)

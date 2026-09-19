@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -279,27 +280,42 @@ func TestTypeOfRealEntries(t *testing.T) {
 
 	link := at("link")
 	if err := os.Symlink("plain", link); err != nil {
-		t.Fatalf("making a link: %v", err)
+		t.Skipf("this system will not make a symbolic link: %v", err)
 	}
 
 	tests := []struct {
 		name string
 		path string
 		want fileType
+		// fromPermissions says the answer is worked out from the permission
+		// bits. Windows does not keep them: os.Chmod there maps only the
+		// owner write bit onto the read-only attribute and drops the rest,
+		// so a file always reads back as 0666 and a directory as 0777.
+		// There is nothing to classify against, so these are skipped rather
+		// than given different expected values.
+		//
+		// One of them would otherwise pass. A directory the group may write
+		// expects the same answer that every directory gives on Windows, so
+		// it would be green for the wrong reason and would stay green
+		// through a real regression. That is worse than a skip.
+		fromPermissions bool
 	}{
-		{"a symbolic link", link, ftSym},
-		{"an ordinary file", mustWrite("plain", 0o644), ftDefault},
-		{"a file anyone may run", mustWrite("runnable", 0o755), ftExe},
-		{"a directory", mustDir("plaindir", 0o755), ftDir},
-		{"a sticky directory", mustDir("stickydir", 0o755|os.ModeSticky), ftDirSticky},
-		{"a directory the group may write", mustDir("groupdir", 0o775), ftDirOtherWritable},
+		{"a symbolic link", link, ftSym, false},
+		{"an ordinary file", mustWrite("plain", 0o644), ftDefault, false},
+		{"a missing path", at("nothing-here"), ftDefault, false},
+		{"a file anyone may run", mustWrite("runnable", 0o755), ftExe, true},
+		{"a directory", mustDir("plaindir", 0o755), ftDir, true},
+		{"a sticky directory", mustDir("stickydir", 0o755|os.ModeSticky), ftDirSticky, true},
+		{"a directory the group may write", mustDir("groupdir", 0o775), ftDirOtherWritable, true},
 		{"a sticky directory the group may write",
-			mustDir("groupsticky", 0o775|os.ModeSticky), ftDirOtherWritableSticky},
-		{"a missing path", at("nothing-here"), ftDefault},
+			mustDir("groupsticky", 0o775|os.ModeSticky), ftDirOtherWritableSticky, true},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			if test.fromPermissions && runtime.GOOS == "windows" {
+				t.Skip("this system does not keep the permission bits, so there is nothing to classify")
+			}
 			if got := typeOf(test.path); got != test.want {
 				t.Errorf("typeOf(%s) = %d, want %d", test.name, got, test.want)
 			}
@@ -362,7 +378,7 @@ func TestIsDirFollowsALink(t *testing.T) {
 	}
 	link := filepath.Join(dir, "link")
 	if err := os.Symlink("target", link); err != nil {
-		t.Fatalf("making the link: %v", err)
+		t.Skipf("this system will not make a symbolic link: %v", err)
 	}
 	if !isDir(link) {
 		t.Error("a link to a directory did not count as one")
