@@ -15,17 +15,27 @@
 package capture
 
 import (
-	"errors"
 	"time"
 )
 
+// Error is an error.
+//
+// These are constants rather than variables so that nothing can reassign
+// one, as in the rline package itself.
+type Error string
+
+// Error satisfies the error interface.
+func (err Error) Error() string {
+	return string(err)
+}
+
 // Error values.
-var (
+const (
 	// ErrNoSteps is returned when a session carries no input.
-	ErrNoSteps = errors.New("session has no steps")
+	ErrNoSteps Error = "session has no steps"
 
 	// ErrUnsupported is returned by Record on a platform that cannot record.
-	ErrUnsupported = errors.New("recording is not supported on this platform")
+	ErrUnsupported Error = "recording is not supported on this platform"
 )
 
 // Key sequences that a terminal sends. These name the bytes that the sessions

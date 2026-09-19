@@ -64,10 +64,24 @@ import (
 // --------------------------------------------------------------------------
 // rline.go
 
+// Error is an error.
+//
+// The errors this package returns are constants of this type rather than
+// package level variables, so that nothing can reassign one. A var holding an
+// error is writable by any code that can see it, and an error value that
+// changes underneath a caller comparing against it is a fault nobody looks
+// for.
+type Error string
+
+// Error satisfies the error interface.
+func (err Error) Error() string {
+	return string(err)
+}
+
 // Error values.
-var (
+const (
 	// ErrClosed is returned by a Session that has been closed.
-	ErrClosed = errors.New("the session is closed")
+	ErrClosed Error = "the session is closed"
 
 	// ErrInterrupted is returned when the user abandoned what was being read,
 	// which is Ctrl-C or Ctrl-G, and which asks for the reading to be given
@@ -79,7 +93,12 @@ var (
 	// interrupt and carries on, and would otherwise run whatever Ctrl-C left
 	// behind. This is the one place where the port departs from the C over a
 	// behaviour rather than a fault.
-	ErrInterrupted = errors.New("interrupted")
+	ErrInterrupted Error = "interrupted"
+
+	// errNotATerminal is returned when the file descriptor a Session was
+	// given is not a terminal, which is how a program reading a pipe or a
+	// file ends up reading plain lines with no editing.
+	errNotATerminal Error = "not a terminal"
 )
 
 // --------------------------------------------------------------------------

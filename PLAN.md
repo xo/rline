@@ -322,6 +322,37 @@ go-runewidth calls width 0. `TestStringbufPort` fails a width difference in any
 string that holds no disputed character, so the file cannot grow to cover a
 port bug.
 
+## Error values are constants
+
+The errors this package returns are constants of a string type, following
+`github.com/xo/tblfmt`, which Ken prefers and which this project now shares:
+
+    type Error string
+    func (err Error) Error() string { return string(err) }
+    const ErrClosed Error = "the session is closed"
+
+A `var` holding an error is writable by anything that can see it, including
+another package. An error value that changes underneath a caller comparing
+against it is a fault nobody looks for and nothing reports. A constant cannot
+be reassigned, and the compiler says so rather than the program going wrong
+at run time.
+
+`errors.Is` still finds one through a wrap, because a string type is
+comparable and `%w` keeps the chain. What a constant does not buy is safety
+in comparing with `==`: a wrapped error is not equal to what it wraps
+whatever its type, so `errors.Is` is still the way to ask, and
+`TestErrorsAreConstants` says so where a reader will meet it.
+
+Two things follow from the type comparing by value. Two errors with the same
+text are the same error, so the test checks that none of them share text.
+And a constant declared where the building platform does not read it is one
+the linter reports, which is why `errUnsupported` lives in `ttydev_other.go`
+under its own build tag rather than beside the rest.
+
+The Windows terminal layer used to have its own `errNotATerminal` reading
+"not a console". There is now one value for the one idea, and it reads "not a
+terminal" everywhere. Nothing asserts the text.
+
 ## Known departures from the C code
 
 The port keeps the behavior of the C code, even where that behavior is wrong,

@@ -1331,3 +1331,75 @@ func TestWithStderrReachesTheSession(t *testing.T) {
 		t.Error("a config starts with an error destination, so New cannot tell it was not set")
 	}
 }
+
+// ----------------------------------------------------------------------------
+// The error values
+
+// TestErrorsAreConstants checks what the Error type is for.
+//
+// The errors this package returns are constants rather than package level
+// variables. A var holding an error is writable by anything that can see it,
+// and an error that changes underneath a caller comparing against it is a
+// fault nobody looks for. A constant cannot be reassigned, and the compiler
+// says so rather than the code going wrong at run time.
+//
+// Nothing here can test that a reassignment fails, because a package that
+// reassigned one would not build. What this holds instead is everything that
+// has to keep working once they are constants.
+//
+// There is no case for comparing one with ==. Being a constant does not make
+// that safe: a wrapped error is not equal to what it wraps, whatever the
+// type, so errors.Is is still the way to ask. The first version of this test
+// had such a case, presented as something the constant form buys, and it
+// does not.
+func TestErrorsAreConstants(t *testing.T) {
+	t.Parallel()
+
+	t.Run("they satisfy error", func(t *testing.T) {
+		t.Parallel()
+		for _, test := range []struct {
+			err  error
+			want string
+		}{
+			{ErrClosed, "the session is closed"},
+			{ErrInterrupted, "interrupted"},
+		} {
+			if got := test.err.Error(); got != test.want {
+				t.Errorf("the message is %q, want %q", got, test.want)
+			}
+		}
+	})
+
+	t.Run("errors.Is finds them through a wrap", func(t *testing.T) {
+		t.Parallel()
+		// This is the property a caller depends on, and the one that would
+		// break if the type stopped being comparable.
+		wrapped := fmt.Errorf("reading a line: %w", ErrInterrupted)
+		if !errors.Is(wrapped, ErrInterrupted) {
+			t.Error("errors.Is cannot find ErrInterrupted through a wrap")
+		}
+		if errors.Is(wrapped, ErrClosed) {
+			t.Error("errors.Is found ErrClosed in an interrupt")
+		}
+	})
+
+	t.Run("two of them are not equal", func(t *testing.T) {
+		t.Parallel()
+		// A string type compares by value, so two errors with the same text
+		// would be one error. These do not share text, and a future one must
+		// not either.
+		seen := map[Error]string{}
+		for name, err := range map[string]Error{
+			"ErrClosed":      ErrClosed,
+			"ErrInterrupted": ErrInterrupted,
+			"notATerminal":   errNotATerminal,
+		} {
+			if other, ok := seen[err]; ok {
+				t.Errorf("%s and %s have the same text %q, so they are the same error",
+					name, other, string(err))
+			}
+			seen[err] = name
+		}
+	})
+
+}

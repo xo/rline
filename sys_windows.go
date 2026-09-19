@@ -12,7 +12,6 @@
 package rline
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -42,9 +41,6 @@ import (
 // every system rather than only on this one.
 //
 // Ported from isocline/src/tty.c.
-
-// errNotATerminal says the handle is not a console.
-var errNotATerminal = errors.New("not a console")
 
 // Console modes. Raw mode keeps the ability to select text with the mouse,
 // and asks for the events that say the window changed size. It deliberately

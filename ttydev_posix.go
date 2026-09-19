@@ -3,7 +3,6 @@
 package rline
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -22,9 +21,6 @@ import (
 // changed size or that the program is going away.
 //
 // Ported from isocline/src/tty.c.
-
-// errNotATerminal says the file descriptor is not a terminal.
-var errNotATerminal = errors.New("not a terminal")
 
 // terminatingSignals are the signals that mean the program is stopping. The
 // terminal has to go back to how it was before the program dies, or the shell
