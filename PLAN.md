@@ -55,6 +55,28 @@ character array, since Linux puts them at 6 and 5 while the BSDs put them at
 `unix.VMIN`, and `x/sys/unix` defines it as 0x6 on Linux, 0x10 on the BSDs
 and 0x4 on Solaris. So the named risk does not apply here.
 
+Ken started a FreeBSD virtual machine on 2026-09-20, which is what would turn
+the second group from compiled into tested. What it can run today is the
+whole package except one test: thirteen of the fourteen test files build for
+FreeBSD, and the terminal layer has eleven of its twelve tests there.
+
+The twelfth is `TestTTYDeviceOnARealTerminal`, which needs a pseudo-terminal.
+`capture.OpenPTY` is written for Linux and macOS, and FreeBSD opens one
+differently again. It lives in `ttydev_pty_test.go` under `linux || darwin`
+for that reason, so the eleven that use pipes are not held back by the one
+that does not.
+
+Widening the device tests is what found this. The tag on `ttydev_test.go` was
+still `linux || darwin` after its source widened, so the layer the widening
+enabled had no tests at all on the systems it enabled it for. That is the
+same shape as the check that left the build, and it was one line of my own
+work old when it was found.
+
+Recording sessions does not reach FreeBSD either. `internal/capture` is
+`linux || darwin` and FreeBSD takes the stub, so there is no fourth golden
+set and no need for one: the corpus is recorded from the C, and the C build
+would have to run there too.
+
 Anything else, including aix, falls to `ttydev_other.go`. It reads plain
 lines with no editing and says the terminal is unsupported, which is a mode
 rather than a failure.
