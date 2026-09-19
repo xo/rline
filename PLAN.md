@@ -148,10 +148,20 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    word completion over every combination of quote, escape and character
    class.
 
-   What is left is completing a file name, which is the rest of
-   `completers.c`: reading a directory, matching an extension, and colouring
-   an entry from `LS_COLORS`. That part reads the file system rather than a
-   string, so it needs its own way of being tested.
+   Completing a file name is done as well, in `filenames.go`: reading a
+   directory, matching an extension, working out the type of an entry, and
+   colouring it from `LS_COLORS` or `LSCOLORS`.
+
+   That is the first part of the port that reads the world rather than a
+   string, so the shape of its test is new. `tools/probe-filenames.c` builds
+   a fixed tree in a temporary directory, changes into it, and completes
+   against it, so nothing it prints holds the temporary path. The Go test
+   builds the same tree and does the same.
+   `testdata/filenames.txt` records 540 cases. Two things cannot go in it:
+   directory order, which the file system decides and which both sides sort
+   away, and the type of a real entry, which the corpus passes in rather than
+   works out. `TestTypeOfRealEntries` covers that against a real tree, and
+   skips the file types the system will not let a test make.
 10. `highlight.c`.
 11. `editline.c`. This is the edit loop and the key dispatch. The files
     `editline_help.c`, `editline_history.c` and `editline_completion.c` are
@@ -233,6 +243,16 @@ There is no `setlocale` in Go, so `localeIsUTF8` reads `LC_ALL`, `LC_CTYPE`
 and `LANG` in the order that `setlocale` reads them, and applies the same
 test. An environment that sets none of them leaves the locale at `C`, which
 the C code counts as UTF-8.
+
+File name completion reads the colour settings from the environment each
+time rather than once. The C code keeps the first answer for the life of the
+program, so a program that sets `CLICOLOR` after the first completion never
+sees it. Reading each time is the same for any program that sets them before
+it starts, and it is what makes the behaviour testable.
+
+File name completion carries its settings in a closure. The C code puts them
+in the field that holds the program's own argument, and leaves that field
+pointing at a dead stack value once it returns.
 
 A completion with an empty display shows its replacement. The C code keeps an
 absent display apart from an empty one, and shows the empty one, which draws a
@@ -363,6 +383,13 @@ that goes past and folds it into the stored attributes. The two assignments
 inside `term_set_attr` cover the one case that defeats this, which is a color
 the palette cannot show, where the sequence names the nearest color instead and
 reading it back would record the approximation.
+
+### completers.c
+
+`ls_valid_esc` is defined and never called. It looks like it was meant to
+check that a colour setting holds only the escape codes that are safe to send
+on, which nothing does, so a setting from the environment reaches the terminal
+unchecked.
 
 ### tty.c
 
