@@ -19,27 +19,28 @@ var update = flag.Bool("update", false, "rewrite the golden files")
 // demoPath is where tools/build-demo.sh puts the compiled isocline demo.
 const demoPath = "../../.build/example"
 
-// goldenGOOS is the system the golden files were recorded on.
+// goldenDir returns the directory holding the golden files for the system
+// the test is running on.
 //
-// A recording is only comparable against a golden file from the same system,
-// because isocline itself writes different bytes on each. term_update_ansi16
-// is guarded by "#if __APPLE__", so on macOS the demo asks the terminal for
-// its color palette with an OSC 4 sequence and then waits for an answer. A
-// bare pseudo-terminal never answers, so the demo waits out its timeout, and
-// that both adds the query to the output and moves the rest of the startup
-// text into the next exchange. On Linux the query is not compiled in at all.
+// A recording is only comparable against one made on the same system, because
+// isocline itself writes different bytes on each. term_update_ansi16 is
+// guarded by "#if __APPLE__", so on macOS the demo asks the terminal for its
+// color palette with an OSC 4 sequence and waits for an answer. A bare
+// pseudo-terminal never answers, so the demo waits out its timeout, which
+// both adds the query to the output and moves the rest of the startup text
+// into the next exchange. On Linux the query is not compiled in at all.
 //
-// So on any other system the test records every session and checks that it
-// produced output, but does not compare the bytes.
-const goldenGOOS = "linux"
+// So each system keeps its own set, and each one checks bytes. A set that is
+// missing is a failure rather than a skip: a skip would put back the hole
+// this layout exists to close.
+func goldenDir() string {
+	return filepath.Join("testdata", runtime.GOOS)
+}
 
 // TestRecord records every session and compares it against its golden file.
 func TestRecord(t *testing.T) {
 	if _, err := os.Stat(demoPath); err != nil {
 		t.Skipf("no demo at %s: run tools/build-demo.sh", demoPath)
-	}
-	if *update && runtime.GOOS != goldenGOOS {
-		t.Fatalf("refusing to rewrite the golden files on %s: they are recorded on %s", runtime.GOOS, goldenGOOS)
 	}
 	for _, session := range Sessions {
 		t.Run(session.Name, func(t *testing.T) {
@@ -50,13 +51,12 @@ func TestRecord(t *testing.T) {
 			if len(tr.Bytes()) == 0 {
 				t.Fatal("the program wrote nothing")
 			}
-			if runtime.GOOS != goldenGOOS {
-				t.Skipf("recorded %d exchanges and %d bytes, but the golden files were recorded on %s and isocline writes different bytes on %s",
-					len(tr.Exchanges), len(tr.Bytes()), goldenGOOS, runtime.GOOS)
-			}
-			golden := filepath.Join("testdata", session.Name+".txt")
+			golden := filepath.Join(goldenDir(), session.Name+".txt")
 			got := tr.Encode()
 			if *update {
+				if err := os.MkdirAll(goldenDir(), 0o755); err != nil {
+					t.Fatalf("making %s: %v", goldenDir(), err)
+				}
 				if err := os.WriteFile(golden, []byte(got), 0o644); err != nil {
 					t.Fatalf("writing %s: %v", golden, err)
 				}
@@ -65,7 +65,7 @@ func TestRecord(t *testing.T) {
 			}
 			want, err := os.ReadFile(golden)
 			if err != nil {
-				t.Fatalf("reading %s: %v (run go test ./internal/capture -update)", golden, err)
+				t.Fatalf("reading %s: %v\nThis system has no recording for this session. Record one with\n  go test ./internal/capture -update\nafter building the demo with tools/build-demo.sh.", golden, err)
 			}
 			if got == string(want) {
 				return

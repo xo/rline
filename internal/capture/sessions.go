@@ -1,5 +1,7 @@
 package capture
 
+import "time"
+
 // Sessions are the recorded sessions. Each one names a golden file in the
 // testdata directory of this package.
 //
@@ -31,7 +33,13 @@ var Sessions = []Session{
 			{Send: "f"},
 			{Send: KeyTab},
 			{Send: KeyTab},
-			{Send: KeyEscape},
+			// The demo cannot tell the Escape key from the start of an
+			// escape sequence without waiting, and it waits 200ms on macOS
+			// against 100ms on Linux. The quiet period has to be longer than
+			// that or the wait ends in the middle of what the demo is
+			// writing, and the output lands in two exchanges on one run and
+			// one on the next. This waits well past both.
+			{Send: KeyEscape, Wait: 600 * time.Millisecond},
 			{Send: CtrlU},
 			{Send: "exit" + KeyEnter},
 		},

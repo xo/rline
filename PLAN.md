@@ -52,19 +52,29 @@ asks for the whole name, which looks like `/dev/ttys003`. The two also report
 the end of the stream differently: Linux fails the read with `EIO`, and macOS
 returns `io.EOF`.
 
-The golden files stay Linux only, because isocline itself writes different
-bytes on macOS. `term_update_ansi16` in `term.c` is guarded by
-`#if __APPLE__`, so on macOS the demo asks the terminal for its color palette
-with an OSC 4 sequence and waits for an answer. A bare pseudo-terminal never
-answers, so the demo waits out its timeout, which both adds the query to the
-output and pushes the rest of the startup text into the next exchange. On
-Linux the query is not compiled in at all, because `GIO_CMAP` is.
+The golden files are kept per system, in `internal/capture/testdata/<goos>/`,
+because isocline itself writes different bytes on each. `term_update_ansi16`
+in `term.c` is guarded by `#if __APPLE__`, so on macOS the demo asks the
+terminal for its color palette with an OSC 4 sequence and waits for an answer.
+A bare pseudo-terminal never answers, so the demo waits out its timeout, which
+both adds the query to the output and pushes the rest of the startup text into
+the next exchange. On Linux the query is not compiled in at all, because
+`GIO_CMAP` is.
 
-`TestRecord` therefore records every session on macOS and checks that it
-produced output, but compares the bytes only on Linux, and `-update` refuses
-to rewrite a golden file from the wrong system. Recording is stable on macOS,
-so `TestRecordIsStable` runs there as well. Per platform golden files are
-possible later. They are not needed while Linux is the reference.
+Every system compares bytes, and a set that is missing for the system the test
+runs on is a failure rather than a skip. A skip would put back the hole this
+layout exists to close. `go test ./internal/capture -update` records the set
+for whichever system it runs on.
+
+Recording is timing sensitive in one place, and the fix belongs with the
+session rather than with the harness. The demo cannot tell the Escape key from
+the start of an escape sequence without waiting, and it waits 200ms on macOS
+against 100ms on Linux. The quiet period that ends a step is 200ms, so on
+macOS the two are equal and the wait can end in the middle of what the demo is
+writing: the same bytes then land in two exchanges on one run and one on the
+next. The `completion-menu` session, which is the only one that sends Escape,
+waits 600ms on that step. Six runs in a row agree with that, where one in
+three failed without it.
 
 ## Port order
 

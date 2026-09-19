@@ -1,0 +1,183 @@
+# rline capture transcript v1
+session: editing
+about: move the cursor and delete text
+term: xterm-256color
+size: 80x24
+
+## step 0
+send:
+
+recv:
+\e]4;0;?\e\\
+
+
+## step 1
+send:
+one two three
+
+recv:
+\e[m\e[1mIsocline\e[22m sample program:\r
+\n
+- Type 'exit' to quit. (or use \e[38;5;244m\e[4mctrl-d\e[39m\e[24m).\r
+\n
+- Press \e[38;5;244m\e[4mF1\e[39m\e[24m for help on editing commands.\r
+\n
+- Use \e[38;5;244m\e[4mshift-tab\e[39m\e[24m for multiline input. (or \e[38;5;244m\e[4mctrl-enter\e[39m\e[24m, or \e[38;5;244m\e[4mctrl-j\e[39m\e[24m)\r
+\n
+- Type 'p' (or 'id', 'f', or 'h') followed by tab for completion.\r
+\n
+- Type 'fun' or 'int' to see syntax highlighting\r
+\n
+- Use \e[38;5;244m\e[4mctrl-r\e[39m\e[24m to search the history.\r
+\n
+\r
+\n
+\e[31misoclinε> \e[39m
+
+
+## step 2
+send:
+\x01
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C
+
+
+## step 3
+send:
+\e[C\e[C\e[C
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\n
+\e[90m 1 \e[39mgo/      \e[90m 4 \e[39mprint    \e[90m 7 \e[39mpodman/\e[K\r
+\n
+\e[90m 2 \e[39mbin/     \e[90m 5 \e[39mprompt   \e[90m 8 \e[39mprinter\e[K\r
+\n
+\e[90m 3 \e[39mlib/     \e[90m 6 \e[39mshare/   \e[90m 9 \e[39mprintln\e[K\r
+\n
+\e[90m(press page-down (or ctrl-j) to see all 12 completions)\e[39m\e[K\r
+\e[4A\e[10C\r
+\e[31misoclinε> \e[39m\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\e[4A\e[10C\r
+\e[31misoclinε> \e[39m\e[K\r
+\n
+\e[90m 1 \e[39mgo/      \e[90m 4 \e[39mprint    \e[90m 7 \e[39mpodman/\e[K\r
+\n
+\e[90m 2 \e[39mbin/     \e[90m 5 \e[39mprompt   \e[90m 8 \e[39mprinter\e[K\r
+\n
+\e[90m 3 \e[39mlib/     \e[90m 6 \e[39mshare/   \e[90m 9 \e[39mprintln\e[K\r
+\n
+\e[90m(press page-down (or ctrl-j) to see all 12 completions)\e[39m\e[K\r
+\e[4A\e[10C\r
+\e[31misoclinε> \e[39m\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\e[4A\e[10C\r
+\e[31misoclinε> \e[39m\e[K\r
+\n
+\e[90m 1 \e[39mgo/      \e[90m 4 \e[39mprint    \e[90m 7 \e[39mpodman/\e[K\r
+\n
+\e[90m 2 \e[39mbin/     \e[90m 5 \e[39mprompt   \e[90m 8 \e[39mprinter\e[K\r
+\n
+\e[90m 3 \e[39mlib/     \e[90m 6 \e[39mshare/   \e[90m 9 \e[39mprintln\e[K\r
+\n
+\e[90m(press page-down (or ctrl-j) to see all 12 completions)\e[39m\e[K\r
+\e[4A\e[10C
+
+
+## step 4
+send:
+\x7f
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\n
+\r
+\e[K\r
+\e[4A\e[10C
+
+
+## step 5
+send:
+\x05
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C
+
+
+## step 6
+send:
+\x17
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C
+
+
+## step 7
+send:
+\x0b
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C
+
+
+## step 8
+send:
+\r
+
+recv:
+\r
+\e[31misoclinε> \e[39m\e[K\r
+\e[10C\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+\r
+\n
+\e[38;5;244m-----\e[39m\r
+\n
+done\r
+\n
+
