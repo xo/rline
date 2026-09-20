@@ -1,5 +1,5 @@
-// Text: the buffer the line is edited in, and everything that measures or
-// walks over it.
+// Package text holds the buffer a line is edited in, and everything that
+// measures or walks over it.
 //
 // The buffer holds bytes rather than runes, because a byte the terminal sent
 // that UTF-8 cannot read is kept as the byte it was, so that it survives a
@@ -7,8 +7,7 @@
 // API takes, is a byte offset for the same reason.
 //
 // Ported from stringbuf.c, common.c and parts of editline.c.
-
-package rline
+package text
 
 import (
 	"fmt"
@@ -30,42 +29,51 @@ import (
 //
 // Ported from isocline/src/stringbuf.c.
 
-// buffer holds text that is edited in place. The zero value is ready to use.
-type buffer struct {
+// Buffer holds text that is edited in place. The zero value is ready to use.
+type Buffer struct {
 	buf []byte
 }
 
-// bytes returns the contents of b. The result aliases the buffer, so an edit
+// Bytes returns the contents of b. The result aliases the buffer, so an edit
 // after this call can change it.
-func (b *buffer) bytes() []byte {
+func (b *Buffer) Bytes() []byte {
 	return b.buf
 }
 
-// string returns the contents of b as a string.
-func (b *buffer) string() string {
+// String returns the contents of b as a String.
+func (b *Buffer) String() string {
 	return string(b.buf)
 }
 
-// length returns the number of bytes in b.
-func (b *buffer) length() int {
+// StringFrom returns the contents of b from pos onwards, or nothing when pos
+// is outside it.
+func (b *Buffer) StringFrom(pos int) string {
+	if pos < 0 || pos > len(b.buf) {
+		return ""
+	}
+	return string(b.buf[pos:])
+}
+
+// Length returns the number of bytes in b.
+func (b *Buffer) Length() int {
 	return len(b.buf)
 }
 
-// charAt returns the byte at pos. A pos outside the buffer returns 0, and so
+// CharAt returns the byte at pos. A pos outside the buffer returns 0, and so
 // does pos at the end, where the C code reads its terminating zero.
-func (b *buffer) charAt(pos int) byte {
+func (b *Buffer) CharAt(pos int) byte {
 	if pos < 0 || pos >= len(b.buf) {
 		return 0
 	}
 	return b.buf[pos]
 }
 
-// limitToLength returns the length of s up to its first zero byte.
+// LimitToLength returns the length of s up to its first zero byte.
 //
 // Every insert goes through this, so a buffer can never hold a zero byte.
 // Several other functions count on that: they treat the end of the slice and
 // a zero byte as the same thing, because in C they are.
-func limitToLength(s string) int {
+func LimitToLength(s string) int {
 	for i := range len(s) {
 		if s[i] == 0 {
 			return i
@@ -74,13 +82,13 @@ func limitToLength(s string) int {
 	return len(s)
 }
 
-// insertAt inserts s at pos and returns the position after what it inserted.
+// InsertAt inserts s at pos and returns the position after what it inserted.
 // A pos outside the buffer inserts nothing and returns pos.
-func (b *buffer) insertAt(s string, pos int) int {
+func (b *Buffer) InsertAt(s string, pos int) int {
 	if pos < 0 || pos > len(b.buf) {
 		return pos
 	}
-	n := limitToLength(s)
+	n := LimitToLength(s)
 	if n <= 0 {
 		return pos
 	}
@@ -88,41 +96,41 @@ func (b *buffer) insertAt(s string, pos int) int {
 	return pos + n
 }
 
-// insertByteAt inserts the single byte c at pos and returns the position
+// InsertByteAt inserts the single byte c at pos and returns the position
 // after it. A zero byte inserts nothing, by the rule in limitToLength.
-func (b *buffer) insertByteAt(c byte, pos int) int {
-	return b.insertAt(string([]byte{c}), pos)
+func (b *Buffer) InsertByteAt(c byte, pos int) int {
+	return b.InsertAt(string([]byte{c}), pos)
 }
 
-// insertRuneAt inserts r at pos, encoded as QUTF-8, and returns the position
+// InsertRuneAt inserts r at pos, encoded as QUTF-8, and returns the position
 // after it.
-func (b *buffer) insertRuneAt(r rune, pos int) int {
-	return b.insertAt(string(appendRune(nil, r)), pos)
+func (b *Buffer) InsertRuneAt(r rune, pos int) int {
+	return b.InsertAt(string(AppendRune(nil, r)), pos)
 }
 
-// appendString appends s and returns the new length.
-func (b *buffer) appendString(s string) int {
-	return b.insertAt(s, len(b.buf))
+// AppendString appends s and returns the new length.
+func (b *Buffer) AppendString(s string) int {
+	return b.InsertAt(s, len(b.buf))
 }
 
-// appendByte appends the single byte c and returns the new length.
-func (b *buffer) appendByte(c byte) int {
-	return b.insertByteAt(c, len(b.buf))
+// AppendByte appends the single byte c and returns the new length.
+func (b *Buffer) AppendByte(c byte) int {
+	return b.InsertByteAt(c, len(b.buf))
 }
 
-// appendf formats its arguments and appends the result, then returns the new
+// Appendf formats its arguments and appends the result, then returns the new
 // length.
 //
 // The format string is the one that the fmt package reads, not the one that C
 // printf reads. The C function passes the string straight to vsnprintf, so
 // every caller of it has to be read and rewritten as it is ported.
-func (b *buffer) appendf(format string, args ...any) int {
-	return b.appendString(fmt.Sprintf(format, args...))
+func (b *Buffer) Appendf(format string, args ...any) int {
+	return b.AppendString(fmt.Sprintf(format, args...))
 }
 
-// deleteAt removes count bytes at pos. A pos outside the buffer removes
+// DeleteAt removes count bytes at pos. A pos outside the buffer removes
 // nothing, and so does a pos at the end.
-func (b *buffer) deleteAt(pos, count int) {
+func (b *Buffer) DeleteAt(pos, count int) {
 	if pos < 0 || pos >= len(b.buf) || count <= 0 {
 		return
 	}
@@ -130,42 +138,42 @@ func (b *buffer) deleteAt(pos, count int) {
 	b.buf = append(b.buf[:pos], b.buf[pos+count:]...)
 }
 
-// deleteFromTo removes the bytes from pos up to but not including end.
-func (b *buffer) deleteFromTo(pos, end int) {
+// DeleteFromTo removes the bytes from pos up to but not including end.
+func (b *Buffer) DeleteFromTo(pos, end int) {
 	if end <= pos {
 		return
 	}
-	b.deleteAt(pos, end-pos)
+	b.DeleteAt(pos, end-pos)
 }
 
-// deleteFrom removes everything from pos onwards.
-func (b *buffer) deleteFrom(pos int) {
-	b.deleteAt(pos, len(b.buf)-pos)
+// DeleteFrom removes everything from pos onwards.
+func (b *Buffer) DeleteFrom(pos int) {
+	b.DeleteAt(pos, len(b.buf)-pos)
 }
 
-// clear empties the buffer.
-func (b *buffer) clear() {
-	b.deleteAt(0, len(b.buf))
+// Clear empties the buffer.
+func (b *Buffer) Clear() {
+	b.DeleteAt(0, len(b.buf))
 }
 
-// replace empties the buffer and puts s in it.
-func (b *buffer) replace(s string) {
-	b.clear()
-	b.appendString(s)
+// Replace empties the buffer and puts s in it.
+func (b *Buffer) Replace(s string) {
+	b.Clear()
+	b.AppendString(s)
 }
 
-// splitAt cuts b at pos and returns a new buffer holding what came after. A
+// SplitAt cuts b at pos and returns a new buffer holding what came after. A
 // negative pos returns nil and changes nothing.
 //
 // The C code sets the new length of the left buffer but never writes the
 // terminating zero, so the left buffer stops being a valid C string. Nothing
 // in isocline calls this function, so that bug never reaches a recorded
 // session. This port does what the function means to do.
-func (b *buffer) splitAt(pos int) *buffer {
+func (b *Buffer) SplitAt(pos int) *Buffer {
 	if pos < 0 {
 		return nil
 	}
-	rest := &buffer{}
+	rest := &Buffer{}
 	if pos < len(b.buf) {
 		rest.buf = append(rest.buf, b.buf[pos:]...)
 		b.buf = b.buf[:pos]
@@ -173,56 +181,56 @@ func (b *buffer) splitAt(pos int) *buffer {
 	return rest
 }
 
-// nextOfs returns the bytes from pos to the next character, and the column
+// NextOfs returns the bytes from pos to the next character, and the column
 // width of the character at pos.
-func (b *buffer) nextOfs(pos int) (int, int) {
-	return nextOfs(b.buf, pos)
+func (b *Buffer) NextOfs(pos int) (int, int) {
+	return NextOfs(b.buf, pos)
 }
 
-// prevOfs returns the bytes from pos back to the previous character, and the
+// PrevOfs returns the bytes from pos back to the previous character, and the
 // column width of that character.
-func (b *buffer) prevOfs(pos int) (int, int) {
-	return prevOfs(b.buf, pos)
+func (b *Buffer) PrevOfs(pos int) (int, int) {
+	return PrevOfs(b.buf, pos)
 }
 
-// next returns the position of the character after pos and its width, or -1
+// Next returns the position of the character after pos and its width, or -1
 // when there is none.
-func (b *buffer) next(pos int) (int, int) {
-	ofs, w := b.nextOfs(pos)
+func (b *Buffer) Next(pos int) (int, int) {
+	ofs, w := b.NextOfs(pos)
 	if ofs <= 0 {
 		return -1, w
 	}
 	return pos + ofs, w
 }
 
-// prev returns the position of the character before pos and its width, or -1
+// Prev returns the position of the character before pos and its width, or -1
 // when there is none.
-func (b *buffer) prev(pos int) (int, int) {
-	ofs, w := b.prevOfs(pos)
+func (b *Buffer) Prev(pos int) (int, int) {
+	ofs, w := b.PrevOfs(pos)
 	if ofs <= 0 {
 		return -1, w
 	}
 	return pos - ofs, w
 }
 
-// deleteCharBefore removes the character before pos and returns the position
+// DeleteCharBefore removes the character before pos and returns the position
 // it left the cursor at.
-func (b *buffer) deleteCharBefore(pos int) int {
-	n, _ := b.prevOfs(pos)
+func (b *Buffer) DeleteCharBefore(pos int) int {
+	n, _ := b.PrevOfs(pos)
 	if n <= 0 {
 		return 0
 	}
-	b.deleteAt(pos-n, n)
+	b.DeleteAt(pos-n, n)
 	return pos - n
 }
 
-// deleteCharAt removes the character at pos.
-func (b *buffer) deleteCharAt(pos int) {
-	n, _ := b.nextOfs(pos)
+// DeleteCharAt removes the character at pos.
+func (b *Buffer) DeleteCharAt(pos int) {
+	n, _ := b.NextOfs(pos)
 	if n <= 0 {
 		return
 	}
-	b.deleteAt(pos, n)
+	b.DeleteAt(pos, n)
 }
 
 // swapCharLimit is the longest character that swapChar moves. The C code
@@ -231,15 +239,15 @@ func (b *buffer) deleteCharAt(pos int) {
 // valid UTF-8, but prevOfs walks over it, so the limit is reachable.
 const swapCharLimit = 63
 
-// swapChar exchanges the character before pos with the character at pos, and
+// SwapChar exchanges the character before pos with the character at pos, and
 // returns the position where the pair now starts. It returns 0 when there is
 // no character on one of the two sides.
-func (b *buffer) swapChar(pos int) int {
-	next, _ := b.nextOfs(pos)
+func (b *Buffer) SwapChar(pos int) int {
+	next, _ := b.NextOfs(pos)
 	if next <= 0 {
 		return 0
 	}
-	prev, _ := b.prevOfs(pos)
+	prev, _ := b.PrevOfs(pos)
 	if prev <= 0 || prev >= swapCharLimit {
 		return 0
 	}
@@ -250,47 +258,47 @@ func (b *buffer) swapChar(pos int) int {
 	return pos - prev
 }
 
-// findLineStart returns the start of the line that pos is on.
-func (b *buffer) findLineStart(pos int) int { return findLineStart(b.buf, pos) }
+// FindLineStart returns the start of the line that pos is on.
+func (b *Buffer) FindLineStart(pos int) int { return FindLineStart(b.buf, pos) }
 
-// findLineEnd returns the end of the line that pos is on.
-func (b *buffer) findLineEnd(pos int) int { return findLineEnd(b.buf, pos) }
+// FindLineEnd returns the end of the line that pos is on.
+func (b *Buffer) FindLineEnd(pos int) int { return FindLineEnd(b.buf, pos) }
 
-// findWordStart returns the start of the word before pos.
-func (b *buffer) findWordStart(pos int) int { return findWordStart(b.buf, pos) }
+// FindWordStart returns the start of the word before pos.
+func (b *Buffer) FindWordStart(pos int) int { return FindWordStart(b.buf, pos) }
 
-// findWordEnd returns the end of the word after pos.
-func (b *buffer) findWordEnd(pos int) int { return findWordEnd(b.buf, pos) }
+// FindWordEnd returns the end of the word after pos.
+func (b *Buffer) FindWordEnd(pos int) int { return FindWordEnd(b.buf, pos) }
 
-// findWSWordStart returns the start of the run of non-whitespace before pos.
-func (b *buffer) findWSWordStart(pos int) int { return findWSWordStart(b.buf, pos) }
+// FindWSWordStart returns the start of the run of non-whitespace before pos.
+func (b *Buffer) FindWSWordStart(pos int) int { return FindWSWordStart(b.buf, pos) }
 
-// findWSWordEnd returns the end of the run of non-whitespace after pos.
-func (b *buffer) findWSWordEnd(pos int) int { return findWSWordEnd(b.buf, pos) }
+// FindWSWordEnd returns the end of the run of non-whitespace after pos.
+func (b *Buffer) FindWSWordEnd(pos int) int { return FindWSWordEnd(b.buf, pos) }
 
-// forEachRow calls fn once for each screen row and returns the number of rows.
-func (b *buffer) forEachRow(termWidth, promptWidth, contWidth int, fn rowFunc) int {
-	return forEachRow(b.buf, termWidth, promptWidth, contWidth, fn)
+// ForEachRow calls fn once for each screen row and returns the number of rows.
+func (b *Buffer) ForEachRow(termWidth, promptWidth, contWidth int, fn rowFunc) int {
+	return ForEachRow(b.buf, termWidth, promptWidth, contWidth, fn)
 }
 
-// rowColAtPos returns the number of rows and where pos sits.
-func (b *buffer) rowColAtPos(termWidth, promptWidth, contWidth, pos int) (int, rowCol) {
-	return rowColAtPos(b.buf, termWidth, promptWidth, contWidth, pos)
+// RowColAtPos returns the number of rows and where pos sits.
+func (b *Buffer) RowColAtPos(termWidth, promptWidth, contWidth, pos int) (int, RowCol) {
+	return RowColAtPos(b.buf, termWidth, promptWidth, contWidth, pos)
 }
 
-// posAtRowCol returns the position at row and col, or -1 when there is no
+// PosAtRowCol returns the position at row and col, or -1 when there is no
 // such row.
-func (b *buffer) posAtRowCol(termWidth, promptWidth, contWidth, row, col int) int {
-	return posAtRowCol(b.buf, termWidth, promptWidth, contWidth, row, col)
+func (b *Buffer) PosAtRowCol(termWidth, promptWidth, contWidth, row, col int) int {
+	return PosAtRowCol(b.buf, termWidth, promptWidth, contWidth, row, col)
 }
 
-// wrappedRowColAtPos returns where pos sits once the terminal is resized to
+// WrappedRowColAtPos returns where pos sits once the terminal is resized to
 // newTermWidth, and how many rows the text then takes.
-func (b *buffer) wrappedRowColAtPos(termWidth, newTermWidth, promptWidth, contWidth, pos int) (int, rowCol) {
-	return wrappedRowColAtPos(b.buf, termWidth, newTermWidth, promptWidth, contWidth, pos)
+func (b *Buffer) WrappedRowColAtPos(termWidth, newTermWidth, promptWidth, contWidth, pos int) (int, RowCol) {
+	return WrappedRowColAtPos(b.buf, termWidth, newTermWidth, promptWidth, contWidth, pos)
 }
 
-// decodeFromLocale returns the contents of b with everything a terminal that
+// DecodeFromLocale returns the contents of b with everything a terminal that
 // does not read UTF-8 cannot show taken out.
 //
 // A byte that stands on its own is kept. An escape sequence is dropped. A
@@ -302,13 +310,13 @@ func (b *buffer) wrappedRowColAtPos(termWidth, newTermWidth, promptWidth, contWi
 // The C code allocates one byte too few for its result and then writes the
 // terminating zero one byte past the end. Any buffer that holds only single
 // byte characters overruns. The port has no terminator to write.
-func (b *buffer) decodeFromLocale() []byte {
+func (b *Buffer) DecodeFromLocale() []byte {
 	if len(b.buf) == 0 {
 		return nil
 	}
 	out := make([]byte, 0, len(b.buf))
 	for i := 0; i < len(b.buf); {
-		ofs, _ := b.nextOfs(i)
+		ofs, _ := b.NextOfs(i)
 		switch {
 		case ofs <= 0:
 			return out
@@ -317,8 +325,8 @@ func (b *buffer) decodeFromLocale() []byte {
 		case b.buf[i] == '\x1B':
 			// An escape sequence shows nothing, so drop it.
 		default:
-			r, _ := decodeRune(b.buf[i : i+ofs])
-			if c, ok := rawByte(r); ok {
+			r, _ := DecodeRune(b.buf[i : i+ofs])
+			if c, ok := RawByte(r); ok {
 				out = append(out, c)
 			} else if r <= 0x7F {
 				out = append(out, byte(r))
@@ -341,11 +349,11 @@ func (b *buffer) decodeFromLocale() []byte {
 //
 // Ported from isocline/src/stringbuf.c.
 
-// charSetHas reports whether c is in set, with the rule that C's strchr uses:
+// CharSetHas reports whether c is in set, with the rule that C's strchr uses:
 // the terminating zero of the set counts as a member, so a zero byte is
 // always found. The C code relies on this in more than one place, and the
 // results differ without it.
-func charSetHas(set string, c byte) bool {
+func CharSetHas(set string, c byte) bool {
 	if c == 0 {
 		return true
 	}
@@ -409,11 +417,11 @@ func charWidth(s []byte) int {
 	return utf8CharWidth(s)
 }
 
-// strWidth returns the column width of s.
-func strWidth(s []byte) int {
+// StrWidth returns the column width of s.
+func StrWidth(s []byte) int {
 	width := 0
 	for pos := 0; pos < len(s); {
-		ofs, w := nextOfs(s, pos)
+		ofs, w := NextOfs(s, pos)
 		if ofs <= 0 {
 			break
 		}
@@ -441,7 +449,7 @@ func skipEsc(s []byte) (int, bool) {
 	if len(s) <= 1 || s[0] != '\x1B' {
 		return 0, false
 	}
-	if charSetHas("[PX^_]", s[1]) {
+	if CharSetHas("[PX^_]", s[1]) {
 		// CSI (ESC [), DCS (ESC P), SOS (ESC X), PM (ESC ^), APC (ESC _) and
 		// OSC (ESC ]) run until a terminator. CSI ends on a byte from 0x40 to
 		// 0x7F. The rest end on a bell, or on ESC backslash.
@@ -468,17 +476,17 @@ func skipEsc(s []byte) (int, bool) {
 	return 2, true
 }
 
-// nextOfs returns the number of bytes from pos to the next character, and the
+// NextOfs returns the number of bytes from pos to the next character, and the
 // column width of the character at pos. An escape sequence counts as one
 // character. A pos at or past the end returns zero and zero.
-func nextOfs(s []byte, pos int) (int, int) {
+func NextOfs(s []byte, pos int) (int, int) {
 	ofs := 0
 	if pos >= 0 && pos < len(s) {
 		if n, ok := skipEsc(s[pos:]); ok {
 			ofs = n
 		} else {
 			ofs = 1
-			for pos+ofs < len(s) && isCont(s[pos+ofs]) {
+			for pos+ofs < len(s) && IsCont(s[pos+ofs]) {
 				ofs++
 			}
 		}
@@ -489,7 +497,7 @@ func nextOfs(s []byte, pos int) (int, int) {
 	return ofs, charWidth(s[pos : pos+ofs])
 }
 
-// prevOfs returns the number of bytes from pos back to the previous
+// PrevOfs returns the number of bytes from pos back to the previous
 // character, and the column width of that character.
 //
 // This does not step back over an escape sequence, because reading backwards
@@ -497,7 +505,7 @@ func nextOfs(s []byte, pos int) (int, int) {
 // A pos past the end is not clamped, because the C code does not clamp it
 // either. C reads the terminating zero there and measures a character of
 // width zero, so byteAt supplies that zero and the width comes out the same.
-func prevOfs(s []byte, pos int) (int, int) {
+func PrevOfs(s []byte, pos int) (int, int) {
 	if s == nil {
 		// The C code tests its pointer against null here and answers zero.
 		// An empty buffer holds a null pointer, while an empty string does
@@ -507,7 +515,7 @@ func prevOfs(s []byte, pos int) (int, int) {
 	ofs := 0
 	if pos > 0 {
 		ofs = 1
-		for pos > ofs && isCont(byteAt(s, pos-ofs)) {
+		for pos > ofs && IsCont(ByteAt(s, pos-ofs)) {
 			ofs++
 		}
 	}
@@ -521,22 +529,22 @@ func prevOfs(s []byte, pos int) (int, int) {
 	return ofs, charWidth(s[lo:hi])
 }
 
-// byteAt returns the byte at i, or zero when i is outside s. A C string ends
+// ByteAt returns the byte at i, or zero when i is outside s. A C string ends
 // in a zero byte, so reading at or past its length gives zero there too.
-func byteAt(s []byte, i int) byte {
+func ByteAt(s []byte, i int) byte {
 	if i < 0 || i >= len(s) {
 		return 0
 	}
 	return s[i]
 }
 
-// skipUntilFit returns the offset of the longest tail of s whose width is at
+// SkipUntilFit returns the offset of the longest tail of s whose width is at
 // most maxWidth.
-func skipUntilFit(s []byte, maxWidth int) int {
-	width := strWidth(s)
+func SkipUntilFit(s []byte, maxWidth int) int {
+	width := StrWidth(s)
 	pos := 0
 	for width > maxWidth {
-		ofs, w := nextOfs(s, pos)
+		ofs, w := NextOfs(s, pos)
 		if ofs <= 0 {
 			break
 		}
@@ -546,12 +554,12 @@ func skipUntilFit(s []byte, maxWidth int) int {
 	return pos
 }
 
-// takeWhileFit returns the length of the longest head of s whose width is at
+// TakeWhileFit returns the length of the longest head of s whose width is at
 // most maxWidth.
-func takeWhileFit(s []byte, maxWidth int) int {
+func TakeWhileFit(s []byte, maxWidth int) int {
 	pos, width := 0, 0
 	for {
-		ofs, w := nextOfs(s, pos)
+		ofs, w := NextOfs(s, pos)
 		if ofs <= 0 || width+w > maxWidth {
 			return pos
 		}
@@ -580,12 +588,12 @@ func takeWhileFit(s []byte, maxWidth int) int {
 // belongs to class. The word search needs that, so that a cursor already
 // sitting on white space finds the word in front of the white space rather
 // than stopping at once.
-func findBackward(s []byte, pos int, class charClass, skipMatches bool) int {
+func findBackward(s []byte, pos int, class CharClass, skipMatches bool) int {
 	pos = min(max(pos, 0), len(s))
 	i := pos
 	if skipMatches {
 		for {
-			prev, _ := prevOfs(s, i)
+			prev, _ := PrevOfs(s, i)
 			if prev <= 0 || !class(s[i-prev:i]) {
 				break
 			}
@@ -596,7 +604,7 @@ func findBackward(s []byte, pos int, class charClass, skipMatches bool) int {
 		}
 	}
 	for {
-		prev, _ := prevOfs(s, i)
+		prev, _ := PrevOfs(s, i)
 		if prev <= 0 {
 			break
 		}
@@ -613,12 +621,12 @@ func findBackward(s []byte, pos int, class charClass, skipMatches bool) int {
 
 // findForward returns the position of the first character at or after pos
 // that belongs to class, or -1 when there is none.
-func findForward(s []byte, pos int, class charClass, skipMatches bool) int {
+func findForward(s []byte, pos int, class CharClass, skipMatches bool) int {
 	pos = min(max(pos, 0), len(s))
 	i := pos
 	if skipMatches {
 		for {
-			next, _ := nextOfs(s, i)
+			next, _ := NextOfs(s, i)
 			if next <= 0 || !class(s[i:i+next]) {
 				break
 			}
@@ -629,7 +637,7 @@ func findForward(s []byte, pos int, class charClass, skipMatches bool) int {
 		}
 	}
 	for {
-		next, _ := nextOfs(s, i)
+		next, _ := NextOfs(s, i)
 		if next <= 0 {
 			break
 		}
@@ -654,45 +662,45 @@ func charIsLineFeed(s []byte) bool {
 	return len(s) == 1 && (s[0] == '\n' || s[0] == 0)
 }
 
-// findLineStart returns the position just after the newline that precedes
+// FindLineStart returns the position just after the newline that precedes
 // pos, or 0 when pos is on the first line.
-func findLineStart(s []byte, pos int) int {
+func FindLineStart(s []byte, pos int) int {
 	return max(findBackward(s, pos, charIsLineFeed, false), 0)
 }
 
-// findLineEnd returns the position of the newline at or after pos, or the
+// FindLineEnd returns the position of the newline at or after pos, or the
 // length of s when there is none.
-func findLineEnd(s []byte, pos int) int {
+func FindLineEnd(s []byte, pos int) int {
 	if end := findForward(s, pos, charIsLineFeed, false); end >= 0 {
 		return end
 	}
 	return len(s)
 }
 
-// findWordStart returns the position of the start of the word before pos, or
+// FindWordStart returns the position of the start of the word before pos, or
 // 0 when there is none. A word is a run of identifier letters.
-func findWordStart(s []byte, pos int) int {
-	return max(findBackward(s, pos, charIsIDLetter, true), 0)
+func FindWordStart(s []byte, pos int) int {
+	return max(findBackward(s, pos, CharIsIDLetter, true), 0)
 }
 
-// findWordEnd returns the position of the end of the word after pos, or the
+// FindWordEnd returns the position of the end of the word after pos, or the
 // length of s when there is none.
-func findWordEnd(s []byte, pos int) int {
-	if end := findForward(s, pos, charIsIDLetter, true); end >= 0 {
+func FindWordEnd(s []byte, pos int) int {
+	if end := findForward(s, pos, CharIsIDLetter, true); end >= 0 {
 		return end
 	}
 	return len(s)
 }
 
-// findWSWordStart returns the position of the start of the run of
+// FindWSWordStart returns the position of the start of the run of
 // non-whitespace before pos, or 0 when there is none.
-func findWSWordStart(s []byte, pos int) int {
+func FindWSWordStart(s []byte, pos int) int {
 	return max(findBackward(s, pos, charIsWhite, true), 0)
 }
 
-// findWSWordEnd returns the position of the end of the run of non-whitespace
+// FindWSWordEnd returns the position of the end of the run of non-whitespace
 // after pos, or the length of s when there is none.
-func findWSWordEnd(s []byte, pos int) int {
+func FindWSWordEnd(s []byte, pos int) int {
 	if end := findForward(s, pos, charIsWhite, true); end >= 0 {
 		return end
 	}
@@ -708,15 +716,15 @@ func findWSWordEnd(s []byte, pos int) int {
 //
 // Ported from isocline/src/stringbuf.c.
 
-// rowCol says where a position sits on the screen, and how long its row is.
-type rowCol struct {
-	row      int
-	col      int
-	rowStart int
-	rowLen   int
+// RowCol says where a position sits on the screen, and how long its row is.
+type RowCol struct {
+	Row      int
+	Col      int
+	RowStart int
+	RowLen   int
 
-	firstOnRow bool
-	lastOnRow  bool
+	FirstOnRow bool
+	LastOnRow  bool
 }
 
 // rowFunc is called once for each screen row. s is the whole text, rowStart
@@ -725,7 +733,7 @@ type rowCol struct {
 // terminal, not because of a newline. Returning true stops the walk.
 type rowFunc func(s []byte, row, rowStart, rowLen, startWidth int, isWrap bool) bool
 
-// forEachRow calls fn once for each screen row of s and returns the number of
+// ForEachRow calls fn once for each screen row of s and returns the number of
 // rows. termWidth of 0 means do not wrap. promptWidth is the width of the
 // prompt on the first row, and contWidth the width of the prompt on every row
 // after it.
@@ -738,12 +746,12 @@ type rowFunc func(s []byte, row, rowStart, rowLen, startWidth int, isWrap bool) 
 //
 // When fn stops the walk the result is the row it stopped on, which is one
 // less than the count that a complete walk returns for the same text.
-func forEachRow(s []byte, termWidth, promptWidth, contWidth int, fn rowFunc) int {
+func ForEachRow(s []byte, termWidth, promptWidth, contWidth int, fn rowFunc) int {
 	count, col, start := 0, 0, 0
 	startWidth := promptWidth
 	i := 0
 	for i < len(s) {
-		next, w := nextOfs(s, i)
+		next, w := NextOfs(s, i)
 		if next <= 0 {
 			// Unreachable for a slice, because nextOfs returns at least one
 			// byte for every position inside it. The C code asserts here.
@@ -781,37 +789,37 @@ func forEachRow(s []byte, termWidth, promptWidth, contWidth int, fn rowFunc) int
 	return count + 1
 }
 
-// rowColAtPos returns the number of rows that s takes, and where pos sits.
-func rowColAtPos(s []byte, termWidth, promptWidth, contWidth, pos int) (int, rowCol) {
-	var rc rowCol
-	rows := forEachRow(s, termWidth, promptWidth, contWidth,
+// RowColAtPos returns the number of rows that s takes, and where pos sits.
+func RowColAtPos(s []byte, termWidth, promptWidth, contWidth, pos int) (int, RowCol) {
+	var rc RowCol
+	rows := ForEachRow(s, termWidth, promptWidth, contWidth,
 		func(s []byte, row, rowStart, rowLen, _ int, isWrap bool) bool {
 			if pos < rowStart || pos > rowStart+rowLen {
 				return false // keep going, so that every row is counted
 			}
-			rc.rowStart = rowStart
-			rc.rowLen = rowLen
-			rc.row = row
-			rc.col = strWidth(s[rowStart:pos])
-			rc.firstOnRow = pos == rowStart
+			rc.RowStart = rowStart
+			rc.RowLen = rowLen
+			rc.Row = row
+			rc.Col = StrWidth(s[rowStart:pos])
+			rc.FirstOnRow = pos == rowStart
 			if isWrap {
 				// On a wrapped row the last position is the one whose
 				// character reaches the end of the row.
-				next, _ := nextOfs(s[:rowStart+rowLen], pos)
-				rc.lastOnRow = pos+next >= rowStart+rowLen
+				next, _ := NextOfs(s[:rowStart+rowLen], pos)
+				rc.LastOnRow = pos+next >= rowStart+rowLen
 			} else {
-				rc.lastOnRow = pos >= rowStart+rowLen
+				rc.LastOnRow = pos >= rowStart+rowLen
 			}
 			return false
 		})
 	return rows, rc
 }
 
-// posAtRowCol returns the position in s that sits at row and col, or -1 when
+// PosAtRowCol returns the position in s that sits at row and col, or -1 when
 // s has no such row. col does not count the prompt.
-func posAtRowCol(s []byte, termWidth, promptWidth, contWidth, row, col int) int {
+func PosAtRowCol(s []byte, termWidth, promptWidth, contWidth, row, col int) int {
 	pos := -1
-	forEachRow(s, termWidth, promptWidth, contWidth,
+	ForEachRow(s, termWidth, promptWidth, contWidth,
 		func(s []byte, r, rowStart, rowLen, _ int, _ bool) bool {
 			if r != row {
 				return false
@@ -819,7 +827,7 @@ func posAtRowCol(s []byte, termWidth, promptWidth, contWidth, row, col int) int 
 			w, i := 0, rowStart
 			end := rowStart + rowLen
 			for w < col && i < end {
-				next, cw := nextOfs(s[:end], i)
+				next, cw := NextOfs(s[:end], i)
 				if next <= 0 {
 					break
 				}
@@ -832,17 +840,17 @@ func posAtRowCol(s []byte, termWidth, promptWidth, contWidth, row, col int) int 
 	return pos
 }
 
-// wrappedRowColAtPos returns where pos sits after the terminal is resized to
+// WrappedRowColAtPos returns where pos sits after the terminal is resized to
 // newTermWidth, and how many rows the text then takes.
 //
 // The text was laid out for termWidth and the terminal has not redrawn it, so
 // each of those rows can spill over several rows of the new width. Those
 // extra rows are hard wraps: the terminal broke the line itself, with no
 // newline in the text.
-func wrappedRowColAtPos(s []byte, termWidth, newTermWidth, promptWidth, contWidth, pos int) (int, rowCol) {
-	var rc rowCol
+func WrappedRowColAtPos(s []byte, termWidth, newTermWidth, promptWidth, contWidth, pos int) (int, RowCol) {
+	var rc RowCol
 	hardRows := 0
-	rows := forEachRow(s, termWidth, promptWidth, contWidth,
+	rows := ForEachRow(s, termWidth, promptWidth, contWidth,
 		func(s []byte, row, rowStart, rowLen, startWidth int, isWrap bool) bool {
 			width := startWidth
 			// The walk goes one past the last character, because the cursor
@@ -851,7 +859,7 @@ func wrappedRowColAtPos(s []byte, termWidth, newTermWidth, promptWidth, contWidt
 				var cw, next int
 				isCursor := pos == rowStart+i
 				if i < rowLen {
-					next, cw = nextOfs(s[rowStart:rowStart+rowLen], i)
+					next, cw = NextOfs(s[rowStart:rowStart+rowLen], i)
 				} else {
 					// A wrap draws a back arrow and carries an invisible
 					// newline, so it takes two columns.
@@ -872,16 +880,16 @@ func wrappedRowColAtPos(s []byte, termWidth, newTermWidth, promptWidth, contWidt
 					next++ // make sure the walk ends
 				}
 				if isCursor {
-					rc.rowStart = rowStart
-					rc.rowLen = rowLen
-					rc.row = hardRows + row
-					rc.col = width
-					rc.firstOnRow = i == 0
+					rc.RowStart = rowStart
+					rc.RowLen = rowLen
+					rc.Row = hardRows + row
+					rc.Col = width
+					rc.FirstOnRow = i == 0
 					last := rowLen
 					if isWrap {
 						last--
 					}
-					rc.lastOnRow = i+next >= last
+					rc.LastOnRow = i+next >= last
 				}
 				width += cw
 				i += next
@@ -934,8 +942,8 @@ func runeWidth(r rune) int {
 //
 // Ported from isocline/src/stringbuf.c.
 
-// charClass reports whether the character in s belongs to a set.
-type charClass func(s []byte) bool
+// CharClass reports whether the character in s belongs to a set.
+type CharClass func(s []byte) bool
 
 // charIsWhite reports whether s is one byte of white space.
 func charIsWhite(s []byte) bool {
@@ -960,11 +968,11 @@ const separators = " \t\r\n,.;:/\\(){}[]"
 // A zero byte counts as a separator, because the C code asks strchr and
 // strchr finds the terminating zero of the set. See charSetHas.
 func charIsSeparator(s []byte) bool {
-	return len(s) == 1 && charSetHas(separators, s[0])
+	return len(s) == 1 && CharSetHas(separators, s[0])
 }
 
-// charIsNonSeparator reports whether s does not separate words.
-func charIsNonSeparator(s []byte) bool {
+// CharIsNonSeparator reports whether s does not separate words.
+func CharIsNonSeparator(s []byte) bool {
 	return !charIsSeparator(s)
 }
 
@@ -992,10 +1000,10 @@ func charIsLetter(s []byte) bool {
 	return c >= 0x80 || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
 }
 
-// charIsIDLetter reports whether s can appear in an identifier. That is a
+// CharIsIDLetter reports whether s can appear in an identifier. That is a
 // letter, a digit, an underscore, a hyphen, or any byte from 0x80 up. The word
 // search uses this class.
-func charIsIDLetter(s []byte) bool {
+func CharIsIDLetter(s []byte) bool {
 	if len(s) == 0 {
 		return false
 	}
@@ -1007,15 +1015,15 @@ func charIsIDLetter(s []byte) bool {
 // fileNameStops is the set of bytes that cannot appear in a file name.
 const fileNameStops = " \t\r\n`@$><=;|&{}()[]"
 
-// charIsFileNameLetter reports whether s can appear in a file name.
+// CharIsFileNameLetter reports whether s can appear in a file name.
 //
 // A zero byte is not a file name letter, for the same strchr rule that makes
 // it a separator.
-func charIsFileNameLetter(s []byte) bool {
+func CharIsFileNameLetter(s []byte) bool {
 	if len(s) == 0 {
 		return false
 	}
-	return s[0] >= 0x80 || !charSetHas(fileNameStops, s[0])
+	return s[0] >= 0x80 || !CharSetHas(fileNameStops, s[0])
 }
 
 // isToken returns the length of the token that starts at pos, or -1 when pos
@@ -1024,7 +1032,7 @@ func charIsFileNameLetter(s []byte) bool {
 // A token starts at pos only when the byte in front of pos is not in the
 // class. That one byte is tested on its own, whatever character it belongs
 // to, so a position inside a multi byte character can look like a start.
-func isToken(s []byte, pos int, class charClass) int {
+func isToken(s []byte, pos int, class CharClass) int {
 	if pos < 0 || pos >= len(s) || class == nil {
 		return -1
 	}
@@ -1033,7 +1041,7 @@ func isToken(s []byte, pos int, class charClass) int {
 	}
 	i := pos
 	for i < len(s) {
-		next, _ := nextOfs(s, i)
+		next, _ := NextOfs(s, i)
 		if next <= 0 {
 			return -1
 		}
@@ -1048,7 +1056,7 @@ func isToken(s []byte, pos int, class charClass) int {
 // matchToken returns the length of the token at pos when it is exactly token,
 // and 0 otherwise. It does not match a prefix or a suffix of a longer token,
 // so matching "fun" against "function" gives 0.
-func matchToken(s []byte, pos int, class charClass, token string) int {
+func matchToken(s []byte, pos int, class CharClass, token string) int {
 	n := isToken(s, pos, class)
 	if n > 0 && n == len(token) && string(s[pos:pos+n]) == token {
 		return n
@@ -1058,7 +1066,7 @@ func matchToken(s []byte, pos int, class charClass, token string) int {
 
 // matchAnyToken returns the length of the token at pos when it is exactly one
 // of tokens, and 0 otherwise.
-func matchAnyToken(s []byte, pos int, class charClass, tokens []string) int {
+func matchAnyToken(s []byte, pos int, class CharClass, tokens []string) int {
 	n := isToken(s, pos, class)
 	if n <= 0 {
 		return 0
@@ -1077,7 +1085,7 @@ func prevChar(s []byte, pos int) int {
 	if pos < 0 || pos > len(s) {
 		return -1
 	}
-	ofs, _ := prevOfs(s, pos)
+	ofs, _ := PrevOfs(s, pos)
 	if ofs <= 0 {
 		return -1
 	}
@@ -1090,16 +1098,16 @@ func nextChar(s []byte, pos int) int {
 	if pos < 0 || pos > len(s) {
 		return -1
 	}
-	ofs, _ := nextOfs(s, pos)
+	ofs, _ := NextOfs(s, pos)
 	if ofs <= 0 {
 		return -1
 	}
 	return pos + ofs
 }
 
-// countEndOverlap returns the length of the longest prefix of postfix that is
+// CountEndOverlap returns the length of the longest prefix of postfix that is
 // also a suffix of s.
-func countEndOverlap(s, postfix string) int {
+func CountEndOverlap(s, postfix string) int {
 	for count := len(postfix); count > 0; count-- {
 		if count <= len(s) && s[len(s)-count:] == postfix[:count] {
 			return count
@@ -1124,26 +1132,26 @@ func countEndOverlap(s, postfix string) int {
 // rawBase is the first code point of the raw plane.
 const rawBase = 0xEE000
 
-// rawRune returns the raw plane code point that stands for the byte b.
-func rawRune(b byte) rune {
+// RawRune returns the raw plane code point that stands for the byte b.
+func RawRune(b byte) rune {
 	return rawBase + rune(b)
 }
 
-// rawByte returns the byte that r stands for, and reports whether r is a raw
+// RawByte returns the byte that r stands for, and reports whether r is a raw
 // plane code point at all.
-func rawByte(r rune) (byte, bool) {
+func RawByte(r rune) (byte, bool) {
 	if r >= rawBase && r <= rawBase+0xFF {
 		return byte(r - rawBase), true
 	}
 	return 0, false
 }
 
-// isCont reports whether b is a UTF-8 continuation byte.
-func isCont(b byte) bool {
+// IsCont reports whether b is a UTF-8 continuation byte.
+func IsCont(b byte) bool {
 	return b&0xC0 == 0x80
 }
 
-// appendRune appends the QUTF-8 encoding of r to dst.
+// AppendRune appends the QUTF-8 encoding of r to dst.
 //
 // A raw plane code point appends the single byte that it stands for. A code
 // point above U+10FFFF appends nothing.
@@ -1151,7 +1159,7 @@ func isCont(b byte) bool {
 // A surrogate code point is encoded rather than refused, but decodeRune will
 // not read one back. The encoder and the decoder disagree there. The C code
 // disagrees in the same way.
-func appendRune(dst []byte, r rune) []byte {
+func AppendRune(dst []byte, r rune) []byte {
 	switch {
 	case r < 0:
 		return dst
@@ -1167,7 +1175,7 @@ func appendRune(dst []byte, r rune) []byte {
 			0x80|(byte(r>>6)&0x3F),
 			0x80|(byte(r)&0x3F))
 	case r <= 0x10FFFF:
-		if b, ok := rawByte(r); ok {
+		if b, ok := RawByte(r); ok {
 			return append(dst, b)
 		}
 		return append(dst,
@@ -1179,13 +1187,13 @@ func appendRune(dst []byte, r rune) []byte {
 	return dst
 }
 
-// decodeRune reads the first character of s. It returns the character and the
+// DecodeRune reads the first character of s. It returns the character and the
 // number of bytes it used.
 //
 // A byte that does not start a valid sequence returns the raw plane code point
 // for that byte, and a count of one. Empty input returns zero and zero, where
 // the C code reads past the end of the buffer instead.
-func decodeRune(s []byte) (rune, int) {
+func DecodeRune(s []byte) (rune, int) {
 	if len(s) == 0 {
 		return 0, 0
 	}
@@ -1196,18 +1204,18 @@ func decodeRune(s []byte) (rune, int) {
 	// 0xC0 and 0xC1 start an overlong two byte sequence, and anything below
 	// them is a continuation byte with nothing in front of it.
 	if c0 > 0xC1 {
-		if c0 <= 0xDF && len(s) >= 2 && isCont(s[1]) {
+		if c0 <= 0xDF && len(s) >= 2 && IsCont(s[1]) {
 			return rune(c0&0x1F)<<6 | rune(s[1]&0x3F), 2
 		}
-		if len(s) >= 3 && isLead3(c0, s[1]) && isCont(s[2]) {
+		if len(s) >= 3 && isLead3(c0, s[1]) && IsCont(s[2]) {
 			return rune(c0&0x0F)<<12 | rune(s[1]&0x3F)<<6 | rune(s[2]&0x3F), 3
 		}
-		if len(s) >= 4 && isLead4(c0, s[1]) && isCont(s[2]) && isCont(s[3]) {
+		if len(s) >= 4 && isLead4(c0, s[1]) && IsCont(s[2]) && IsCont(s[3]) {
 			return rune(c0&0x07)<<18 | rune(s[1]&0x3F)<<12 |
 				rune(s[2]&0x3F)<<6 | rune(s[3]&0x3F), 4
 		}
 	}
-	return rawRune(c0), 1
+	return RawRune(c0), 1
 }
 
 // isLead3 reports whether c0 and c1 can start a three byte sequence.
@@ -1223,7 +1231,7 @@ func isLead3(c0, c1 byte) bool {
 	case c0 == 0xED:
 		return c1 > 0x80 && c1 <= 0x9F
 	case c0 >= 0xE1 && c0 <= 0xEF:
-		return isCont(c1)
+		return IsCont(c1)
 	}
 	return false
 }
@@ -1235,7 +1243,7 @@ func isLead4(c0, c1 byte) bool {
 	case c0 == 0xF0:
 		return c1 >= 0x90 && c1 <= 0xBF
 	case c0 >= 0xF1 && c0 <= 0xF3:
-		return isCont(c1)
+		return IsCont(c1)
 	case c0 == 0xF4:
 		return c1 >= 0x80 && c1 <= 0x8F
 	}
@@ -1253,32 +1261,32 @@ func isLead4(c0, c1 byte) bool {
 //
 // Ported from isocline/src/common.c.
 
-// asciiLower returns c in lower case, by the ASCII rule only.
-func asciiLower(c byte) byte {
+// ASCIILower returns c in lower case, by the ASCII rule only.
+func ASCIILower(c byte) byte {
 	if c >= 'A' && c <= 'Z' {
 		return c - 'A' + 'a'
 	}
 	return c
 }
 
-// compareFold compares a and b without regard to ASCII case. It returns -1, 0
+// CompareFold compares a and b without regard to ASCII case. It returns -1, 0
 // or 1.
 //
 // The length decides first. A shorter string sorts before a longer one,
 // whatever the two hold, so this is not an alphabetical order. "b" sorts
 // before "aa". Strings of equal length compare byte by byte, with the signed
 // order that compareFoldN describes.
-func compareFold(a, b string) int {
+func CompareFold(a, b string) int {
 	switch {
 	case len(a) < len(b):
 		return -1
 	case len(a) > len(b):
 		return 1
 	}
-	return compareFoldN(a, b, len(a))
+	return CompareFoldN(a, b, len(a))
 }
 
-// compareFoldN compares the first n bytes of a and b without regard to ASCII
+// CompareFoldN compares the first n bytes of a and b without regard to ASCII
 // case. It returns -1, 0 or 1.
 //
 // The bytes compare as signed values, so any byte above 0x7f sorts before
@@ -1291,13 +1299,13 @@ func compareFold(a, b string) int {
 // what the corpus records. See the note in PLAN.md.
 //
 // When a runs out before n bytes and b keeps going, the result is -1.
-func compareFoldN(a, b string, n int) int {
+func CompareFoldN(a, b string, n int) int {
 	i := 0
 	for ; i < len(a) && i < n; i++ {
-		c1 := int8(asciiLower(a[i]))
+		c1 := int8(ASCIILower(a[i]))
 		var c2 int8
 		if i < len(b) {
-			c2 = int8(asciiLower(b[i]))
+			c2 = int8(ASCIILower(b[i]))
 		}
 		switch {
 		case c1 < c2:
@@ -1312,12 +1320,12 @@ func compareFoldN(a, b string, n int) int {
 	return -1
 }
 
-// hasPrefixFold reports whether s starts with prefix, without regard to ASCII
+// HasPrefixFold reports whether s starts with prefix, without regard to ASCII
 // case.
-func hasPrefixFold(s, prefix string) bool {
+func HasPrefixFold(s, prefix string) bool {
 	i := 0
 	for ; i < len(s) && i < len(prefix); i++ {
-		if asciiLower(s[i]) != asciiLower(prefix[i]) {
+		if ASCIILower(s[i]) != ASCIILower(prefix[i]) {
 			return false
 		}
 	}
@@ -1331,15 +1339,15 @@ func indexFold(s, substr string) int {
 		return 0
 	}
 	for i := range len(s) {
-		if compareFoldN(s[i:], substr, len(substr)) == 0 {
+		if CompareFoldN(s[i:], substr, len(substr)) == 0 {
 			return i
 		}
 	}
 	return -1
 }
 
-// containsFold reports whether s holds substr, without regard to ASCII case.
-func containsFold(s, substr string) bool {
+// ContainsFold reports whether s holds substr, without regard to ASCII case.
+func ContainsFold(s, substr string) bool {
 	return indexFold(s, substr) >= 0
 }
 
@@ -1383,11 +1391,11 @@ func scanInt(s string, i int) (string, int, bool) {
 	return s[start:i], i, true
 }
 
-// atoz reads one decimal number from s.
+// Atoz reads one decimal number from s.
 //
 // A number too large for an int is not defined by C and not defined here
 // either. This returns false for it, where sscanf would store something.
-func atoz(s string) (int, bool) {
+func Atoz(s string) (int, bool) {
 	text, _, ok := scanInt(s, 0)
 	if !ok {
 		return 0, false

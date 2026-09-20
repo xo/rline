@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
 
@@ -182,7 +183,7 @@ func (t *tty) readUTF8(c0 byte) key.Code {
 			}
 		}
 	}
-	r, used := decodeRune(buf)
+	r, used := text.DecodeRune(buf)
 	for i := len(buf); i > used; {
 		i--
 		t.pushByte(buf[i])
@@ -213,7 +214,7 @@ func (t *tty) readTimeout(timeout time.Duration) (key.Code, bool) {
 	default:
 		// The input is not UTF-8, so keep the byte as a raw code point and
 		// let the encoder turn it back into that byte at the end.
-		code = key.Code(rawRune(c))
+		code = key.Code(text.RawRune(c))
 	}
 	return modifyCode(code), true
 }
@@ -374,7 +375,7 @@ func (t *tty) readEscResponse(escStart byte, finalST bool, max int) (string, boo
 			if c == '\x02' {
 				break
 			}
-			partOfNumber := (c >= '0' && c <= '9') || charSetHas("<=>?;:", c)
+			partOfNumber := (c >= '0' && c <= '9') || text.CharSetHas("<=>?;:", c)
 			if !partOfNumber {
 				// Keep the byte that ended it, which names what the answer
 				// was about.
@@ -621,7 +622,7 @@ func (t *tty) readCSINum(peek byte, timeout time.Duration) (byte, uint32) {
 // holds the modifiers found so far.
 func (t *tty) readCSI(c1, peek byte, mods key.Code, timeout time.Duration) key.Code {
 	// Linux sometimes sends a second start byte, as in ESC [ [ 15 ~ for F5.
-	if c1 == '[' && charSetHas("[Oo", peek) {
+	if c1 == '[' && text.CharSetHas("[Oo", peek) {
 		start := peek
 		if next, ok := t.readByte(timeout); ok {
 			peek = next
@@ -630,7 +631,7 @@ func (t *tty) readCSI(c1, peek byte, mods key.Code, timeout time.Duration) key.C
 	}
 	// A private sequence starts with one of these. The byte is read and kept
 	// only so that it can be put back, because nothing else uses it.
-	if charSetHas(":<=>?", peek) {
+	if text.CharSetHas(":<=>?", peek) {
 		special := peek
 		next, ok := t.readByte(timeout)
 		if !ok {
@@ -851,7 +852,7 @@ func csiMods(mods key.Code) uint32 {
 // sequence and everything from it is dropped, because the C code measures
 // what it is given with strlen.
 func (t *tty) pushBytes(s string) {
-	n := limitToLength(s)
+	n := text.LimitToLength(s)
 	if n <= 0 || len(t.pushedBytes)+n > ttyPushMax {
 		return
 	}

@@ -16,6 +16,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/xo/rline/internal/editor"
 )
 
 // menuProbePath is where tools/build-probe-completion-menu.sh puts the probe.
@@ -221,9 +223,9 @@ func menuReplay(t *testing.T) []string {
 		completions:   &completions{},
 		promptMarker:  "> ",
 		cpromptMarker: "| ",
-		opts: editOptions{
-			MatchBraces:  "()[]{}",
-			AutoBraces:   "()[]{}",
+		opts: editor.EditOptions{
+			MatchPairs:   "()[]{}",
+			AutoPairs:    "()[]{}",
 			MultilineEOL: '\\',
 		},
 		noHighlight: true,
@@ -236,7 +238,7 @@ func menuReplay(t *testing.T) []string {
 		ev.bb.styleDef(s[0], s[1])
 	}
 	ev.completions.setCompleter(menuCompleter, nil)
-	e := &editor{}
+	e := &editor.Editor{}
 
 	emit := func() string {
 		s := escapeBB(sink.Bytes())
@@ -260,19 +262,19 @@ func menuReplay(t *testing.T) []string {
 							for _, it := range set.items {
 								ev.completions.add(it.replacement, it.display, it.help, 1, 0)
 							}
-							e.input.replace("a")
-							e.extra.clear()
-							e.hint.Reset()
-							e.hintHelp.Reset()
-							e.pos = 1
-							e.termW = 41
-							e.curRows = 1
-							e.curRow = 0
-							e.promptText = "p"
-							e.modified = false
-							e.disableUndo = false
-							e.undo = editStack{}
-							e.redo = editStack{}
+							e.Input.Replace("a")
+							e.Extra.Clear()
+							e.Hint.Reset()
+							e.HintHelp.Reset()
+							e.Pos = 1
+							e.TermW = 41
+							e.CurRows = 1
+							e.CurRow = 0
+							e.PromptText = "p"
+							e.Modified = false
+							e.DisableUndo = false
+							e.Undo = editor.EditStack{}
+							e.Redo = editor.EditStack{}
 							ev.completeNoPreview = noPreview
 							ev.completeAutoTab = autoTab
 
@@ -291,7 +293,7 @@ func menuReplay(t *testing.T) []string {
 									" pos=%d input=%s left=%d pushed=%s",
 								caseno, set.name, script.name,
 								btoi(more), btoi(noPreview), btoi(autoTab), btoi(utf8),
-								emit(), e.pos, escapeBB([]byte(e.input.string())),
+								emit(), e.Pos, escapeBB([]byte(e.Input.String())),
 								ev.completions.count(), pushedCodes(ev.tty)))
 							caseno++
 						}

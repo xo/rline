@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/text"
 )
 
 const (
@@ -145,7 +148,7 @@ func checkHistoryLine(t *testing.T, line string) (string, string) {
 	case "rentry":
 		line, wantOK := p.str(), p.flag()
 		h := newTestHistory(8, true)
-		var buf buffer
+		var buf text.Buffer
 		r := bufio.NewReader(strings.NewReader(line + "\n"))
 		if got := h.readEntry(r, &buf); got != wantOK {
 			return f[0], fmt.Sprintf("readEntry(%q) reported %v, want %v", line, got, wantOK)
@@ -232,13 +235,13 @@ func checkHistoryLine(t *testing.T, line string) (string, string) {
 	case "undo":
 		in := p.list()
 		restores := p.num()
-		var s editStack
+		var s editor.EditStack
 		for i, input := range in {
-			s.capture(input, i)
+			s.Capture(input, i)
 		}
 		for i := range restores {
 			want := p.next()
-			input, pos, ok := s.restore()
+			input, pos, ok := s.Restore()
 			got := fmt.Sprintf("%d:%s:%d", boolToInt(ok), hexOrDash([]byte(input)), pos)
 			if !ok {
 				// The probe writes the C null pointer as an exclamation mark

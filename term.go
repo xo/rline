@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/xo/rline/ansi"
+	"github.com/xo/rline/internal/text"
 )
 
 // Writing to a terminal.
@@ -43,7 +44,7 @@ type term struct {
 	// Where the bytes go, and what is waiting to go there.
 	out  io.Writer
 	sz   sizer
-	buf  buffer
+	buf  text.Buffer
 	mode bufferMode
 
 	// What the terminal can do.
@@ -101,10 +102,10 @@ func newTerm(out io.Writer, opts termOptions) *term {
 		t.palette = detectPalette()
 	}
 	// COLUMNS and LINES give a better first guess than the defaults.
-	if v, ok := atoz(os.Getenv("COLUMNS")); ok {
+	if v, ok := text.Atoz(os.Getenv("COLUMNS")); ok {
 		t.width = v
 	}
-	if v, ok := atoz(os.Getenv("LINES")); ok {
+	if v, ok := text.Atoz(os.Getenv("LINES")); ok {
 		t.height = v
 	}
 	t.updateDim()
@@ -270,7 +271,7 @@ func (t *term) writeRepeat(s string, count int) {
 // cursor movements below all use it, and they only ever produce escape
 // sequences that carry no attributes.
 func (t *term) writef(format string, args ...any) {
-	t.buf.appendf(format, args...)
+	t.buf.Appendf(format, args...)
 }
 
 // beep sounds the terminal bell, unless the terminal is silent.
@@ -296,7 +297,7 @@ func (t *term) appendEsc(s []byte) {
 		}
 		t.attr = t.attr.Merge(ansi.ParseEscapeSGR(string(s)))
 	}
-	t.buf.appendString(string(s))
+	t.buf.AppendString(string(s))
 }
 
 // appendUTF8 adds one character.
@@ -305,15 +306,15 @@ func (t *term) appendEsc(s []byte) {
 // goes out as the single byte it came from. That is what carries text in some
 // other encoding through unchanged.
 func (t *term) appendUTF8(s []byte) {
-	r, _ := decodeRune(s)
-	if c, ok := rawByte(r); ok {
-		t.buf.appendByte(c)
+	r, _ := text.DecodeRune(s)
+	if c, ok := text.RawByte(r); ok {
+		t.buf.AppendByte(c)
 		return
 	}
 	// The C has two branches here, one for a terminal that reads UTF-8 and one
 	// for a terminal that does not, and they do the same thing. It sends UTF-8
 	// either way and hopes.
-	t.buf.appendString(string(s))
+	t.buf.AppendString(string(s))
 }
 
 // appendBuf adds text to the buffer, reading escape sequences as they go past
@@ -326,7 +327,7 @@ func (t *term) appendBuf(s []byte) {
 		// because an escape sequence has to be looked at.
 		ascii, next := 0, 0
 		for {
-			n, _ := nextOfs(s, pos+ascii)
+			n, _ := text.NextOfs(s, pos+ascii)
 			next = n
 			if next <= 0 {
 				break
@@ -337,7 +338,7 @@ func (t *term) appendBuf(s []byte) {
 			ascii += next
 		}
 		if ascii > 0 {
-			t.buf.appendString(string(s[pos : pos+ascii]))
+			t.buf.AppendString(string(s[pos : pos+ascii]))
 			pos += ascii
 		}
 		if next <= 0 {
@@ -357,7 +358,7 @@ func (t *term) appendBuf(s []byte) {
 			if c == '\n' {
 				newline = true
 			}
-			t.buf.appendString(string(s[pos : pos+next]))
+			t.buf.AppendString(string(s[pos : pos+next]))
 		}
 		pos += next
 	}
@@ -370,11 +371,11 @@ func (t *term) appendBuf(s []byte) {
 
 // flush writes out everything that has collected.
 func (t *term) flush() {
-	if t.buf.length() == 0 {
+	if t.buf.Length() == 0 {
 		return
 	}
-	_, _ = t.out.Write(t.buf.bytes())
-	t.buf.clear()
+	_, _ = t.out.Write(t.buf.Bytes())
+	t.buf.Clear()
 }
 
 // setBufferMode changes when output is written out, and returns the mode it
@@ -395,7 +396,7 @@ func (t *term) setBufferMode(mode bufferMode) bufferMode {
 // has collected that waiting is no longer worth it.
 func (t *term) checkFlush(containsNewline bool) {
 	if t.mode == unbuffered ||
-		t.buf.length() > flushAt ||
+		t.buf.Length() > flushAt ||
 		(t.mode == lineBuffered && containsNewline) {
 		t.flush()
 	}

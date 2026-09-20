@@ -177,13 +177,13 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 
 1. `common.c` and `common.h`. Done. The allocator, the `memmove` wrappers and
    the `strlen` wrappers are gone, because Go collects garbage and carries the
-   length of a slice. What survives is the QUTF-8 codec in `text.go` and the
-   ASCII case rules in `text.go`. Neither matches the standard library.
+   length of a slice. What survives is the QUTF-8 codec and the ASCII case
+   rules, both in `internal/text`. Neither matches the standard library.
    `tools/build-probe.sh` builds a probe that prints what the C functions
-   return, and `testdata/common.txt` records 18576 of those calls.
-2. `wcwidth.c`. Not ported. `text.go` calls `github.com/mattn/go-runewidth`
-   instead. `testdata/wcwidth.txt` records the width that the C code gives
-   every code point, and `testdata/wcwidth-delta.txt` records the 150 ranges
+   return, and `internal/text/testdata/common.txt` records 18576 of those calls.
+2. `wcwidth.c`. Not ported. `internal/text/text.go` calls `github.com/mattn/go-runewidth`
+   instead. `internal/text/testdata/wcwidth.txt` records the width that the C code gives
+   every code point, and `internal/text/testdata/wcwidth-delta.txt` records the 150 ranges
    where go-runewidth answers differently. `TestWidthDelta` keeps that record
    current, so an upgrade of go-runewidth shows up as a change to a committed
    file.
@@ -191,9 +191,9 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    character, not by byte, together with the width, navigation and row and
    column code that the edit loop draws from. The allocator and the growth
    policy are gone, because a Go slice grows on demand. What survives is in
-   `text.go`, `text.go`, `text.go`, `text.go`, `text.go` and
-   `text.go`. `tools/build-probe-stringbuf.sh` builds a second probe, and
-   `testdata/stringbuf.txt` records 76164 of those calls.
+   `internal/text`, which is where all six of the C files it came from
+   landed. `tools/build-probe-stringbuf.sh` builds a second probe, and
+   `internal/text/testdata/stringbuf.txt` records 76164 of those calls.
 4. `tty.c` and `tty_esc.c`. The decoding half is done. `tty_esc.c` is ported
    whole, in `tty.go`. From `tty.c` what is ported is the key codes, now
    the exported `key` package, and the reader in `tty.go`: the two pushback
@@ -248,7 +248,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    eighth probe, and `testdata/bbcode.txt` records 79 pieces of markup, each
    one parsed, measured and printed.
 8. `history.c` and `undo.c`. Done. `history.go` holds the list of lines the
-   user typed and the file it is kept in, and `editor.go` the stack of saved
+   user typed and the file it is kept in, and `internal/editor/editor.go` the stack of saved
    lines that stepping back through edits uses. The C keeps the list in a
    fixed array with its own count; a Go slice carries both.
    `tools/build-probe-history.sh` builds a fifth probe, and
@@ -286,11 +286,11 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    the cursor and its partner. `tools/build-probe-highlight.sh` builds the
    ninth probe, and `testdata/highlight.txt` records 2346 cases: every line in
    its corpus, against five sets of brace pairs, at every cursor position.
-11. `editline.c`. Started. `editor.go` holds the state of a line being
+11. `editline.c`. Started. `internal/editor/editor.go` holds the state of a line being
     edited and every operation that changes it: moving the cursor, the eleven
     kinds of delete, swapping, inserting with the brace that closes itself,
     and the undo and redo stacks. `tools/build-probe-editline.sh` builds the
-    tenth probe, and `testdata/editline.txt` records 4177 operations, each one
+    tenth probe, and `internal/editor/testdata/editline.txt` records 4177 operations, each one
     run against thirteen lines at every cursor position.
 
     Each operation here changes the text and the cursor and nothing else. The
@@ -420,7 +420,7 @@ The markup parser has no fuzz test yet.
 Pin the Unicode version that the width tables use. The golden files change when
 that version changes.
 
-`testdata/stringbuf-delta.txt` holds the recorded calls whose answer differs
+`internal/text/testdata/stringbuf-delta.txt` holds the recorded calls whose answer differs
 because the port measures width with go-runewidth. There are 86 of them, all
 for the two byte form of U+0080, which the C table calls width -1 and
 go-runewidth calls width 0. `TestStringbufPort` fails a width difference in any
@@ -1327,16 +1327,6 @@ The branch is kept because it becomes live the day the scanning loop accepts
 something ParseUint does not, a "0x" prefix or a digit outside ASCII, and it
 now says so in place, so the next sweep does not spend an hour on it.
 
-Code that no recording reaches at all, found by looking rather than by a
-failure. `ansi.ParseANSI256` reads a palette index out of text, and
-`testdata/bbcode.txt` holds no `ansi-color` tag, no `ansi-sgr` and no
-`bgcolor=`, so the whole 130,000 line corpus never calls it. The decimal scan
-behind it was written out again when the code moved packages, which is the
-worst combination: a reimplementation with nothing watching. `names_test.go`
-now pins both readers against what the C's sscanf does — leading space, an
-optional sign, digits, and whatever follows ignored — and five mutations of
-the scan, the hex reader and the range check are all caught.
-
 Code that answered nothing where the C answers something, found by a reader
 rather than a test. `ansi.scanHex` carried the comment "sscanf into a 32 bit
 value keeps the low bits of a longer number", and for up to sixteen hex
@@ -1350,6 +1340,15 @@ the low bits and wrong about where they stop: "#123456789" is 0x23456789 and
 "#100000000" is black, not a refusal. The measured answers are now in
 `names_test.go` as the expectations, and the comment says which library was
 measured, because the C standard leaves an unrepresentable value undefined.
+
+A file that only one platform compiles. Qualifying every call after `text.go`
+moved to `internal/text` was done with the compiler as the oracle, and the
+compiler on this machine never reads `sys_windows.go`. It still called
+`limitToLength`, which no longer exists, and the whole suite passed green.
+The cross-vet loop over eleven GOOS and GOARCH pairs caught it, which is the
+job it was added for. Anything that edits call sites across the package has
+to end with that loop and not with `go test`, because a build tag is a
+perfectly good place for a rename to hide.
 
 A refactor whose one behavioural change the whole corpus is blind to.
 Rewriting `updateProperty` to assign fields instead of writing through
@@ -1637,24 +1636,43 @@ one function over a corpus that lives in `testdata`.
 
 ## Where things live
 
-Two packages. `ansi` holds what a terminal understands. `ansi.go` has colors, the
-palette, and the reduction that finds the nearest color a terminal can show;
-`attr.go` has the attribute that carries a color and reads one out of an SGR
-escape sequence; `attrbuf.go` has a run of attributes, one per byte;
-`names.go` has the 172 color names and reads a color out of written text. It
-depends on nothing outside the standard library, and a caller can use it on
-its own.
+Four packages, and only one of them is public.
 
-`rline` is everything else: twenty source files and seventeen test files. The
-layout follows
-what a reader is looking for rather than what the C file it came from was
-called, so several C files land in one Go file and the header of each says
-which.
+`ansi` holds what a terminal understands. `ansi.go` has colors, the palette,
+and the reduction that finds the nearest color a terminal can show; `attr.go`
+has the attribute that carries a color and reads one out of an SGR escape
+sequence; `attrbuf.go` has a run of attributes, one per byte; `names.go` has
+the 172 color names and reads a color out of written text. It depends on
+nothing outside the standard library, and a caller can use it on its own.
+
+`internal/text` is the bytes below everything: the buffer a line is edited in,
+the widths, the word and line boundaries, the rows and columns, the QUTF-8
+codec, and in `brace.go` the matching of one bracket to its partner, which both
+the editor and the highlighter ask for. It calls nothing outside the standard
+library.
+
+`internal/editor` is a line being edited and the operations that change it,
+with the undo stack behind them. It depends on `internal/text` and on `ansi`
+and on nothing else.
+
+Both are `internal` on purpose. Moving the editor out of `rline` exports 42 of
+its members, fourteen of them fields that the redraw path, history search and
+completion write to directly. Under `internal` that is a layout; under
+`rline/editor` it would be a public API frozen by the first tagged release,
+for a library whose whole selling point is being a drop-in replacement. Gemini
+and DeepSeek were asked separately and both said the same thing unprompted:
+that a type which must export 42 members is a struct that has been moved
+rather than a boundary that has been drawn, and that `internal` is where it
+belongs until the fields become methods. If that refactor ever happens and the
+count falls under about fifteen, the package can be promoted without moving a
+line.
+
+`rline` is everything else. The layout follows what a reader is looking for
+rather than what the C file it came from was called, so several C files land
+in one Go file and the header of each says which.
 
   rline.go       the public interface, and the session log
   prompt.go      reading one line: drawing, the hint, resize, dispatch, help
-  editor.go      the line being edited, its operations and the undo stack
-  text.go        the buffer, widths, word and line boundaries, rows and columns
   comp.go        completions, completers and file names
   menu.go        the menu of completions, which reads its own keys
   history.go     the history list, its file, walking and searching

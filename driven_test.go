@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
 
@@ -143,10 +145,10 @@ func feedWith(t *testing.T, keys string, opt feedOpts) (string, int, key.Code) {
 func feedSession(t *testing.T, keys string, opt feedOpts) (string, int, key.Code, string) {
 	t.Helper()
 	ev, sink := feedEnv(t, keys, opt)
-	e := &editor{opts: ev.opts, termW: 80, curRows: 1}
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
 	c := ev.runEditLoop(e)
 	ev.term.flush()
-	return e.input.string(), e.pos, c, sink.String()
+	return e.Input.String(), e.Pos, c, sink.String()
 }
 
 // feedEnv builds an editor environment that reads the keys and writes to a
@@ -165,9 +167,9 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 		completions:   &completions{},
 		promptMarker:  "> ",
 		cpromptMarker: "> ",
-		opts: editOptions{
-			MatchBraces:  DefaultMatchBraces,
-			AutoBraces:   DefaultAutoBraces,
+		opts: editor.EditOptions{
+			MatchPairs:   DefaultMatchPairs,
+			AutoPairs:    DefaultAutoPairs,
 			MultilineEOL: DefaultMultilineEOL,
 		},
 		noHighlight:  true,
@@ -379,9 +381,9 @@ func TestInputThatIsNotUTF8(t *testing.T) {
 			}
 			// Handing the line to a terminal that does not read UTF-8 gives
 			// back the bytes it sent.
-			var b buffer
-			b.replace(got)
-			if decoded := string(b.decodeFromLocale()); decoded != test.want {
+			var b text.Buffer
+			b.Replace(got)
+			if decoded := string(b.DecodeFromLocale()); decoded != test.want {
 				t.Errorf("the line came back as %q, want %q", decoded, test.want)
 			}
 		})
@@ -407,9 +409,9 @@ func TestBytesThatLookLikeUTF8AreMergedIntoOne(t *testing.T) {
 	if cursor != 2 {
 		t.Errorf("the cursor is at %d, want 2", cursor)
 	}
-	var b buffer
-	b.replace(got)
-	if decoded := string(b.decodeFromLocale()); decoded != "" {
+	var b text.Buffer
+	b.Replace(got)
+	if decoded := string(b.DecodeFromLocale()); decoded != "" {
 		t.Errorf("the line came back as %q; the merge is supposed to lose it, "+
 			"so if this now round trips the format has been fixed and this test "+
 			"should say so", decoded)

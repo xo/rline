@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/xo/rline/internal/text"
 	"golang.org/x/sys/unix"
 )
 
@@ -252,7 +253,7 @@ func localeIsUTF8() bool {
 			break
 		}
 	}
-	return containsFold(loc, "UTF-8") || containsFold(loc, "utf8") || compareFold(loc, "C") == 0
+	return text.ContainsFold(loc, "UTF-8") || text.ContainsFold(loc, "utf8") || text.CompareFold(loc, "C") == 0
 }
 
 // openTTY opens the terminal on fd and returns a tty that reads keys from it.

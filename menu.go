@@ -25,14 +25,16 @@ package rline
 import (
 	"fmt"
 
+	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
 
 // appendTagged writes content wrapped in a markup tag.
-func appendTagged(b *buffer, tag, content string) {
-	b.appendf("[%s]", tag)
-	b.appendString(content)
-	b.appendString("[/]")
+func appendTagged(b *text.Buffer, tag, content string) {
+	b.Appendf("[%s]", tag)
+	b.AppendString(content)
+	b.AppendString("[/]")
 }
 
 // appendCompletion writes one entry of the menu into the extra buffer.
@@ -40,7 +42,7 @@ func appendTagged(b *buffer, tag, content string) {
 // A width above zero puts the entry in a column of that width, so that the
 // entries line up. Below zero means a plain list, where each entry takes as
 // much room as it needs.
-func (ev *env) appendCompletion(e *editor, index, width int, numbered, selected bool) {
+func (ev *env) appendCompletion(e *editor.Editor, index, width int, numbered, selected bool) {
 	display, help, ok := ev.completions.displayAt(index)
 	if !ok {
 		return
@@ -53,37 +55,37 @@ func (ev *env) appendCompletion(e *editor, index, width int, numbered, selected 
 				marker = "→"
 			}
 		}
-		e.extra.appendf("[ic-info]%s%d [/]", marker, 1+index)
+		e.Extra.Appendf("[ic-info]%s%d [/]", marker, 1+index)
 		width -= 3
 	}
 	if width > 0 {
-		e.extra.appendf("[width=\"%d;left; ;on\"]", width)
+		e.Extra.Appendf("[width=\"%d;left; ;on\"]", width)
 	}
 	if selected {
-		e.extra.appendString("[ic-emphasis]")
+		e.Extra.AppendString("[ic-emphasis]")
 	}
-	e.extra.appendString(display)
+	e.Extra.AppendString(display)
 	if selected {
-		e.extra.appendString("[/ic-emphasis]")
+		e.Extra.AppendString("[/ic-emphasis]")
 	}
 	// An empty help is treated as no help. The C keeps an absent help apart
 	// from an empty one and draws the empty one as two spaces and an empty
 	// tag, but a Go caller cannot pass the absence of a string, the same way
 	// it cannot for the display.
 	if help != "" {
-		e.extra.appendString("  ")
-		appendTagged(&e.extra, "ic-info", help)
+		e.Extra.AppendString("  ")
+		appendTagged(&e.Extra, "ic-info", help)
 	}
 	if width > 0 {
-		e.extra.appendString("[/width]")
+		e.Extra.AppendString("[/width]")
 	}
 }
 
 // appendCompletionRow writes one row of a two or three column menu.
-func (ev *env) appendCompletionRow(e *editor, colWidth, selected int, indexes ...int) {
+func (ev *env) appendCompletionRow(e *editor.Editor, colWidth, selected int, indexes ...int) {
 	for i, index := range indexes {
 		if i > 0 {
-			e.extra.appendString("  ")
+			e.Extra.AppendString("  ")
 		}
 		ev.appendCompletion(e, index, colWidth, true, index == selected)
 	}
@@ -115,7 +117,7 @@ func (ev *env) completionsMaxWidth(count int) int {
 //
 // moreAvailable says the completer stopped early because it had offered as
 // many as it was asked for, so there may be others it never reached.
-func (ev *env) completionMenu(e *editor, moreAvailable bool) {
+func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 	count := ev.completions.count()
 	// How many of them the layout chose to show. Every branch of the layout
 	// sets it before anything reads it, which is why it starts at nothing
@@ -134,7 +136,7 @@ func (ev *env) completionMenu(e *editor, moreAvailable bool) {
 	// unless one of the branches below dealt with it and set it to zero.
 	var c key.Code
 	for {
-		e.extra.clear()
+		e.Extra.Clear()
 		// One less than the terminal is wide, so that a full row does not
 		// wrap.
 		twidth := ev.term.getWidth() - 1
@@ -147,7 +149,7 @@ func (ev *env) completionMenu(e *editor, moreAvailable bool) {
 			perColumn := 3
 			for rw := range perColumn {
 				if rw > 0 {
-					e.extra.appendString("\n")
+					e.Extra.AppendString("\n")
 				}
 				ev.appendCompletionRow(e, col3, selected,
 					rw, perColumn+rw, (2*perColumn)+rw)
@@ -161,7 +163,7 @@ func (ev *env) completionMenu(e *editor, moreAvailable bool) {
 			}
 			for rw := range perColumn {
 				if rw > 0 {
-					e.extra.appendString("\n")
+					e.Extra.AppendString("\n")
 				}
 				ev.appendCompletionRow(e, col2, selected, rw, perColumn+rw)
 			}
@@ -170,17 +172,17 @@ func (ev *env) completionMenu(e *editor, moreAvailable bool) {
 			countDisplayed = min(count, 9)
 			for i := range countDisplayed {
 				if i > 0 {
-					e.extra.appendString("\n")
+					e.Extra.AppendString("\n")
 				}
 				ev.appendCompletion(e, i, -1, true, selected == i)
 			}
 		}
 		if count > countDisplayed {
 			if moreAvailable {
-				e.extra.appendString(
+				e.Extra.AppendString(
 					"\n[ic-info](press page-down (or ctrl-j) to see all further completions)[/]")
 			} else {
-				e.extra.appendf(
+				e.Extra.Appendf(
 					"\n[ic-info](press page-down (or ctrl-j) to see all %d completions)[/]", count)
 			}
 		}
@@ -193,7 +195,7 @@ func (ev *env) completionMenu(e *editor, moreAvailable bool) {
 			// the line in the buffer are the same thing, so the undo stack is
 			// what keeps the real line safe while the menu is open.
 			if ev.complete(e, selected) {
-				e.undoRestore(false)
+				e.UndoRestore(false)
 			}
 		} else {
 			ev.refresh(e)
@@ -208,7 +210,7 @@ func (ev *env) completionMenu(e *editor, moreAvailable bool) {
 		if ev.tty.resizeEvent() {
 			ev.resize(e)
 		}
-		e.extra.clear()
+		e.Extra.Clear()
 
 		// A digit picks that entry outright.
 		if c >= '1' && c <= '9' {
@@ -271,10 +273,10 @@ func (ev *env) completionMenu(e *editor, moreAvailable bool) {
 
 // showAllCompletions prints every completion above the line, rather than the
 // first nine below it.
-func (ev *env) showAllCompletions(e *editor, count *int, moreAvailable bool) {
+func (ev *env) showAllCompletions(e *editor.Editor, count *int, moreAvailable bool) {
 	if moreAvailable {
 		// Ask for the rest of them before showing the list.
-		*count = ev.completions.generate(e.input.string(), e.pos, maxCompletionsToShow)
+		*count = ev.completions.generate(e.Input.String(), e.Pos, maxCompletionsToShow)
 	}
 	_, rc := ev.rowCol(e)
 	ev.clear(e)
@@ -290,9 +292,9 @@ func (ev *env) showAllCompletions(e *editor, count *int, moreAvailable bool) {
 	} else {
 		ev.bb.print(fmt.Sprintf("[ic-info](%d possible completions)[/]\n", *count))
 	}
-	for range rc.row + 1 {
+	for range rc.Row + 1 {
 		ev.term.write(" \n")
 	}
-	e.curRows = 0
+	e.CurRows = 0
 	ev.refresh(e)
 }

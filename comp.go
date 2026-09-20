@@ -13,6 +13,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
 
@@ -270,7 +272,7 @@ func (c *completions) hintAt(index int) (string, string, bool) {
 		return "", "", false
 	}
 	hint := cm.replacement[cm.deleteBefore:]
-	if hint == "" || isCont(hint[0]) {
+	if hint == "" || text.IsCont(hint[0]) {
 		return "", "", false
 	}
 	return hint, cm.help, true
@@ -279,7 +281,7 @@ func (c *completions) hintAt(index int) (string, string, bool) {
 // apply puts the completion at index into buf, and returns where the cursor
 // should end up. It returns applyFail when there is no such completion, and
 // applyNoop when the line already held it.
-func (c *completions) apply(index int, buf *buffer, pos int) int {
+func (c *completions) apply(index int, buf *text.Buffer, pos int) int {
 	cm, ok := c.get(index)
 	if !ok {
 		return applyFail
@@ -288,11 +290,11 @@ func (c *completions) apply(index int, buf *buffer, pos int) int {
 }
 
 // applyCompletion puts one completion into buf.
-func applyCompletion(cm *completion, buf *buffer, pos int) int {
+func applyCompletion(cm *completion, buf *text.Buffer, pos int) int {
 	start := max(pos-cm.deleteBefore, 0)
 	n := cm.deleteBefore + cm.deleteAfter
-	if len(cm.replacement) == n && start >= 0 && start+n <= buf.length() &&
-		string(buf.bytes()[start:start+n]) == cm.replacement {
+	if len(cm.replacement) == n && start >= 0 && start+n <= buf.Length() &&
+		string(buf.Bytes()[start:start+n]) == cm.replacement {
 		// The line already reads this way.
 		if cm.deleteAfter > 0 {
 			// The completion happened inside a word, so the cursor still has
@@ -301,8 +303,8 @@ func applyCompletion(cm *completion, buf *buffer, pos int) int {
 		}
 		return applyNoop
 	}
-	buf.deleteFromTo(start, pos+cm.deleteAfter)
-	return buf.insertAt(cm.replacement, start)
+	buf.DeleteFromTo(start, pos+cm.deleteAfter)
+	return buf.InsertAt(cm.replacement, start)
 }
 
 // sort puts the completions in the order the menu shows them, which is by
@@ -314,13 +316,13 @@ func applyCompletion(cm *completion, buf *buffer, pos int) int {
 // depends on it either way.
 func (c *completions) sort() {
 	slices.SortStableFunc(c.items, func(a, b completion) int {
-		return compareFold(a.replacement, b.replacement)
+		return text.CompareFold(a.replacement, b.replacement)
 	})
 }
 
 // applyLongestPrefix puts in as much as every completion agrees on, so that
 // pressing Tab with several matches fills in the part they share.
-func (c *completions) applyLongestPrefix(buf *buffer, pos int) int {
+func (c *completions) applyLongestPrefix(buf *text.Buffer, pos int) int {
 	if len(c.items) <= 1 {
 		return c.apply(0, buf, pos)
 	}
@@ -358,7 +360,7 @@ func (c *completions) applyLongestPrefix(buf *buffer, pos int) int {
 	shared := completion{
 		replacement:  prefix,
 		deleteBefore: deleteBefore,
-		deleteAfter:  countEndOverlap(prefix, buf.stringFrom(pos)),
+		deleteAfter:  text.CountEndOverlap(prefix, buf.StringFrom(pos)),
 	}
 	newPos := applyCompletion(&shared, buf, pos)
 	if newPos < 0 {
@@ -392,22 +394,13 @@ func (c *completions) generate(input string, pos, maxOffers int) int {
 // ignoring case. It stops early once no more are accepted.
 func addCompletions(cenv *Completion, prefix string, completions []string) bool {
 	for _, completion := range completions {
-		if hasPrefixFold(completion, prefix) {
+		if text.HasPrefixFold(completion, prefix) {
 			if !cenv.add(completion, "", "", 0, 0) {
 				return false
 			}
 		}
 	}
 	return true
-}
-
-// stringFrom returns the contents of b from pos onwards, or nothing when pos
-// is outside it.
-func (b *buffer) stringFrom(pos int) string {
-	if pos < 0 || pos > len(b.buf) {
-		return ""
-	}
-	return string(b.buf[pos:])
 }
 
 // hasCompletions reports whether anything has been offered yet.
@@ -450,14 +443,14 @@ const defaultEscapeChar = '\\'
 //
 // isWordChar says what a word is made of. Passing nil means anything that is
 // not a separator.
-func completeWord(cenv *Completion, prefix string, fun Completer, isWordChar charClass) {
+func completeWord(cenv *Completion, prefix string, fun Completer, isWordChar text.CharClass) {
 	if isWordChar == nil {
-		isWordChar = charIsNonSeparator
+		isWordChar = text.CharIsNonSeparator
 	}
 	p := []byte(prefix)
 	pos := len(p)
 	for pos > 0 {
-		ofs, _ := prevOfs(p, pos)
+		ofs, _ := text.PrevOfs(p, pos)
 		if ofs <= 0 {
 			break
 		}
@@ -491,7 +484,7 @@ func withWordPrefix(cenv *Completion, deleteBeforeAdjust int,
 		replacement = fix(replacement)
 		return prev(replacement, display, help,
 			deleteBeforeAdjust+deleteBefore,
-			countEndOverlap(replacement, postfix)+deleteAfter)
+			text.CountEndOverlap(replacement, postfix)+deleteAfter)
 	}
 	fun.Complete(cenv, word)
 	cenv.add = prev
@@ -499,17 +492,17 @@ func withWordPrefix(cenv *Completion, deleteBeforeAdjust int,
 
 // completeQWord is completeWord for a word that may be quoted, with the usual
 // backslash escape and single or double quotes.
-func completeQWord(cenv *Completion, prefix string, fun Completer, isWordChar charClass) {
+func completeQWord(cenv *Completion, prefix string, fun Completer, isWordChar text.CharClass) {
 	completeQWordEx(cenv, prefix, fun, isWordChar, defaultEscapeChar, defaultQuoteChars)
 }
 
 // completeQWordEx is completeQWord with the escape character and the quotes
 // named by the caller. An empty quoteChars means the default pair.
 func completeQWordEx(cenv *Completion, prefix string, fun Completer,
-	isWordChar charClass, escape byte, quoteChars string,
+	isWordChar text.CharClass, escape byte, quoteChars string,
 ) {
 	if isWordChar == nil {
-		isWordChar = charIsNonSeparator
+		isWordChar = text.CharIsNonSeparator
 	}
 	if quoteChars == "" {
 		quoteChars = defaultQuoteChars
@@ -522,7 +515,7 @@ func completeQWordEx(cenv *Completion, prefix string, fun Completer,
 		// stepping over anything that is escaped.
 		pos = len(p)
 		for pos > 0 {
-			ofs, _ := prevOfs(p, pos)
+			ofs, _ := text.PrevOfs(p, pos)
 			if ofs <= 0 {
 				break
 			}
@@ -558,14 +551,14 @@ func completeQWordEx(cenv *Completion, prefix string, fun Completer,
 // It counts the quotes from the front rather than looking backwards, because
 // only an odd count, or a closing quote with nothing but word characters
 // after it, means the cursor is inside a quoted word.
-func findQuotedWord(p []byte, isWordChar charClass, escape byte, quoteChars string) (byte, int, int) {
+func findQuotedWord(p []byte, isWordChar text.CharClass, escape byte, quoteChars string) (byte, int, int) {
 	var quote byte
 	openAt, closeAt, count := -1, -1, 0
 	for pos := 0; pos < len(p); {
 		switch {
-		case p[pos] == escape && byteAt(p, pos+1) != 0 && !isWordChar(p[pos+1:pos+2]):
+		case p[pos] == escape && text.ByteAt(p, pos+1) != 0 && !isWordChar(p[pos+1:pos+2]):
 			pos++ // step over the escape and whatever it escapes
-		case count%2 == 0 && charSetHas(quoteChars, p[pos]):
+		case count%2 == 0 && text.CharSetHas(quoteChars, p[pos]):
 			openAt, quote = pos, p[pos]
 			count++
 		case count%2 == 1 && p[pos] == quote:
@@ -576,7 +569,7 @@ func findQuotedWord(p []byte, isWordChar charClass, escape byte, quoteChars stri
 			// it belongs to an earlier word.
 			closeAt = -1
 		}
-		ofs, _ := nextOfs(p, pos)
+		ofs, _ := text.NextOfs(p, pos)
 		if ofs <= 0 {
 			break
 		}
@@ -598,17 +591,17 @@ func findQuotedWord(p []byte, isWordChar charClass, escape byte, quoteChars stri
 // while keeping its idea of the length, so the walk carries on over what is
 // left. This keeps a buffer of that fixed length with a terminating zero and
 // does the same, then takes the string up to that zero.
-func unescapeWord(word []byte, isWordChar charClass, escape byte) []byte {
+func unescapeWord(word []byte, isWordChar text.CharClass, escape byte) []byte {
 	wlen := len(word)
 	buf := make([]byte, wlen+1)
 	copy(buf, word)
 	wpos := 0
 	for wpos < wlen {
-		ofs, _ := nextOfs(buf[:wlen], wpos)
+		ofs, _ := text.NextOfs(buf[:wlen], wpos)
 		if ofs <= 0 {
 			break
 		}
-		if buf[wpos] == escape && byteAt(buf, wpos+1) != 0 &&
+		if buf[wpos] == escape && text.ByteAt(buf, wpos+1) != 0 &&
 			!isWordChar(buf[wpos+1:min(wpos+1+ofs, len(buf))]) {
 			copy(buf[wpos:], buf[wpos+1:])
 		}
@@ -635,26 +628,26 @@ func indexZero(b []byte) int {
 //
 // Inside a quote it only needs the closing quote. Outside one, every
 // character that is not part of a word gets the escape in front of it.
-func requoteReplacement(replacement string, quote byte, isWordChar charClass, escape byte) string {
-	var buf buffer
-	buf.replace(replacement)
+func requoteReplacement(replacement string, quote byte, isWordChar text.CharClass, escape byte) string {
+	var buf text.Buffer
+	buf.Replace(replacement)
 	if quote != 0 {
-		buf.appendByte(quote)
-		return buf.string()
+		buf.AppendByte(quote)
+		return buf.String()
 	}
 	pos := 0
 	for {
-		next, _ := buf.nextOfs(pos)
+		next, _ := buf.NextOfs(pos)
 		if next <= 0 {
 			break
 		}
-		if !isWordChar(buf.bytes()[pos : pos+next]) {
-			buf.insertByteAt(escape, pos)
+		if !isWordChar(buf.Bytes()[pos : pos+next]) {
+			buf.InsertByteAt(escape, pos)
 			pos++
 		}
 		pos += next
 	}
-	return buf.string()
+	return buf.String()
 }
 
 // --------------------------------------------------------------------------
@@ -955,7 +948,7 @@ func completeInDir(cenv *Completion, noColor bool, dir, dirPrefix, base string,
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if name == "." || name == ".." || !hasPrefixFold(name, base) {
+		if name == "." || name == ".." || !text.HasPrefixFold(name, base) {
 			continue
 		}
 		full := dir + string(dirSeparator) + name
@@ -1037,7 +1030,7 @@ func completeFilename(cenv *Completion, prefix string, noColor bool,
 	inner := CompleterFunc(func(cenv *Completion, word string) {
 		filenameCompleter(cenv, word, noColor, dirSep, roots, extensions)
 	})
-	completeQWordEx(cenv, prefix, inner, charIsFileNameLetter, defaultEscapeChar, defaultQuoteChars)
+	completeQWordEx(cenv, prefix, inner, text.CharIsFileNameLetter, defaultEscapeChar, defaultQuoteChars)
 }
 
 // --------------------------------------------------------------------------
@@ -1054,24 +1047,24 @@ func completeFilename(cenv *Completion, prefix string, noColor bool,
 
 // completionCommit settles the undo stack after a completion was applied, and
 // reports whether the line or the cursor actually moved.
-func completionCommit(e *editor, newPos int) bool {
+func completionCommit(e *editor.Editor, newPos int) bool {
 	switch newPos {
 	case applyFail:
-		e.undoRestore(false)
+		e.UndoRestore(false)
 		return false
 	case applyNoop:
-		e.undoForget()
+		e.UndoForget()
 		return false
 	}
-	e.pos = newPos
+	e.Pos = newPos
 	return true
 }
 
 // complete applies the completion at index and draws the result, reporting
 // whether anything changed.
-func (ev *env) complete(e *editor, index int) bool {
-	e.startModify()
-	newPos := ev.completions.apply(index, &e.input, e.pos)
+func (ev *env) complete(e *editor.Editor, index int) bool {
+	e.StartModify()
+	newPos := ev.completions.apply(index, &e.Input, e.Pos)
 	changed := completionCommit(e, newPos)
 	switch {
 	case changed:
@@ -1085,19 +1078,19 @@ func (ev *env) complete(e *editor, index int) bool {
 }
 
 // completeLongestPrefix puts in as much as every completion agrees on.
-func (ev *env) completeLongestPrefix(e *editor) {
-	e.startModify()
-	completionCommit(e, ev.completions.applyLongestPrefix(&e.input, e.pos))
+func (ev *env) completeLongestPrefix(e *editor.Editor) {
+	e.StartModify()
+	completionCommit(e, ev.completions.applyLongestPrefix(&e.Input, e.Pos))
 }
 
 // generateCompletions offers completions for the word at the cursor. When
 // autoTab is set the caller asked for this rather than the user, so nothing
 // to complete passes quietly instead of beeping.
-func (ev *env) generateCompletions(e *editor, autoTab bool) {
-	if e.pos < 0 {
+func (ev *env) generateCompletions(e *editor.Editor, autoTab bool) {
+	if e.Pos < 0 {
 		return
 	}
-	count := ev.completions.generate(e.input.string(), e.pos, maxCompletionsToTry)
+	count := ev.completions.generate(e.Input.String(), e.Pos, maxCompletionsToTry)
 	// The completer was asked to stop once it had this many, so reaching the
 	// limit means there are probably others it never offered.
 	moreAvailable := count >= maxCompletionsToTry

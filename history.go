@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
 
@@ -217,7 +219,7 @@ func (h *history) load() error {
 	}
 	defer func() { _ = f.Close() }()
 	r := bufio.NewReader(f)
-	var buf buffer
+	var buf text.Buffer
 	for {
 		if _, err := r.Peek(1); err != nil {
 			if errors.Is(err, io.EOF) {
@@ -345,8 +347,8 @@ func (h *history) save() (err error) {
 //
 // An empty line, and a line that starts with '#', are skipped without being
 // added.
-func (h *history) readEntry(r *bufio.Reader, buf *buffer) bool {
-	buf.clear()
+func (h *history) readEntry(r *bufio.Reader, buf *text.Buffer) bool {
+	buf.Clear()
 	for {
 		c, err := r.ReadByte()
 		if err != nil || c == '\n' {
@@ -360,33 +362,33 @@ func (h *history) readEntry(r *bufio.Reader, buf *buffer) bool {
 		case '\r':
 			// Dropped, so that a file written on Windows still reads.
 		default:
-			buf.appendByte(c)
+			buf.AppendByte(c)
 		}
 	}
-	if buf.length() == 0 || buf.charAt(0) == '#' {
+	if buf.Length() == 0 || buf.CharAt(0) == '#' {
 		return true
 	}
-	return h.push(buf.string())
+	return h.push(buf.String())
 }
 
 // readEscape reads what follows a backslash. It reports false for an escape
 // that is not one of the four, or for a hexadecimal escape without two digits
 // after it.
-func readEscape(r *bufio.Reader, buf *buffer) bool {
+func readEscape(r *bufio.Reader, buf *text.Buffer) bool {
 	c, err := r.ReadByte()
 	if err != nil {
 		return false
 	}
 	switch c {
 	case 'n':
-		buf.appendString("\n")
+		buf.AppendString("\n")
 	case 'r':
 		// Dropped. Nothing writes this, because a carriage return is dropped
 		// on the way out as well.
 	case 't':
-		buf.appendString("\t")
+		buf.AppendString("\t")
 	case '\\':
-		buf.appendString("\\")
+		buf.AppendString("\\")
 	case 'x':
 		c1, err1 := r.ReadByte()
 		c2, err2 := r.ReadByte()
@@ -395,7 +397,7 @@ func readEscape(r *bufio.Reader, buf *buffer) bool {
 		}
 		// A zero byte appends nothing, because a buffer cannot hold one, so
 		// "\x00" on a line by itself reads as an empty line.
-		buf.appendByte(fromXDigit(c1)*16 + fromXDigit(c2))
+		buf.AppendByte(fromXDigit(c1)*16 + fromXDigit(c2))
 	default:
 		return false
 	}
@@ -475,34 +477,34 @@ func toXDigit(c byte) byte {
 //
 // A line that has been typed into is put back into the newest entry first, so
 // that walking away from it and returning finds it again.
-func (ev *env) historyAt(e *editor, ofs int) {
-	if e.modified {
-		ev.history.update(e.input.string())
-		e.historyIdx = 0
-		e.modified = false
+func (ev *env) historyAt(e *editor.Editor, ofs int) {
+	if e.Modified {
+		ev.history.update(e.Input.String())
+		e.HistoryIdx = 0
+		e.Modified = false
 	}
-	entry, ok := ev.history.get(e.historyIdx + ofs)
+	entry, ok := ev.history.get(e.HistoryIdx + ofs)
 	if !ok {
 		ev.term.beep()
 		return
 	}
-	e.historyIdx += ofs
-	e.input.replace(entry)
+	e.HistoryIdx += ofs
+	e.Input.Replace(entry)
 	if ofs > 0 {
 		// Going back lands at the end of the first row, so a long entry shows
 		// from its start.
-		e.pos = max(e.input.findLineEnd(0), 0)
+		e.Pos = max(e.Input.FindLineEnd(0), 0)
 	} else {
-		e.pos = e.input.length()
+		e.Pos = e.Input.Length()
 	}
 	ev.refresh(e)
 }
 
 // historyPrev replaces the line with the previous history entry.
-func (ev *env) historyPrev(e *editor) { ev.historyAt(e, 1) }
+func (ev *env) historyPrev(e *editor.Editor) { ev.historyAt(e, 1) }
 
 // historyNext replaces the line with the next history entry.
-func (ev *env) historyNext(e *editor) { ev.historyAt(e, -1) }
+func (ev *env) historyNext(e *editor.Editor) { ev.historyAt(e, -1) }
 
 // hsearchStep is one step of a history search, kept so that backspace can take
 // it back.
@@ -519,18 +521,18 @@ type hsearchStep struct {
 
 // historySearchWithCurrentWord opens the incremental search, starting from the
 // word the cursor is in.
-func (ev *env) historySearchWithCurrentWord(e *editor) {
+func (ev *env) historySearchWithCurrentWord(e *editor.Editor) {
 	initial := ""
-	if start := e.input.findWordStart(e.pos); start >= 0 {
-		b := e.input.bytes()
-		next, _ := e.input.next(start)
+	if start := e.Input.FindWordStart(e.Pos); start >= 0 {
+		b := e.Input.Bytes()
+		next, _ := e.Input.Next(start)
 		// A word that starts with something that is not part of a name, such
 		// as a quote, starts after it instead.
-		if next > start && !charIsIDLetter(b[start:next]) {
+		if next > start && !text.CharIsIDLetter(b[start:next]) {
 			start = next
 		}
-		if start >= 0 && start < e.pos {
-			initial = string(b[start:e.pos])
+		if start >= 0 && start < e.Pos {
+			initial = string(b[start:e.Pos])
 		}
 	}
 	ev.historySearch(e, initial)
@@ -541,26 +543,26 @@ func (ev *env) historySearchWithCurrentWord(e *editor) {
 //
 // It draws its own prompt and reads its own keys, and leaves the line either
 // as it was or as the entry that was found.
-func (ev *env) historySearch(e *editor, initial string) {
+func (ev *env) historySearch(e *editor.Editor, initial string) {
 	if ev.history.count() <= 0 {
 		ev.term.beep()
 		return
 	}
-	if e.modified {
-		ev.history.update(e.input.string())
-		e.historyIdx = 0
-		e.modified = false
+	if e.Modified {
+		ev.history.update(e.Input.String())
+		e.HistoryIdx = 0
+		e.Modified = false
 	}
 	// The line is put back from the undo stack if the search is abandoned, so
 	// nothing else may record while it runs.
-	e.undoCapture()
-	e.disableUndo = true
-	wasNoHint, wasPrompt := ev.noHint, e.promptText
+	e.UndoCapture()
+	e.DisableUndo = true
+	wasNoHint, wasPrompt := ev.noHint, e.PromptText
 	ev.noHint = true
-	e.promptText = "history search"
+	e.PromptText = "history search"
 	defer func() {
-		e.disableUndo = false
-		ev.noHint, e.promptText = wasNoHint, wasPrompt
+		e.DisableUndo = false
+		ev.noHint, e.PromptText = wasNoHint, wasPrompt
 		ev.refresh(e)
 	}()
 
@@ -592,7 +594,7 @@ func (ev *env) historySearch(e *editor, initial string) {
 	if initial != "" {
 		pos := 0
 		for pos < len(initial) {
-			next, _ := nextOfs([]byte(initial), pos)
+			next, _ := text.NextOfs([]byte(initial), pos)
 			if next <= 0 {
 				break
 			}
@@ -605,11 +607,11 @@ func (ev *env) historySearch(e *editor, initial string) {
 			}
 			pos += next
 		}
-		e.input.replace(initial)
-		e.pos = pos
+		e.Input.Replace(initial)
+		e.Pos = pos
 	} else {
-		e.input.clear()
-		e.pos = 0
+		e.Input.Clear()
+		e.Pos = 0
 	}
 
 	for {
@@ -628,29 +630,29 @@ func (ev *env) historySearch(e *editor, initial string) {
 		if ev.tty.resizeEvent() {
 			ev.resize(e)
 		}
-		e.extra.clear()
+		e.Extra.Clear()
 
 		switch c {
 		case key.Esc, key.Bell, key.CtrlC:
 			// Abandoned: put the line back as it was.
-			e.disableUndo = false
-			e.undoRestore(false)
+			e.DisableUndo = false
+			e.UndoRestore(false)
 			return
 		case key.Enter:
 			// Taken: the entry becomes the line.
-			e.undoForget()
-			e.input.replace(entry)
-			e.pos = e.input.length()
-			e.modified = false
-			e.historyIdx = hidx
+			e.UndoForget()
+			e.Input.Replace(entry)
+			e.Pos = e.Input.Length()
+			e.Modified = false
+			e.HistoryIdx = hidx
 			return
 		case key.Backspace, key.CtrlZ:
 			if s, ok := undo(); ok && s.inserted {
-				ev.act(e, e.backspace())
+				ev.act(e, e.Backspace())
 			}
 		case key.CtrlR, key.Tab, key.Up:
 			push(false)
-			if idx, mpos, ok := ev.history.search(hidx+1, e.input.string(), true); ok {
+			if idx, mpos, ok := ev.history.search(hidx+1, e.Input.String(), true); ok {
 				hidx, matchPos = idx, mpos
 			} else {
 				drop()
@@ -658,7 +660,7 @@ func (ev *env) historySearch(e *editor, initial string) {
 			}
 		case key.CtrlS, key.ShiftTab, key.Down:
 			push(false)
-			if idx, mpos, ok := ev.history.search(hidx-1, e.input.string(), false); ok {
+			if idx, mpos, ok := ev.history.search(hidx-1, e.Input.String(), false); ok {
 				hidx, matchPos = idx, mpos
 			} else {
 				drop()
@@ -672,20 +674,20 @@ func (ev *env) historySearch(e *editor, initial string) {
 			switch {
 			case isASCII:
 				push(true)
-				e.insertChar(chr)
+				e.InsertChar(chr)
 				ev.refreshHint(e)
 			case isRune:
 				push(true)
-				e.insertRune(r)
+				e.InsertRune(r)
 				ev.refreshHint(e)
 			default:
 				// A key with no place in a search.
 				ev.term.beep()
 				continue
 			}
-			if idx, mpos, ok := ev.history.search(hidx, e.input.string(), true); ok {
+			if idx, mpos, ok := ev.history.search(hidx, e.Input.String(), true); ok {
 				hidx, matchPos = idx, mpos
-				matchLen = e.input.length()
+				matchLen = e.Input.Length()
 			} else {
 				ev.term.beep()
 			}
@@ -695,20 +697,20 @@ func (ev *env) historySearch(e *editor, initial string) {
 
 // showSearchMatch fills the area below the line with the entry that was found,
 // underlining the part that matched.
-func (ev *env) showSearchMatch(e *editor, hidx int, entry string, matchPos, matchLen int) {
+func (ev *env) showSearchMatch(e *editor.Editor, hidx int, entry string, matchPos, matchLen int) {
 	// The entry is written between [!pre] tags, so that a bracket in it is
 	// text rather than markup.
 	lo := min(max(matchPos, 0), len(entry))
 	hi := min(max(lo+matchLen, lo), len(entry))
-	e.extra.appendf("[ic-info]%d. [/][ic-diminish][!pre]", hidx)
-	e.extra.appendString(entry[:lo])
-	e.extra.appendString("[/pre][u ic-emphasis][!pre]")
-	e.extra.appendString(entry[lo:hi])
-	e.extra.appendString("[/pre][/u][!pre]")
-	e.extra.appendString(entry[hi:])
-	e.extra.appendString("[/pre][/ic-diminish]")
+	e.Extra.Appendf("[ic-info]%d. [/][ic-diminish][!pre]", hidx)
+	e.Extra.AppendString(entry[:lo])
+	e.Extra.AppendString("[/pre][u ic-emphasis][!pre]")
+	e.Extra.AppendString(entry[lo:hi])
+	e.Extra.AppendString("[/pre][/u][!pre]")
+	e.Extra.AppendString(entry[hi:])
+	e.Extra.AppendString("[/pre][/ic-diminish]")
 	if !ev.noHelp {
-		e.extra.appendString("\n[ic-info](use tab for the next match)[/]")
+		e.Extra.AppendString("\n[ic-info](use tab for the next match)[/]")
 	}
-	e.extra.appendString("\n")
+	e.Extra.AppendString("\n")
 }

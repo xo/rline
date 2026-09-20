@@ -19,6 +19,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 	"golang.org/x/sys/windows"
 )
@@ -290,7 +291,7 @@ func (d *ttyDevice) takePending() (byte, bool) {
 // A zero byte ends it and everything from there is dropped, which is what the
 // C code does by measuring the sequence with strlen.
 func (d *ttyDevice) push(s string) {
-	if n := limitToLength(s); n > 0 {
+	if n := text.LimitToLength(s); n > 0 {
 		d.pending = append(d.pending, s[:n]...)
 	}
 }

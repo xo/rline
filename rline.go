@@ -61,6 +61,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
 
@@ -132,11 +134,11 @@ const (
 	// DefaultPromptMarker is written after the prompt text.
 	DefaultPromptMarker = "> "
 
-	// DefaultMatchBraces are the pairs whose partner is highlighted.
-	DefaultMatchBraces = "()[]{}"
+	// DefaultMatchPairs are the pairs whose partner is highlighted.
+	DefaultMatchPairs = "()[]{}"
 
-	// DefaultAutoBraces are the pairs that close themselves when typed.
-	DefaultAutoBraces = `()[]{}""''`
+	// DefaultAutoPairs are the pairs that close themselves when typed.
+	DefaultAutoPairs = `()[]{}""''`
 
 	// DefaultHintDelay is how long to wait before showing a hint.
 	DefaultHintDelay = 400 * time.Millisecond
@@ -237,7 +239,7 @@ type config struct {
 	isIncomplete func(string) bool
 
 	// Editing settings.
-	opts editOptions
+	opts editor.EditOptions
 
 	// Settings that turn parts of the editor off.
 	noColor           bool
@@ -422,7 +424,7 @@ func WithBraceMatching(enabled bool) Option {
 
 // WithBraceInsertion closes a brace automatically when one is typed.
 func WithBraceInsertion(enabled bool) Option {
-	return func(c *config) { c.opts.NoAutoBrace = !enabled }
+	return func(c *config) { c.opts.NoAutoPair = !enabled }
 }
 
 // WithHints shows the rest of the only completion that fits, in grey after
@@ -452,15 +454,16 @@ func WithHintDelay(d time.Duration) Option {
 	return func(c *config) { c.hintDelay = d }
 }
 
-// WithMatchBraces sets the pairs whose partner is highlighted, given in pairs
-// such as "()[]{}".
-func WithMatchBraces(pairs string) Option {
-	return func(c *config) { c.opts.MatchBraces = pairs }
+// WithMatchPairs sets the pairs whose partner is highlighted, written one
+// after another such as "()[]{}".
+func WithMatchPairs(pairs string) Option {
+	return func(c *config) { c.opts.MatchPairs = pairs }
 }
 
-// WithAutoBraces sets the pairs that close themselves when typed.
-func WithAutoBraces(pairs string) Option {
-	return func(c *config) { c.opts.AutoBraces = pairs }
+// WithAutoPairs sets the pairs that close themselves when typed, which may
+// include quotes as the default set does.
+func WithAutoPairs(pairs string) Option {
+	return func(c *config) { c.opts.AutoPairs = pairs }
 }
 
 // WithLog records everything the session reads from the keyboard and writes to
@@ -489,9 +492,9 @@ func New(opts ...Option) (*Prompt, error) {
 		cpromptMarker:  DefaultPromptMarker,
 		historyEntries: DefaultHistoryEntries,
 		hintDelay:      DefaultHintDelay,
-		opts: editOptions{
-			MatchBraces:  DefaultMatchBraces,
-			AutoBraces:   DefaultAutoBraces,
+		opts: editor.EditOptions{
+			MatchPairs:   DefaultMatchPairs,
+			AutoPairs:    DefaultAutoPairs,
 			MultilineEOL: DefaultMultilineEOL,
 		},
 	}
@@ -1230,7 +1233,7 @@ func (s *Session) readHidden() (string, error) {
 			s := sb.String()
 			if s != "" {
 				b := []byte(s)
-				n, _ := prevOfs(b, len(b))
+				n, _ := text.PrevOfs(b, len(b))
 				sb.Reset()
 				sb.Write(b[:len(b)-n])
 			}

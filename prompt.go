@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 
 	"github.com/xo/rline/ansi"
@@ -52,7 +54,7 @@ type env struct {
 	isIncomplete func(string) bool
 
 	// Editing settings, shared with the operations in editor.go.
-	opts editOptions
+	opts editor.EditOptions
 
 	// Settings that turn parts of the editor off.
 	noMultilineIndent bool
@@ -80,11 +82,11 @@ type env struct {
 //
 // The continuation prompt is padded out to line up under the first one, unless
 // that is turned off or it is already wider.
-func (ev *env) promptWidth(e *editor, inExtra bool) (int, int) {
+func (ev *env) promptWidth(e *editor.Editor, inExtra bool) (int, int) {
 	if inExtra {
 		return 0, 0
 	}
-	textw := ev.bb.columnWidth(e.promptText)
+	textw := ev.bb.columnWidth(e.PromptText)
 	markerw := ev.bb.columnWidth(ev.promptMarker)
 	cmarkerw := ev.bb.columnWidth(ev.cpromptMarker)
 	promptw := markerw + textw
@@ -96,41 +98,41 @@ func (ev *env) promptWidth(e *editor, inExtra bool) (int, int) {
 }
 
 // rowCol returns how many rows the line takes and where the cursor sits.
-func (ev *env) rowCol(e *editor) (int, rowCol) {
+func (ev *env) rowCol(e *editor.Editor) (int, text.RowCol) {
 	promptw, cpromptw := ev.promptWidth(e, false)
-	return e.input.rowColAtPos(e.termW, promptw, cpromptw, e.pos)
+	return e.Input.RowColAtPos(e.TermW, promptw, cpromptw, e.Pos)
 }
 
 // setPosAtRowCol moves the cursor to a row and column on screen.
-func (ev *env) setPosAtRowCol(e *editor, row, col int) bool {
+func (ev *env) setPosAtRowCol(e *editor.Editor, row, col int) bool {
 	promptw, cpromptw := ev.promptWidth(e, false)
-	pos := e.input.posAtRowCol(e.termW, promptw, cpromptw, row, col)
+	pos := e.Input.PosAtRowCol(e.TermW, promptw, cpromptw, row, col)
 	if pos < 0 {
 		return false
 	}
-	e.pos = pos
+	e.Pos = pos
 	return true
 }
 
 // posIsAtRowEnd reports whether the cursor is at the end of a screen row.
-func (ev *env) posIsAtRowEnd(e *editor) bool {
+func (ev *env) posIsAtRowEnd(e *editor.Editor) bool {
 	_, rc := ev.rowCol(e)
-	return rc.lastOnRow
+	return rc.LastOnRow
 }
 
 // writePrompt draws the prompt in front of one row.
-func (ev *env) writePrompt(e *editor, row int, inExtra bool) {
+func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	if inExtra {
 		return
 	}
 	ev.bb.styleOpen("ic-prompt")
 	switch {
 	case row == 0:
-		ev.bb.print(e.promptText)
+		ev.bb.print(e.PromptText)
 	case !ev.noMultilineIndent:
 		// Pad the continuation marker out so the text lines up under the
 		// first row.
-		textw := ev.bb.columnWidth(e.promptText)
+		textw := ev.bb.columnWidth(e.PromptText)
 		markerw := ev.bb.columnWidth(ev.promptMarker)
 		cmarkerw := ev.bb.columnWidth(ev.cpromptMarker)
 		if cmarkerw < markerw+textw {
@@ -146,10 +148,10 @@ func (ev *env) writePrompt(e *editor, row int, inExtra bool) {
 }
 
 // refreshRows draws the rows of text between firstRow and lastRow.
-func (ev *env) refreshRows(e *editor, input *buffer, attrs *ansi.AttrBuf,
+func (ev *env) refreshRows(e *editor.Editor, input *text.Buffer, attrs *ansi.AttrBuf,
 	promptw, cpromptw int, inExtra bool, firstRow, lastRow int,
 ) {
-	input.forEachRow(e.termW, promptw, cpromptw, func(s []byte, row, rowStart, rowLen, _ int, isWrap bool) bool {
+	input.ForEachRow(e.TermW, promptw, cpromptw, func(s []byte, row, rowStart, rowLen, _ int, isWrap bool) bool {
 		if row < firstRow {
 			return false
 		}
@@ -187,40 +189,40 @@ func (ev *env) ttyIsUTF8() bool {
 
 // refresh draws the whole line, the hint inside it and anything shown below
 // it, and puts the cursor back where it belongs.
-func (ev *env) refresh(e *editor) {
+func (ev *env) refresh(e *editor.Editor) {
 	promptw, cpromptw := ev.promptWidth(e, false)
 
 	fn := ev.highlighter
 	if ev.noHighlight {
 		fn = nil
 	}
-	runHighlight(ev.bb, e.input.string(), &e.attrs, fn)
+	runHighlight(ev.bb, e.Input.String(), &e.Attrs, fn)
 	if !ev.noBraceMatch {
-		highlightMatchBraces(e.input.string(), &e.attrs, e.pos, ev.opts.MatchBraces,
+		highlightMatchBraces(e.Input.String(), &e.Attrs, e.Pos, ev.opts.MatchPairs,
 			ev.bb.style("ic-bracematch"), ev.bb.style("ic-error"))
 	}
 
 	// The hint goes into the line itself while it is drawn, and comes back out
 	// at the end, so that everything below measures it as part of the text.
-	if e.hint.Len() > 0 {
-		e.attrs.InsertAt(e.pos, e.hint.Len(), ev.bb.style("ic-hint"))
-		e.input.insertAt(e.hint.String(), e.pos)
+	if e.Hint.Len() > 0 {
+		e.Attrs.InsertAt(e.Pos, e.Hint.Len(), ev.bb.style("ic-hint"))
+		e.Input.InsertAt(e.Hint.String(), e.Pos)
 	}
 
 	// Anything shown below the line, such as a completion menu.
-	var extra *buffer
-	if e.extra.length() > 0 {
-		extra = &buffer{}
-		if e.hintHelp.Len() > 0 {
-			ev.bb.appendTo(e.hintHelp.String(), extra, &e.attrsExtra)
+	var extra *text.Buffer
+	if e.Extra.Length() > 0 {
+		extra = &text.Buffer{}
+		if e.HintHelp.Len() > 0 {
+			ev.bb.appendTo(e.HintHelp.String(), extra, &e.AttrsExtra)
 		}
-		ev.bb.appendTo(e.extra.string(), extra, &e.attrsExtra)
+		ev.bb.appendTo(e.Extra.String(), extra, &e.AttrsExtra)
 	}
 
-	rowsInput, rc := e.input.rowColAtPos(e.termW, promptw, cpromptw, e.pos)
+	rowsInput, rc := e.Input.RowColAtPos(e.TermW, promptw, cpromptw, e.Pos)
 	rowsExtra := 0
 	if extra != nil {
-		rowsExtra, _ = extra.rowColAtPos(e.termW, 0, 0, 0)
+		rowsExtra, _ = extra.RowColAtPos(e.TermW, 0, 0, 0)
 	}
 	rows := rowsInput + rowsExtra
 
@@ -228,7 +230,7 @@ func (ev *env) refresh(e *editor) {
 	termh := ev.term.getHeight()
 	firstRow, lastRow := 0, rows-1
 	if rows > termh {
-		firstRow = max(rc.row-termh+1, 0)
+		firstRow = max(rc.Row-termh+1, 0)
 		lastRow = firstRow + termh - 1
 	}
 
@@ -236,18 +238,18 @@ func (ev *env) refresh(e *editor) {
 
 	// Go back to the first row of what was drawn last time.
 	ev.term.startOfLine()
-	ev.term.up(min(e.curRow, termh-1))
+	ev.term.up(min(e.CurRow, termh-1))
 
-	ev.refreshRows(e, &e.input, &e.attrs, promptw, cpromptw, false, firstRow, lastRow)
+	ev.refreshRows(e, &e.Input, &e.Attrs, promptw, cpromptw, false, firstRow, lastRow)
 	if rowsExtra > 0 {
-		ev.refreshRows(e, extra, &e.attrsExtra, 0, 0, true,
+		ev.refreshRows(e, extra, &e.AttrsExtra, 0, 0, true,
 			max(firstRow-rowsInput, 0), lastRow-rowsInput)
 	}
 
 	// Wipe any rows that were used last time and are not needed now.
 	drawn := lastRow - firstRow + 1
-	if drawn < termh && rows < e.curRows {
-		for clear := e.curRows - rows; drawn < termh && clear > 0; clear-- {
+	if drawn < termh && rows < e.CurRows {
+		for clear := e.CurRows - rows; drawn < termh && clear > 0; clear-- {
 			drawn++
 			ev.term.writeln("")
 			ev.term.clearLine()
@@ -256,42 +258,42 @@ func (ev *env) refresh(e *editor) {
 
 	// Put the cursor back where the text says it should be.
 	ev.term.startOfLine()
-	ev.term.up(firstRow + drawn - 1 - rc.row)
+	ev.term.up(firstRow + drawn - 1 - rc.Row)
 	pw := cpromptw
-	if rc.row == 0 {
+	if rc.Row == 0 {
 		pw = promptw
 	}
-	ev.term.right(rc.col + pw)
+	ev.term.right(rc.Col + pw)
 	ev.term.flush()
 	ev.term.setBufferMode(was)
 
 	// Take the hint back out, so the line is what the user typed again.
-	e.input.deleteAt(e.pos, e.hint.Len())
-	e.extra.deleteAt(0, e.hintHelp.Len())
-	e.attrs.Clear()
-	e.attrsExtra.Clear()
+	e.Input.DeleteAt(e.Pos, e.Hint.Len())
+	e.Extra.DeleteAt(0, e.HintHelp.Len())
+	e.Attrs.Clear()
+	e.AttrsExtra.Clear()
 
-	e.curRows = rows
-	e.curRow = rc.row
+	e.CurRows = rows
+	e.CurRow = rc.Row
 }
 
 // clear wipes the rows the line is drawn on.
-func (ev *env) clear(e *editor) {
+func (ev *env) clear(e *editor.Editor) {
 	ev.term.attrReset()
-	ev.term.up(e.curRow)
-	for range e.curRows {
+	ev.term.up(e.CurRow)
+	for range e.CurRows {
 		ev.term.clearLine()
 		ev.term.writeln("")
 	}
-	ev.term.up(e.curRows - e.curRow)
+	ev.term.up(e.CurRows - e.CurRow)
 }
 
 // clearScreen wipes the screen and draws the line again.
-func (ev *env) clearScreen(e *editor) {
-	rows := e.curRows
-	e.curRows = ev.term.getHeight() - 1
+func (ev *env) clearScreen(e *editor.Editor) {
+	rows := e.CurRows
+	e.CurRows = ev.term.getHeight() - 1
 	ev.clear(e)
-	e.curRows = rows
+	e.CurRows = rows
 	ev.refresh(e)
 }
 
@@ -304,21 +306,24 @@ func (ev *env) clearScreen(e *editor) {
 
 // appendHintHelp puts the help text that goes with a hint below the line, or
 // clears it when there is none.
-func (e *editor) appendHintHelp(help string) {
-	e.hintHelp.Reset()
+//
+// It is a function rather than a method on the editor because the markup it
+// writes is rline's vocabulary, which the editor does not share.
+func appendHintHelp(e *editor.Editor, help string) {
+	e.HintHelp.Reset()
 	if help == "" {
 		return
 	}
-	e.hintHelp.WriteString("[ic-info]")
-	e.hintHelp.WriteString(help)
-	e.hintHelp.WriteString("[/ic-info]\n")
+	e.HintHelp.WriteString("[ic-info]")
+	e.HintHelp.WriteString(help)
+	e.HintHelp.WriteString("[/ic-info]\n")
 }
 
 // refreshHint draws the line and works out the hint to show inside it.
 //
 // A hint is the rest of the only completion that fits. When more than one
 // fits there is nothing to hint at.
-func (ev *env) refreshHint(e *editor) {
+func (ev *env) refreshHint(e *editor.Editor) {
 	if ev.noHint || ev.hintDelay > 0 {
 		// Draw without the hint first, so the line appears at once and the
 		// hint follows when it is ready.
@@ -329,7 +334,7 @@ func (ev *env) refreshHint(e *editor) {
 	}
 	// Asking for two answers is enough: one means there is a hint, and more
 	// than one means there is not.
-	if ev.completions.generate(e.input.string(), e.pos, 2) != 1 {
+	if ev.completions.generate(e.Input.String(), e.Pos, 2) != 1 {
 		if ev.hintDelay <= 0 {
 			ev.refresh(e)
 		}
@@ -337,9 +342,9 @@ func (ev *env) refreshHint(e *editor) {
 	}
 	hint, help, ok := ev.completions.hintAt(0)
 	if ok {
-		e.hint.Reset()
-		e.hint.WriteString(hint)
-		e.appendHintHelp(help)
+		e.Hint.Reset()
+		e.Hint.WriteString(hint)
+		appendHintHelp(e, help)
 		if ev.completeAutoTab {
 			ev.extendHint(e, hint)
 		}
@@ -351,78 +356,78 @@ func (ev *env) refreshHint(e *editor) {
 
 // extendHint keeps completing past the hint while each step has exactly one
 // answer, so that a chain of forced completions shows as one hint.
-func (ev *env) extendHint(e *editor, hint string) {
-	var sb buffer
-	sb.replace(e.input.string())
-	pos := e.pos
+func (ev *env) extendHint(e *editor.Editor, hint string) {
+	var sb text.Buffer
+	sb.Replace(e.Input.String())
+	pos := e.Pos
 	for {
-		next := sb.insertAt(hint, pos)
+		next := sb.InsertAt(hint, pos)
 		if next <= pos {
 			return
 		}
 		pos = next
-		if ev.completions.generate(sb.string(), pos, 2) != 1 {
+		if ev.completions.generate(sb.String(), pos, 2) != 1 {
 			return
 		}
 		extra, help, ok := ev.completions.hintAt(0)
 		if !ok {
 			return
 		}
-		e.appendHintHelp(help)
-		e.hint.WriteString(extra)
+		appendHintHelp(e, help)
+		e.Hint.WriteString(extra)
 		hint = extra
 	}
 }
 
 // resize works out the new layout after the terminal changed size, and
 // reports whether it did change.
-func (ev *env) resize(e *editor) bool {
+func (ev *env) resize(e *editor.Editor) bool {
 	ev.term.updateDim()
 	newW := ev.term.getWidth()
-	if e.termW == newW {
+	if e.TermW == newW {
 		return false
 	}
 	promptw, cpromptw := ev.promptWidth(e, false)
 	// The hint counts as part of the line while the rows are measured.
-	e.input.insertAt(e.hint.String(), e.pos)
-	var extra *buffer
-	if e.extra.length() > 0 {
-		extra = &buffer{}
-		if e.hintHelp.Len() > 0 {
-			ev.bb.appendTo(e.hintHelp.String(), extra, nil)
+	e.Input.InsertAt(e.Hint.String(), e.Pos)
+	var extra *text.Buffer
+	if e.Extra.Length() > 0 {
+		extra = &text.Buffer{}
+		if e.HintHelp.Len() > 0 {
+			ev.bb.appendTo(e.HintHelp.String(), extra, nil)
 		}
-		ev.bb.appendTo(e.extra.string(), extra, nil)
+		ev.bb.appendTo(e.Extra.String(), extra, nil)
 	}
-	rowsInput, rc := e.input.wrappedRowColAtPos(e.termW, newW, promptw, cpromptw, e.pos)
+	rowsInput, rc := e.Input.WrappedRowColAtPos(e.TermW, newW, promptw, cpromptw, e.Pos)
 	rowsExtra := 0
 	if extra != nil {
-		rowsExtra, _ = extra.wrappedRowColAtPos(e.termW, newW, 0, 0, 0)
+		rowsExtra, _ = extra.WrappedRowColAtPos(e.TermW, newW, 0, 0, 0)
 	}
 	rows := rowsInput + rowsExtra
-	e.curRow = rc.row
-	if rows > e.curRows {
-		e.curRows = rows
+	e.CurRow = rc.Row
+	if rows > e.CurRows {
+		e.CurRows = rows
 	}
-	e.termW = newW
+	e.TermW = newW
 	ev.refresh(e)
-	e.input.deleteAt(e.pos, e.hint.Len())
+	e.Input.DeleteAt(e.Pos, e.Hint.Len())
 	return true
 }
 
 // readKey waits for the next key, showing the hint if one is pending and the
 // user pauses long enough.
-func (ev *env) readKey(e *editor) key.Code {
-	if ev.hintDelay <= 0 || e.hint.Len() == 0 {
+func (ev *env) readKey(e *editor.Editor) key.Code {
+	if ev.hintDelay <= 0 || e.Hint.Len() == 0 {
 		return ev.tty.read()
 	}
 	c, ok := ev.tty.readTimeout(ev.hintDelay)
 	if ok {
 		// Something was typed before the delay ran out, so the hint is stale.
-		e.hint.Reset()
-		e.hintHelp.Reset()
+		e.Hint.Reset()
+		e.HintHelp.Reset()
 		return c
 	}
-	if e.hint.Len() > 0 {
+	if e.Hint.Len() > 0 {
 		ev.refresh(e)
 	}
 	return ev.tty.read()
@@ -431,49 +436,49 @@ func (ev *env) readKey(e *editor) key.Code {
 // act redraws when an operation changed something. The C redraws inside each
 // operation, after the early return that leaves when there is nothing to do,
 // so an operation that finds nothing writes no bytes at all.
-func (ev *env) act(e *editor, changed bool) {
+func (ev *env) act(e *editor.Editor, changed bool) {
 	if changed {
 		ev.refresh(e)
 	}
 }
 
 // handleKey acts on one key and reports whether the line is finished.
-func (ev *env) handleKey(e *editor, c key.Code) bool {
+func (ev *env) handleKey(e *editor.Editor, c key.Code) bool {
 	switch c {
 	case key.Enter:
 		// A line continuation character at the end of a row turns into a real
 		// line break rather than finishing the line.
-		if !ev.singlelineOnly && e.pos > 0 &&
-			e.input.charAt(e.pos-1) == ev.opts.MultilineEOL && ev.posIsAtRowEnd(e) {
-			ev.act(e, e.multilineEOL())
+		if !ev.singlelineOnly && e.Pos > 0 &&
+			e.Input.CharAt(e.Pos-1) == ev.opts.MultilineEOL && ev.posIsAtRowEnd(e) {
+			ev.act(e, e.MultilineEOL())
 			return false
 		}
 		// The caller may say the line is not finished, which starts another
 		// row instead of handing it back. That is how a prompt keeps reading
 		// until a statement is closed.
-		if !ev.singlelineOnly && ev.isIncomplete != nil && ev.isIncomplete(e.input.string()) {
-			e.insertChar('\n')
+		if !ev.singlelineOnly && ev.isIncomplete != nil && ev.isIncomplete(e.Input.String()) {
+			e.InsertChar('\n')
 			ev.refreshHint(e)
 			return false
 		}
 		return true
 	case key.CtrlD:
 		// On an empty line this ends the input. Anywhere else it deletes.
-		if e.pos == 0 && e.posIsAtEnd() {
+		if e.Pos == 0 && e.PosIsAtEnd() {
 			return true
 		}
-		ev.act(e, e.deleteChar())
+		ev.act(e, e.DeleteChar())
 		return false
 	case key.EventStop:
 		return true
 	case key.Esc:
-		if e.pos == 0 && e.posIsAtEnd() {
+		if e.Pos == 0 && e.PosIsAtEnd() {
 			return true
 		}
-		ev.act(e, e.deleteAll())
+		ev.act(e, e.DeleteAll())
 		return false
 	case key.Bell, key.CtrlC:
-		ev.act(e, e.deleteAll())
+		ev.act(e, e.DeleteAll())
 		return true
 	}
 	ev.editKey(e, c)
@@ -481,7 +486,7 @@ func (ev *env) handleKey(e *editor, c key.Code) bool {
 }
 
 // editKey acts on a key that does not finish the line.
-func (ev *env) editKey(e *editor, c key.Code) {
+func (ev *env) editKey(e *editor.Editor, c key.Code) {
 	switch c {
 	case key.EventResize:
 		ev.resize(e)
@@ -500,80 +505,80 @@ func (ev *env) editKey(e *editor, c key.Code) {
 	case key.CtrlL:
 		ev.clearScreen(e)
 	case key.CtrlZ, '_' | key.ModCtrl:
-		e.undoRestore(true)
+		e.UndoRestore(true)
 		ev.refresh(e)
 	case key.CtrlY:
-		e.redoRestore()
+		e.RedoRestore()
 		ev.refresh(e)
 	case key.F1:
 		ev.showHelp(e)
 
 	// Moving about.
 	case key.Left, key.CtrlB:
-		ev.act(e, e.cursorLeft())
+		ev.act(e, e.CursorLeft())
 	case key.Right, key.CtrlF:
 		// At the end of the line there is nothing to move over, so this asks
 		// for a completion instead.
-		if e.pos == e.input.length() {
+		if e.Pos == e.Input.Length() {
 			ev.generateCompletions(e, false)
 			return
 		}
-		ev.act(e, e.cursorRight())
+		ev.act(e, e.CursorRight())
 	case key.Up:
 		ev.cursorRowUp(e)
 	case key.Down:
 		ev.cursorRowDown(e)
 	case key.Home, key.CtrlA:
-		ev.act(e, e.cursorLineStart())
+		ev.act(e, e.CursorLineStart())
 	case key.End, key.CtrlE:
-		ev.act(e, e.cursorLineEnd())
+		ev.act(e, e.CursorLineEnd())
 	case key.Left | key.ModCtrl, key.Left | key.ModShift, 'b' | key.ModAlt:
-		ev.act(e, e.cursorPrevWord())
+		ev.act(e, e.CursorPrevWord())
 	case key.Right | key.ModCtrl, key.Right | key.ModShift, 'f' | key.ModAlt:
-		if e.pos == e.input.length() {
+		if e.Pos == e.Input.Length() {
 			ev.generateCompletions(e, false)
 			return
 		}
-		ev.act(e, e.cursorNextWord())
+		ev.act(e, e.CursorNextWord())
 	case key.Home | key.ModCtrl, key.Home | key.ModShift, key.PageUp, '<' | key.ModAlt:
-		ev.act(e, e.cursorToStart())
+		ev.act(e, e.CursorToStart())
 	case key.End | key.ModCtrl, key.End | key.ModShift, key.PageDown, '>' | key.ModAlt:
-		ev.act(e, e.cursorToEnd())
+		ev.act(e, e.CursorToEnd())
 	case 'm' | key.ModAlt:
-		ev.act(e, e.cursorMatchBrace())
+		ev.act(e, e.CursorMatchPair())
 
 	// Deleting.
 	case key.Backspace:
-		ev.act(e, e.backspace())
+		ev.act(e, e.Backspace())
 	case key.Del:
-		ev.act(e, e.deleteChar())
+		ev.act(e, e.DeleteChar())
 	case 'd' | key.ModAlt:
-		ev.act(e, e.deleteToWordEnd())
+		ev.act(e, e.DeleteToWordEnd())
 	case key.CtrlW:
-		ev.act(e, e.deleteToWSWordStart())
+		ev.act(e, e.DeleteToWSWordStart())
 	case key.Del | key.ModAlt, key.Backspace | key.ModAlt:
-		ev.act(e, e.deleteToWordStart())
+		ev.act(e, e.DeleteToWordStart())
 	case key.CtrlU:
-		ev.act(e, e.deleteToLineStart())
+		ev.act(e, e.DeleteToLineStart())
 	case key.CtrlK:
-		ev.act(e, e.deleteToLineEnd())
+		ev.act(e, e.DeleteToLineEnd())
 	case key.CtrlT:
-		ev.act(e, e.swapChar())
+		ev.act(e, e.SwapChar())
 
 	// Typing.
 	case key.ShiftTab, key.Linefeed:
 		if !ev.singlelineOnly {
-			e.insertChar('\n')
+			e.InsertChar('\n')
 			ev.refreshHint(e)
 		}
 	default:
 		if chr, ok := c.ASCIIChar(); ok {
-			e.insertChar(chr)
+			e.InsertChar(chr)
 			ev.refreshHint(e)
 			return
 		}
 		if r, ok := c.Unicode(); ok {
-			e.insertRune(r)
+			e.InsertRune(r)
 			ev.refreshHint(e)
 		}
 		// Anything else is a key this editor has no use for.
@@ -582,26 +587,26 @@ func (ev *env) editKey(e *editor, c key.Code) {
 
 // cursorRowUp moves the cursor one screen row up, or walks back through the
 // history when it is already on the first row.
-func (ev *env) cursorRowUp(e *editor) {
+func (ev *env) cursorRowUp(e *editor.Editor) {
 	_, rc := ev.rowCol(e)
-	if rc.row == 0 {
+	if rc.Row == 0 {
 		ev.historyPrev(e)
 		return
 	}
-	if ev.setPosAtRowCol(e, rc.row-1, rc.col) {
+	if ev.setPosAtRowCol(e, rc.Row-1, rc.Col) {
 		ev.refresh(e)
 	}
 }
 
 // cursorRowDown moves the cursor one screen row down, or walks forward
 // through the history when it is already on the last row.
-func (ev *env) cursorRowDown(e *editor) {
+func (ev *env) cursorRowDown(e *editor.Editor) {
 	rows, rc := ev.rowCol(e)
-	if rc.row+1 >= rows {
+	if rc.Row+1 >= rows {
 		ev.historyNext(e)
 		return
 	}
-	if ev.setPosAtRowCol(e, rc.row+1, rc.col) {
+	if ev.setPosAtRowCol(e, rc.Row+1, rc.Col) {
 		ev.refresh(e)
 	}
 }
@@ -639,7 +644,7 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 // the history being kept, so that a test can drive it over a fixed set of keys
 // and look at the line afterwards. Reading the C, this is the body of the
 // while inside edit_line.
-func (ev *env) runEditLoop(e *editor) key.Code {
+func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 	for {
 		ev.term.flush()
 		c := ev.readKey(e)
@@ -648,9 +653,9 @@ func (ev *env) runEditLoop(e *editor) key.Code {
 		}
 		// The hint is dropped after a possible resize, so that the resize
 		// measures the rows the hint was drawn on.
-		hadHint := e.hint.Len() > 0
-		e.hint.Reset()
-		e.hintHelp.Reset()
+		hadHint := e.Hint.Len() > 0
+		e.Hint.Reset()
+		e.HintHelp.Reset()
 		// Moving into a hint accepts it rather than stepping over nothing.
 		if (c == key.Right || c == key.End) && hadHint {
 			ev.generateCompletions(e, true)
@@ -667,11 +672,11 @@ func (ev *env) runEditLoop(e *editor) key.Code {
 // finished it, which is how the caller tells an abandoned line from an empty
 // one.
 func (ev *env) editLine(promptText string) (string, bool, key.Code) {
-	e := &editor{
-		opts:       ev.opts,
-		termW:      ev.term.getWidth(),
-		curRows:    1,
-		promptText: promptText,
+	e := &editor.Editor{
+		Opts:       ev.opts,
+		TermW:      ev.term.getWidth(),
+		CurRows:    1,
+		PromptText: promptText,
 	}
 	ev.writePrompt(e, 0, false)
 
@@ -681,7 +686,7 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 
 	c := ev.runEditLoop(e)
 
-	e.cursorToEnd()
+	e.CursorToEnd()
 	// One last draw, without brace matching, so no brace is left highlighted
 	// on the finished line.
 	was := ev.noBraceMatch
@@ -689,15 +694,15 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	ev.refresh(e)
 	ev.noBraceMatch = was
 
-	line, ok := e.input.string(), true
-	if (c == key.CtrlD && e.input.length() == 0) || c == key.EventStop {
+	line, ok := e.Input.String(), true
+	if (c == key.CtrlD && e.Input.Length() == 0) || c == key.EventStop {
 		line, ok = "", false
 	} else if !ev.ttyIsUTF8() {
-		line = string(e.input.decodeFromLocale())
+		line = string(e.Input.DecodeFromLocale())
 	}
 
-	ev.history.update(e.input.string())
-	if !ok || e.input.length() <= 1 {
+	ev.history.update(e.Input.String())
+	if !ok || e.Input.Length() <= 1 {
 		// Neither an empty line nor a single character is worth keeping.
 		ev.history.removeLast()
 	}
@@ -845,7 +850,7 @@ func helpLines() []string {
 // The line is taken down first and drawn again afterwards, because the help
 // is printed where the line was and the editor has to be told the screen
 // moved under it.
-func (ev *env) showHelp(e *editor) {
+func (ev *env) showHelp(e *editor.Editor) {
 	ev.clear(e)
 	ev.bb.println(helpBanner())
 	for _, line := range helpLines() {
@@ -854,7 +859,7 @@ func (ev *env) showHelp(e *editor) {
 	// The help has scrolled the line off where the editor thought it was, so
 	// the next redraw has to start afresh rather than move a cursor that is
 	// no longer there.
-	e.curRows = 0
-	e.curRow = 0
+	e.CurRows = 0
+	e.CurRow = 0
 	ev.refresh(e)
 }

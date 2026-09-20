@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/xo/rline/ansi"
+	"github.com/xo/rline/internal/text"
 )
 
 // --------------------------------------------------------------------------
@@ -135,7 +136,7 @@ func attrCheck(t *testing.T, f []string, dumps map[string][]string) (string, str
 func attrReplay() map[string][]string {
 	out := make(map[string][]string, 8)
 	ab := &ansi.AttrBuf{}
-	sb := &buffer{}
+	sb := &text.Buffer{}
 	for i, c := range []struct {
 		s string
 		a string
@@ -159,7 +160,7 @@ func attrReplay() map[string][]string {
 		}
 		out["app "+strconv.Itoa(i)] = row
 	}
-	out["appendstr"] = []string{sb.string()}
+	out["appendstr"] = []string{sb.String()}
 	return out
 }
 
@@ -305,12 +306,12 @@ func bbReplay(t *testing.T) []string {
 	}
 
 	for i, s := range bbCorpus {
-		var o buffer
+		var o text.Buffer
 		var ab ansi.AttrBuf
 		bb.appendTo(s, &o, &ab)
-		n := o.length()
+		n := o.Length()
 		row := make([]string, 0, n+4)
-		row = append(row, fmt.Sprintf("append %d %s %d", i, escapeBB(o.bytes()), n))
+		row = append(row, fmt.Sprintf("append %d %s %d", i, escapeBB(o.Bytes()), n))
 		for _, a := range ab.Extend(n) {
 			row = append(row, bbAttr(a))
 		}
@@ -444,7 +445,7 @@ func hlReplay(t *testing.T) []string {
 	for b, braces := range hlBraceSets {
 		for _, line := range hlLines {
 			for cp := -1; cp <= len(line)+1; cp++ {
-				m, balanced := findMatchingBrace(line, cp, braces)
+				m, balanced := text.FindMatchingBrace(line, cp, braces)
 				out = append(out, fmt.Sprintf("match %d %s %d %d %d",
 					b, escapeHL(line), cp, m, boolInt(balanced)))
 			}

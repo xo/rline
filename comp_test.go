@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/xo/rline/internal/text"
 )
 
 // --------------------------------------------------------------------------
@@ -25,8 +27,8 @@ const (
 )
 
 // completionClasses is the order the probe names a character class by.
-var completionClasses = []charClass{
-	nil, charIsNonSeparator, charIsIDLetter, charIsFileNameLetter,
+var completionClasses = []text.CharClass{
+	nil, text.CharIsNonSeparator, text.CharIsIDLetter, text.CharIsFileNameLetter,
 }
 
 // TestCompletionsPort replays every recorded call to the C completion code
@@ -141,23 +143,23 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		before, after, wantRes, wantBuf := p.num(), p.num(), p.num(), p.next()
 		c := &completions{completerMax: 10}
 		c.add(repl, "", "", before, after)
-		buf := &buffer{}
-		buf.appendString(line)
+		buf := &text.Buffer{}
+		buf.AppendString(line)
 		if got := c.apply(0, buf, pos); got != wantRes {
-			return f[0], fmt.Sprintf("apply gave %d, want %d (buffer %q)", got, wantRes, buf.string())
+			return f[0], fmt.Sprintf("apply gave %d, want %d (buffer %q)", got, wantRes, buf.String())
 		}
-		if got := hexOrDash(buf.bytes()); got != wantBuf {
+		if got := hexOrDash(buf.Bytes()); got != wantBuf {
 			return f[0], fmt.Sprintf("apply left the buffer %s, want %s", got, wantBuf)
 		}
 	case "applymissing":
 		index, wantRes, wantBuf := p.num(), p.num(), p.next()
 		c := &completions{}
-		buf := &buffer{}
-		buf.appendString("line")
+		buf := &text.Buffer{}
+		buf.AppendString("line")
 		if got := c.apply(index, buf, 2); got != wantRes {
 			return f[0], fmt.Sprintf("apply at %d gave %d, want %d", index, got, wantRes)
 		}
-		if got := hexOrDash(buf.bytes()); got != wantBuf {
+		if got := hexOrDash(buf.Bytes()); got != wantBuf {
 			return f[0], fmt.Sprintf("apply at %d left the buffer %s, want %s", index, got, wantBuf)
 		}
 	case "sort":
@@ -185,13 +187,13 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		for _, entry := range in {
 			c.add(entry, "", "", before, 0)
 		}
-		buf := &buffer{}
-		buf.appendString(line)
+		buf := &text.Buffer{}
+		buf.AppendString(line)
 		if got := c.applyLongestPrefix(buf, pos); got != wantRes {
 			return f[0], fmt.Sprintf("applyLongestPrefix gave %d, want %d (buffer %q)",
-				got, wantRes, buf.string())
+				got, wantRes, buf.String())
 		}
-		if got := hexOrDash(buf.bytes()); got != wantBuf {
+		if got := hexOrDash(buf.Bytes()); got != wantBuf {
 			return f[0], fmt.Sprintf("applyLongestPrefix left the buffer %s, want %s", got, wantBuf)
 		}
 		wantBefores := p.num()
@@ -219,13 +221,13 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		for i, entry := range in {
 			c.add(entry, "", "", befores[i], 0)
 		}
-		buf := &buffer{}
-		buf.appendString(line)
+		buf := &text.Buffer{}
+		buf.AppendString(line)
 		if got := c.applyLongestPrefix(buf, pos); got != wantRes {
 			return f[0], fmt.Sprintf("applyLongestPrefix gave %d, want %d (buffer %q)",
-				got, wantRes, buf.string())
+				got, wantRes, buf.String())
 		}
-		if got := hexOrDash(buf.bytes()); got != wantBuf {
+		if got := hexOrDash(buf.Bytes()); got != wantBuf {
 			return f[0], fmt.Sprintf("applyLongestPrefix left the buffer %s, want %s", got, wantBuf)
 		}
 		wantCount := p.num()

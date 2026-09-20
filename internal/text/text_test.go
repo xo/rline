@@ -1,4 +1,4 @@
-package rline
+package text
 
 import (
 	"encoding/hex"
@@ -28,8 +28,8 @@ const (
 )
 
 // tokenClasses is the order that the probe names a character class by.
-var tokenClasses = []charClass{
-	charIsLetter, charIsIDLetter, charIsNonWhite, charIsNonSeparator, charIsDigit,
+var tokenClasses = []CharClass{
+	charIsLetter, CharIsIDLetter, charIsNonWhite, CharIsNonSeparator, charIsDigit,
 }
 
 // TestStringbufPort replays every recorded call to a C function in
@@ -57,10 +57,10 @@ func TestStringbufPort(t *testing.T) {
 	// The exact count is the smallest thing that notices, and changing it is
 	// a deliberate edit beside the corpus it describes.
 	if len(lines) != 76164 {
-		t.Fatalf("testdata/stringbuf.txt holds %d lines, want %d: a corpus that changed size "+
+		t.Fatalf("%s holds %d lines, want %d: a corpus that changed size "+
 			"was either regenerated on purpose, in which case set this number, "+
 			"or lost lines, in which case it now checks less than it says",
-			len(lines), 76164)
+			sbufCorpusPath, len(lines), 76164)
 	}
 	ranges := readWidthRanges(t, widthPath)
 
@@ -203,7 +203,7 @@ func cCharWidth(ranges []widthRange, s []byte) int {
 // and go-runewidth measure differently.
 func widthDiverges(ranges []widthRange, s []byte) bool {
 	for pos := 0; pos < len(s); {
-		ofs, w := nextOfs(s, pos)
+		ofs, w := NextOfs(s, pos)
 		if ofs <= 0 {
 			return false
 		}
@@ -245,22 +245,22 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 	}
 	switch f[0] {
 	case "width":
-		if got, want := strWidth(s), mustInt(t, f[2]); got != want {
+		if got, want := StrWidth(s), mustInt(t, f[2]); got != want {
 			return f[0], "", fmt.Sprintf("strWidth = %d, want %d", got, want)
 		}
 	case "fit":
 		maxw, wantSkip, wantTake := mustInt(t, f[2]), mustInt(t, f[3]), mustInt(t, f[4])
-		if got := skipUntilFit(s, maxw); got != wantSkip {
+		if got := SkipUntilFit(s, maxw); got != wantSkip {
 			return f[0], "", fmt.Sprintf("skipUntilFit(%d) = %d, want %d", maxw, got, wantSkip)
 		}
-		if got := takeWhileFit(s, maxw); got != wantTake {
+		if got := TakeWhileFit(s, maxw); got != wantTake {
 			return f[0], "", fmt.Sprintf("takeWhileFit(%d) = %d, want %d", maxw, got, wantTake)
 		}
 	case "next", "prev":
 		pos, wantOfs, wantWidth := mustInt(t, f[2]), mustInt(t, f[3]), mustInt(t, f[4])
-		gotOfs, gotWidth := nextOfs(s, pos)
+		gotOfs, gotWidth := NextOfs(s, pos)
 		if f[0] == "prev" {
-			gotOfs, gotWidth = prevOfs(s, pos)
+			gotOfs, gotWidth = PrevOfs(s, pos)
 		}
 		if gotOfs != wantOfs {
 			return f[0], fmt.Sprintf("%sOfs(%d) offset = %d, want %d", f[0], pos, gotOfs, wantOfs), ""
@@ -283,9 +283,9 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 			name string
 			fn   func([]byte, int) int
 		}{
-			{"findLineStart", findLineStart}, {"findLineEnd", findLineEnd},
-			{"findWordStart", findWordStart}, {"findWordEnd", findWordEnd},
-			{"findWSWordStart", findWSWordStart}, {"findWSWordEnd", findWSWordEnd},
+			{"findLineStart", FindLineStart}, {"findLineEnd", FindLineEnd},
+			{"findWordStart", FindWordStart}, {"findWordEnd", FindWordEnd},
+			{"findWSWordStart", FindWSWordStart}, {"findWSWordEnd", FindWSWordEnd},
 		} {
 			if got, want := c.fn(s, pos), mustInt(t, f[3+i]); got != want {
 				return f[0], fmt.Sprintf("%s(%d) = %d, want %d", c.name, pos, got, want), ""
@@ -294,13 +294,13 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 	case "rc":
 		termw, promptw, cpromptw := mustInt(t, f[2]), mustInt(t, f[3]), mustInt(t, f[4])
 		pos, wantRows := mustInt(t, f[5]), mustInt(t, f[6])
-		gotRows, got := rowColAtPos(s, termw, promptw, cpromptw, pos)
+		gotRows, got := RowColAtPos(s, termw, promptw, cpromptw, pos)
 		return f[0], "", diffRowCol(t, fmt.Sprintf("rowColAtPos(%d,%d,%d,%d)", termw, promptw, cpromptw, pos),
 			gotRows, got, wantRows, f[7:])
 	case "posrc":
 		termw, promptw, cpromptw := mustInt(t, f[2]), mustInt(t, f[3]), mustInt(t, f[4])
 		row, col, want := mustInt(t, f[5]), mustInt(t, f[6]), mustInt(t, f[7])
-		if got := posAtRowCol(s, termw, promptw, cpromptw, row, col); got != want {
+		if got := PosAtRowCol(s, termw, promptw, cpromptw, row, col); got != want {
 			return f[0], "", fmt.Sprintf("posAtRowCol(%d,%d,%d,%d,%d) = %d, want %d",
 				termw, promptw, cpromptw, row, col, got, want)
 		}
@@ -308,30 +308,30 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 		termw, newtermw := mustInt(t, f[2]), mustInt(t, f[3])
 		promptw, cpromptw := mustInt(t, f[4]), mustInt(t, f[5])
 		pos, wantRows := mustInt(t, f[6]), mustInt(t, f[7])
-		gotRows, got := wrappedRowColAtPos(s, termw, newtermw, promptw, cpromptw, pos)
+		gotRows, got := WrappedRowColAtPos(s, termw, newtermw, promptw, cpromptw, pos)
 		return f[0], "", diffRowCol(t, fmt.Sprintf("wrappedRowColAtPos(%d,%d,%d,%d,%d)",
 			termw, newtermw, promptw, cpromptw, pos), gotRows, got, wantRows, f[8:])
 	case "ins":
 		ins, pos := mustStr(t, f[2]), mustInt(t, f[3])
 		wantPos, wantBuf := mustInt(t, f[4]), f[5]
-		b := &buffer{buf: append([]byte(nil), s...)}
-		if got := b.insertAt(ins, pos); got != wantPos {
+		b := &Buffer{buf: append([]byte(nil), s...)}
+		if got := b.InsertAt(ins, pos); got != wantPos {
 			return f[0], fmt.Sprintf("insertAt(%q, %d) = %d, want %d", ins, pos, got, wantPos), ""
 		}
 		return f[0], diffBuf(b, wantBuf, fmt.Sprintf("insertAt(%q, %d)", ins, pos)), ""
 	case "del":
 		pos, count, wantBuf := mustInt(t, f[2]), mustInt(t, f[3]), f[4]
-		b := &buffer{buf: append([]byte(nil), s...)}
-		b.deleteAt(pos, count)
+		b := &Buffer{buf: append([]byte(nil), s...)}
+		b.DeleteAt(pos, count)
 		return f[0], diffBuf(b, wantBuf, fmt.Sprintf("deleteAt(%d, %d)", pos, count)), ""
 	case "swap", "delbefore":
 		pos, wantPos, wantBuf := mustInt(t, f[2]), mustInt(t, f[3]), f[4]
-		b := &buffer{buf: append([]byte(nil), s...)}
+		b := &Buffer{buf: append([]byte(nil), s...)}
 		var got int
 		if f[0] == "delbefore" {
-			got = b.deleteCharBefore(pos)
+			got = b.DeleteCharBefore(pos)
 		} else {
-			got = b.swapChar(pos)
+			got = b.SwapChar(pos)
 		}
 		if got != wantPos {
 			return f[0], fmt.Sprintf("%s(%d) = %d, want %d", f[0], pos, got, wantPos), ""
@@ -339,13 +339,13 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 		return f[0], diffBuf(b, wantBuf, fmt.Sprintf("%s(%d)", f[0], pos)), ""
 	case "delat":
 		pos, wantBuf := mustInt(t, f[2]), f[3]
-		b := &buffer{buf: append([]byte(nil), s...)}
-		b.deleteCharAt(pos)
+		b := &Buffer{buf: append([]byte(nil), s...)}
+		b.DeleteCharAt(pos)
 		return f[0], diffBuf(b, wantBuf, fmt.Sprintf("deleteCharAt(%d)", pos)), ""
 	case "split":
 		pos, wantLeft, wantRight := mustInt(t, f[2]), f[3], f[4]
-		b := &buffer{buf: append([]byte(nil), s...)}
-		rest := b.splitAt(pos)
+		b := &Buffer{buf: append([]byte(nil), s...)}
+		rest := b.SplitAt(pos)
 		if d := diffBuf(b, wantLeft, fmt.Sprintf("splitAt(%d) left", pos)); d != "" {
 			return f[0], d, ""
 		}
@@ -358,10 +358,10 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 		return f[0], diffBuf(rest, wantRight, fmt.Sprintf("splitAt(%d) right", pos)), ""
 	case "bnext", "bprev":
 		pos, wantPos, wantWidth := mustInt(t, f[2]), mustInt(t, f[3]), mustInt(t, f[4])
-		b := &buffer{buf: s}
-		gotPos, gotWidth := b.next(pos)
+		b := &Buffer{buf: s}
+		gotPos, gotWidth := b.Next(pos)
 		if f[0] == "bprev" {
-			gotPos, gotWidth = b.prev(pos)
+			gotPos, gotWidth = b.Prev(pos)
 		}
 		if gotPos != wantPos {
 			return f[0], fmt.Sprintf("%s(%d) = %d, want %d", f[0], pos, gotPos, wantPos), ""
@@ -373,13 +373,13 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 		}
 	case "charat":
 		pos := mustInt(t, f[2])
-		b := &buffer{buf: s}
-		if got, want := b.charAt(pos), mustHex(t, f[3])[0]; got != want {
+		b := &Buffer{buf: s}
+		if got, want := b.CharAt(pos), mustHex(t, f[3])[0]; got != want {
 			return f[0], fmt.Sprintf("charAt(%d) = %02x, want %02x", pos, got, want), ""
 		}
 	case "fromutf8":
-		b := &buffer{buf: s}
-		got := b.decodeFromLocale()
+		b := &Buffer{buf: s}
+		got := b.DecodeFromLocale()
 		want := f[2]
 		if got == nil {
 			if want != "!" {
@@ -392,7 +392,7 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 		}
 	case "overlap":
 		a, p, want := mustStr(t, f[1]), mustStr(t, f[2]), mustInt(t, f[3])
-		if got := countEndOverlap(a, p); got != want {
+		if got := CountEndOverlap(a, p); got != want {
 			return f[0], fmt.Sprintf("countEndOverlap(%q, %q) = %d, want %d", a, p, got, want), ""
 		}
 	case "istoken":
@@ -426,7 +426,7 @@ func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
 		return f[0], checkClassLine(t, f), ""
 	case "atoz":
 		in, wantOK, wantVal := mustStr(t, f[1]), mustInt(t, f[2]) == 1, mustInt(t, f[3])
-		got, ok := atoz(in)
+		got, ok := Atoz(in)
 		if ok != wantOK || (ok && got != wantVal) {
 			return f[0], fmt.Sprintf("atoz(%q) = (%d, %v), want (%d, %v)", in, got, ok, wantVal, wantOK), ""
 		}
@@ -468,13 +468,13 @@ func checkClassLine(t *testing.T, f []string) string {
 	s := []byte{c, 'x'}[:n]
 	for i, class := range []struct {
 		name string
-		fn   charClass
+		fn   CharClass
 	}{
 		{"charIsWhite", charIsWhite}, {"charIsNonWhite", charIsNonWhite},
-		{"charIsSeparator", charIsSeparator}, {"charIsNonSeparator", charIsNonSeparator},
+		{"charIsSeparator", charIsSeparator}, {"charIsNonSeparator", CharIsNonSeparator},
 		{"charIsDigit", charIsDigit}, {"charIsHexDigit", charIsHexDigit},
-		{"charIsLetter", charIsLetter}, {"charIsIDLetter", charIsIDLetter},
-		{"charIsFileNameLetter", charIsFileNameLetter},
+		{"charIsLetter", charIsLetter}, {"charIsIDLetter", CharIsIDLetter},
+		{"charIsFileNameLetter", CharIsFileNameLetter},
 	} {
 		if got, want := class.fn(s), mustInt(t, f[3+i]) == 1; got != want {
 			return fmt.Sprintf("%s(%02x, len %d) = %v, want %v", class.name, c, n, got, want)
@@ -484,15 +484,15 @@ func checkClassLine(t *testing.T, f []string) string {
 }
 
 // diffRowCol compares a row and column result against the recorded fields.
-func diffRowCol(t *testing.T, call string, gotRows int, got rowCol, wantRows int, f []string) string {
+func diffRowCol(t *testing.T, call string, gotRows int, got RowCol, wantRows int, f []string) string {
 	t.Helper()
-	want := rowCol{
-		row:        mustInt(t, f[0]),
-		col:        mustInt(t, f[1]),
-		rowStart:   mustInt(t, f[2]),
-		rowLen:     mustInt(t, f[3]),
-		firstOnRow: mustInt(t, f[4]) == 1,
-		lastOnRow:  mustInt(t, f[5]) == 1,
+	want := RowCol{
+		Row:        mustInt(t, f[0]),
+		Col:        mustInt(t, f[1]),
+		RowStart:   mustInt(t, f[2]),
+		RowLen:     mustInt(t, f[3]),
+		FirstOnRow: mustInt(t, f[4]) == 1,
+		LastOnRow:  mustInt(t, f[5]) == 1,
 	}
 	if gotRows != wantRows || got != want {
 		return fmt.Sprintf("%s = %d rows %+v, want %d rows %+v", call, gotRows, got, wantRows, want)
@@ -501,8 +501,8 @@ func diffRowCol(t *testing.T, call string, gotRows int, got rowCol, wantRows int
 }
 
 // diffBuf compares a buffer against a recorded hex field.
-func diffBuf(b *buffer, want, call string) string {
-	if got := hexOrDash(b.bytes()); got != want {
+func diffBuf(b *Buffer, want, call string) string {
+	if got := hexOrDash(b.Bytes()); got != want {
 		return fmt.Sprintf("%s left the buffer %s, want %s", call, got, want)
 	}
 	return ""
@@ -540,55 +540,55 @@ func regenerateStringbuf(t *testing.T) {
 // call. These build a buffer up and take it apart again.
 func TestBufferEdits(t *testing.T) {
 	t.Parallel()
-	var b buffer
-	if got := b.length(); got != 0 {
+	var b Buffer
+	if got := b.Length(); got != 0 {
 		t.Fatalf("the zero value has length %d, want 0", got)
 	}
-	if got := b.appendString("hello"); got != 5 {
+	if got := b.AppendString("hello"); got != 5 {
 		t.Errorf("appendString gave %d, want 5", got)
 	}
-	if got := b.appendByte(' '); got != 6 {
+	if got := b.AppendByte(' '); got != 6 {
 		t.Errorf("appendByte gave %d, want 6", got)
 	}
-	if got := b.appendf("%s %d", "world", 42); got != 14 {
+	if got := b.Appendf("%s %d", "world", 42); got != 14 {
 		t.Errorf("appendf gave %d, want 14", got)
 	}
-	if got, want := b.string(), "hello world 42"; got != want {
+	if got, want := b.String(), "hello world 42"; got != want {
 		t.Fatalf("the buffer holds %q, want %q", got, want)
 	}
-	if got := b.insertAt("big ", 6); got != 10 {
+	if got := b.InsertAt("big ", 6); got != 10 {
 		t.Errorf("insertAt gave %d, want 10", got)
 	}
-	if got, want := b.string(), "hello big world 42"; got != want {
+	if got, want := b.String(), "hello big world 42"; got != want {
 		t.Fatalf("after insertAt the buffer holds %q, want %q", got, want)
 	}
-	b.deleteFromTo(6, 10)
-	if got, want := b.string(), "hello world 42"; got != want {
+	b.DeleteFromTo(6, 10)
+	if got, want := b.String(), "hello world 42"; got != want {
 		t.Fatalf("after deleteFromTo the buffer holds %q, want %q", got, want)
 	}
-	b.deleteFrom(11)
-	if got, want := b.string(), "hello world"; got != want {
+	b.DeleteFrom(11)
+	if got, want := b.String(), "hello world"; got != want {
 		t.Fatalf("after deleteFrom the buffer holds %q, want %q", got, want)
 	}
-	rest := b.splitAt(5)
-	if got, want := b.string(), "hello"; got != want {
+	rest := b.SplitAt(5)
+	if got, want := b.String(), "hello"; got != want {
 		t.Errorf("after splitAt the left side holds %q, want %q", got, want)
 	}
-	if got, want := rest.string(), " world"; got != want {
+	if got, want := rest.String(), " world"; got != want {
 		t.Errorf("after splitAt the right side holds %q, want %q", got, want)
 	}
-	b.replace("done")
-	if got, want := b.string(), "done"; got != want {
+	b.Replace("done")
+	if got, want := b.String(), "done"; got != want {
 		t.Fatalf("after replace the buffer holds %q, want %q", got, want)
 	}
-	if got, want := b.charAt(0), byte('d'); got != want {
+	if got, want := b.CharAt(0), byte('d'); got != want {
 		t.Errorf("charAt(0) = %q, want %q", got, want)
 	}
-	if got, want := b.charAt(4), byte(0); got != want {
+	if got, want := b.CharAt(4), byte(0); got != want {
 		t.Errorf("charAt at the end = %d, want %d", got, want)
 	}
-	b.clear()
-	if got := b.length(); got != 0 {
+	b.Clear()
+	if got := b.Length(); got != 0 {
 		t.Errorf("after clear the buffer has length %d, want 0", got)
 	}
 }
@@ -598,17 +598,17 @@ func TestBufferEdits(t *testing.T) {
 // else counts on a buffer never holding one.
 func TestBufferInsertStopsAtZero(t *testing.T) {
 	t.Parallel()
-	var b buffer
-	if got := b.insertAt("ab\x00cd", 0); got != 2 {
+	var b Buffer
+	if got := b.InsertAt("ab\x00cd", 0); got != 2 {
 		t.Errorf("insertAt gave %d, want 2", got)
 	}
-	if got, want := b.string(), "ab"; got != want {
+	if got, want := b.String(), "ab"; got != want {
 		t.Errorf("the buffer holds %q, want %q", got, want)
 	}
-	if got := b.insertByteAt(0, 1); got != 1 {
+	if got := b.InsertByteAt(0, 1); got != 1 {
 		t.Errorf("insertByteAt of a zero byte gave %d, want 1", got)
 	}
-	if got, want := b.string(), "ab"; got != want {
+	if got, want := b.String(), "ab"; got != want {
 		t.Errorf("a zero byte changed the buffer to %q, want %q", got, want)
 	}
 }
@@ -617,40 +617,40 @@ func TestBufferInsertStopsAtZero(t *testing.T) {
 // over text that is not ASCII.
 func TestBufferRunesAndCharacters(t *testing.T) {
 	t.Parallel()
-	var b buffer
-	pos := b.insertRuneAt('日', 0)
+	var b Buffer
+	pos := b.InsertRuneAt('日', 0)
 	if got, want := pos, 3; got != want {
 		t.Errorf("insertRuneAt gave %d, want %d", got, want)
 	}
-	if got, want := b.insertRuneAt('a', pos), 4; got != want {
+	if got, want := b.InsertRuneAt('a', pos), 4; got != want {
 		t.Errorf("insertRuneAt gave %d, want %d", got, want)
 	}
-	if got, want := b.string(), "日a"; got != want {
+	if got, want := b.String(), "日a"; got != want {
 		t.Fatalf("the buffer holds %q, want %q", got, want)
 	}
-	if got, width := b.next(0); got != 3 || width != 2 {
+	if got, width := b.Next(0); got != 3 || width != 2 {
 		t.Errorf("next(0) = (%d, %d), want (3, 2)", got, width)
 	}
-	if got, width := b.prev(3); got != 0 || width != 2 {
+	if got, width := b.Prev(3); got != 0 || width != 2 {
 		t.Errorf("prev(3) = (%d, %d), want (0, 2)", got, width)
 	}
-	if got, _ := b.prev(0); got != -1 {
+	if got, _ := b.Prev(0); got != -1 {
 		t.Errorf("prev(0) = %d, want -1", got)
 	}
-	if got := b.swapChar(3); got != 0 {
+	if got := b.SwapChar(3); got != 0 {
 		t.Errorf("swapChar(3) = %d, want 0", got)
 	}
-	if got, want := b.string(), "a日"; got != want {
+	if got, want := b.String(), "a日"; got != want {
 		t.Errorf("after swapChar the buffer holds %q, want %q", got, want)
 	}
-	b.deleteCharAt(1)
-	if got, want := b.string(), "a"; got != want {
+	b.DeleteCharAt(1)
+	if got, want := b.String(), "a"; got != want {
 		t.Errorf("after deleteCharAt the buffer holds %q, want %q", got, want)
 	}
-	if got := b.deleteCharBefore(1); got != 0 {
+	if got := b.DeleteCharBefore(1); got != 0 {
 		t.Errorf("deleteCharBefore(1) = %d, want 0", got)
 	}
-	if got := b.length(); got != 0 {
+	if got := b.Length(); got != 0 {
 		t.Errorf("the buffer has length %d, want 0", got)
 	}
 }
@@ -668,14 +668,14 @@ func TestBufferDecodeFromLocale(t *testing.T) {
 		{"ascii survives", "abc", "abc"},
 		{"an escape sequence is dropped", "a\x1b[31mb", "ab"},
 		{"a character outside ascii is dropped", "a日b", "ab"},
-		{"a raw byte comes back", "a" + string(appendRune(nil, rawRune(0xFF))) + "b", "a\xffb"},
+		{"a raw byte comes back", "a" + string(AppendRune(nil, RawRune(0xFF))) + "b", "a\xffb"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			b := buffer{}
-			b.appendString(test.in)
-			got := b.decodeFromLocale()
+			b := Buffer{}
+			b.AppendString(test.in)
+			got := b.DecodeFromLocale()
 			if test.in == "" {
 				if got != nil {
 					t.Errorf("decodeFromLocale = %q, want nothing at all", got)
@@ -696,8 +696,8 @@ func TestBufferDecodeFromLocale(t *testing.T) {
 func TestBufferForwardsToTheFunctions(t *testing.T) {
 	t.Parallel()
 	const text = "one two\nthree four\nfive"
-	var b buffer
-	b.appendString(text)
+	var b Buffer
+	b.AppendString(text)
 	s := []byte(text)
 
 	finders := []struct {
@@ -705,12 +705,12 @@ func TestBufferForwardsToTheFunctions(t *testing.T) {
 		method func(int) int
 		fn     func([]byte, int) int
 	}{
-		{"findLineStart", b.findLineStart, findLineStart},
-		{"findLineEnd", b.findLineEnd, findLineEnd},
-		{"findWordStart", b.findWordStart, findWordStart},
-		{"findWordEnd", b.findWordEnd, findWordEnd},
-		{"findWSWordStart", b.findWSWordStart, findWSWordStart},
-		{"findWSWordEnd", b.findWSWordEnd, findWSWordEnd},
+		{"findLineStart", b.FindLineStart, FindLineStart},
+		{"findLineEnd", b.FindLineEnd, FindLineEnd},
+		{"findWordStart", b.FindWordStart, FindWordStart},
+		{"findWordEnd", b.FindWordEnd, FindWordEnd},
+		{"findWSWordStart", b.FindWSWordStart, FindWSWordStart},
+		{"findWSWordEnd", b.FindWSWordEnd, FindWSWordEnd},
 	}
 	for _, f := range finders {
 		for pos := range len(s) + 1 {
@@ -722,14 +722,14 @@ func TestBufferForwardsToTheFunctions(t *testing.T) {
 
 	const termw, promptw, contw, newtermw = 10, 3, 2, 6
 	for pos := range len(s) + 1 {
-		gotRows, gotRC := b.rowColAtPos(termw, promptw, contw, pos)
-		wantRows, wantRC := rowColAtPos(s, termw, promptw, contw, pos)
+		gotRows, gotRC := b.RowColAtPos(termw, promptw, contw, pos)
+		wantRows, wantRC := RowColAtPos(s, termw, promptw, contw, pos)
 		if gotRows != wantRows || gotRC != wantRC {
 			t.Errorf("rowColAtPos(%d) = %d %+v, but the function gives %d %+v",
 				pos, gotRows, gotRC, wantRows, wantRC)
 		}
-		gotRows, gotRC = b.wrappedRowColAtPos(termw, newtermw, promptw, contw, pos)
-		wantRows, wantRC = wrappedRowColAtPos(s, termw, newtermw, promptw, contw, pos)
+		gotRows, gotRC = b.WrappedRowColAtPos(termw, newtermw, promptw, contw, pos)
+		wantRows, wantRC = WrappedRowColAtPos(s, termw, newtermw, promptw, contw, pos)
 		if gotRows != wantRows || gotRC != wantRC {
 			t.Errorf("wrappedRowColAtPos(%d) = %d %+v, but the function gives %d %+v",
 				pos, gotRows, gotRC, wantRows, wantRC)
@@ -737,8 +737,8 @@ func TestBufferForwardsToTheFunctions(t *testing.T) {
 	}
 	for row := range 4 {
 		for col := range 8 {
-			got := b.posAtRowCol(termw, promptw, contw, row, col)
-			want := posAtRowCol(s, termw, promptw, contw, row, col)
+			got := b.PosAtRowCol(termw, promptw, contw, row, col)
+			want := PosAtRowCol(s, termw, promptw, contw, row, col)
 			if got != want {
 				t.Errorf("posAtRowCol(%d, %d) = %d, but the function gives %d", row, col, got, want)
 			}
@@ -746,7 +746,7 @@ func TestBufferForwardsToTheFunctions(t *testing.T) {
 	}
 
 	var rows []string
-	count := b.forEachRow(termw, promptw, contw, func(s []byte, _, rowStart, rowLen, _ int, _ bool) bool {
+	count := b.ForEachRow(termw, promptw, contw, func(s []byte, _, rowStart, rowLen, _ int, _ bool) bool {
 		rows = append(rows, string(s[rowStart:rowStart+rowLen]))
 		return false
 	})
@@ -764,12 +764,12 @@ func TestBufferForwardsToTheFunctions(t *testing.T) {
 // copy, so a later edit is visible through it.
 func TestBufferBytesAlias(t *testing.T) {
 	t.Parallel()
-	var b buffer
-	b.appendString("abc")
-	got := b.bytes()
+	var b Buffer
+	b.AppendString("abc")
+	got := b.Bytes()
 	got[0] = 'x'
-	if b.string() != "xbc" {
-		t.Errorf("the buffer holds %q, want it to share storage with bytes", b.string())
+	if b.String() != "xbc" {
+		t.Errorf("the buffer holds %q, want it to share storage with bytes", b.String())
 	}
 }
 

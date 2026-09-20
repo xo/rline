@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/xo/rline/internal/editor"
 )
 
 // --------------------------------------------------------------------------
@@ -100,14 +102,14 @@ func refreshReplay(t *testing.T) []string {
 		bb:            newBBCode(tm),
 		promptMarker:  "> ",
 		cpromptMarker: "| ",
-		opts: editOptions{
-			MatchBraces:  "()[]{}",
-			AutoBraces:   "()[]{}",
+		opts: editor.EditOptions{
+			MatchPairs:   "()[]{}",
+			AutoPairs:    "()[]{}",
 			MultilineEOL: '\\',
 		},
 		noHighlight: true,
 	}
-	e := &editor{}
+	e := &editor.Editor{}
 
 	out := make([]string, 0, 3200)
 	emit := func() string {
@@ -127,16 +129,16 @@ func refreshReplay(t *testing.T) []string {
 					for _, extra := range refreshExtras {
 						for _, noIndent := range []bool{false, true} {
 							for _, noBrace := range []bool{false, true} {
-								e.input.replace(text)
-								e.hint.Reset()
-								e.hint.WriteString(hint)
-								e.extra.replace(extra)
-								e.hintHelp.Reset()
-								e.pos = pos
-								e.termW = 40
-								e.curRows = 1
-								e.curRow = 0
-								e.promptText = prompt
+								e.Input.Replace(text)
+								e.Hint.Reset()
+								e.Hint.WriteString(hint)
+								e.Extra.Replace(extra)
+								e.HintHelp.Reset()
+								e.Pos = pos
+								e.TermW = 40
+								e.CurRows = 1
+								e.CurRow = 0
+								e.PromptText = prompt
 								ev.noMultilineIndent = noIndent
 								ev.noBraceMatch = noBrace
 								tm.flush()
@@ -144,8 +146,8 @@ func refreshReplay(t *testing.T) []string {
 								ev.refresh(e)
 								tm.flush()
 								out = append(out, fmt.Sprintf("refresh %d %s %d %d %d %s",
-									caseno, emit(), e.curRows, e.curRow, e.pos,
-									escapeBB([]byte(e.input.string()))))
+									caseno, emit(), e.CurRows, e.CurRow, e.Pos,
+									escapeBB([]byte(e.Input.String()))))
 								caseno++
 							}
 						}
@@ -321,7 +323,7 @@ type resizableSize struct {
 func (s *resizableSize) size() (int, int, bool) { return s.cols, s.rows, true }
 
 // newResizeEnv returns an editor drawing to a buffer, and the size it reads.
-func newResizeEnv(t *testing.T) (*env, *editor, *bytes.Buffer, *resizableSize) {
+func newResizeEnv(t *testing.T) (*env, *editor.Editor, *bytes.Buffer, *resizableSize) {
 	t.Helper()
 	sink := &bytes.Buffer{}
 	sz := &resizableSize{cols: 80, rows: 24}
@@ -336,12 +338,12 @@ func newResizeEnv(t *testing.T) (*env, *editor, *bytes.Buffer, *resizableSize) {
 		completions:   &completions{},
 		promptMarker:  "> ",
 		cpromptMarker: "> ",
-		opts:          editOptions{MatchBraces: DefaultMatchBraces, AutoBraces: DefaultAutoBraces, MultilineEOL: DefaultMultilineEOL},
+		opts:          editor.EditOptions{MatchPairs: DefaultMatchPairs, AutoPairs: DefaultAutoPairs, MultilineEOL: DefaultMultilineEOL},
 		noHighlight:   true,
 		noBraceMatch:  true,
 		noHint:        true,
 	}
-	e := &editor{opts: ev.opts, termW: 80, curRows: 1}
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
 	return ev, e, sink, sz
 }
 
@@ -351,8 +353,8 @@ func newResizeEnv(t *testing.T) (*env, *editor, *bytes.Buffer, *resizableSize) {
 func TestResizeReportsAChange(t *testing.T) {
 	t.Parallel()
 	ev, e, sink, sz := newResizeEnv(t)
-	e.input.replace("hello")
-	e.pos = 5
+	e.Input.Replace("hello")
+	e.Pos = 5
 	ev.refresh(e)
 	sink.Reset()
 
@@ -366,8 +368,8 @@ func TestResizeReportsAChange(t *testing.T) {
 	if !ev.resize(e) {
 		t.Error("a resize to a new width reported no change")
 	}
-	if e.termW != 40 {
-		t.Errorf("the editor kept a width of %d, want 40", e.termW)
+	if e.TermW != 40 {
+		t.Errorf("the editor kept a width of %d, want 40", e.TermW)
 	}
 	if sink.Len() == 0 {
 		t.Error("a resize to a new width drew nothing")
@@ -395,11 +397,11 @@ func TestResizeDrawsTheLineOnce(t *testing.T) {
 			t.Parallel()
 			ev, e, sink, sz := newResizeEnv(t)
 			sz.cols = test.from
-			e.termW = test.from
+			e.TermW = test.from
 			// Long enough to wrap at every width being tested, and made of a
 			// word that can be counted in the output.
-			e.input.replace(strings.Repeat("abcde ", 12))
-			e.pos = e.input.length()
+			e.Input.Replace(strings.Repeat("abcde ", 12))
+			e.Pos = e.Input.Length()
 			ev.refresh(e)
 			sink.Reset()
 
@@ -423,8 +425,8 @@ func TestResizeDrawsTheLineOnce(t *testing.T) {
 func TestResizeKeepsThePosition(t *testing.T) {
 	t.Parallel()
 	ev, e, _, sz := newResizeEnv(t)
-	e.input.replace(strings.Repeat("x", 100))
-	e.pos = 50
+	e.Input.Replace(strings.Repeat("x", 100))
+	e.Pos = 50
 	ev.refresh(e)
 
 	_, before := ev.rowCol(e)
@@ -432,13 +434,13 @@ func TestResizeKeepsThePosition(t *testing.T) {
 	ev.resize(e)
 	_, after := ev.rowCol(e)
 
-	if e.pos != 50 {
-		t.Errorf("the cursor moved to %d, want 50", e.pos)
+	if e.Pos != 50 {
+		t.Errorf("the cursor moved to %d, want 50", e.Pos)
 	}
 	// A narrower window puts the same character further down the screen.
-	if after.row <= before.row {
+	if after.Row <= before.Row {
 		t.Errorf("the cursor was on row %d at 80 columns and row %d at 40, want further down",
-			before.row, after.row)
+			before.Row, after.Row)
 	}
 }
 
@@ -448,9 +450,9 @@ func TestResizeKeepsThePosition(t *testing.T) {
 func TestResizeWithContentBelowTheLine(t *testing.T) {
 	t.Parallel()
 	ev, e, sink, sz := newResizeEnv(t)
-	e.input.replace("select")
-	e.pos = 6
-	e.extra.replace("[ic-info]1. one[/]\n[ic-info]2. two[/]\n")
+	e.Input.Replace("select")
+	e.Pos = 6
+	e.Extra.Replace("[ic-info]1. one[/]\n[ic-info]2. two[/]\n")
 	ev.refresh(e)
 	sink.Reset()
 

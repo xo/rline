@@ -99,14 +99,14 @@ func TestOptions(t *testing.T) {
 		{"single line", WithMultiline(false), func(c *config) bool { return c.singlelineOnly }},
 		{"no highlighting", WithHighlighting(false), func(c *config) bool { return c.noHighlight }},
 		{"no brace matching", WithBraceMatching(false), func(c *config) bool { return c.noBraceMatch }},
-		{"no brace insertion", WithBraceInsertion(false), func(c *config) bool { return c.opts.NoAutoBrace }},
+		{"no brace insertion", WithBraceInsertion(false), func(c *config) bool { return c.opts.NoAutoPair }},
 		{"no hints", WithHints(false), func(c *config) bool { return c.noHint }},
 		{"no inline help", WithInlineHelp(false), func(c *config) bool { return c.noHelp }},
 		{"no indent", WithMultilineIndent(false), func(c *config) bool { return c.noMultilineIndent }},
 		{"auto tab", WithAutoTab(true), func(c *config) bool { return c.completeAutoTab }},
 		{"hint delay", WithHintDelay(time.Second), func(c *config) bool { return c.hintDelay == time.Second }},
-		{"match braces", WithMatchBraces("<>"), func(c *config) bool { return c.opts.MatchBraces == "<>" }},
-		{"auto braces", WithAutoBraces("<>"), func(c *config) bool { return c.opts.AutoBraces == "<>" }},
+		{"match braces", WithMatchPairs("<>"), func(c *config) bool { return c.opts.MatchPairs == "<>" }},
+		{"auto braces", WithAutoPairs("<>"), func(c *config) bool { return c.opts.AutoPairs == "<>" }},
 		{"input fd", WithInputFd(3), func(c *config) bool { return c.inFd == 3 }},
 		{"input reader", WithInput(strings.NewReader("x")), func(c *config) bool {
 			return c.in != nil
@@ -132,11 +132,11 @@ func TestDefaultsMatchTheC(t *testing.T) {
 	if DefaultPromptMarker != "> " {
 		t.Errorf("the prompt marker is %q, want %q", DefaultPromptMarker, "> ")
 	}
-	if DefaultMatchBraces != "()[]{}" {
-		t.Errorf("the matched braces are %q", DefaultMatchBraces)
+	if DefaultMatchPairs != "()[]{}" {
+		t.Errorf("the matched braces are %q", DefaultMatchPairs)
 	}
-	if DefaultAutoBraces != `()[]{}""''` {
-		t.Errorf("the inserted braces are %q", DefaultAutoBraces)
+	if DefaultAutoPairs != `()[]{}""''` {
+		t.Errorf("the inserted braces are %q", DefaultAutoPairs)
 	}
 	if DefaultHintDelay != 400*time.Millisecond {
 		t.Errorf("the hint delay is %v, want 400ms", DefaultHintDelay)

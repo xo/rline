@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/xo/rline/ansi"
+	"github.com/xo/rline/internal/text"
 )
 
 const (
@@ -183,12 +184,12 @@ func termReplay(t *testing.T) []string {
 		tm.setBufferMode(unbuffered)
 		emit("discard")
 		ab := &ansi.AttrBuf{}
-		sb := &buffer{}
+		sb := &text.Buffer{}
 		appendMarked(ab, sb, "red", ansi.ParseSGR("31"))
 		appendMarked(ab, sb, "plain", ansi.Attr{})
 		appendMarked(ab, sb, "bold", ansi.ParseSGR("1"))
-		s := sb.string()
-		tm.writeFormatted(s, ab.Extend(sb.length()))
+		s := sb.String()
+		tm.writeFormatted(s, ab.Extend(sb.Length()))
 		tm.flush()
 		emit("formatted")
 		tm.writeFormatted(s, nil)

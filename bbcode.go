@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/xo/rline/ansi"
+	"github.com/xo/rline/internal/text"
 )
 
 // --------------------------------------------------------------------------
@@ -31,12 +32,12 @@ import (
 //
 // The attribute buffer may be nil, which appends the text and records no
 // attributes.
-func appendMarked(ab *ansi.AttrBuf, b *buffer, s string, a ansi.Attr) int {
+func appendMarked(ab *ansi.AttrBuf, b *text.Buffer, s string, a ansi.Attr) int {
 	if s == "" {
-		return b.length()
+		return b.Length()
 	}
 	ab.SetAt(ab.Length(), len(s), a)
-	return b.appendString(s)
+	return b.AppendString(s)
 }
 
 // --------------------------------------------------------------------------
@@ -116,9 +117,9 @@ type bbCode struct {
 	styles []bbStyle
 
 	// Working buffers, kept so that printing does not allocate each time.
-	out      buffer
+	out      text.Buffer
 	outAttrs ansi.AttrBuf
-	vout     buffer
+	vout     text.Buffer
 }
 
 // newBBCode returns a bbCode that prints to term.
@@ -203,7 +204,7 @@ func (bb *bbCode) closeTag(base int) (bbTag, bool) {
 func updateWidth(out *widthSpec, defaultFill byte, value string) {
 	w := widthSpec{fill: defaultFill}
 	defer func() { *out = w }()
-	n, ok := atoz(value)
+	n, ok := text.Atoz(value)
 	if !ok {
 		return
 	}
@@ -224,11 +225,11 @@ func updateWidth(out *widthSpec, defaultFill byte, value string) {
 		return value[start:i]
 	}
 	switch f := field(); {
-	case len(f) == 4 && hasPrefixFold(f, "left"):
+	case len(f) == 4 && text.HasPrefixFold(f, "left"):
 		w.align = alignLeft
-	case len(f) == 5 && hasPrefixFold(f, "right"):
+	case len(f) == 5 && text.HasPrefixFold(f, "right"):
 		w.align = alignRight
-	case len(f) == 6 && hasPrefixFold(f, "center"):
+	case len(f) == 6 && text.HasPrefixFold(f, "center"):
 		w.align = alignCenter
 	}
 	if i >= len(value) {
@@ -243,7 +244,7 @@ func updateWidth(out *widthSpec, defaultFill byte, value string) {
 	}
 	i++
 	f := field()
-	if (len(f) == 2 && hasPrefixFold(f, "on")) || f == "1" {
+	if (len(f) == 2 && text.HasPrefixFold(f, "on")) || f == "1" {
 		w.dots = true
 	}
 }
@@ -443,7 +444,7 @@ func lowerTagText(s string) string {
 	}
 	b := []byte(s)
 	for i := range b {
-		b[i] = asciiLower(b[i])
+		b[i] = text.ASCIILower(b[i])
 	}
 	return string(b)
 }
@@ -460,7 +461,7 @@ func (bb *bbCode) parseTagValue(t *bbTag, s string, i int) (string, int) {
 	i = parseSkipWhite(s, idEnd)
 	// "on" in front of a color name means the background, unless it is being
 	// given a value of its own.
-	if idEnd-idStart == 2 && compareFoldN(s[idStart:], "on", 2) == 0 &&
+	if idEnd-idStart == 2 && text.CompareFoldN(s[idStart:], "on", 2) == 0 &&
 		(i >= len(s) || s[i] != '=') {
 		useBgColor = true
 		idStart = i
@@ -549,13 +550,13 @@ func (bb *bbCode) styleClose(spec string) {
 
 // restrictWidth pads or cuts the output from start so that it takes exactly
 // the width the tag asked for.
-func restrictWidth(start int, width widthSpec, out *buffer, outAttrs *ansi.AttrBuf) {
+func restrictWidth(start int, width widthSpec, out *text.Buffer, outAttrs *ansi.AttrBuf) {
 	if width.w <= 0 {
 		return
 	}
-	s := out.bytes()[start:]
+	s := out.Bytes()[start:]
 	length := len(s)
-	w := strWidth(s)
+	w := text.StrWidth(s)
 	switch {
 	case w == width.w:
 		return
@@ -566,17 +567,17 @@ func restrictWidth(start int, width widthSpec, out *buffer, outAttrs *ansi.AttrB
 			inner = width.w - 3
 		}
 		if width.align == alignRight {
-			ndel := skipUntilFit(s, inner)
-			out.deleteAt(start, ndel)
+			ndel := text.SkipUntilFit(s, inner)
+			out.DeleteAt(start, ndel)
 			outAttrs.DeleteAt(start, ndel)
 			if inner < width.w {
-				out.insertAt("...", start)
+				out.InsertAt("...", start)
 				outAttrs.InsertAt(start, 3, outAttrs.At(start))
 			}
 			return
 		}
-		count := takeWhileFit(s, inner)
-		out.deleteAt(start+count, length-count)
+		count := text.TakeWhileFit(s, inner)
+		out.DeleteAt(start+count, length-count)
 		outAttrs.DeleteAt(start+count, length-count)
 		if inner < width.w {
 			appendMarked(outAttrs, out, "...", outAttrs.At(start))
@@ -600,12 +601,12 @@ func restrictWidth(start int, width widthSpec, out *buffer, outAttrs *ansi.AttrB
 		if padLeft > 0 {
 			a := outAttrs.At(start)
 			for range padLeft {
-				out.insertByteAt(width.fill, start)
+				out.InsertByteAt(width.fill, start)
 			}
 			outAttrs.InsertAt(start, padLeft, a)
 		}
 		if padRight > 0 {
-			a := outAttrs.At(out.length() - 1)
+			a := outAttrs.At(out.Length() - 1)
 			for range padRight {
 				appendMarked(outAttrs, out, string(width.fill), a)
 			}
@@ -618,12 +619,12 @@ func restrictWidth(start int, width widthSpec, out *buffer, outAttrs *ansi.AttrB
 //-------------------------------------------------------------
 
 // processTag handles one tag at i and returns how many bytes it used.
-func (bb *bbCode) processTag(s string, i, nestingBase int, out *buffer, outAttrs *ansi.AttrBuf, cur *ansi.Attr) int {
+func (bb *bbCode) processTag(s string, i, nestingBase int, out *text.Buffer, outAttrs *ansi.AttrBuf, cur *ansi.Attr) int {
 	var t bbTag
 	name, open, isPre, end := bb.parseTag(&t, s, i)
 	switch {
 	case open && !isPre:
-		*cur = bb.openTag(out.length(), t, *cur)
+		*cur = bb.openTag(out.Length(), t, *cur)
 	case open:
 		// A "[!name]" tag holds everything up to its closing tag unread, so
 		// markup inside it is text.
@@ -649,7 +650,7 @@ func (bb *bbCode) processTag(s string, i, nestingBase int, out *buffer, outAttrs
 
 // appendTo turns markup into text in out and one attribute per byte in
 // outAttrs, which may be nil when only the text is wanted.
-func (bb *bbCode) appendTo(s string, out *buffer, outAttrs *ansi.AttrBuf) {
+func (bb *bbCode) appendTo(s string, out *text.Buffer, outAttrs *ansi.AttrBuf) {
 	var a ansi.Attr
 	base := len(bb.tags)
 	i := 0
@@ -696,9 +697,9 @@ func (bb *bbCode) appendTo(s string, out *buffer, outAttrs *ansi.AttrBuf) {
 // print writes markup to the terminal.
 func (bb *bbCode) print(s string) {
 	bb.appendTo(s, &bb.out, &bb.outAttrs)
-	bb.term.writeFormatted(bb.out.string(), bb.outAttrs.Extend(bb.out.length()))
+	bb.term.writeFormatted(bb.out.String(), bb.outAttrs.Extend(bb.out.Length()))
 	bb.outAttrs.Clear()
-	bb.out.clear()
+	bb.out.Clear()
 }
 
 // println writes markup to the terminal and ends the line.
@@ -714,8 +715,8 @@ func (bb *bbCode) columnWidth(s string) int {
 		return 0
 	}
 	bb.appendTo(s, &bb.vout, nil)
-	w := strWidth(bb.vout.bytes())
-	bb.vout.clear()
+	w := text.StrWidth(bb.vout.Bytes())
+	bb.vout.Clear()
 	return w
 }
 
@@ -740,9 +741,6 @@ func (bb *bbCode) columnWidth(s string) int {
 // loop then draws.
 //
 // Ported from isocline/src/highlight.c.
-
-// maxBraceNesting is how deep brace matching will go before it gives up.
-const maxBraceNesting = 64
 
 // Highlighter marks up a line. It is given the line and an environment to
 // mark it through.
@@ -822,7 +820,7 @@ func (l *LineStyle) posAdjust(pos, count int) (int, int) {
 			ucount, cpos = l.cachedUPos, l.cachedCPos
 		}
 		for ucount < upos {
-			next, _ := nextOfs([]byte(l.input), cpos)
+			next, _ := text.NextOfs([]byte(l.input), cpos)
 			if next <= 0 {
 				return pos, count
 			}
@@ -836,7 +834,7 @@ func (l *LineStyle) posAdjust(pos, count int) (int, int) {
 		want := -count
 		ucount, clen := 0, 0
 		for ucount < want {
-			next, _ := nextOfs([]byte(l.input), pos+clen)
+			next, _ := text.NextOfs([]byte(l.input), pos+clen)
 			if next <= 0 {
 				return pos, count
 			}
@@ -903,49 +901,12 @@ func (l *LineStyle) StyleMarkup(s, markup string) {
 	if s == "" {
 		return
 	}
-	var out buffer
+	var out text.Buffer
 	var attrs ansi.AttrBuf
 	l.bb.appendTo(markup, &out, &attrs)
 	for i := range len(s) {
 		l.attrs.UpdateAt(i, 1, attrs.At(i))
 	}
-}
-
-//-------------------------------------------------------------
-// Brace matching
-//-------------------------------------------------------------
-
-// openBrace is a brace that has been opened and not yet closed.
-type openBrace struct {
-	// closer is the brace that would close this one.
-	closer byte
-
-	// pos is where the opening brace is.
-	pos int
-
-	// atCursor says the cursor sits just after the opening brace.
-	atCursor bool
-}
-
-// braceOpener returns the closing brace that c opens, and whether c opens one
-// at all. The braces are given in pairs, as in "()[]{}".
-func braceOpener(braces string, c byte) (byte, bool) {
-	for b := 0; b+1 < len(braces); b += 2 {
-		if c == braces[b] {
-			return braces[b+1], true
-		}
-	}
-	return 0, false
-}
-
-// isBraceCloser reports whether c closes a brace.
-func isBraceCloser(braces string, c byte) bool {
-	for b := 1; b < len(braces); b += 2 {
-		if c == braces[b] {
-			return true
-		}
-	}
-	return false
 }
 
 // highlightMatchBraces marks the brace under the cursor and the one that goes
@@ -954,19 +915,19 @@ func isBraceCloser(braces string, c byte) bool {
 // An opening brace left unclosed at the end of the line is not marked, because
 // the line is probably still being typed.
 func highlightMatchBraces(s string, attrs *ansi.AttrBuf, cursorPos int, braces string, matchAttr, errorAttr ansi.Attr) {
-	var open [maxBraceNesting + 1]openBrace
+	var open [text.MaxBraceNesting + 1]text.OpenBrace
 	nesting := 0
 	for i := range len(s) {
 		c := s[i]
-		if closer, ok := braceOpener(braces, c); ok {
-			if nesting >= maxBraceNesting {
+		if closer, ok := text.BraceOpener(braces, c); ok {
+			if nesting >= text.MaxBraceNesting {
 				return // too deep to be worth following
 			}
-			open[nesting] = openBrace{closer: closer, pos: i, atCursor: i == cursorPos-1}
+			open[nesting] = text.OpenBrace{Closer: closer, Pos: i, AtCursor: i == cursorPos-1}
 			nesting++
 			continue
 		}
-		if !isBraceCloser(braces, c) {
+		if !text.IsBraceCloser(braces, c) {
 			continue
 		}
 		if nesting <= 0 {
@@ -976,59 +937,18 @@ func highlightMatchBraces(s string, attrs *ansi.AttrBuf, cursorPos int, braces s
 		// One wrong opening brace can be stepped over, when the one before it
 		// is the partner. That turns "([)" into a single error rather than
 		// making everything after it wrong.
-		if open[nesting-1].closer != c && nesting > 1 && open[nesting-2].closer == c {
-			attrs.UpdateAt(open[nesting-1].pos, 1, errorAttr)
+		if open[nesting-1].Closer != c && nesting > 1 && open[nesting-2].Closer == c {
+			attrs.UpdateAt(open[nesting-1].Pos, 1, errorAttr)
 			nesting--
 		}
-		if open[nesting-1].closer != c {
+		if open[nesting-1].Closer != c {
 			attrs.UpdateAt(i, 1, errorAttr)
 			continue
 		}
 		nesting--
-		if i == cursorPos-1 || (open[nesting].atCursor && open[nesting].pos != i-1) {
-			attrs.UpdateAt(open[nesting].pos, 1, matchAttr)
+		if i == cursorPos-1 || (open[nesting].AtCursor && open[nesting].Pos != i-1) {
+			attrs.UpdateAt(open[nesting].Pos, 1, matchAttr)
 			attrs.UpdateAt(i, 1, matchAttr)
 		}
 	}
-}
-
-// findMatchingBrace returns the position just after the brace that goes with
-// the one at the cursor, or -1 when there is none, and whether the whole line
-// is balanced.
-func findMatchingBrace(s string, cursorPos int, braces string) (int, bool) {
-	var open [maxBraceNesting + 1]openBrace
-	nesting := 0
-	match := -1
-	balanced := true
-	for i := range len(s) {
-		c := s[i]
-		if closer, ok := braceOpener(braces, c); ok {
-			if nesting >= maxBraceNesting {
-				return -1, false
-			}
-			open[nesting] = openBrace{closer: closer, pos: i, atCursor: i == cursorPos-1}
-			nesting++
-			continue
-		}
-		if !isBraceCloser(braces, c) {
-			continue
-		}
-		switch {
-		case nesting <= 0:
-			balanced = false
-		case open[nesting-1].closer != c:
-			balanced = false
-		default:
-			nesting--
-			if i == cursorPos-1 {
-				match = open[nesting].pos + 1
-			} else if open[nesting].atCursor {
-				match = i + 1
-			}
-		}
-	}
-	if nesting != 0 {
-		balanced = false
-	}
-	return match, balanced
 }
