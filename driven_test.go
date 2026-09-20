@@ -1014,3 +1014,62 @@ func TestHintsCanBeTurnedOff(t *testing.T) {
 		t.Errorf("with hints off the suggestion was drawn anyway\ndrawn: %s", drawn)
 	}
 }
+
+// TestBraceMatchingDrawsTheMatch checks that a matching brace is drawn
+// differently from the text around it.
+//
+// Nothing asserted this. The menu recording notices brace matching being
+// wrongly on, which is the opposite direction and is why it felt covered:
+// emptying the set of pairs, so that nothing ever matches, left the whole
+// suite green.
+//
+// The assertion is that the drawing changes rather than that a particular
+// style is used, because which style is bbcode's business and is recorded
+// against the C elsewhere. What is being pinned here is that the switch
+// reaches the drawing at all.
+func TestBraceMatchingDrawsTheMatch(t *testing.T) {
+	t.Parallel()
+
+	// The driven harness builds a terminal with no colour, which is right
+	// for reading the text it drew and no use for seeing an attribute. So
+	// this builds its own with colour on.
+	//
+	// That harness asks for no colour by writing termOptions{Sizer: ...},
+	// which mentions a sizer and nothing else. Since the switches went
+	// positive, an unset Color means off, so the literal is asking for
+	// something by saying nothing and the request has no line to point at.
+	// This one says Color: true for that reason as much as for the colour.
+	drawnWith := func(matching bool) string {
+		var sink bytes.Buffer
+		tm := newTerm(&sink, termOptions{Color: true, Sizer: fixedSize{cols: 80, rows: 24}})
+		bb := newBBCode(tm)
+		for _, s := range defaultStyles {
+			bb.styleDef(s[0], s[1])
+		}
+		ev := &env{
+			term:          tm,
+			bb:            bb,
+			promptMarker:  "> ",
+			cpromptMarker: "> ",
+			opts:          editor.EditOptions{MatchPairs: DefaultMatchPairs},
+			braceMatching: matching,
+		}
+		e := &editor.Editor{TermW: 80, CurRows: 1}
+		e.Input.Replace("(x)")
+		// Just after the closing brace. A brace counts as under the cursor
+		// when the cursor is the position after it, which is what
+		// highlightMatchBraces means by i == cursorPos-1, so a cursor sitting
+		// on the brace itself matches nothing. An earlier version of this
+		// test used 2 and failed, and the case was wrong rather than the code.
+		e.Pos = 3
+		ev.refresh(e)
+		tm.flush()
+		return sink.String()
+	}
+
+	on, off := drawnWith(true), drawnWith(false)
+	if on == off {
+		t.Errorf("a matching brace was drawn the same as the text around it, so "+
+			"brace matching reaches nothing\ndrawn: %q", on)
+	}
+}
