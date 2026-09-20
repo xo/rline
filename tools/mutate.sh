@@ -41,7 +41,17 @@ open(path, 'w').write(s.replace(find, replace, 1))
 PY
 cmp -s "$file" "$orig" && { echo "the patch changed nothing"; exit 2; }
 
-if ! go build ./... >/dev/null 2>&1; then
+# Everything must compile, tests included. This used to be `go build ./...`,
+# which does not read _test.go files, so a mutation that broke only the test
+# files left the build green, made `go test` fail to compile, and was
+# reported as caught although nothing ran. That is the answer this check
+# exists to separate out, leaking back in through the one door it did not
+# cover. Found renaming a method that only tests call.
+#
+# `go test -run` with a pattern that matches nothing compiles every package
+# and its tests and runs none of them, and the test binaries it builds are
+# the ones the real run reuses, so it costs almost nothing.
+if ! go test -run '^$' -count=1 ./... >/dev/null 2>&1; then
     echo "DID NOT COMPILE: nothing was tested, so this says nothing about the test"
     exit 1
 fi
