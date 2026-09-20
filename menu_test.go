@@ -216,7 +216,7 @@ func menuReplay(t *testing.T) []string {
 	setTermEnv("", "xterm-256color", "")
 
 	var sink bytes.Buffer
-	tm := newTerm(&sink, termOptions{Sizer: fixedSize{cols: 41, rows: 6}})
+	tm := newTerm(&sink, termOptions{Color: true, Sizer: fixedSize{cols: 41, rows: 6}})
 	ev := &env{
 		term:          tm,
 		bb:            newBBCode(tm),
@@ -227,8 +227,14 @@ func menuReplay(t *testing.T) []string {
 			MatchPairs:   "()[]{}",
 			AutoPairs:    "()[]{}",
 			MultilineEOL: '\\',
+			AutoPair:     true,
 		},
-		noHighlight: true,
+		braceMatching:   true,
+		hints:           true,
+		inlineHelp:      true,
+		multilineIndent: true,
+		multiline:       true,
+		completePreview: true,
 	}
 	// The styles a Session defines. Without them every style name in the menu
 	// renders to nothing, and the recording cannot tell one name from
@@ -275,7 +281,7 @@ func menuReplay(t *testing.T) []string {
 							e.DisableUndo = false
 							e.Undo = editor.EditStack{}
 							e.Redo = editor.EditStack{}
-							ev.completeNoPreview = noPreview
+							ev.completePreview = !noPreview
 							ev.completeAutoTab = autoTab
 
 							ev.tty = newTTY(&idleReader{bytes: []byte(script.keys)})

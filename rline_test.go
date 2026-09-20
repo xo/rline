@@ -32,8 +32,8 @@ func TestReadLineWithoutTerminal(t *testing.T) {
 	t.Parallel()
 	var out bytes.Buffer
 	r := &Session{
-		noEdit: true,
-		plain:  bufio.NewReader(strings.NewReader("first\nsecond\r\nlast")),
+		canEdit: false,
+		plain:   bufio.NewReader(strings.NewReader("first\nsecond\r\nlast")),
 	}
 	for _, want := range []string{"first", "second", "last"} {
 		got, err := r.ReadLine("> ")
@@ -57,7 +57,7 @@ func TestReadLineWithoutTerminal(t *testing.T) {
 // touching a terminal it has already put back.
 func TestReadLineAfterClose(t *testing.T) {
 	t.Parallel()
-	r := &Session{noEdit: true, plain: bufio.NewReader(strings.NewReader("x\n"))}
+	r := &Session{canEdit: false, plain: bufio.NewReader(strings.NewReader("x\n"))}
 	if err := r.Close(); err != nil {
 		t.Fatalf("Close: %v", err)
 	}
@@ -93,16 +93,15 @@ func TestOptions(t *testing.T) {
 		{"history on", WithHistory(true), func(c *config) bool {
 			return c.historyEntries == DefaultHistoryEntries
 		}},
-		{"no color", WithColor(false), func(c *config) bool { return c.noColor }},
-		{"color", WithColor(true), func(c *config) bool { return !c.noColor }},
-		{"no beep", WithBeep(false), func(c *config) bool { return c.silent }},
-		{"single line", WithMultiline(false), func(c *config) bool { return c.singlelineOnly }},
-		{"no highlighting", WithHighlighting(false), func(c *config) bool { return c.noHighlight }},
-		{"no brace matching", WithBraceMatching(false), func(c *config) bool { return c.noBraceMatch }},
-		{"no brace insertion", WithBraceInsertion(false), func(c *config) bool { return c.opts.NoAutoPair }},
-		{"no hints", WithHints(false), func(c *config) bool { return c.noHint }},
-		{"no inline help", WithInlineHelp(false), func(c *config) bool { return c.noHelp }},
-		{"no indent", WithMultilineIndent(false), func(c *config) bool { return c.noMultilineIndent }},
+		{"no color", WithColor(false), func(c *config) bool { return !c.color }},
+		{"color", WithColor(true), func(c *config) bool { return c.color }},
+		{"no beep", WithBeep(false), func(c *config) bool { return !c.beep }},
+		{"single line", WithMultiline(false), func(c *config) bool { return !c.multiline }},
+		{"no brace matching", WithBraceMatching(false), func(c *config) bool { return !c.braceMatching }},
+		{"no brace insertion", WithBraceInsertion(false), func(c *config) bool { return !c.opts.AutoPair }},
+		{"no hints", WithHints(false), func(c *config) bool { return !c.hints }},
+		{"no inline help", WithInlineHelp(false), func(c *config) bool { return !c.inlineHelp }},
+		{"no indent", WithMultilineIndent(false), func(c *config) bool { return !c.multilineIndent }},
 		{"auto tab", WithAutoTab(true), func(c *config) bool { return c.completeAutoTab }},
 		{"hint delay", WithHintDelay(time.Second), func(c *config) bool { return c.hintDelay == time.Second }},
 		{"match braces", WithMatchPairs("<>"), func(c *config) bool { return c.opts.MatchPairs == "<>" }},
@@ -150,7 +149,7 @@ func TestDefaultsMatchTheC(t *testing.T) {
 func TestDefaultStylesAreDefined(t *testing.T) {
 	t.Parallel()
 	var out bytes.Buffer
-	tm := newTerm(&out, termOptions{})
+	tm := newTerm(&out, termOptions{Color: true})
 	bb := newBBCode(tm)
 	for _, s := range defaultStyles {
 		bb.styleDef(s[0], s[1])
@@ -877,7 +876,7 @@ func TestMarkupWriterKeepsANewlineOutOfTheColour(t *testing.T) {
 
 	markupEnv := func() (*env, *bytes.Buffer) {
 		var sink bytes.Buffer
-		tm := newTerm(&sink, termOptions{Sizer: fixedSize{cols: 40, rows: 6}})
+		tm := newTerm(&sink, termOptions{Color: true, Sizer: fixedSize{cols: 40, rows: 6}})
 		bb := newBBCode(tm)
 		for _, s := range defaultStyles {
 			bb.styleDef(s[0], s[1])
@@ -1091,8 +1090,8 @@ func TestWriteStringMatchesWrite(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			var a, b bytes.Buffer
-			ra := &Session{env: &env{term: newTerm(&a, termOptions{NoColor: true})}}
-			rb := &Session{env: &env{term: newTerm(&b, termOptions{NoColor: true})}}
+			ra := &Session{env: &env{term: newTerm(&a, termOptions{})}}
+			rb := &Session{env: &env{term: newTerm(&b, termOptions{})}}
 			if _, err := ra.Write([]byte(test.text)); err != nil {
 				t.Fatalf("Write: %v", err)
 			}
@@ -1224,7 +1223,7 @@ func TestStderrGoesWhereItIsToldAndKeepsItsOrder(t *testing.T) {
 		t.Parallel()
 		var out, errs bytes.Buffer
 		s := &Session{
-			env:    &env{term: newTerm(&out, termOptions{NoColor: true})},
+			env:    &env{term: newTerm(&out, termOptions{})},
 			errOut: &errs,
 		}
 		if _, err := s.WriteString("result\n"); err != nil {
@@ -1248,7 +1247,7 @@ func TestStderrGoesWhereItIsToldAndKeepsItsOrder(t *testing.T) {
 		// buffering would let the second line out first.
 		var both bytes.Buffer
 		s := &Session{
-			env:    &env{term: newTerm(&both, termOptions{NoColor: true})},
+			env:    &env{term: newTerm(&both, termOptions{})},
 			errOut: &both,
 		}
 		for i := range 3 {
@@ -1273,7 +1272,7 @@ func TestStderrGoesWhereItIsToldAndKeepsItsOrder(t *testing.T) {
 		// state the editor is in while it draws. Reaching that state needs
 		// the terminal directly, so this test does.
 		var both bytes.Buffer
-		tm := newTerm(&both, termOptions{NoColor: true})
+		tm := newTerm(&both, termOptions{})
 		tm.setBufferMode(buffered)
 		s := &Session{env: &env{term: tm}, errOut: &both}
 

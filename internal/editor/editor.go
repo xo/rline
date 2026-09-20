@@ -40,8 +40,8 @@ type EditOptions struct {
 	// of a line. Zero turns that off.
 	MultilineEOL byte
 
-	// NoAutoPair turns off closing a pair automatically.
-	NoAutoPair bool
+	// AutoPair closes a pair automatically when one is opened.
+	AutoPair bool
 }
 
 // noCopy makes `go vet` refuse a copy of whatever embeds it.
@@ -509,7 +509,7 @@ func (e *Editor) InsertChar(c byte) {
 // typing an opening brace in front of text that already closes it adds
 // nothing.
 func (e *Editor) AutoPair(c byte) {
-	if e.Opts.NoAutoPair {
+	if !e.Opts.AutoPair {
 		return
 	}
 	braces := e.Opts.AutoPairs

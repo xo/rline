@@ -57,20 +57,20 @@ type env struct {
 	opts editor.EditOptions
 
 	// Settings that turn parts of the editor off.
-	noMultilineIndent bool
-	noHighlight       bool
-	noBraceMatch      bool
-	noHint            bool
-	noHelp            bool
-	singlelineOnly    bool
+	multilineIndent bool
+	braceMatching   bool
+	hints           bool
+	inlineHelp      bool
+	multiline       bool
 
 	// completeAutoTab keeps completing while there is only one answer.
 	completeAutoTab bool
 
-	// completeNoPreview stops the completion menu from showing what picking
-	// the selected entry would do. It is named for what it turns off because
-	// the C is, and because the preview is what happens by default.
-	completeNoPreview bool
+	// completePreview shows in the line what picking the selected entry would
+	// do, and takes it straight back out again. It is on by default. The C
+	// names its flag for what it turns off; this does not, so that every
+	// switch in this struct reads the same way.
+	completePreview bool
 
 	// hintDelay is how long to wait before showing a hint. Zero shows it at
 	// once.
@@ -91,7 +91,7 @@ func (ev *env) promptWidth(e *editor.Editor, inExtra bool) (int, int) {
 	cmarkerw := ev.bb.columnWidth(ev.cpromptMarker)
 	promptw := markerw + textw
 	cpromptw := promptw
-	if ev.noMultilineIndent || promptw < cmarkerw {
+	if !ev.multilineIndent || promptw < cmarkerw {
 		cpromptw = cmarkerw
 	}
 	return promptw, cpromptw
@@ -129,7 +129,7 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	switch {
 	case row == 0:
 		ev.bb.print(e.PromptText)
-	case !ev.noMultilineIndent:
+	case ev.multilineIndent:
 		// Pad the continuation marker out so the text lines up under the
 		// first row.
 		textw := ev.bb.columnWidth(e.PromptText)
@@ -160,7 +160,7 @@ func (ev *env) refreshRows(e *editor.Editor, input *text.Buffer, attrs *ansi.Att
 		}
 		ev.writePrompt(e, row, inExtra)
 		text := string(s[rowStart : rowStart+rowLen])
-		if attrs == nil || (ev.noHighlight && ev.noBraceMatch) {
+		if attrs == nil || (ev.highlighter == nil && !ev.braceMatching) {
 			ev.term.write(text)
 		} else {
 			all := attrs.Extend(rowStart + rowLen)
@@ -192,12 +192,8 @@ func (ev *env) ttyIsUTF8() bool {
 func (ev *env) refresh(e *editor.Editor) {
 	promptw, cpromptw := ev.promptWidth(e, false)
 
-	fn := ev.highlighter
-	if ev.noHighlight {
-		fn = nil
-	}
-	runHighlight(ev.bb, e.Input.String(), &e.Attrs, fn)
-	if !ev.noBraceMatch {
+	runHighlight(ev.bb, e.Input.String(), &e.Attrs, ev.highlighter)
+	if ev.braceMatching {
 		highlightMatchBraces(e.Input.String(), &e.Attrs, e.Pos, ev.opts.MatchPairs,
 			ev.bb.style("ic-bracematch"), ev.bb.style("ic-error"))
 	}
@@ -333,7 +329,7 @@ func (ev *env) showSearchMatch(e *editor.Editor, hidx int, entry string, matchPo
 	e.Extra.AppendString("[/pre][/u][!pre]")
 	e.Extra.AppendString(entry[hi:])
 	e.Extra.AppendString("[/pre][/ic-diminish]")
-	if !ev.noHelp {
+	if ev.inlineHelp {
 		e.Extra.AppendString("\n[ic-info](use tab for the next match)[/]")
 	}
 	e.Extra.AppendString("\n")
@@ -344,11 +340,11 @@ func (ev *env) showSearchMatch(e *editor.Editor, hidx int, entry string, matchPo
 // A hint is the rest of the only completion that fits. When more than one
 // fits there is nothing to hint at.
 func (ev *env) refreshHint(e *editor.Editor) {
-	if ev.noHint || ev.hintDelay > 0 {
+	if !ev.hints || ev.hintDelay > 0 {
 		// Draw without the hint first, so the line appears at once and the
 		// hint follows when it is ready.
 		ev.refresh(e)
-		if ev.noHint {
+		if !ev.hints {
 			return
 		}
 	}
@@ -468,7 +464,7 @@ func (ev *env) handleKey(e *editor.Editor, c key.Code) bool {
 	case key.Enter:
 		// A line continuation character at the end of a row turns into a real
 		// line break rather than finishing the line.
-		if !ev.singlelineOnly && e.Pos > 0 &&
+		if ev.multiline && e.Pos > 0 &&
 			e.Input.CharAt(e.Pos-1) == ev.opts.MultilineEOL && ev.posIsAtRowEnd(e) {
 			ev.act(e, e.MultilineEOL())
 			return false
@@ -476,7 +472,7 @@ func (ev *env) handleKey(e *editor.Editor, c key.Code) bool {
 		// The caller may say the line is not finished, which starts another
 		// row instead of handing it back. That is how a prompt keeps reading
 		// until a statement is closed.
-		if !ev.singlelineOnly && ev.isIncomplete != nil && ev.isIncomplete(e.Input.String()) {
+		if ev.multiline && ev.isIncomplete != nil && ev.isIncomplete(e.Input.String()) {
 			e.InsertChar('\n')
 			ev.refreshHint(e)
 			return false
@@ -587,7 +583,7 @@ func (ev *env) editKey(e *editor.Editor, c key.Code) {
 
 	// Typing.
 	case key.ShiftTab, key.Linefeed:
-		if !ev.singlelineOnly {
+		if ev.multiline {
 			e.InsertChar('\n')
 			ev.refreshHint(e)
 		}
@@ -709,10 +705,10 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	e.CursorToEnd()
 	// One last draw, without brace matching, so no brace is left highlighted
 	// on the finished line.
-	was := ev.noBraceMatch
-	ev.noBraceMatch = true
+	was := ev.braceMatching
+	ev.braceMatching = false
 	ev.refresh(e)
-	ev.noBraceMatch = was
+	ev.braceMatching = was
 
 	line, ok := e.Input.String(), true
 	if (c == key.CtrlD && e.Input.Length() == 0) || c == key.EventStop {

@@ -110,8 +110,8 @@ type feedOpts struct {
 	// Hints turns the inline suggestion back on.
 	Hints bool
 
-	// Highlighter marks up the line as it is typed, and turns highlighting
-	// back on.
+	// Highlighter marks up the line as it is typed. Supplying one is what
+	// turns highlighting on; there is no separate switch.
 	Highlighter Highlighter
 
 	// Continue decides whether Enter finishes the line or starts another row
@@ -156,7 +156,7 @@ func feedSession(t *testing.T, keys string, opt feedOpts) (string, int, key.Code
 func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 	t.Helper()
 	sink := &bytes.Buffer{}
-	tm := newTerm(sink, termOptions{NoColor: true, Sizer: fixedSize{cols: 80, rows: 24}})
+	tm := newTerm(sink, termOptions{Sizer: fixedSize{cols: 80, rows: 24}})
 	h := &history{}
 	_ = h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
@@ -171,10 +171,14 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 			MatchPairs:   DefaultMatchPairs,
 			AutoPairs:    DefaultAutoPairs,
 			MultilineEOL: DefaultMultilineEOL,
+			AutoPair:     true,
 		},
-		noHighlight:  true,
-		noBraceMatch: true,
-		noHint:       true,
+		braceMatching:   false,
+		hints:           false,
+		inlineHelp:      true,
+		multilineIndent: true,
+		multiline:       true,
+		completePreview: true,
 	}
 	if opt.NotUTF8 {
 		ev.tty.isUTF8 = false
@@ -183,11 +187,10 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 		ev.completions.setCompleter(opt.Completer, nil)
 	}
 	if opt.Hints {
-		ev.noHint = false
+		ev.hints = true
 		ev.hintDelay = 0
 	}
 	if opt.Highlighter != nil {
-		ev.noHighlight = false
 		ev.highlighter = opt.Highlighter
 	}
 	if opt.Continue != nil {
@@ -839,7 +842,7 @@ func TestReadLineTellsAnInterruptFromAnEmptyLine(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			ev, _ := feedEnv(t, test.keys, feedOpts{})
-			r := &Session{env: ev}
+			r := &Session{env: ev, canEdit: true}
 			line, err := r.ReadLine("")
 			if !errors.Is(err, test.err) {
 				t.Errorf("ReadLine gave %v, want %v", err, test.err)
@@ -857,7 +860,7 @@ func TestReadLineTellsAnInterruptFromAnEmptyLine(t *testing.T) {
 func TestSetCompleterReplacesTheCompleter(t *testing.T) {
 	t.Parallel()
 	ev, _ := feedEnv(t, "se"+kTab+kEsc+kPause+kEnter, feedOpts{})
-	r := &Session{env: ev}
+	r := &Session{env: ev, canEdit: true}
 
 	// Nothing is offered until a completer is set.
 	if ev.completions.completer != nil {

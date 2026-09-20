@@ -1400,6 +1400,49 @@ it removed the choice rather than reminding anyone to make it, and pipefail
 in the scripts that gate is the same move. Nobody has the equivalent for an
 interactive shell.
 
+A positive bool's zero value is off, and every literal then has to say so.
+Turning the `no...` options positive was mechanical in the option setters and
+in the reads, which the compiler and the corpus between them police. What it
+broke was every struct literal in the tests, and not because the literals
+were wrong: they had relied on an unset negative meaning the feature was on.
+`termOptions{Sizer: ...}` had colour, because NoColor was unset. The menu
+recording lost its greys because `noBraceMatch` unset had meant brace
+matching on, and `braceMatching` unset means off.
+
+Nothing about that is a fault in the flip; it is the flip working. A negative
+field hides its default in the zero value, so a literal that says nothing is
+still asking for something. A positive field makes the literal say what it
+wants, which is why the test envs now list all six switches rather than the
+one or three they used to. That is more lines and it is the point.
+
+The `New` half of the item was already done for everything that was not a
+bool. It is a block of `true` now, with the reason written beside it.
+
+One switch went entirely rather than being flipped. `WithHighlighting` and
+the field behind it said what a nil highlighter already said: the only use
+was `fn := ev.highlighter; if !ev.highlighting { fn = nil }`, which is a
+guard around whether to call a callback that may not be there. A caller turns
+highlighting off with `WithHighlighter(nil)` or `SetHighlighter(nil)`, and
+the test harness showed the redundancy plainly by setting the flag only where
+it also supplied a highlighter. Verified load-bearing afterwards: passing nil
+in place of `ev.highlighter` fails two tests.
+
+`hints` and `braceMatching` look like the same shape and are not. There is no
+hint callback: a hint is the rest of the only completion that fits, so the
+nil test would be on the completer, and turning hints off that way would take
+tab completion with them. Brace matching has no callback at all. Both switch
+a distinct behaviour over shared machinery, which is what a switch is for.
+
+Three switches were not options and went anyway, for consistency:
+`completeNoPreview` became `completePreview`, whose comment had defended the
+old name on the ground that the C names its flag that way; `noEdit` became
+`canEdit`, which turns `return !s.noEdit` into `return s.canEdit` in
+`Interactive`; and the `noColor` parameter threaded through the filename
+completer became `color`. The one place `noColor` survives is `comp_test.go`,
+where it names a field of the corpus rather than a field of this package: the
+recording holds what the C was handed, so the test reads it in the C's
+vocabulary and passes the port the opposite.
+
 A difference read as a fault. Comparing the Enter handler against pyrepl,
 which is the closest modern implementation and which rline resembles closely
 because WithContinue is its more_lines callback, turned up a clause rline

@@ -292,7 +292,7 @@ func bbReplay(t *testing.T) []string {
 
 	out := make([]string, 0, 1+len(bbStyleNames)+3*len(bbCorpus))
 	var sink bytes.Buffer
-	tm := newTerm(&sink, termOptions{Sizer: fixedSize{cols: 80, rows: 24}})
+	tm := newTerm(&sink, termOptions{Color: true, Sizer: fixedSize{cols: 80, rows: 24}})
 	tm.setBufferMode(unbuffered)
 	bb := newBBCode(tm)
 	out = append(out, "out discard "+escapeBB(sink.Bytes()))
@@ -469,7 +469,7 @@ func hlReplay(t *testing.T) []string {
 	defer restore()
 	setTermEnv("", "xterm-256color", "")
 	var sink bytes.Buffer
-	tm := newTerm(&sink, termOptions{NoColor: true, Sizer: fixedSize{cols: 80, rows: 24}})
+	tm := newTerm(&sink, termOptions{Sizer: fixedSize{cols: 80, rows: 24}})
 	bb := newBBCode(tm)
 
 	inputs := []string{"hello", "ééé", "a日b", "abcdef"}
@@ -588,7 +588,7 @@ func TestPropertyBeatsAStyleOfTheSameName(t *testing.T) {
 func TestHighlightFormattedEmpty(t *testing.T) {
 	t.Parallel()
 	var sink bytes.Buffer
-	tm := newTerm(&sink, termOptions{NoColor: true})
+	tm := newTerm(&sink, termOptions{})
 	bb := newBBCode(tm)
 	var ab ansi.AttrBuf
 	ab.SetAt(0, 5, ansi.ParseSGR("31"))
@@ -610,7 +610,7 @@ func TestHighlightFormattedEmpty(t *testing.T) {
 func newLineStyle(t *testing.T, s string) (*LineStyle, *ansi.AttrBuf) {
 	t.Helper()
 	var sink bytes.Buffer
-	tm := newTerm(&sink, termOptions{NoColor: true})
+	tm := newTerm(&sink, termOptions{})
 	bb := newBBCode(tm)
 	bb.styleDef("keyword", "bold")
 	var ab ansi.AttrBuf
@@ -764,7 +764,7 @@ func TestStyleWithNoNameChangesNothing(t *testing.T) {
 func TestHighlighterFuncRunsTheFunction(t *testing.T) {
 	t.Parallel()
 	var sink bytes.Buffer
-	tm := newTerm(&sink, termOptions{NoColor: true})
+	tm := newTerm(&sink, termOptions{})
 	bb := newBBCode(tm)
 	bb.styleDef("keyword", "bold")
 	var ab ansi.AttrBuf
@@ -808,7 +808,7 @@ func TestStyleNamesResolveInOrder(t *testing.T) {
 	// styleFor returns the attributes a tag of this name resolves to.
 	styleFor := func(define func(bb *bbCode), name string) ansi.Attr {
 		var sink bytes.Buffer
-		tm := newTerm(&sink, termOptions{NoColor: true, Sizer: fixedSize{cols: 80, rows: 24}})
+		tm := newTerm(&sink, termOptions{Sizer: fixedSize{cols: 80, rows: 24}})
 		bb := newBBCode(tm)
 		define(bb)
 		return bb.style(name)

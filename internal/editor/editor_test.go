@@ -126,6 +126,7 @@ func edReplay() []string {
 		MatchPairs:   "()[]{}",
 		AutoPairs:    `()[]{}""''`,
 		MultilineEOL: '\\',
+		AutoPair:     true,
 	}
 	start := func(text string, pos int) *Editor {
 		e := &Editor{Opts: opts, TermW: 80, CurRows: 1}

@@ -812,10 +812,10 @@ func appendLSColor(b *strings.Builder, ft fileType, ext string, hasExt bool) boo
 // colorizeEntry returns the markup the menu shows for one entry: the colour
 // for its type, then the name marked so that the markup parser does not read
 // the name itself as markup.
-func colorizeEntry(noColor bool, ft fileType, name, ext string, hasExt bool, dirSep byte) string {
+func colorizeEntry(color bool, ft fileType, name, ext string, hasExt bool, dirSep byte) string {
 	var b strings.Builder
 	opened := false
-	if !noColor {
+	if color {
 		opened = appendLSColor(&b, ft, ext, hasExt)
 	}
 	b.WriteString("[!pre]")
@@ -923,7 +923,7 @@ func isAbsolutePath(path string) bool {
 // dirPrefix is what goes in front of each name in the completion, which is
 // the part of the path the user already typed. It reports false once no more
 // completions are accepted.
-func completeInDir(cenv *Completion, noColor bool, dir, dirPrefix, base string,
+func completeInDir(cenv *Completion, color bool, dir, dirPrefix, base string,
 	dirSep byte, extensions string,
 ) bool {
 	f, err := os.Open(dir)
@@ -960,7 +960,7 @@ func completeInDir(cenv *Completion, noColor bool, dir, dirPrefix, base string,
 		// The file completer never passes an extension to look up, so the
 		// extension colours of the GNU setting are never reached from here.
 		// The C code is the same.
-		display := colorizeEntry(noColor, ft, name, "", false, shown)
+		display := colorizeEntry(color, ft, name, "", false, shown)
 		if !cenv.add(replacement, display, "", 0, 0) {
 			return false
 		}
@@ -969,7 +969,7 @@ func completeInDir(cenv *Completion, noColor bool, dir, dirPrefix, base string,
 }
 
 // filenameCompleter offers the file names that could follow prefix.
-func filenameCompleter(cenv *Completion, prefix string, noColor bool,
+func filenameCompleter(cenv *Completion, prefix string, color bool,
 	dirSep byte, roots, extensions string,
 ) {
 	// Split what was typed into the directory part and the start of a name.
@@ -981,7 +981,7 @@ func filenameCompleter(cenv *Completion, prefix string, noColor bool,
 	if isAbsolutePath(prefix) {
 		// An absolute path is completed where it points rather than under
 		// any of the roots.
-		completeInDir(cenv, noColor, dirPrefix, dirPrefix, base, dirSep, extensions)
+		completeInDir(cenv, color, dirPrefix, dirPrefix, base, dirSep, extensions)
 		return
 	}
 	// A relative path is completed under each root in turn. The C code does
@@ -992,7 +992,7 @@ func filenameCompleter(cenv *Completion, prefix string, noColor bool,
 			// Without its trailing separator, because one was just added.
 			dir += dirPrefix[:len(dirPrefix)-1]
 		}
-		completeInDir(cenv, noColor, dir, dirPrefix, base, dirSep, extensions)
+		completeInDir(cenv, color, dir, dirPrefix, base, dirSep, extensions)
 	}
 }
 
@@ -1005,7 +1005,7 @@ func filenameCompleter(cenv *Completion, prefix string, noColor bool,
 //
 // The word is taken with completeQWordEx, so a name with a space in it can be
 // completed whether the user quoted it or escaped the space.
-func completeFilename(cenv *Completion, prefix string, noColor bool,
+func completeFilename(cenv *Completion, prefix string, color bool,
 	dirSep byte, roots, extensions string,
 ) {
 	if roots == "" {
@@ -1019,7 +1019,7 @@ func completeFilename(cenv *Completion, prefix string, noColor bool,
 	// value afterwards. A closure carries them here instead, so the
 	// program's own argument is left alone.
 	inner := CompleterFunc(func(cenv *Completion, word string) {
-		filenameCompleter(cenv, word, noColor, dirSep, roots, extensions)
+		filenameCompleter(cenv, word, color, dirSep, roots, extensions)
 	})
 	completeQWordEx(cenv, prefix, inner, text.CharIsFileNameLetter, defaultEscapeChar, defaultQuoteChars)
 }
@@ -1088,7 +1088,7 @@ func (ev *env) generateCompletions(e *editor.Editor, autoTab bool) {
 	switch {
 	case count <= 0:
 		if !autoTab {
-			ev.term.beep()
+			ev.term.bell()
 		}
 	case count == 1:
 		if ev.complete(e, 0) && ev.completeAutoTab {

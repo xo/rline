@@ -83,14 +83,14 @@ func termReplay(t *testing.T) []string {
 		sink.Reset()
 	}
 	newT := func() *term {
-		return newTerm(&sink, termOptions{Sizer: fixedSize{cols: 80, rows: 24}})
+		return newTerm(&sink, termOptions{Color: true, Sizer: fixedSize{cols: 80, rows: 24}})
 	}
 
 	// Palette detection.
 	for i, e := range termEnvCases {
 		setTermEnv(e[0], e[1], e[2])
 		tm := newT()
-		out = append(out, fmt.Sprintf("palette %d %d %d %d", i, tm.palette, boolInt(tm.nocolor), tm.colorBits()))
+		out = append(out, fmt.Sprintf("palette %d %d %d %d", i, tm.palette, boolInt(!tm.color), tm.colorBits()))
 		tm.restore()
 		emit("discard")
 	}

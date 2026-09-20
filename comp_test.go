@@ -675,11 +675,13 @@ func checkFilenameLine(t *testing.T, line string) (string, string) {
 		name, ext := p.str(), p.nullableStr()
 		hasExt := f[6] != "!"
 		dirSep := mustHex(t, p.next())[0]
+		// The corpus records the C's flag, which is no_color, so it keeps
+		// that name here and the port is handed the opposite.
 		noColor, want := p.flag(), p.next()
 		setEnvOrUnset(t, "CLICOLOR", clicolor)
 		setEnvOrUnset(t, "LS_COLORS", gnu)
 		setEnvOrUnset(t, "LSCOLORS", bsd)
-		got := colorizeEntry(noColor, ft, name, ext, hasExt, dirSep)
+		got := colorizeEntry(!noColor, ft, name, ext, hasExt, dirSep)
 		if h := hexOrDash([]byte(got)); h != want {
 			return f[0], fmt.Sprintf("colorizeEntry gave %s, want %s\n  got  %q", h, want, got)
 		}
@@ -697,6 +699,7 @@ func checkFilesCase(t *testing.T, p *fieldReader) string {
 	prefix := p.str()
 	dirSep := mustHex(t, p.next())[0]
 	roots, extensions := p.str(), p.str()
+	// The C's flag again; see colorizeEntry above.
 	noColor := p.flag()
 
 	// The probe turns colouring off for these, so the display stays plain.
@@ -706,7 +709,7 @@ func checkFilesCase(t *testing.T, p *fieldReader) string {
 
 	c := &completions{}
 	c.setCompleter(CompleterFunc(func(cenv *Completion, word string) {
-		completeFilename(cenv, word, noColor, dirSep, roots, extensions)
+		completeFilename(cenv, word, !noColor, dirSep, roots, extensions)
 	}), nil)
 	c.completerMax = 200
 	cenv := &Completion{input: prefix, cursor: len(prefix)}

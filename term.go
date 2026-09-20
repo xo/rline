@@ -51,8 +51,8 @@ type term struct {
 	width   int
 	height  int
 	palette ansi.Palette
-	nocolor bool
-	silent  bool
+	color   bool
+	beep    bool
 	isUTF8  bool
 
 	// The attributes the terminal is showing now. This is kept up to date by
@@ -68,11 +68,12 @@ type term struct {
 
 // termOptions are the choices newTerm cannot work out for itself.
 type termOptions struct {
-	// NoColor turns off every color, whatever the terminal supports.
-	NoColor bool
+	// Color writes color when the terminal supports it. It is on by default,
+	// and a zero termOptions therefore turns it off.
+	Color bool
 
-	// Silent turns off the beep.
-	Silent bool
+	// Beep sounds the terminal bell on an error. It is on by default.
+	Beep bool
 
 	// IsUTF8 says whether the terminal reads UTF-8.
 	IsUTF8 bool
@@ -90,15 +91,15 @@ func newTerm(out io.Writer, opts termOptions) *term {
 		width:   80,
 		height:  25,
 		palette: ansi.PaletteANSI16, // near enough to universal
-		nocolor: opts.NoColor,
-		silent:  opts.Silent,
+		color:   opts.Color,
+		beep:    opts.Beep,
 		isUTF8:  opts.IsUTF8,
 		attr:    ansi.DefaultAttr(),
 	}
 	if os.Getenv("NO_COLOR") != "" {
-		t.nocolor = true
+		t.color = false
 	}
-	if !t.nocolor {
+	if t.color {
 		t.palette = detectPalette()
 	}
 	// COLUMNS and LINES give a better first guess than the defaults.
@@ -268,12 +269,12 @@ func (t *term) writef(format string, args ...any) {
 	t.buf.Appendf(format, args...)
 }
 
-// beep sounds the terminal bell, unless the terminal is silent.
+// beep sounds the terminal bell, unless beeping is off.
 //
 // The C writes to standard error rather than to the terminal, so the bell
 // still sounds while output is being collected. The port does the same.
-func (t *term) beep() {
-	if t.silent {
+func (t *term) bell() {
+	if !t.beep {
 		return
 	}
 	fmt.Fprint(os.Stderr, "\a")
@@ -286,7 +287,7 @@ func (t *term) beep() {
 // is dropped rather than written.
 func (t *term) appendEsc(s []byte) {
 	if len(s) >= 2 && s[1] == '[' && s[len(s)-1] == 'm' {
-		if t.nocolor {
+		if !t.color {
 			return
 		}
 		t.attr = t.attr.Merge(ansi.ParseEscapeSGR(string(s)))
@@ -473,7 +474,7 @@ func (t *term) setBgColor(c ansi.Code) { t.write(ansi.Format(t.palette, c, true)
 // approximation. Storing the color that was asked for instead stops the next
 // call sending the same sequence again.
 func (t *term) setAttr(a ansi.Attr) {
-	if t.nocolor {
+	if !t.color {
 		return
 	}
 	if a.Fg != t.attr.Fg && a.Fg != ansi.None {

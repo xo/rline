@@ -485,7 +485,7 @@ func (ev *env) historyAt(e *editor.Editor, ofs int) {
 	}
 	entry, ok := ev.history.get(e.HistoryIdx + ofs)
 	if !ok {
-		ev.term.beep()
+		ev.term.bell()
 		return
 	}
 	e.HistoryIdx += ofs
@@ -545,7 +545,7 @@ func (ev *env) historySearchWithCurrentWord(e *editor.Editor) {
 // as it was or as the entry that was found.
 func (ev *env) historySearch(e *editor.Editor, initial string) {
 	if ev.history.count() <= 0 {
-		ev.term.beep()
+		ev.term.bell()
 		return
 	}
 	if e.Modified {
@@ -557,12 +557,12 @@ func (ev *env) historySearch(e *editor.Editor, initial string) {
 	// nothing else may record while it runs.
 	e.UndoCapture()
 	e.DisableUndo = true
-	wasNoHint, wasPrompt := ev.noHint, e.PromptText
-	ev.noHint = true
+	wasNoHint, wasPrompt := ev.hints, e.PromptText
+	ev.hints = true
 	e.PromptText = "history search"
 	defer func() {
 		e.DisableUndo = false
-		ev.noHint, e.PromptText = wasNoHint, wasPrompt
+		ev.hints, e.PromptText = wasNoHint, wasPrompt
 		ev.refresh(e)
 	}()
 
@@ -603,7 +603,7 @@ func (ev *env) historySearch(e *editor.Editor, initial string) {
 				hidx, matchPos = idx, mpos
 				matchLen = pos + next
 			} else if pos+next >= len(initial) {
-				ev.term.beep()
+				ev.term.bell()
 			}
 			pos += next
 		}
@@ -656,7 +656,7 @@ func (ev *env) historySearch(e *editor.Editor, initial string) {
 				hidx, matchPos = idx, mpos
 			} else {
 				drop()
-				ev.term.beep()
+				ev.term.bell()
 			}
 		case key.CtrlS, key.ShiftTab, key.Down:
 			push(false)
@@ -664,7 +664,7 @@ func (ev *env) historySearch(e *editor.Editor, initial string) {
 				hidx, matchPos = idx, mpos
 			} else {
 				drop()
-				ev.term.beep()
+				ev.term.bell()
 			}
 		case key.F1:
 			ev.showHelp(e)
@@ -682,14 +682,14 @@ func (ev *env) historySearch(e *editor.Editor, initial string) {
 				ev.refreshHint(e)
 			default:
 				// A key with no place in a search.
-				ev.term.beep()
+				ev.term.bell()
 				continue
 			}
 			if idx, mpos, ok := ev.history.search(hidx, e.Input.String(), true); ok {
 				hidx, matchPos = idx, mpos
 				matchLen = e.Input.Length()
 			} else {
-				ev.term.beep()
+				ev.term.bell()
 			}
 		}
 	}

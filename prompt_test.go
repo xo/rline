@@ -96,7 +96,7 @@ func refreshReplay(t *testing.T) []string {
 	setTermEnv("", "xterm-256color", "")
 
 	var sink bytes.Buffer
-	tm := newTerm(&sink, termOptions{Sizer: fixedSize{cols: 40, rows: 6}})
+	tm := newTerm(&sink, termOptions{Color: true, Sizer: fixedSize{cols: 40, rows: 6}})
 	ev := &env{
 		term:          tm,
 		bb:            newBBCode(tm),
@@ -106,8 +106,14 @@ func refreshReplay(t *testing.T) []string {
 			MatchPairs:   "()[]{}",
 			AutoPairs:    "()[]{}",
 			MultilineEOL: '\\',
+			AutoPair:     true,
 		},
-		noHighlight: true,
+		braceMatching:   true,
+		hints:           true,
+		inlineHelp:      true,
+		multilineIndent: true,
+		multiline:       true,
+		completePreview: true,
 	}
 	e := &editor.Editor{}
 
@@ -139,8 +145,8 @@ func refreshReplay(t *testing.T) []string {
 								e.CurRows = 1
 								e.CurRow = 0
 								e.PromptText = prompt
-								ev.noMultilineIndent = noIndent
-								ev.noBraceMatch = noBrace
+								ev.multilineIndent = !noIndent
+								ev.braceMatching = !noBrace
 								tm.flush()
 								out = append(out, emit())
 								ev.refresh(e)
@@ -327,21 +333,24 @@ func newResizeEnv(t *testing.T) (*env, *editor.Editor, *bytes.Buffer, *resizable
 	t.Helper()
 	sink := &bytes.Buffer{}
 	sz := &resizableSize{cols: 80, rows: 24}
-	tm := newTerm(sink, termOptions{NoColor: true, Sizer: sz})
+	tm := newTerm(sink, termOptions{Sizer: sz})
 	h := &history{}
 	_ = h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
-		term:          tm,
-		tty:           newTTY(&feedKeys{}),
-		bb:            newBBCode(tm),
-		history:       h,
-		completions:   &completions{},
-		promptMarker:  "> ",
-		cpromptMarker: "> ",
-		opts:          editor.EditOptions{MatchPairs: DefaultMatchPairs, AutoPairs: DefaultAutoPairs, MultilineEOL: DefaultMultilineEOL},
-		noHighlight:   true,
-		noBraceMatch:  true,
-		noHint:        true,
+		term:            tm,
+		tty:             newTTY(&feedKeys{}),
+		bb:              newBBCode(tm),
+		history:         h,
+		completions:     &completions{},
+		promptMarker:    "> ",
+		cpromptMarker:   "> ",
+		opts:            editor.EditOptions{MatchPairs: DefaultMatchPairs, AutoPairs: DefaultAutoPairs, MultilineEOL: DefaultMultilineEOL, AutoPair: true},
+		braceMatching:   false,
+		hints:           false,
+		inlineHelp:      true,
+		multilineIndent: true,
+		multiline:       true,
+		completePreview: true,
 	}
 	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
 	return ev, e, sink, sz

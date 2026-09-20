@@ -196,8 +196,9 @@ type Session struct {
 	// happens when the input is a pipe or a file.
 	plain *bufio.Reader
 
-	// noEdit says there is no terminal to edit on.
-	noEdit bool
+	// canEdit says there is a terminal to edit on. Without one the input is
+	// read plainly, a line at a time.
+	canEdit bool
 
 	// closed stops a second Close from touching the terminal again.
 	closed bool
@@ -242,15 +243,14 @@ type config struct {
 	opts editor.EditOptions
 
 	// Settings that turn parts of the editor off.
-	noColor           bool
-	silent            bool
-	noMultilineIndent bool
-	noHighlight       bool
-	noBraceMatch      bool
-	noHint            bool
-	noHelp            bool
-	singlelineOnly    bool
-	completeAutoTab   bool
+	color           bool
+	beep            bool
+	multilineIndent bool
+	braceMatching   bool
+	hints           bool
+	inlineHelp      bool
+	multiline       bool
+	completeAutoTab bool
 
 	hintDelay time.Duration
 
@@ -394,51 +394,45 @@ func WithContinue(fn func(text string) bool) Option {
 // WithColor writes color when the terminal supports it. Turning it off writes
 // none, whatever the terminal supports.
 func WithColor(enabled bool) Option {
-	return func(c *config) { c.noColor = !enabled }
+	return func(c *config) { c.color = enabled }
 }
 
 // WithBeep beeps where the editor would. Turning it off stays quiet.
 func WithBeep(enabled bool) Option {
-	return func(c *config) { c.silent = !enabled }
+	return func(c *config) { c.beep = enabled }
 }
 
 // WithMultiline allows line breaks inside one line. Turning it off refuses
 // them, so a line is always one row.
 func WithMultiline(enabled bool) Option {
-	return func(c *config) { c.singlelineOnly = !enabled }
-}
-
-// WithHighlighting marks up the line. Turning it off draws it plainly, and
-// the highlighter is not called.
-func WithHighlighting(enabled bool) Option {
-	return func(c *config) { c.noHighlight = !enabled }
+	return func(c *config) { c.multiline = enabled }
 }
 
 // WithBraceMatching highlights the partner of the brace at the cursor.
 func WithBraceMatching(enabled bool) Option {
-	return func(c *config) { c.noBraceMatch = !enabled }
+	return func(c *config) { c.braceMatching = enabled }
 }
 
 // WithBraceInsertion closes a brace automatically when one is typed.
 func WithBraceInsertion(enabled bool) Option {
-	return func(c *config) { c.opts.NoAutoPair = !enabled }
+	return func(c *config) { c.opts.AutoPair = enabled }
 }
 
 // WithHints shows the rest of the only completion that fits, in grey after
 // the cursor.
 func WithHints(enabled bool) Option {
-	return func(c *config) { c.noHint = !enabled }
+	return func(c *config) { c.hints = enabled }
 }
 
 // WithInlineHelp shows the short reminder below the line while searching the
 // history.
 func WithInlineHelp(enabled bool) Option {
-	return func(c *config) { c.noHelp = !enabled }
+	return func(c *config) { c.inlineHelp = enabled }
 }
 
 // WithMultilineIndent lines the rows after the first up under the prompt.
 func WithMultilineIndent(enabled bool) Option {
-	return func(c *config) { c.noMultilineIndent = !enabled }
+	return func(c *config) { c.multilineIndent = enabled }
 }
 
 // WithAutoTab keeps completing while there is only one answer.
@@ -481,18 +475,29 @@ func WithLog(w io.Writer) Option {
 // the input is a pipe. ReadLine then reads a plain line with no editing, which
 // is what the C does and what a program reading a script expects.
 func New(opts ...Option) (*Prompt, error) {
+	// Everything a caller can turn off is on here, so that the options below
+	// only ever say what was asked for. The zero value of a bool is false,
+	// which would otherwise mean every feature arrives switched off.
 	c := &config{
-		inFd:           -1,
-		out:            os.Stdout,
-		errOut:         os.Stderr,
-		promptMarker:   DefaultPromptMarker,
-		cpromptMarker:  DefaultPromptMarker,
-		historyEntries: DefaultHistoryEntries,
-		hintDelay:      DefaultHintDelay,
+		inFd:            -1,
+		out:             os.Stdout,
+		errOut:          os.Stderr,
+		promptMarker:    DefaultPromptMarker,
+		cpromptMarker:   DefaultPromptMarker,
+		historyEntries:  DefaultHistoryEntries,
+		hintDelay:       DefaultHintDelay,
+		color:           true,
+		beep:            true,
+		multiline:       true,
+		multilineIndent: true,
+		braceMatching:   true,
+		hints:           true,
+		inlineHelp:      true,
 		opts: editor.EditOptions{
 			MatchPairs:   DefaultMatchPairs,
 			AutoPairs:    DefaultAutoPairs,
 			MultilineEOL: DefaultMultilineEOL,
+			AutoPair:     true,
 		},
 	}
 	for _, o := range opts {
@@ -535,10 +540,10 @@ func New(opts ...Option) (*Prompt, error) {
 		// Color goes off when the output is not a terminal, so that a program
 		// whose output is redirected writes plain text rather than escape
 		// sequences into a file. The C makes the same check.
-		NoColor: c.noColor || !writesToTerminal(c.out),
-		Silent:  c.silent,
-		IsUTF8:  isUTF8,
-		Sizer:   outputSizer(c.out),
+		Color:  c.color && writesToTerminal(c.out),
+		Beep:   c.beep,
+		IsUTF8: isUTF8,
+		Sizer:  outputSizer(c.out),
 	})
 	bb := newBBCode(tm)
 	for _, s := range defaultStyles {
@@ -556,27 +561,27 @@ func New(opts ...Option) (*Prompt, error) {
 		cs.setCompleter(c.completer, nil)
 	}
 	r.env = &env{
-		term:              tm,
-		tty:               t,
-		bb:                bb,
-		history:           h,
-		completions:       cs,
-		promptMarker:      c.promptMarker,
-		cpromptMarker:     c.cpromptMarker,
-		highlighter:       c.highlighter,
-		isIncomplete:      c.isIncomplete,
-		opts:              c.opts,
-		noMultilineIndent: c.noMultilineIndent,
-		noHighlight:       c.noHighlight,
-		noBraceMatch:      c.noBraceMatch,
-		noHint:            c.noHint,
-		noHelp:            c.noHelp,
-		singlelineOnly:    c.singlelineOnly,
-		completeAutoTab:   c.completeAutoTab,
-		hintDelay:         c.hintDelay,
+		term:            tm,
+		tty:             t,
+		bb:              bb,
+		history:         h,
+		completions:     cs,
+		promptMarker:    c.promptMarker,
+		cpromptMarker:   c.cpromptMarker,
+		highlighter:     c.highlighter,
+		isIncomplete:    c.isIncomplete,
+		opts:            c.opts,
+		multilineIndent: c.multilineIndent,
+		braceMatching:   c.braceMatching,
+		hints:           c.hints,
+		inlineHelp:      c.inlineHelp,
+		multiline:       c.multiline,
+		completeAutoTab: c.completeAutoTab,
+		completePreview: true,
+		hintDelay:       c.hintDelay,
 	}
 	r.log = slog
-	r.noEdit = ttyErr != nil || !isInteractive()
+	r.canEdit = ttyErr == nil && isInteractive()
 	return &Prompt{Session: r, markup: &MarkupWriter{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
 }
 
@@ -621,7 +626,7 @@ func (s *Session) ReadLine(prompt string) (string, error) {
 	if s.closed {
 		return "", ErrClosed
 	}
-	if s.noEdit {
+	if !s.canEdit {
 		return s.readPlain(prompt)
 	}
 	line, ok, err := s.env.readLine(prompt)
@@ -1003,7 +1008,7 @@ func (s *Session) SaveHistory() error {
 // Interactive reports whether there is a terminal to edit on. When there is
 // not, ReadLine reads a plain line.
 func (s *Session) Interactive() bool {
-	return !s.noEdit
+	return s.canEdit
 }
 
 // --------------------------------------------------------------------------
@@ -1148,7 +1153,7 @@ func (s *Session) Password(prompt string) (string, error) {
 	switch {
 	case s.closed:
 		return "", ErrClosed
-	case s.noEdit:
+	case !s.canEdit:
 		return s.readPlainPassword(prompt)
 	}
 	s.env.term.write(prompt)

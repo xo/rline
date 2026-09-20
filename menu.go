@@ -128,7 +128,7 @@ func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 	// The first entry is selected up front only when there is no preview to
 	// show; with preview on, nothing is selected until the user moves.
 	selected := -1
-	if ev.completeNoPreview {
+	if !ev.completePreview {
 		selected = 0
 	}
 
@@ -189,7 +189,7 @@ func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 		// The "or equal" is in the C, and reaches one past the last entry
 		// shown. Applying that entry fails harmlessly, so it only means the
 		// line is drawn again rather than previewed.
-		if !ev.completeNoPreview && selected >= 0 && selected <= countDisplayed {
+		if ev.completePreview && selected >= 0 && selected <= countDisplayed {
 			// Show what picking this entry would do by actually doing it, and
 			// then take it straight back out again. The line on screen and
 			// the line in the buffer are the same thing, so the undo stack is
@@ -249,7 +249,7 @@ func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 				ev.tty.pushCode(key.EventAutoTab)
 			}
 
-		case !ev.completeNoPreview && !c.IsVirtKey():
+		case ev.completePreview && !c.IsVirtKey():
 			// The previewed entry is what the user was looking at, so typing
 			// anything else takes it and leaves the menu, and the key that
 			// was typed is handled by the edit loop afterwards.
