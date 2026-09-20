@@ -7,6 +7,7 @@ package rline
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/xo/rline/internal/text"
@@ -42,12 +43,28 @@ const ttyPushMax = 32
 // Default waits for the escape decoder.
 //
 // Nothing follows the Escape key, so telling it from the start of a sequence
-// means waiting. macOS waits longer, because it sends an escape and the key
-// for alt and a key, so a real sequence can arrive slowly.
-const (
-	defaultEscInitialTimeout = 100 * time.Millisecond
-	defaultEscTimeout        = 10 * time.Millisecond
-)
+// means waiting.
+const defaultEscTimeout = 10 * time.Millisecond
+
+// defaultEscInitial is how long to wait for the byte after an escape before
+// deciding the user pressed the Escape key.
+//
+// macOS waits twice as long, because it sends an escape and then the key when
+// alt is held with a key, so a real sequence can arrive slowly. Nobody has
+// measured whether a BSD does the same; the figure everywhere else is the
+// Linux one.
+//
+// This is a heuristic about terminal emulators rather than a system call, so
+// it is untagged: runtime.GOOS is a constant and the branch is resolved when
+// the package is built, while every system still compiles this line and every
+// system's tests run over it. A tagged file would put the macOS figure where
+// only a Mac ever reads it.
+func defaultEscInitial() time.Duration {
+	if runtime.GOOS == "darwin" {
+		return 200 * time.Millisecond
+	}
+	return 100 * time.Millisecond
+}
 
 // byteReader supplies the bytes that a tty decodes.
 type byteReader interface {
@@ -107,7 +124,7 @@ func newTTY(src byteReader) *tty {
 	return &tty{
 		src:               src,
 		isUTF8:            true,
-		escInitialTimeout: defaultEscInitialTimeout,
+		escInitialTimeout: defaultEscInitial(),
 		escTimeout:        defaultEscTimeout,
 	}
 }

@@ -42,7 +42,7 @@ full suite, and a person has driven the editor by hand on each.
 Seven more compile and are not tested: FreeBSD, NetBSD, OpenBSD, Dragonfly,
 Solaris, illumos and the mobile variants that Go folds into darwin and linux.
 The Unix file is tagged `unix && !aix` and the ioctl numbers they need sit in
-`ttydev_bsd.go` and `ttydev_solaris.go`. Nothing else in the terminal layer
+`ttydev_bsd.go` and `ttydev_sysv.go`. Nothing else in the terminal layer
 asks anything of the system that `golang.org/x/sys/unix` does not answer per
 system.
 
@@ -68,8 +68,8 @@ That settles the risk DeepSeek named when it argued against widening the tag.
 `unix.VMIN` is 0x6 on Linux, 0x10 on the BSDs and 0x4 on illumos, three
 different values, and the suite passes on all of them.
 
-illumos is the one that earned its console time. It is the only system that
-runs `ttydev_solaris.go`, and the only one that takes `ttydev_nosti.go`,
+illumos is the one that earned its console time. It is the only one that
+takes `ttydev_nosti.go`,
 since FreeBSD and NetBSD both have `TIOCSTI`. Those two files had nothing
 behind them before it.
 
@@ -202,7 +202,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    probe, and `testdata/tty.txt` records 7157 decodes.
 
    The terminal itself is done too, in `ttydev_posix.go` with the per system
-   requests in `ttydev_linux.go` and `sys_darwin.go`: raw mode through
+   requests in `ttydev_sysv.go` and `ttydev_bsd.go`: raw mode through
    `termios`, the UTF-8 test, the resize event, interrupting a read, and
    `tty_read_esc_response`. Windows is still `errUnsupported`.
 
@@ -1824,6 +1824,44 @@ file. What a color is, and how one is reduced to what a terminal can actually
 show, is answerable without knowing anything about markup, a line, or a
 terminal session, so it is the `ansi` package and a caller can use it alone.
 
+Two constants, two axes, and files named for neither. The per-system termios
+files looked like four copies of the same idea, and the note against them
+said linux and solaris were identical so consolidate. Measuring first showed
+why they were identical: the ioctl pair splits System V against BSD, and the
+escape timeout splits macOS against everything else, so any file named for a
+system has to duplicate one axis or the other. linux and solaris agreed on
+both by coincidence of this particular pair, and reading that coincidence as
+the structure would have produced a file that was right by accident.
+
+The rule the project already had said it: name a file for the axis it splits
+on rather than for one system on it. So `ttydev_sysv.go` is `linux ||
+solaris` and `ttydev_bsd.go` is the five BSDs including darwin, each holding
+the two ioctls and nothing else.
+
+The timeout went the other way entirely, under the rule that comes first in
+this document: logic specific to one system that makes no system call stays
+untagged, so every system compiles it and every system's tests run over it.
+It is a heuristic about how terminal emulators send alt with a key, not a
+kernel fact. It is one untagged function now, with `runtime.GOOS == "darwin"`
+inside — a constant, so the branch is resolved at build time — and the test
+names both figures, which means every run checks the macOS one. Before this
+the 200ms sat where only a Mac ever compiled it.
+
+That removed a duplication nobody had noticed: `newTTY` set the timeout from
+an untagged constant and `openTTY` overwrote it one line later with the
+per-system copy. Both were 100ms everywhere but macOS, so changing one and
+not the other would have split the behaviour of a real terminal from the
+behaviour of the test harness, silently.
+
+The note's other suggestion, one `unix && !aix` file with a function or an
+`init()` choosing the ioctls, does not compile. `unix.TCGETS` does not exist
+in the darwin build of `golang.org/x/sys/unix` and `unix.TIOCGETA` does not
+exist in the linux build, so a file naming both fails everywhere. The only
+way to write it is raw hex, which trades the upstream definitions for a magic
+number. Gemini and DeepSeek reached that independently and agreed on the
+split; they differed on the timeout, where this document already had an
+answer.
+
 A name earns its place by saying something the place it is used does not.
 `terminatingSignals` was a package-level slice of seven signals with one
 reader, and `signal.Notify(d.stopCh, terminatingSignals...)` said exactly
@@ -1881,10 +1919,10 @@ Code shared by a group of systems takes the broad tag for that group.
 the same way.
 
 Values that differ per system take a narrow tag, and the file is named for
-what it covers. `ttydev_linux.go`, `ttydev_bsd.go`, `ttydev_solaris.go` and
-`sys_darwin.go` hold two ioctl numbers each. A system nobody mapped gets no
-constants and falls to the stub in `ttydev_other.go`, which reads plain lines
-and says the terminal is unsupported.
+what it covers. `ttydev_sysv.go` and `ttydev_bsd.go` hold two ioctl numbers
+each. A system nobody mapped gets no constants and falls to the stub in
+`ttydev_other.go`, which reads plain lines and says the terminal is
+unsupported.
 
 Name a file for the axis it splits on rather than for one system on it.
 `ttydev_sti.go` and `ttydev_nosti.go` split on whether the system has the
@@ -1958,8 +1996,9 @@ in one Go file and the header of each says which.
 Per system, one file each where the tags allow it. `sys_darwin.go`,
 `sys_nondarwin.go`, `sys_unix.go` and `sys_windows.go` each hold everything
 that shares their tag. Four files keep their own tags because no other file
-shares them: `ttydev_posix.go` is `unix && !aix`, `ttydev_linux.go` is
-`linux`, and `ttydev_other.go` and `termsize_other.go` are both
+shares them: `ttydev_posix.go` is `unix && !aix`, `ttydev_sysv.go` is
+`linux || solaris`, `ttydev_bsd.go` is the five BSDs including darwin, and
+`ttydev_other.go` and `termsize_other.go` are both
 `(!unix || aix) && !windows`, which is the fallback.
 
 Test files follow the source files rather than the old one-to-one pairing,

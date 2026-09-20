@@ -260,6 +260,5 @@ func openTTY(fd int) (*tty, error) {
 	t := newTTY(d)
 	t.dev = d
 	t.isUTF8 = localeIsUTF8()
-	t.escInitialTimeout = defaultEscInitial
 	return t, nil
 }

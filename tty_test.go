@@ -334,10 +334,10 @@ func TestTTYReadEndsAtKeyNone(t *testing.T) {
 func TestTTYSetEscDelay(t *testing.T) {
 	t.Parallel()
 	term := newTTY(&idleReader{})
-	if term.escInitialTimeout != defaultEscInitialTimeout || term.escTimeout != defaultEscTimeout {
+	if term.escInitialTimeout != defaultEscInitial() || term.escTimeout != defaultEscTimeout {
 		t.Fatalf("a new tty waits %v and %v, want %v and %v",
 			term.escInitialTimeout, term.escTimeout,
-			defaultEscInitialTimeout, defaultEscTimeout)
+			defaultEscInitial(), defaultEscTimeout)
 	}
 	term.setEscDelay(5*time.Millisecond, time.Millisecond)
 	if term.escInitialTimeout != 5*time.Millisecond || term.escTimeout != time.Millisecond {

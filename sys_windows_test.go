@@ -219,7 +219,6 @@ func openConsoleForTest(t *testing.T) (*tty, *ttyDevice) {
 	term := newTTY(d)
 	term.dev = d
 	term.isUTF8 = localeIsUTF8()
-	term.escInitialTimeout = defaultEscInitial
 	return term, d
 }
 

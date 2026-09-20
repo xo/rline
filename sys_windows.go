@@ -480,13 +480,6 @@ func localeIsUTF8() bool {
 	return true
 }
 
-// defaultEscInitial is how long to wait for the byte after an escape.
-//
-// Nothing here ever waits for one in practice, because a sequence is built
-// from a key event all at once and arrives whole. It matters only if a
-// program feeds bytes in some other way.
-const defaultEscInitial = 100 * time.Millisecond
-
 // openTTY opens the console and returns a tty that reads keys from it.
 func openTTY(fd int) (*tty, error) {
 	d, err := openTTYDevice(fd)
@@ -496,7 +489,6 @@ func openTTY(fd int) (*tty, error) {
 	t := newTTY(d)
 	t.dev = d
 	t.isUTF8 = localeIsUTF8()
-	t.escInitialTimeout = defaultEscInitial
 	return t, nil
 }
 
