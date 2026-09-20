@@ -46,8 +46,13 @@ const ttyPushMax = 32
 // means waiting.
 const defaultEscTimeout = 10 * time.Millisecond
 
-// defaultEscInitial is how long to wait for the byte after an escape before
-// deciding the user pressed the Escape key.
+// defaultEscInitial is how long this system waits for the byte after an
+// escape before deciding the user pressed the Escape key.
+func defaultEscInitial() time.Duration {
+	return escInitialFor(runtime.GOOS)
+}
+
+// escInitialFor is the wait for a named system.
 //
 // macOS waits twice as long, because it sends an escape and then the key when
 // alt is held with a key, so a real sequence can arrive slowly. Nobody has
@@ -55,12 +60,13 @@ const defaultEscTimeout = 10 * time.Millisecond
 // Linux one.
 //
 // This is a heuristic about terminal emulators rather than a system call, so
-// it is untagged: runtime.GOOS is a constant and the branch is resolved when
-// the package is built, while every system still compiles this line and every
-// system's tests run over it. A tagged file would put the macOS figure where
-// only a Mac ever reads it.
-func defaultEscInitial() time.Duration {
-	if runtime.GOOS == "darwin" {
+// the system is a parameter rather than a build tag. runtime.GOOS is a
+// constant, so defaultEscInitial still costs nothing at run time, and taking
+// the name as an argument is what lets any machine check any figure: a tagged
+// file, or a branch on runtime.GOOS here, would leave each figure checkable
+// only on the system that uses it. See TestEscInitialFigures.
+func escInitialFor(goos string) time.Duration {
+	if goos == "darwin" {
 		return 200 * time.Millisecond
 	}
 	return 100 * time.Millisecond

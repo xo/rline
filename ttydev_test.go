@@ -5,7 +5,6 @@ package rline
 import (
 	"errors"
 	"os"
-	"runtime"
 	"testing"
 	"time"
 )
@@ -60,28 +59,6 @@ func TestOpenTTYRejectsAPipe(t *testing.T) {
 	}
 	if !errors.Is(err, errNotATerminal) {
 		t.Errorf("opening a pipe gave %v, want it to wrap %v", err, errNotATerminal)
-	}
-}
-
-// TestDefaultEscInitialIsSane checks the wait that tells the Escape key from
-// the start of a sequence. It differs by system, so this only checks that it
-// is long enough to be useful and short enough not to be felt.
-func TestDefaultEscInitialIsSane(t *testing.T) {
-	t.Parallel()
-	d := defaultEscInitial()
-	if d < 50*time.Millisecond || d > escDelayMax {
-		t.Errorf("the initial escape wait is %v", d)
-	}
-	// The macOS figure is the only one that was measured rather than
-	// inherited, and it is the reason this is a function rather than a
-	// constant. Naming both here means every system's test run checks the
-	// branch it does not take, which a tagged file could not do.
-	want := 100 * time.Millisecond
-	if runtime.GOOS == "darwin" {
-		want = 200 * time.Millisecond
-	}
-	if d != want {
-		t.Errorf("the initial escape wait on %s is %v, want %v", runtime.GOOS, d, want)
 	}
 }
 

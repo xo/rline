@@ -790,15 +790,17 @@ started and what it is attached to.
 
 ### And found by running it on Windows
 
-The colour fix above was only half a fix. `writesToTerminal` asked `isATTY`,
+The colour fix above was only half a fix. `writesToTerminal` asked
+`isTerminal`, which this passage called `isATTY` until it was renamed,
 which on Windows answers about the standard input whatever descriptor it is
 handed, because a console there is reached by handle rather than by
 descriptor. So a Windows program with its output redirected still wrote
-escape sequences into the file. The Unix `isATTY` does honour its argument,
+escape sequences into the file. The Unix `isTerminal` does honour its
+argument,
 so the fault was there only on Windows, and only while a console was on the
 standard input at the same time to make the wrong answer a plausible one.
-`fileIsTerminal` now asks about the file it is given, and `isATTY` keeps the
-standard input it was written for. Found by windows-vm, by measuring both
+`fileIsTerminal` now asks about the file it is given, and `isTerminal` keeps
+the standard input it was written for. Found by windows-vm, by measuring both
 answers with the output redirected rather than by reading the code.
 
 This is the wrap mark again in a different costume: one function standing for
@@ -825,8 +827,8 @@ only proves something while a console is there to be taken by mistake.
 Three instances is enough to name the rule rather than the incidents. A
 function that takes an argument it ignores is a trap on this platform, because
 the value that would have been wrong is the one the caller believes was used.
-`isATTY` is the one remaining, and its comment now says outright not to give
-it a second meaning.
+`isTerminal` is the one remaining, and its comment now says outright not to
+give it a second meaning.
 
 ### completers.c
 
@@ -1066,6 +1068,20 @@ so it never reaches the program at all. That is the terminal rather than the
 shell or the virtual machine, and the modifier does not change which virtual
 key is reported, so a modifier is the way to reach any key the terminal has
 taken.
+
+The escape wait is reachable on Windows, which an old comment denied. When the
+Windows `openTTY` stopped setting `escInitialTimeout` — `newTTY` now sets it
+for every system — the line it removed carried a comment saying nothing there
+ever waits for an escape byte, because the console delivers a key event whole.
+Half of that is right. windows-vm measured it on a real console at 91335a9:
+an arrow decodes to `key.Up` in 1ms, so a sequence built from a key event
+never reaches the wait, and pressing the Escape key produces a lone escape
+byte that resolves in 103ms against the 100ms the constructor sets. So the
+wait is not dead on Windows, it is one keypress away. The practical stake is
+small — a zero wait there would make a lone Escape resolve sooner rather than
+wrong, because a whole sequence is already pending and is returned regardless
+of the timeout — and the wording is the point: "nothing here ever waits" reads
+as permission to treat the value as dead, and it is not.
 
 ## What the banner does not watch
 
@@ -1549,6 +1565,23 @@ ask what the thing being ported does and whether the neighbour has the same
 alternatives available. Both answers were one command away and neither was
 run before the change was written.
 
+A document that names a function that is gone. Renaming `isATTY` to
+`isTerminal` left seven mentions of the old name in this file, describing
+code that no longer spells it that way. Found by windows-vm, who noticed the
+rename was missing from a list of them and said the thing that makes it
+matter: they had referred to `isATTY` by name in a dozen reports, so anyone
+searching the record for it would land on a name the source no longer has.
+
+Three mentions stay on purpose and the distinction is the point: the entry
+recording the rename keeps the old name because that is the before, and the
+two historical statements say what it was then and what it is now. The four
+describing current code were changed. A document that mixes what is true now
+with what was true then has to say which it is doing every time, or a reader
+cannot tell a deliberate old name from a stale one.
+
+Checking for it is the same shell loop as the file names, run against the
+identifiers a rename touches rather than against the disk.
+
 A document that describes files that are gone. PLAN.md's list of where
 things live named `winkey.go`, deleted eight commits earlier when its
 contents moved into `tty.go`, and `password.go`, whose code is in `rline.go`.
@@ -1623,8 +1656,8 @@ under `go test` on Windows that check passes against the bug it was written to
 catch, and it is only a real check on Unix. It logs which state it ran in
 rather than skipping, and `TestConsoleWritesToTerminalOnAConsole` makes the
 same check where it can fail. Measured by windows-vm, who ran both halves from
-one console window: `isATTY(0)` is false under `go test` and true in the same
-binary started directly.
+one console window: `isTerminal(0)` is false under `go test` and true in the
+same binary started directly.
 
 A diagnostic that cannot be read in the case it was written for.
 `TestConsoleWritesToTerminalOnAConsole` logs whether the standard output is a
@@ -1791,6 +1824,43 @@ rightness is what made the hole invisible — a good account of why something
 is not checked reads to the next person as a reason not to check it. So
 saying why is not enough. Say also whether anything else holds it, and when
 nothing does, say that.
+
+Three layers that each look like coverage, none of which covered it. The
+initial escape wait is 100ms everywhere and 200ms on macOS. The function
+picking it was untagged, so every system compiled both figures; a test named
+both figures; and a second, untagged test mentioned the function. Nothing
+checked that any figure was right.
+
+`TestDefaultEscInitialIsSane` named both — and rebuilt the same
+`runtime.GOOS` branch to decide which to expect, so a Linux run compared
+100ms against 100ms and never looked at the 200. It also sat in a file tagged
+`unix && !aix`, so Windows, plan9 and js ran neither figure: `go test -run
+TestDefaultEscInitialIsSane` there prints `no tests to run`, which is not a
+skip and says nothing. And `tty_test.go`'s untagged mention asserts
+`escInitialTimeout == defaultEscInitial()`, which ties the constructor to the
+function and passes whatever the function returns.
+
+Measured at 91335a9, all three ways. ken-mba changed the 200 to 300: the test
+failed on darwin, a linux vet of that same tree exited 0, and running it here
+on linux passed. windows-vm ran the same mutation on Windows and got `no
+tests to run`. So the figure was checkable on exactly one machine, and the
+comment above it claimed every system's run checked the branch it does not
+take.
+
+The fix is to make the system an argument. `escInitialFor(goos string)` holds
+the branch, `defaultEscInitial()` calls it with `runtime.GOOS` — still a
+constant, so nothing costs anything at run time — and `TestEscInitialFigures`
+names the figures for darwin, linux, windows, freebsd and solaris in an
+untagged file. The 200-to-300 mutation now fails on linux, and the test
+compiles into the windows, plan9 and js test binaries. `tty_test.go`'s wiring
+assertion stays, because it is the only thing tying the constructor to the
+function and the table does not cover that.
+
+The general shape: a comment claiming a test runs everywhere is mechanically
+checkable against the file's build tag, and nothing checks it. Untagging the
+code under test does not untag the test. windows-vm found it only by chasing
+`no tests to run` rather than reading past it, while intending to report the
+parameterisation as a tidy improvement to something that worked.
 
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.
@@ -2071,8 +2141,9 @@ Four checks run on the Go code, plus one that runs when someone remembers to.
    that such a system builds and reads plain lines, and a function added with
    implementations for only two of the three tag groups breaks it invisibly:
    vet for linux, darwin and windows all pass, and nobody builds the rest.
-   That happened at 95ec387, when `fileIsTerminal` was split out of `isATTY`
-   with no answer here, and nothing said so for a day.
+   That happened at 95ec387, when `fileIsTerminal` was split out of what was
+   then `isATTY` and is now `isTerminal`, with no answer here, and nothing
+   said so for a day.
 4. `go tool golangci-lint run ./...` runs the linters that `.golangci.yml`
    names.
 

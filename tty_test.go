@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -326,6 +327,47 @@ func TestTTYReadEndsAtKeyNone(t *testing.T) {
 		if got := term.read(); got != want {
 			t.Errorf("read gave %08x, want %08x", got, want)
 		}
+	}
+}
+
+// TestEscInitialFigures checks the wait that tells the Escape key from the
+// start of a sequence.
+//
+// The figures are named here rather than recomputed, and the system is an
+// argument rather than runtime.GOOS, so that every run checks every figure.
+// The arrangement this replaced could not: it rebuilt the same branch to
+// decide what to expect, so a Linux run compared 100ms against 100ms and
+// never looked at the 200 — and it sat in a file tagged unix && !aix, so
+// Windows ran neither figure at all. Both halves were measured: ken-mba
+// changed the 200 to 300 and only a Mac failed, and windows-vm found the
+// same mutation produced "no tests to run" on Windows.
+//
+// The rows are figures, not branches, and nothing else here holds that
+// distinction: a case added for a system no row names passes every row and
+// the bound below as well. Measured, by giving escInitialFor a netbsd case
+// returning 150ms — this test passed, and so did the rest of the package. So
+// a new branch needs a new row, and until it has one it is unchecked. Five
+// rows means five figures are checked, not that every system is.
+func TestEscInitialFigures(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		goos string
+		want time.Duration
+	}{
+		{"darwin", 200 * time.Millisecond},
+		{"linux", 100 * time.Millisecond},
+		{"windows", 100 * time.Millisecond},
+		{"freebsd", 100 * time.Millisecond},
+		{"solaris", 100 * time.Millisecond},
+	} {
+		if got := escInitialFor(tt.goos); got != tt.want {
+			t.Errorf("escInitialFor(%q) = %v, want %v", tt.goos, got, tt.want)
+		}
+	}
+	// The figure this machine will actually use has to be one setEscDelay
+	// would accept, which the table above does not say.
+	if d := defaultEscInitial(); d < 50*time.Millisecond || d > escDelayMax {
+		t.Errorf("the initial escape wait on %s is %v", runtime.GOOS, d)
 	}
 }
 
