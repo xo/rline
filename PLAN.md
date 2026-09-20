@@ -1289,14 +1289,43 @@ F11 arrived as F4. A directory case on Windows expected the one answer that
 every directory gives there, so it passed for the wrong reason and would have
 stayed green through a real regression.
 
-A contract that was true by accident in two places. A nil ansi.AttrBuf is
+A contract that was true by accident in three places. A nil ansi.AttrBuf is
 usable and every method accepts one, which is what lets rline pass nil down
 ten signatures to mean "record no attributes" instead of branching at each.
-Taking each nil guard out in turn showed three of them panicking the suite,
-Length, At and the fill behind SetAt and UpdateAt, and four of them changing
-nothing. So the words "every method" rested on three methods.
-`TestNilAttrBufAcceptsEveryMethod` calls all of them on a nil buffer, and all
-seven guards are load-bearing now, measured the same way.
+Taking each nil guard out and running the whole module showed four of them
+panicking — Length, At, DeleteAt and the fill behind SetAt and UpdateAt — and
+three changing nothing: Clear, Extend and InsertAt. So the words "every
+method" rested on four methods. `TestNilAttrBufAcceptsEveryMethod` calls all
+of them on a nil buffer, and all seven guards are load-bearing now.
+
+The first version of this entry said three and four rather than four and
+three, and named the wrong set. Five guards were measured and the other two
+were inferred, and the inference was written down as if it were a
+measurement. ken-mba could not reproduce it against the pushed tree and said
+so rather than assuming they had run it wrong. Measuring what you did not
+measure is the same fault as an assertion copied from an observation, one
+step further back.
+
+Code that no recording reaches at all, found by looking rather than by a
+failure. `ansi.ParseANSI256` reads a palette index out of text, and
+`testdata/bbcode.txt` holds no `ansi-color` tag, no `ansi-sgr` and no
+`bgcolor=`, so the whole 130,000 line corpus never calls it. The decimal scan
+behind it was written out again when the code moved packages, which is the
+worst combination: a reimplementation with nothing watching. `names_test.go`
+now pins both readers against what the C's sscanf does — leading space, an
+optional sign, digits, and whatever follows ignored — and five mutations of
+the scan, the hex reader and the range check are all caught.
+
+A coverage number that looks like a gap and is not. After the fix above,
+`ansi.scanHex` reports 90.9 per cent, and the missed line is the `return` in
+its `else if err != nil`. That branch cannot run: the string handed to
+ParseUint is not empty and every byte of it passed isHexDigit, which is the
+only way ParseUint gives ErrSyntax, so the ErrRange above it is the only
+error reachable. Measured by windows-vm over 220 all-hex strings, one per
+digit at every length from 1 to 200, with no error that was not ErrRange.
+The branch is kept because it becomes live the day the scanning loop accepts
+something ParseUint does not, a "0x" prefix or a digit outside ASCII, and it
+now says so in place, so the next sweep does not spend an hour on it.
 
 Code that no recording reaches at all, found by looking rather than by a
 failure. `ansi.ParseANSI256` reads a palette index out of text, and

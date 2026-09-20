@@ -96,11 +96,12 @@ func attrCompareDelta(t *testing.T, got string) {
 // for: rline threads a nil *AttrBuf down ten function signatures to mean "do
 // not record attributes", instead of branching at each one.
 //
-// Three of these guards are already load-bearing, measured by taking each out
-// and watching the suite panic on a nil dereference: Length, At and the fill
-// behind SetAt and UpdateAt. Extend and Clear are not reached that way today,
-// so without this they would be the two places where a contract that says
-// "every method" quietly stopped being true.
+// Four of these guards were already load-bearing before this test existed,
+// measured by taking each one out and running the whole module: Length, At,
+// DeleteAt, and the fill behind SetAt and UpdateAt all panicked on a nil
+// dereference. Clear, Extend and InsertAt changed nothing, so those three
+// were where a contract that says "every method" had quietly stopped being
+// true. All seven are caught now.
 func TestNilAttrBufAcceptsEveryMethod(t *testing.T) {
 	t.Parallel()
 	var ab *AttrBuf
