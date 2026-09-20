@@ -242,7 +242,7 @@ func checkHistoryLine(t *testing.T, line string) (string, string) {
 		for i := range restores {
 			want := p.next()
 			input, pos, ok := s.Restore()
-			got := fmt.Sprintf("%d:%s:%d", boolToInt(ok), hexOrDash([]byte(input)), pos)
+			got := fmt.Sprintf("%d:%s:%d", boolInt(ok), hexOrDash([]byte(input)), pos)
 			if !ok {
 				// The probe writes the C null pointer as an exclamation mark
 				// and leaves the position it started with.
@@ -319,14 +319,6 @@ func newTestHistory(maxEntries int, dups bool) *history {
 	h.enableDuplicates(dups)
 	_ = h.loadFrom("/nonexistent/rline-probe-history", maxEntries)
 	return h
-}
-
-// boolToInt renders a yes or no the way the probe writes one.
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 // regenerateHistory runs the C probe and writes the corpus.

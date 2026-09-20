@@ -65,18 +65,18 @@ type ttyDevice struct {
 	stopOnce sync.Once
 }
 
-// isATTY reports whether fd is a terminal. Reading the terminal settings
+// isTerminal reports whether fd is a terminal. Reading the terminal settings
 // succeeds only for one.
-func isATTY(fd int) bool {
+func isTerminal(fd int) bool {
 	_, err := unix.IoctlGetTermios(fd, termiosGet)
 	return err == nil
 }
 
 // fileIsTerminal reports whether f is a terminal. On Unix this is the same
-// question as isATTY, because a terminal is reached by file descriptor
+// question as isTerminal, because a terminal is reached by file descriptor
 // whichever way it is being used.
 func fileIsTerminal(f *os.File) bool {
-	return isATTY(int(f.Fd()))
+	return isTerminal(int(f.Fd()))
 }
 
 // openTTYDevice prepares fd for reading keys. A negative fd means standard

@@ -107,7 +107,6 @@ func TestOptions(t *testing.T) {
 		{"hint delay", WithHintDelay(time.Second), func(c *config) bool { return c.hintDelay == time.Second }},
 		{"match braces", WithMatchPairs("<>"), func(c *config) bool { return c.opts.MatchPairs == "<>" }},
 		{"auto braces", WithAutoPairs("<>"), func(c *config) bool { return c.opts.AutoPairs == "<>" }},
-		{"input fd", WithInputFd(3), func(c *config) bool { return c.inFd == 3 }},
 		{"input reader", WithInput(strings.NewReader("x")), func(c *config) bool {
 			return c.in != nil
 		}},
@@ -182,7 +181,7 @@ func TestDefaultStylesAreDefined(t *testing.T) {
 // false there means the run proved nothing, not that nothing was wrong.
 // TestConsoleWritesToTerminalOnAConsole in console_windows_test.go is the
 // same check where it can fail, with the recipe for running it. On Unix this
-// one is a real check, because isATTY there answers about the descriptor it
+// one is a real check, because isTerminal there answers about the descriptor it
 // is given.
 func TestWritesToTerminalLooksAtTheWriter(t *testing.T) {
 	t.Parallel()
@@ -191,7 +190,7 @@ func TestWritesToTerminalLooksAtTheWriter(t *testing.T) {
 		t.Fatalf("making a file: %v", err)
 	}
 	defer func() { _ = f.Close() }()
-	t.Logf("the standard input is a terminal: %v", isATTY(int(os.Stdin.Fd())))
+	t.Logf("the standard input is a terminal: %v", isTerminal(int(os.Stdin.Fd())))
 	if writesToTerminal(f) {
 		t.Errorf("a plain file is taken for a terminal, so colour would be written into it")
 	}
@@ -977,10 +976,10 @@ func TestMarkupWriterWithNowhereToWrite(t *testing.T) {
 func TestHistoryIsReadableAndSymmetric(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	fname := filepath.Join(dir, "history.txt")
+	name := filepath.Join(dir, "history.txt")
 
 	h := &history{}
-	_ = h.loadFrom(fname, DefaultHistoryEntries)
+	_ = h.loadFrom(name, DefaultHistoryEntries)
 	r := &Session{env: &env{history: h}}
 
 	for _, line := range []string{"first", "second", "third"} {
@@ -1518,16 +1517,16 @@ func TestHistoryFileMode(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			fname := filepath.Join(t.TempDir(), "history.txt")
+			name := filepath.Join(t.TempDir(), "history.txt")
 			h := &history{mode: test.opt}
-			if err := h.loadFrom(fname, DefaultHistoryEntries); err != nil {
+			if err := h.loadFrom(name, DefaultHistoryEntries); err != nil {
 				t.Fatalf("loadFrom: %v", err)
 			}
 			h.push("select 1")
 			if err := h.save(); err != nil {
 				t.Fatalf("save: %v", err)
 			}
-			info, err := os.Stat(fname)
+			info, err := os.Stat(name)
 			if err != nil {
 				t.Fatalf("stat: %v", err)
 			}
@@ -1576,14 +1575,14 @@ func TestHistorySaveReportsAWriteFailure(t *testing.T) {
 // typed, because editLine saves after every read.
 func TestHistoryIsNotTruncatedWhenItWasNotFullyRead(t *testing.T) {
 	t.Parallel()
-	fname := filepath.Join(t.TempDir(), "h.txt")
+	name := filepath.Join(t.TempDir(), "h.txt")
 	body := "one\ntwo\nthree\nfour\nbad\\q\nsix\nseven\neight\nnine\nten\n"
-	if err := os.WriteFile(fname, []byte(body), 0o600); err != nil {
+	if err := os.WriteFile(name, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	h := &history{}
-	if err := h.loadFrom(fname, DefaultHistoryEntries); err == nil {
+	if err := h.loadFrom(name, DefaultHistoryEntries); err == nil {
 		t.Fatal("loading a file with an unreadable line gave no error")
 	}
 	if len(h.entries) == 0 {
@@ -1594,7 +1593,7 @@ func TestHistoryIsNotTruncatedWhenItWasNotFullyRead(t *testing.T) {
 	if err := h.save(); err == nil {
 		t.Error("saving over a file that was not read in full gave no error")
 	}
-	after, err := os.ReadFile(fname)
+	after, err := os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1609,10 +1608,10 @@ func TestHistoryIsNotTruncatedWhenItWasNotFullyRead(t *testing.T) {
 func TestHistorySaveIsAtomic(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	fname := filepath.Join(dir, "h.txt")
+	name := filepath.Join(dir, "h.txt")
 
 	h := &history{}
-	if err := h.loadFrom(fname, DefaultHistoryEntries); err != nil {
+	if err := h.loadFrom(name, DefaultHistoryEntries); err != nil {
 		t.Fatal(err)
 	}
 	for _, line := range []string{"one", "two", "three"} {
@@ -1623,7 +1622,7 @@ func TestHistorySaveIsAtomic(t *testing.T) {
 	}
 	// Saving repeatedly writes the list, not the list again and again: the
 	// file mirrors what is held rather than growing.
-	got, err := os.ReadFile(fname)
+	got, err := os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)
 	}

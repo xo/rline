@@ -23,6 +23,11 @@
 # modification time would not do the second: checking out an older branch can
 # leave the pin older than the binary built from a newer one.
 set -u
+# A pipeline's status is its last command's, so `cat ... | cksum | tr` reports
+# tr's success even when cat could not open the pin files, and the cache key
+# below becomes the checksum of nothing while `|| exit 2` says nothing.
+# Measured: a missing go.mod gives key 42949672950 and the script carries on.
+set -o pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 mod=$root/tools/lint
 

@@ -7,6 +7,7 @@
 package rline
 
 import (
+	"bytes"
 	"fmt"
 	"io/fs"
 	"os"
@@ -607,20 +608,10 @@ func unescapeWord(word []byte, isWordChar text.CharClass, escape byte) []byte {
 		}
 		wpos += ofs
 	}
-	if end := indexZero(buf); end >= 0 {
+	if end := bytes.IndexByte(buf, 0); end >= 0 {
 		return buf[:end]
 	}
 	return buf[:wlen]
-}
-
-// indexZero returns where the first zero byte is, or -1.
-func indexZero(b []byte) int {
-	for i, c := range b {
-		if c == 0 {
-			return i
-		}
-	}
-	return -1
 }
 
 // requoteReplacement puts the quoting back on a completion, so that what goes

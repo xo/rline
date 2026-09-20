@@ -27,7 +27,7 @@ func newPipe(t *testing.T) (*os.File, *os.File) {
 func TestIsATTYRejectsAPipe(t *testing.T) {
 	t.Parallel()
 	r, _ := newPipe(t)
-	if isATTY(int(r.Fd())) {
+	if isTerminal(int(r.Fd())) {
 		t.Error("a pipe was reported as a terminal")
 	}
 }

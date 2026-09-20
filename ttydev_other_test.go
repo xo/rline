@@ -14,7 +14,7 @@ func TestOpenTTYIsUnsupported(t *testing.T) {
 	if _, err := openTTY(0); !errors.Is(err, errUnsupported) {
 		t.Errorf("openTTY gave %v, want %v", err, errUnsupported)
 	}
-	if isATTY(0) {
-		t.Error("isATTY said yes on a platform that cannot tell")
+	if isTerminal(0) {
+		t.Error("isTerminal said yes on a platform that cannot tell")
 	}
 }

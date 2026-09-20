@@ -200,12 +200,6 @@ func (t *term) updateDim() bool {
 	return changed
 }
 
-// getWidth returns the width of the terminal in characters.
-func (t *term) getWidth() int { return t.width }
-
-// getHeight returns the height of the terminal in characters.
-func (t *term) getHeight() int { return t.height }
-
 // colorBits returns how many bits of color the terminal takes.
 func (t *term) colorBits() int { return t.palette.Bits() }
 
@@ -444,19 +438,19 @@ func (t *term) startOfLine() { t.write("\r") }
 func (t *term) attrReset() { t.write(ansi.CSI + "m") }
 
 // underline turns underlining on or off.
-func (t *term) underline(on bool) { t.write(onOff(on, "4m", "24m")) }
+func (t *term) underline(on bool) { t.write(escapeFor(on, "4m", "24m")) }
 
 // reverse swaps the text and background colors, or stops doing so.
-func (t *term) reverse(on bool) { t.write(onOff(on, "7m", "27m")) }
+func (t *term) reverse(on bool) { t.write(escapeFor(on, "7m", "27m")) }
 
 // bold turns bold on or off.
-func (t *term) bold(on bool) { t.write(onOff(on, "1m", "22m")) }
+func (t *term) bold(on bool) { t.write(escapeFor(on, "1m", "22m")) }
 
 // italic turns italics on or off.
-func (t *term) italic(on bool) { t.write(onOff(on, "3m", "23m")) }
+func (t *term) italic(on bool) { t.write(escapeFor(on, "3m", "23m")) }
 
-// onOff returns the escape sequence for whichever of the two applies.
-func onOff(on bool, yes, no string) string {
+// escapeFor returns the escape sequence for whichever of the two applies.
+func escapeFor(on bool, yes, no string) string {
 	if on {
 		return ansi.CSI + yes
 	}
@@ -468,9 +462,6 @@ func (t *term) setColor(c ansi.Code) { t.write(ansi.Format(t.palette, c, false))
 
 // setBgColor sets the color behind the text.
 func (t *term) setBgColor(c ansi.Code) { t.write(ansi.Format(t.palette, c, true)) }
-
-// getAttr returns the attributes the terminal is showing.
-func (t *term) getAttr() ansi.Attr { return t.attr }
 
 // setAttr makes the terminal show a, writing only what has to change.
 //
@@ -526,7 +517,7 @@ func (t *term) writeFormatted(s string, attrs []ansi.Attr) {
 	if t.rawEnabled <= 0 {
 		t.startRaw()
 	}
-	base := t.getAttr()
+	base := t.attr
 	var current ansi.Attr
 	i, n := 0, 0
 	for i+n < len(s) && s[i+n] != 0 {
@@ -549,7 +540,7 @@ func (t *term) writeFormatted(s string, attrs []ansi.Attr) {
 
 // free writes out anything still waiting and gives up raw mode. The C frees
 // the buffer here too, which Go does not need.
-func (t *term) free() {
+func (t *term) restore() {
 	t.flush()
 	t.endRaw(true)
 }

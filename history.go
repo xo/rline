@@ -51,9 +51,9 @@ type history struct {
 	// because loadFrom has not been called, and every push is refused.
 	max int
 
-	// fname is the file the list is kept in. An empty name means it is not
+	// name is the file the list is kept in. An empty name means it is not
 	// kept anywhere.
-	fname string
+	name string
 
 	// allowDuplicates says whether the same line may appear twice.
 	allowDuplicates bool
@@ -181,14 +181,14 @@ func (h *history) search(from int, needle string, backward bool) (int, int, bool
 	return 0, 0, false
 }
 
-// loadFrom points the list at fname, makes room for maxEntries lines, and
+// loadFrom points the list at name, makes room for maxEntries lines, and
 // reads what is already in the file.
 //
 // A maxEntries of zero leaves the list unusable, and every push is refused. A
 // negative number, or one above maxHistory, is held at maxHistory.
-func (h *history) loadFrom(fname string, maxEntries int) error {
+func (h *history) loadFrom(name string, maxEntries int) error {
 	h.clear()
-	h.fname = fname
+	h.name = name
 	if maxEntries == 0 {
 		h.max = 0
 		return nil
@@ -204,10 +204,10 @@ func (h *history) loadFrom(fname string, maxEntries int) error {
 // be opened, leaves the list as it is.
 func (h *history) load() error {
 	h.partial = false
-	if h.fname == "" {
+	if h.name == "" {
 		return nil
 	}
-	f, err := os.Open(h.fname)
+	f, err := os.Open(h.name)
 	if err != nil {
 		// A history file that is not there yet is the ordinary state of a
 		// program on its first run, and is not a failure. Anything else is.
@@ -215,7 +215,7 @@ func (h *history) load() error {
 			return nil
 		}
 		h.partial = true
-		return fmt.Errorf("opening the history file %s: %w", h.fname, err)
+		return fmt.Errorf("opening the history file %s: %w", h.name, err)
 	}
 	defer func() { _ = f.Close() }()
 	r := bufio.NewReader(f)
@@ -226,7 +226,7 @@ func (h *history) load() error {
 				return nil
 			}
 			h.partial = true
-			return fmt.Errorf("reading the history file %s: %w", h.fname, err)
+			return fmt.Errorf("reading the history file %s: %w", h.name, err)
 		}
 		if !h.readEntry(r, &buf) {
 			// A line that cannot be read stops the whole file, because
@@ -234,7 +234,7 @@ func (h *history) load() error {
 			// before it is kept, and the rest is still in the file, which
 			// is why saving is refused until it is read or replaced.
 			h.partial = true
-			return fmt.Errorf("reading the history file %s: a line could not be read", h.fname)
+			return fmt.Errorf("reading the history file %s: a line could not be read", h.name)
 		}
 	}
 }
@@ -247,7 +247,7 @@ func (h *history) load() error {
 // all, and the history is going to be rewritten, so guarding it here would
 // be work thrown away twice. PLAN.md records what that leaves open.
 func (h *history) save() (err error) {
-	if h.fname == "" {
+	if h.name == "" {
 		return nil
 	}
 	if h.partial {
@@ -260,7 +260,7 @@ func (h *history) save() (err error) {
 		// it — measured at fifty bytes becoming nineteen. This refuses
 		// instead, which is a departure and the reason for it.
 		return fmt.Errorf("not saving the history file %s: it was not read in full, "+
-			"so saving would write over the part that was not read", h.fname)
+			"so saving would write over the part that was not read", h.name)
 	}
 	mode := h.mode
 	if mode == 0 {
@@ -275,7 +275,7 @@ func (h *history) save() (err error) {
 	// so the file is either the old one or the new one and never a
 	// half-written one. The temporary file is in the same directory
 	// because a rename across filesystems is not allowed.
-	dir, base := filepath.Split(h.fname)
+	dir, base := filepath.Split(h.name)
 	if dir == "" {
 		dir = "."
 	}
@@ -283,7 +283,7 @@ func (h *history) save() (err error) {
 	if err != nil {
 		// The C gives up without saying anything when it cannot open the
 		// file. The caller decides what to do here instead.
-		return fmt.Errorf("making a temporary file beside the history file %s: %w", h.fname, err)
+		return fmt.Errorf("making a temporary file beside the history file %s: %w", h.name, err)
 	}
 	tmp := f.Name()
 	defer func() {
@@ -298,7 +298,7 @@ func (h *history) save() (err error) {
 	// even for an instant.
 	if err := f.Chmod(mode); err != nil {
 		_ = f.Close()
-		return fmt.Errorf("setting the mode of the history file %s: %w", h.fname, err)
+		return fmt.Errorf("setting the mode of the history file %s: %w", h.name, err)
 	}
 	// A write error can appear at Close rather than before it, because the
 	// last of the buffer goes out there and some filesystems only report a
@@ -328,16 +328,16 @@ func (h *history) save() (err error) {
 		_ = w.WriteByte('\n')
 	}
 	if err := w.Flush(); err != nil {
-		return fmt.Errorf("writing the history file %s: %w", h.fname, err)
+		return fmt.Errorf("writing the history file %s: %w", h.name, err)
 	}
 	// The close has to happen before the rename rather than in the deferred
 	// function, because Windows will not rename a file that is still open.
 	if err := f.Close(); err != nil {
-		return fmt.Errorf("closing the history file %s: %w", h.fname, err)
+		return fmt.Errorf("closing the history file %s: %w", h.name, err)
 	}
 	closed = true
-	if err := os.Rename(tmp, h.fname); err != nil {
-		return fmt.Errorf("replacing the history file %s: %w", h.fname, err)
+	if err := os.Rename(tmp, h.name); err != nil {
+		return fmt.Errorf("replacing the history file %s: %w", h.name, err)
 	}
 	return nil
 }
@@ -392,12 +392,12 @@ func readEscape(r *bufio.Reader, buf *text.Buffer) bool {
 	case 'x':
 		c1, err1 := r.ReadByte()
 		c2, err2 := r.ReadByte()
-		if err1 != nil || err2 != nil || !isXDigit(c1) || !isXDigit(c2) {
+		if err1 != nil || err2 != nil || !isHexDigit(c1) || !isHexDigit(c2) {
 			return false
 		}
 		// A zero byte appends nothing, because a buffer cannot hold one, so
 		// "\x00" on a line by itself reads as an empty line.
-		buf.AppendByte(fromXDigit(c1)*16 + fromXDigit(c2))
+		buf.AppendByte(fromHexDigit(c1)*16 + fromHexDigit(c2))
 	default:
 		return false
 	}
@@ -425,8 +425,8 @@ func escapeEntry(entry string) string {
 			b.WriteString(`\t`)
 		case c < ' ' || c > '~' || c == '#':
 			b.WriteString(`\x`)
-			b.WriteByte(toXDigit(c / 16))
-			b.WriteByte(toXDigit(c % 16))
+			b.WriteByte(toHexDigit(c / 16))
+			b.WriteByte(toHexDigit(c % 16))
 		default:
 			b.WriteByte(c)
 		}
@@ -434,14 +434,14 @@ func escapeEntry(entry string) string {
 	return b.String()
 }
 
-// isXDigit reports whether c is a hexadecimal digit.
-func isXDigit(c byte) bool {
+// isHexDigit reports whether c is a hexadecimal digit.
+func isHexDigit(c byte) bool {
 	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
 }
 
-// fromXDigit returns the value of one hexadecimal digit, and zero for a byte
+// fromHexDigit returns the value of one hexadecimal digit, and zero for a byte
 // that is not one.
-func fromXDigit(c byte) byte {
+func fromHexDigit(c byte) byte {
 	switch {
 	case c >= '0' && c <= '9':
 		return c - '0'
@@ -453,9 +453,9 @@ func fromXDigit(c byte) byte {
 	return 0
 }
 
-// toXDigit returns the hexadecimal digit for a value from 0 to 15, in upper
+// toHexDigit returns the hexadecimal digit for a value from 0 to 15, in upper
 // case, and '0' for anything else.
-func toXDigit(c byte) byte {
+func toHexDigit(c byte) byte {
 	switch {
 	case c <= 9:
 		return c + '0'
@@ -506,9 +506,9 @@ func (ev *env) historyPrev(e *editor.Editor) { ev.historyAt(e, 1) }
 // historyNext replaces the line with the next history entry.
 func (ev *env) historyNext(e *editor.Editor) { ev.historyAt(e, -1) }
 
-// hsearchStep is one step of a history search, kept so that backspace can take
+// historySearchStep is one step of a history search, kept so that backspace can take
 // it back.
-type hsearchStep struct {
+type historySearchStep struct {
 	// Where the search had got to.
 	hidx     int
 	matchPos int
@@ -566,10 +566,10 @@ func (ev *env) historySearch(e *editor.Editor, initial string) {
 		ev.refresh(e)
 	}()
 
-	var stack []hsearchStep
+	var stack []historySearchStep
 	hidx, matchPos, matchLen := 1, 0, 0
 	push := func(inserted bool) {
-		stack = append(stack, hsearchStep{hidx, matchPos, matchLen, inserted})
+		stack = append(stack, historySearchStep{hidx, matchPos, matchLen, inserted})
 	}
 	// drop takes the last step off without putting its values back, which is
 	// what a search that found nothing wants: the step never happened.
@@ -578,10 +578,10 @@ func (ev *env) historySearch(e *editor.Editor, initial string) {
 			stack = stack[:n-1]
 		}
 	}
-	undo := func() (hsearchStep, bool) {
+	undo := func() (historySearchStep, bool) {
 		n := len(stack)
 		if n == 0 {
-			return hsearchStep{}, false
+			return historySearchStep{}, false
 		}
 		s := stack[n-1]
 		stack = stack[:n-1]

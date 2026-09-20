@@ -1341,6 +1341,80 @@ the low bits and wrong about where they stop: "#123456789" is 0x23456789 and
 `names_test.go` as the expectations, and the comment says which library was
 measured, because the C standard leaves an unrepresentable value undefined.
 
+Names the port carried over from C, and what they cost. `free` was a method
+on the terminal that flushes and leaves raw mode and frees nothing, kept from
+`term_free` into a garbage-collected language; it is `restore` now.
+`isATTY`, `isXDigit`, `toXDigit` and `fromXDigit` are POSIX and `<ctype.h>`
+spellings of things Go names differently, and
+`getNumberOfConsoleInputEvents` was a Win32 function copied down to its out
+parameter. That last one is the instructive shape: the C-ism was not only the
+name but the signature, so the fix returns a value rather than filling a
+pointer, and the out parameter stops at the Win32 boundary where it belongs.
+
+`indexZero` was `bytes.IndexByte(b, 0)` written out by hand, which is the
+same species as the C's own allocator surviving: a standard library was there
+the whole time. And `boolInt`, `boolToInt` and `btoi` were three names for
+one four-line helper in one package, which is what happens when each test
+file is ported in turn and nobody looks across.
+
+Both Gemini and DeepSeek were asked independently and agreed on every one of
+these. They disagreed on the public API, which is where they are worth less:
+DeepSeek wanted `ReadLine` renamed to `Readline` on the grounds that peers
+spell it that way, and `bufio.Reader.ReadLine` says otherwise; it wanted
+`SetCompleter` renamed because `SetX` is unidiomatic, and `log.Logger` has
+`SetFlags`, `SetOutput` and `SetPrefix`; and it wanted the sentinel errors
+turned into `errors.New` values so that callers could use `errors.Is`, which
+they already can, measured. A model is a good reader of a name and a poor
+witness to what the standard library does, so every claim it made about
+precedent was checked against the precedent.
+
+A gate that was never reading what it gated on. tools/lint.sh computed its
+cache key as `key=$(cat "$mod/go.mod" "$mod/go.sum" | cksum | tr -d ' \t') ||
+exit 2`. A pipeline's status is its last command's, so that `|| exit 2` reads
+tr, which succeeds on anything. Measured: with the pin files missing, cat
+fails, cksum checksums nothing, and the key comes out 42949672950 while the
+script carries on and caches under a key that means "no pin at all". The same
+family as the world-writable cache directory, and in the same script.
+
+`set -o pipefail` fixes it, and the one line fixes the pipelines nobody has
+written yet rather than the one that was found. It is right here because the
+script gates on status; it would be wrong as a blanket habit, because a
+pipeline whose reader closes early, `long_thing | head -1`, starts reporting
+the writer's SIGPIPE as failure.
+
+The construct has now caught all three sessions inside two hours, which is
+the part worth writing down. windows-vm read `go build ./... | head` as the
+compiler's status and printed a build failure that did not exist. ken-mba
+pushed a red commit through `./tools/lint.sh 2>&1 | tail -1 && git commit`,
+where the `&&` was gating on tail and never saw the linter at all. This
+session has been piping into head all week without once thinking about it,
+and survived only because go build is quiet on success, so absence of output
+and exit zero coincide almost always. They come apart exactly when the tool
+is noisy on success, which is when you least want to be wrong.
+
+ken-mba's reading of why is the useful one: a rule cannot compete with a
+reflex. Piping into tail is what your hands type when you want to see the
+last line, and wanting to see the last line has nothing to do with wanting to
+know whether it passed. The harness fix for the third answer worked because
+it removed the choice rather than reminding anyone to make it, and pipefail
+in the scripts that gate is the same move. Nobody has the equivalent for an
+interactive shell.
+
+A document that describes files that are gone. PLAN.md's list of where
+things live named `winkey.go`, deleted eight commits earlier when its
+contents moved into `tty.go`, and `password.go`, whose code is in `rline.go`.
+It also said `ttydev_posix.go` is tagged `linux || darwin` while the file
+says `unix && !aix` and another section of the same document says so
+correctly, so it contradicted itself. Found by windows-vm while checking a
+message of mine that repeated the listing.
+
+The listing was rewritten in the commit that split the editor out, which is
+the point: rewriting a section is exactly when a stale entry gets carried
+across, because the eye reads what the line means rather than whether the
+file is there. Every file name in the listing is now checked against the
+disk, and every build tag the document quotes against the tag in the file
+it names. Both checks are one shell loop and neither had ever been run.
+
 A file that only one platform compiles. Qualifying every call after `text.go`
 moved to `internal/text` was done with the compiler as the oracle, and the
 compiler on this machine never reads `sys_windows.go`. It still called
@@ -1671,23 +1745,25 @@ line.
 rather than what the C file it came from was called, so several C files land
 in one Go file and the header of each says which.
 
-  rline.go       the public interface, and the session log
+  rline.go       the public interface, the session log, and reading a
+                 password with no echo
   prompt.go      reading one line: drawing, the hint, resize, dispatch, help
   comp.go        completions, completers and file names
   menu.go        the menu of completions, which reads its own keys
   history.go     the history list, its file, walking and searching
   bbcode.go      markup and the highlighting built on it
   term.go        writing to a terminal
-  tty.go         reading keys, and decoding escape sequences into them
-  winkey.go      turning Windows key events into sequences: untagged on purpose,
-                 so that it is tested on every system rather than only on Windows
-  password.go    reading a password with no echo
+  tty.go         reading keys, decoding escape sequences into them, and
+                 turning Windows key events into sequences: that last part
+                 carries no build tag on purpose, so it is compiled and
+                 tested on every system rather than only on Windows
 
 Per system, one file each where the tags allow it. `sys_darwin.go`,
 `sys_nondarwin.go`, `sys_unix.go` and `sys_windows.go` each hold everything
 that shares their tag. Four files keep their own tags because no other file
-shares them: `ttydev_posix.go` is `linux || darwin`, `ttydev_linux.go` is
-`linux`, and `ttydev_other.go` and `termsize_other.go` are the fallbacks.
+shares them: `ttydev_posix.go` is `unix && !aix`, `ttydev_linux.go` is
+`linux`, and `ttydev_other.go` and `termsize_other.go` are both
+`(!unix || aix) && !windows`, which is the fallback.
 
 Test files follow the source files rather than the old one-to-one pairing,
 with one exception: `driven_test.go` holds the keystroke harness and the tests

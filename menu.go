@@ -139,7 +139,7 @@ func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 		e.Extra.Clear()
 		// One less than the terminal is wide, so that a full row does not
 		// wrap.
-		twidth := ev.term.getWidth() - 1
+		twidth := ev.term.width - 1
 		col3 := 3 + ev.completionsMaxWidth(9)
 		col2 := 3 + ev.completionsMaxWidth(8)
 		switch {

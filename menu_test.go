@@ -292,7 +292,7 @@ func menuReplay(t *testing.T) []string {
 								"menu %d %s %s more=%d nopreview=%d autotab=%d utf8=%d %s"+
 									" pos=%d input=%s left=%d pushed=%s",
 								caseno, set.name, script.name,
-								btoi(more), btoi(noPreview), btoi(autoTab), btoi(utf8),
+								boolInt(more), boolInt(noPreview), boolInt(autoTab), boolInt(utf8),
 								emit(), e.Pos, escapeBB([]byte(e.Input.String())),
 								ev.completions.count(), pushedCodes(ev.tty)))
 							caseno++
@@ -303,14 +303,6 @@ func menuReplay(t *testing.T) []string {
 		}
 	}
 	return out
-}
-
-// btoi turns a flag into the 0 or 1 the C probe prints.
-func btoi(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 // pushedCodes formats the keys the menu handed back to the edit loop.

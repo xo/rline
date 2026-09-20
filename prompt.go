@@ -227,7 +227,7 @@ func (ev *env) refresh(e *editor.Editor) {
 	rows := rowsInput + rowsExtra
 
 	// Draw at most a screen full, keeping the cursor in view.
-	termh := ev.term.getHeight()
+	termh := ev.term.height
 	firstRow, lastRow := 0, rows-1
 	if rows > termh {
 		firstRow = max(rc.Row-termh+1, 0)
@@ -291,7 +291,7 @@ func (ev *env) clear(e *editor.Editor) {
 // clearScreen wipes the screen and draws the line again.
 func (ev *env) clearScreen(e *editor.Editor) {
 	rows := e.CurRows
-	e.CurRows = ev.term.getHeight() - 1
+	e.CurRows = ev.term.height - 1
 	ev.clear(e)
 	e.CurRows = rows
 	ev.refresh(e)
@@ -383,7 +383,7 @@ func (ev *env) extendHint(e *editor.Editor, hint string) {
 // reports whether it did change.
 func (ev *env) resize(e *editor.Editor) bool {
 	ev.term.updateDim()
-	newW := ev.term.getWidth()
+	newW := ev.term.width
 	if e.TermW == newW {
 		return false
 	}
@@ -674,7 +674,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	e := &editor.Editor{
 		Opts:       ev.opts,
-		TermW:      ev.term.getWidth(),
+		TermW:      ev.term.width,
 		CurRows:    1,
 		PromptText: promptText,
 	}

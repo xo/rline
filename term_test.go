@@ -91,7 +91,7 @@ func termReplay(t *testing.T) []string {
 		setTermEnv(e[0], e[1], e[2])
 		tm := newT()
 		out = append(out, fmt.Sprintf("palette %d %d %d %d", i, tm.palette, boolInt(tm.nocolor), tm.colorBits()))
-		tm.free()
+		tm.restore()
 		emit("discard")
 	}
 
@@ -106,7 +106,7 @@ func termReplay(t *testing.T) []string {
 		_ = os.Setenv("TERM", name) //nolint:usetesting // must unset the others too
 		tm := newT()
 		out = append(out, "interactive "+escapeTerm([]byte(name))+" "+fmt.Sprint(boolInt(isInteractive())))
-		tm.free()
+		tm.restore()
 		emit("discard")
 	}
 
@@ -119,8 +119,8 @@ func termReplay(t *testing.T) []string {
 		tm.write(s)
 		tm.flush()
 		emit("write")
-		out = append(out, fmt.Sprintf("attrafter %d %s", i, attrString(tm.getAttr())))
-		tm.free()
+		out = append(out, fmt.Sprintf("attrafter %d %s", i, attrString(tm.attr)))
+		tm.restore()
 		emit("discard")
 	}
 
@@ -158,8 +158,8 @@ func termReplay(t *testing.T) []string {
 		step("repeat3", func() { tm.writeRepeat("ab", 3) })
 		step("repeat0", func() { tm.writeRepeat("ab", 0) })
 		step("repeatneg", func() { tm.writeRepeat("ab", -1) })
-		out = append(out, fmt.Sprintf("dim %d %d", tm.getWidth(), tm.getHeight()))
-		tm.free()
+		out = append(out, fmt.Sprintf("dim %d %d", tm.width, tm.height))
+		tm.restore()
 		emit("discard")
 	}
 
@@ -172,9 +172,9 @@ func termReplay(t *testing.T) []string {
 			tm.setAttr(ansi.ParseSGR(s))
 			tm.flush()
 			emit("setattr")
-			out = append(out, fmt.Sprintf("attrstate %d %s", i, attrString(tm.getAttr())))
+			out = append(out, fmt.Sprintf("attrstate %d %s", i, attrString(tm.attr)))
 		}
-		tm.free()
+		tm.restore()
 		emit("discard")
 	}
 
@@ -195,7 +195,7 @@ func termReplay(t *testing.T) []string {
 		tm.writeFormatted(s, nil)
 		tm.flush()
 		emit("formattednull")
-		tm.free()
+		tm.restore()
 		emit("discard")
 	}
 
@@ -217,7 +217,7 @@ func termReplay(t *testing.T) []string {
 		emit("unbuffered_switch")
 		tm.write("direct")
 		emit("unbuffered")
-		tm.free()
+		tm.restore()
 		emit("discard")
 	}
 	return out

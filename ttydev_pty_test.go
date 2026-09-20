@@ -36,7 +36,7 @@ func TestTTYDeviceOnARealTerminal(t *testing.T) {
 		_ = follower.Close()
 	})
 	fd := int(follower.Fd())
-	if !isATTY(fd) {
+	if !isTerminal(fd) {
 		t.Fatal("the follower side of a pseudo-terminal is not a terminal")
 	}
 

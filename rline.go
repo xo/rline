@@ -295,8 +295,9 @@ func WithStderr(w io.Writer) Option {
 //
 // A *bufio.Reader cannot be edited on, whatever it wraps, because wrapping
 // hides the descriptor and takes bytes out of the terminal that the editor
-// then never sees. Pass the *os.File itself, or pass the reader here and the
-// descriptor with WithInputFd.
+// then never sees. Pass the *os.File itself.
+//
+// A caller holding a bare descriptor can make one with os.NewFile.
 func WithInput(r io.Reader) Option {
 	return func(c *config) {
 		c.in = r
@@ -306,15 +307,6 @@ func WithInput(r io.Reader) Option {
 			c.inFd = int(f.Fd())
 		}
 	}
-}
-
-// WithInputFd reads keys from the given file descriptor.
-//
-// This is for a terminal that the caller holds as a descriptor rather than as
-// a file, which is the one case WithInput cannot express. A negative
-// descriptor means standard input.
-func WithInputFd(fd int) Option {
-	return func(c *config) { c.inFd = fd }
 }
 
 // WithPrompt sets the marker written after the prompt text, and the one used
@@ -336,8 +328,8 @@ func WithPrompt(marker, continuation string) Option {
 
 // WithHistoryFile keeps the history in the named file, so that it outlives
 // the program. An empty name keeps it only while the program runs.
-func WithHistoryFile(fname string) Option {
-	return func(c *config) { c.historyFile = fname }
+func WithHistoryFile(name string) Option {
+	return func(c *config) { c.historyFile = name }
 }
 
 // WithHistoryFileMode sets the permission a history file is created with,
@@ -587,8 +579,8 @@ func New(opts ...Option) (*Prompt, error) {
 // file is taken to be one, since a caller that passes its own writer has said
 // where the output goes and is not redirecting it by accident.
 //
-// This asks fileIsTerminal rather than isATTY, because the two questions are
-// not the same one. isATTY asks whether there is a keyboard, and on Windows
+// This asks fileIsTerminal rather than isTerminal, because the two questions are
+// not the same one. isTerminal asks whether there is a keyboard, and on Windows
 // it answers about the standard input whatever it is handed, since a console
 // is reached there by handle rather than by descriptor. Asking it about the
 // output gave the right answer on Unix and the wrong one on Windows, where a
@@ -688,7 +680,7 @@ func (s *Session) Close() error {
 	if s.env == nil {
 		return nil
 	}
-	s.env.term.free()
+	s.env.term.restore()
 	if s.env.tty == nil {
 		return nil
 	}
@@ -928,16 +920,16 @@ func (s *Session) LoadHistory() error {
 	if s.env == nil || s.env.history == nil {
 		return nil
 	}
-	return s.env.history.loadFrom(s.env.history.fname, s.env.history.max)
+	return s.env.history.loadFrom(s.env.history.name, s.env.history.max)
 }
 
 // SetHistoryFile changes the file the history is kept in. It does not read
 // the new file; call LoadHistory for that.
-func (s *Session) SetHistoryFile(fname string) {
+func (s *Session) SetHistoryFile(name string) {
 	if s.env == nil || s.env.history == nil {
 		return
 	}
-	s.env.history.fname = fname
+	s.env.history.name = name
 }
 
 // History returns the entries, newest first.

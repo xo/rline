@@ -28,9 +28,9 @@ const errUnsupported Error = "unsupported"
 // missing one is invisible to everyone: go vet for the three real targets
 // passes, and nobody builds this. See the Checks section of PLAN.md.
 
-// isATTY reports whether fd is a terminal. Nothing can tell on this system
+// isTerminal reports whether fd is a terminal. Nothing can tell on this system
 // yet, so it answers no.
-func isATTY(_ int) bool {
+func isTerminal(_ int) bool {
 	return false
 }
 

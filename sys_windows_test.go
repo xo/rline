@@ -58,7 +58,7 @@ import (
 // input buffer onwards and nothing about how the driver fills it. Somebody
 // physically pressing F11 is still a different test.
 func TestConsoleKeysRoundTrip(t *testing.T) {
-	if !isATTY(0) {
+	if !isTerminal(0) {
 		t.Skip("no console on standard input: see the comment above for how to run this")
 	}
 	term, d := openConsoleForTest(t)
@@ -147,7 +147,7 @@ func TestConsoleKeysRoundTrip(t *testing.T) {
 // console is not involved. So it cannot be run with the output redirected to
 // capture it, and what it finds appears on the console itself.
 func TestConsoleReadsEscapeSequences(t *testing.T) {
-	if !isATTY(0) {
+	if !isTerminal(0) {
 		t.Skip("no console on standard input: see the comment above for how to run this")
 	}
 	h, before, ok := consoleOutput()
@@ -243,7 +243,7 @@ func openConsoleForTest(t *testing.T) (*tty, *ttyDevice) {
 // rather than failed. What is a failure is startRaw saying yes and the flag
 // still being off, because that is the port breaking silently.
 func TestConsoleEscapesFromOff(t *testing.T) {
-	if !isATTY(0) {
+	if !isTerminal(0) {
 		t.Skip("no console on standard input: see the comment at the top of this file")
 	}
 	h, ambient, ok := consoleOutput()
@@ -329,10 +329,10 @@ func TestConsoleEscapesFromOff(t *testing.T) {
 // observed — and it is why the assertion asks the console what the answer
 // should be rather than leaving it to the reader of a log line.
 //
-// Found by the windows-vm session, which measured isATTY answering true for a
+// Found by the windows-vm session, which measured isTerminal answering true for a
 // redirected standard output while a console was on the standard input.
 func TestConsoleWritesToTerminalOnAConsole(t *testing.T) {
-	if !isATTY(0) {
+	if !isTerminal(0) {
 		t.Skip("no console on standard input, which is the only state this can fail in: " +
 			"see the comment at the top of this file")
 	}
@@ -531,7 +531,7 @@ func TestWindowsSequencesDecodeBack(t *testing.T) {
 // 0 while openTTY ignored its argument, and 0 is a handle now rather than a
 // descriptor, so the first call opened handle 0 — not a console — and the
 // test reported that a real console was not one. That failure only appeared
-// from a console, because under go test isATTY(0) is false and the else path
+// from a console, because under go test isTerminal(0) is false and the else path
 // runs. windows-vm found it by running the binary the way this file says to.
 //
 // The else path passed either way, and was changed too: asking about handle 0
@@ -539,7 +539,7 @@ func TestWindowsSequencesDecodeBack(t *testing.T) {
 // input is not a terminal. The same answer to a different question is the
 // shape this project keeps finding.
 func TestWindowsOpenTTYNeedsAConsole(t *testing.T) {
-	if isATTY(0) {
+	if isTerminal(0) {
 		// Running with a real console attached, so opening it must work.
 		term, err := openTTY(-1)
 		if err != nil {
@@ -570,7 +570,7 @@ func TestWindowsOpenTTYNeedsAConsole(t *testing.T) {
 // A skip here means raw mode was not checked at all, which is worth knowing
 // rather than reading as a pass.
 func TestWindowsRawModeRoundTrip(t *testing.T) {
-	if !isATTY(0) {
+	if !isTerminal(0) {
 		t.Skip("no console on standard input: see the comment above for how to run this so it checks raw mode")
 	}
 	d, err := openTTYDevice(-1)
@@ -614,7 +614,7 @@ func consoleMode(t *testing.T, d *ttyDevice) uint32 {
 // thing the wait can be made against, and it is reached the same way
 // TestWindowsRawModeRoundTrip is.
 func TestWindowsReadByteTimesOut(t *testing.T) {
-	if !isATTY(0) {
+	if !isTerminal(0) {
 		t.Skip("no console on standard input: see TestWindowsRawModeRoundTrip for how to run this")
 	}
 	d, err := openTTYDevice(-1)
@@ -635,7 +635,7 @@ func TestWindowsReadByteTimesOut(t *testing.T) {
 // to openTTYDevice is used rather than thrown away.
 //
 // It ignored its argument and always took the standard input, which made
-// WithInput and WithInputFd silently do nothing on Windows: the caller's
+// WithInput silently does nothing on Windows: the caller's
 // stream was accepted and discarded, the console was read instead, and
 // because opening it succeeded the reader stayed in editing mode, so it
 // looked as though it had worked. Found by windows-vm, by passing a file that
@@ -646,7 +646,7 @@ func TestWindowsReadByteTimesOut(t *testing.T) {
 // a plain file is refused while a console is there to be taken by mistake.
 // See the comment at the top of this file for how to run it.
 func TestConsoleOpenTTYDeviceHonoursItsArgument(t *testing.T) {
-	if !isATTY(0) {
+	if !isTerminal(0) {
 		t.Skip("no console on standard input, which is the only state this can fail in: " +
 			"see the comment at the top of this file")
 	}

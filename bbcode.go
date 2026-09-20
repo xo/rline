@@ -532,7 +532,7 @@ func (bb *bbCode) parseTagContent(s string) bbTag {
 // styleOpen opens a style on the terminal.
 func (bb *bbCode) styleOpen(spec string) {
 	t := bb.parseTagContent(spec)
-	bb.term.setAttr(bb.openTag(0, t, bb.term.getAttr()))
+	bb.term.setAttr(bb.openTag(0, t, bb.term.attr))
 }
 
 // styleClose closes the innermost style on the terminal.

@@ -114,7 +114,7 @@ type ttyDevice struct {
 	resized atomic.Bool
 }
 
-// isATTY reports whether the standard input is a console.
+// isTerminal reports whether the standard input is a console.
 //
 // The argument is ignored on purpose: this answers "is there a keyboard",
 // which is always about the standard input. Do not give it a second meaning.
@@ -123,7 +123,7 @@ type ttyDevice struct {
 // openTTYDevice took a descriptor and threw it away — so anything that wants
 // to ask about a particular stream has its own function. fileIsTerminal asks
 // about a file, and openTTYDevice now honours the descriptor it is handed.
-func isATTY(_ int) bool {
+func isTerminal(_ int) bool {
 	h, err := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
 	if err != nil {
 		return false
@@ -134,7 +134,7 @@ func isATTY(_ int) bool {
 
 // fileIsTerminal reports whether f is a console.
 //
-// This asks about f, unlike isATTY, which asks about the standard input
+// This asks about f, unlike isTerminal, which asks about the standard input
 // whatever it is handed. A handle is what Windows answers for, and f.Fd()
 // returns one rather than a descriptor, so it can be asked about directly.
 func fileIsTerminal(f *os.File) bool {
@@ -143,14 +143,14 @@ func fileIsTerminal(f *os.File) bool {
 }
 
 // openTTYDevice prepares the console for reading keys. The file descriptor is
-// ignored, for the reason isATTY gives.
+// ignored, for the reason isTerminal gives.
 func openTTYDevice(fd int) (*ttyDevice, error) {
 	// A negative descriptor means the standard input, as it does on Unix.
 	// Anything else is a handle the caller gave, because f.Fd() on Windows
 	// returns a handle rather than a descriptor.
 	//
 	// This used to ignore its argument and always take the standard input,
-	// which made WithInput and WithInputFd silently do nothing: the caller's
+	// which made WithInput silently do nothing: the caller's
 	// stream was accepted, discarded, and the console read instead, in
 	// editing mode, so it looked as though it had worked. Found by the
 	// windows-vm session, by passing a file that already held a line and
@@ -315,8 +315,8 @@ func (d *ttyDevice) waitForKey(timeout time.Duration) {
 // inputWaiting reports whether an event is there to be read, waiting up to
 // timeout for one and taking what it waited off the timeout.
 func (d *ttyDevice) inputWaiting(timeout *time.Duration) bool {
-	var count uint32
-	if err := getNumberOfConsoleInputEvents(d.handle, &count); err != nil {
+	count, err := pendingConsoleEvents(d.handle)
+	if err != nil {
 		return false
 	}
 	if count > 0 {
@@ -604,9 +604,16 @@ func writeConsoleInput(console windows.Handle, records *inputRecord, count uint3
 	return nil
 }
 
-// getNumberOfConsoleInputEvents says how many events are waiting.
-func getNumberOfConsoleInputEvents(console windows.Handle, count *uint32) error {
-	return windows.GetNumberOfConsoleInputEvents(console, count) //nolint:wrapcheck // nothing to add
+// pendingConsoleEvents says how many events are waiting.
+//
+// The Win32 call returns its answer through a pointer. Go returns values, so
+// the out parameter stops here rather than spreading into the caller.
+func pendingConsoleEvents(console windows.Handle) (uint32, error) {
+	var count uint32
+	if err := windows.GetNumberOfConsoleInputEvents(console, &count); err != nil {
+		return 0, err //nolint:wrapcheck // nothing to add
+	}
+	return count, nil
 }
 
 // --------------------------------------------------------------------------
