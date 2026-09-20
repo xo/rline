@@ -28,7 +28,7 @@ func TestEverySwitchDefaultsOn(t *testing.T) {
 	// own writer has said where the output goes. So colour stays on and this
 	// reaches the same defaults a real session gets.
 	var out bytes.Buffer
-	p, err := New(WithOutput(&out))
+	p, err := New(WithStdout(&out))
 	if err != nil {
 		t.Fatalf("building a session with no options: %v", err)
 	}

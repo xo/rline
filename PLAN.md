@@ -807,8 +807,8 @@ system where they differ is the one that finds out.
 
 And a third instance of the same shape, found by windows-vm while regression
 testing the API reshape. `openTTYDevice` on Windows took a descriptor and
-ignored it, always opening the standard input, so `WithInput` and
-`WithInputFd` silently did nothing there: the caller's stream was accepted and
+ignored it, always opening the standard input, so `WithStdin` and the
+`WithInputFd` that then existed silently did nothing there: the caller's stream was accepted and
 discarded, the console was read instead, and because opening it succeeded the
 reader stayed in editing mode, so it looked as though it had worked. On Unix
 the same call fails to open a plain file as a terminal, falls back to reading
@@ -1399,6 +1399,66 @@ know whether it passed. The harness fix for the third answer worked because
 it removed the choice rather than reminding anyone to make it, and pipefail
 in the scripts that gate is the same move. Nobody has the equivalent for an
 interactive shell.
+
+Suspecting the case before the code, and why the order is not symmetrical.
+ken-mba wrote a test that brace matching reaches the drawing, and it went
+red. The story that came with it was plausible: brace matching never runs.
+The code was right and the test case was wrong — `highlightMatchBraces`
+counts a brace as under the cursor when the cursor is the position *after*
+it, `i == cursorPos-1`, so a cursor sitting on the closing brace of `(x)`
+matches nothing, and position 3 is what a person pressing right at the end
+of the line actually has.
+
+Their own statement of why it matters is better than any rule: a bad test
+wastes the writer's time, a false finding wastes the reader's and then goes
+into a document both of them rely on. The costs are not symmetrical, so the
+order is suspect the case first — and it matters most exactly when
+confidence is highest, because a red test feels like evidence.
+
+Four things today had that shape and only this one cost nothing, because it
+was caught before it was sent: an empty probe run that produced a diff of
+the right size, a count of five guards written down as seven, a difference
+from pyrepl reported as a bug, and this. In each of the other three the work
+was done before the cheap check that would have redirected it.
+
+What the four have in common is narrower than carelessness, and ken-mba
+named it: in each one the work followed a belief rather than a measurement,
+and the belief was recent and had just been right about something adjacent.
+The red brace test arrived already fitting a hypothesis formed an hour
+earlier, about a feature that had genuinely just been shown untested. That
+is what made it read as confirmation rather than as a question. A belief
+that has just been right is the dangerous kind, because being right about
+the neighbouring thing is not evidence about this one.
+
+And the reason this one was free is not a property of it. The check was one
+command and it happened to be run before the message was sent. Had
+`highlightMatchBraces` been harder to read, or had the message gone first
+and the investigation second, it would have cost what the other three did.
+
+Three options for three streams, named two ways. `WithInput`, `WithOutput`
+and `WithStderr` matched no established pattern: the standard library and the
+readline packages are symmetric one way, and cobra is symmetric the other.
+`os/exec.Cmd`, `x/crypto/ssh.Session` and `chzyer/readline.Config` all carry
+`Stdin`, `Stdout` and `Stderr` taking arbitrary readers and writers, and
+`cobra` carries `SetIn`, `SetOut` and `SetErr` over `inReader`, `outWriter`
+and `errWriter`. The defect was the asymmetry rather than either vocabulary,
+and the stream names win here because the third option was already `Stderr`
+and nothing was going to rename that.
+
+So `WithStdin` and `WithStdout`, and the fields with them. Neither name
+promises the real standard stream, which is what `os/exec` established and
+what the doc comments now say: a bytes.Buffer is a perfectly good Stdout.
+Neither promises a file descriptor either. `WithStdin` does look for one, by
+asserting to `interface{ Fd() uintptr }`, because editing needs a terminal —
+and `os/exec.Cmd.Stdin` branches the same way on whether it was handed a real
+`*os.File`. Gemini read that assertion as an argument for the name and
+DeepSeek read it as beside the point; DeepSeek is right, because the
+precedent covers the behaviour and not only the word.
+
+Every precedent either model named was checked against the package. DeepSeek
+marked two of its three as needing verification and both were right; Gemini
+marked nothing and was also right, having been confidently wrong about a
+package API earlier the same day.
 
 A positive bool's zero value is off, and every literal then has to say so.
 Turning the `no...` options positive was mechanical in the option setters and
@@ -2057,7 +2117,7 @@ re-reading this.
 
 ## Open questions
 
-Three questions have no answer yet.
+Six questions have no answer yet.
 
 First, does `rline` adopt `github.com/xo/terminfo`? isocline contains no
 terminfo code. `term.c` reads the `TERM`, `COLORTERM`, `NO_COLOR`,
@@ -2069,6 +2129,65 @@ inputrc file, because it carries fixed key bindings. inputrc is a new feature.
 
 Third, how does `isocline/` reach another host? It is a separate git
 repository, so this repository ignores it for now.
+
+Fourth, should the cursor be a bar rather than a box, and who decides? Ken
+asked for an option, and the facts are gathered here so that the answer does
+not have to start from nothing.
+
+The sequence is DECSCUSR, `CSI Ps SP q`, with a literal space before the q.
+Taken from terminfo rather than from memory: `Ss=\E[%p1%d q`. The values are
+0 and 1 blinking block, 2 steady block, 3 blinking underline, 4 steady
+underline, 5 blinking bar, 6 steady bar, the last two being xterm's
+extension. xterm, tmux, kitty, foot, wezterm, vte and alacritty advertise the
+capability; screen, the Linux console, vt100 and rxvt-unicode do not. A
+terminal that does not know the sequence swallows it, so emitting it is safe,
+but it cannot be relied on to work.
+
+Restoring it is the part with a trap in it. The obvious answer is terminfo's
+`Se`, and `Se` is wrong here: xterm, tmux, kitty and wezterm all give
+`\E[2 q`, which is steady block rather than whatever the person had. A
+library that set a bar and then restored with `Se` would leave a block behind
+on the terminal of someone who had chosen a bar, which is Ken's own setup.
+`foot` gives `\E[ q` instead, an empty parameter meaning the configured
+default, and that is the behaviour wanted — but xterm's own ctlseqs
+documents 0 as blinking block rather than as a reset, so there is no sequence
+that reliably means "put it back". The honest design touches the cursor only
+when a caller asks, and says in the option's documentation that it cannot be
+perfectly undone.
+
+The harder finding is that the behaviour Ken described is not a setting at
+all, which is the fifth question below.
+
+Fifth, does `rline` grow vi modes? This is Ken's, and it is what the cursor
+question turned into rather than a separate idea.
+
+A bar in insert mode and a box in normal mode is not a cursor setting. It is
+two modes, and there are none here: isocline carries fixed emacs-style
+bindings and this is a faithful port of them, so rline is always in what vi
+would call insert. Nothing in the port refuses modes; nothing in it expects
+them either. The key dispatch is one switch over a key code in
+`handleKey`, with no notion of a mode to dispatch differently under.
+
+It is a real feature rather than a rename, and it reaches into three things
+at once: the dispatch, the cursor shape above, and the second question above
+about inputrc, which is where a person would expect to configure `set
+editing-mode vi` if that ever arrives. Worth deciding as one thing rather
+than three.
+
+Sixth, what type does the logger take? `WithLogger` takes an `io.Writer` and
+writes a line per exchange, escaped so a person can read it. That is the
+shape isocline's own recording had and it is enough to replay a session, but
+it is not what a program embedding this would want: a Go program has
+`log/slog`, and a writer cannot carry a level, a field or a handler. Changing
+it is Ken's, and it is why the option was named for a logger rather than for
+a log.
+
+`WithContinue` belongs to the same question, from the other side. Its
+parameter is the only one that does not name the field it sets, because the
+field is `isIncomplete` and the option is `WithContinue`, and the two are
+opposites: the function answers true when the line is *not* finished. Both
+names are held for the review of how a caller accumulates lines, where the
+whole callback is likely to change shape anyway.
 
 ## License
 

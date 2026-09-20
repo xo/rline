@@ -150,7 +150,7 @@ func openTTYDevice(fd int) (*ttyDevice, error) {
 	// returns a handle rather than a descriptor.
 	//
 	// This used to ignore its argument and always take the standard input,
-	// which made WithInput silently do nothing: the caller's
+	// which made WithStdin silently do nothing: the caller's
 	// stream was accepted, discarded, and the console read instead, in
 	// editing mode, so it looked as though it had worked. Found by the
 	// windows-vm session, by passing a file that already held a line and

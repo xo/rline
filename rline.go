@@ -203,23 +203,23 @@ type Session struct {
 	// closed stops a second Close from touching the terminal again.
 	closed bool
 
-	// log records the session, and may be nil.
-	log *sessionLog
+	// logger records the session, and may be nil.
+	logger *sessionLog
 
-	// errOut is where the program's errors go, which need not be where its
+	// stderr is where the program's errors go, which need not be where its
 	// output goes. It is never nil once New has built the Session.
-	errOut io.Writer
+	stderr io.Writer
 }
 
 // config carries what New needs before it builds a Session.
 type config struct {
 	// Where the session reads and writes. A negative fd means standard input.
-	inFd int
-	out  io.Writer
+	inFd   int
+	stdout io.Writer
 
-	// errOut is where the program's errors go, which need not be where its
+	// stderr is where the program's errors go, which need not be where its
 	// output goes.
-	errOut io.Writer
+	stderr io.Writer
 
 	// The prompt, and the one used for the lines after the first.
 	promptMarker  string
@@ -231,7 +231,7 @@ type config struct {
 	// historyFileMode is the permission a history file is created with.
 	// Zero means DefaultHistoryFileMode.
 	historyFileMode fs.FileMode
-	historyEntries  int
+	historyLimit    int
 
 	// What marks up a line, what completes a word, and what decides whether a
 	// line is finished.
@@ -250,29 +250,33 @@ type config struct {
 	hints           bool
 	inlineHelp      bool
 	multiline       bool
-	completeAutoTab bool
+	autoTab         bool
 
 	hintDelay time.Duration
 
-	// log records everything read and written, and may be nil.
-	log io.Writer
+	// logger records everything read and written, and may be nil.
+	logger io.Writer
 
-	// in reads the keys when it is not a terminal, which is what a pipe or a
+	// stdin reads the keys when it is not a terminal, which is what a pipe or a
 	// test gives.
-	in io.Reader
+	stdin io.Reader
 }
 
 // Option changes a setting on a Session being made.
 type Option func(*config)
 
-// WithOutput writes to w rather than to standard output.
-func WithOutput(w io.Writer) Option {
-	return func(c *config) { c.out = w }
+// WithStdout writes to stdout rather than to os.Stdout.
+//
+// The name follows os/exec.Cmd, x/crypto/ssh.Session and chzyer/readline,
+// where Stdout names the stream acting as standard output rather than the
+// file descriptor: a bytes.Buffer or a pipe is a perfectly good one.
+func WithStdout(stdout io.Writer) Option {
+	return func(c *config) { c.stdout = stdout }
 }
 
-// WithStderr sends the program's errors to w rather than to standard error.
+// WithStderr sends the program's errors to stderr rather than to os.Stderr.
 //
-// The editor draws on the output, which WithOutput sets, and a program's own
+// The editor draws on the output, which WithStdout sets, and a program's own
 // output goes there too, because the terminal the editor draws through is the
 // one that knows where the prompt is. Errors are the one thing a program
 // often wants somewhere else: a shell whose results are being written to a
@@ -282,11 +286,14 @@ func WithOutput(w io.Writer) Option {
 // order with respect to the output, because the terminal is flushed before
 // each one. Writing to os.Stderr directly does not, and the two streams then
 // interleave however the operating system happens to buffer them.
-func WithStderr(w io.Writer) Option {
-	return func(c *config) { c.errOut = w }
+func WithStderr(stderr io.Writer) Option {
+	return func(c *config) { c.stderr = stderr }
 }
 
-// WithInput reads keys from r rather than from standard input.
+// WithStdin reads keys from stdin rather than from os.Stdin.
+//
+// As with WithStdout, the name does not promise the real standard input, and
+// it does not promise a file descriptor either.
 //
 // Editing needs a terminal, which is reached by file descriptor on Unix and
 // by handle on Windows. So a reader that can say which descriptor it is — an
@@ -298,12 +305,12 @@ func WithStderr(w io.Writer) Option {
 // then never sees. Pass the *os.File itself.
 //
 // A caller holding a bare descriptor can make one with os.NewFile.
-func WithInput(r io.Reader) Option {
+func WithStdin(stdin io.Reader) Option {
 	return func(c *config) {
-		c.in = r
+		c.stdin = stdin
 		// An anonymous interface rather than a check for *os.File, so that a
 		// wrapper which keeps the descriptor works too.
-		if f, ok := r.(interface{ Fd() uintptr }); ok {
+		if f, ok := stdin.(interface{ Fd() uintptr }); ok {
 			c.inFd = int(f.Fd())
 		}
 	}
@@ -337,15 +344,15 @@ func WithHistoryFile(name string) Option {
 //
 // The umask still applies and can only narrow it, and an existing file keeps
 // the mode it already has.
-func WithHistoryFileMode(mode fs.FileMode) Option {
-	return func(c *config) { c.historyFileMode = mode }
+func WithHistoryFileMode(historyFileMode fs.FileMode) Option {
+	return func(c *config) { c.historyFileMode = historyFileMode }
 }
 
 // WithHistoryLimit holds at most n entries. A limit of zero or less turns the
 // history off, so nothing is remembered between lines and the arrow keys have
 // nothing to walk through.
-func WithHistoryLimit(n int) Option {
-	return func(c *config) { c.historyEntries = max(n, 0) }
+func WithHistoryLimit(historyLimit int) Option {
+	return func(c *config) { c.historyLimit = max(historyLimit, 0) }
 }
 
 // WithHistory turns the history on or off, keeping whatever file and limit
@@ -353,18 +360,18 @@ func WithHistoryLimit(n int) Option {
 func WithHistory(enabled bool) Option {
 	return func(c *config) {
 		if enabled {
-			if c.historyEntries <= 0 {
-				c.historyEntries = DefaultHistoryEntries
+			if c.historyLimit <= 0 {
+				c.historyLimit = DefaultHistoryEntries
 			}
 			return
 		}
-		c.historyEntries = 0
+		c.historyLimit = 0
 	}
 }
 
 // WithHighlighter marks up each line as it is typed.
-func WithHighlighter(h Highlighter) Option {
-	return func(c *config) { c.highlighter = h }
+func WithHighlighter(highlighter Highlighter) Option {
+	return func(c *config) { c.highlighter = highlighter }
 }
 
 // WithCompleter offers completions for the word at the cursor.
@@ -393,71 +400,71 @@ func WithContinue(fn func(text string) bool) Option {
 
 // WithColor writes color when the terminal supports it. Turning it off writes
 // none, whatever the terminal supports.
-func WithColor(enabled bool) Option {
-	return func(c *config) { c.color = enabled }
+func WithColor(color bool) Option {
+	return func(c *config) { c.color = color }
 }
 
 // WithBeep beeps where the editor would. Turning it off stays quiet.
-func WithBeep(enabled bool) Option {
-	return func(c *config) { c.beep = enabled }
+func WithBeep(beep bool) Option {
+	return func(c *config) { c.beep = beep }
 }
 
 // WithMultiline allows line breaks inside one line. Turning it off refuses
 // them, so a line is always one row.
-func WithMultiline(enabled bool) Option {
-	return func(c *config) { c.multiline = enabled }
+func WithMultiline(multiline bool) Option {
+	return func(c *config) { c.multiline = multiline }
 }
 
 // WithBraceMatching highlights the partner of the brace at the cursor.
-func WithBraceMatching(enabled bool) Option {
-	return func(c *config) { c.braceMatching = enabled }
+func WithBraceMatching(braceMatching bool) Option {
+	return func(c *config) { c.braceMatching = braceMatching }
 }
 
 // WithBraceInsertion closes a brace automatically when one is typed.
-func WithBraceInsertion(enabled bool) Option {
-	return func(c *config) { c.opts.AutoPair = enabled }
+func WithBraceInsertion(autoPair bool) Option {
+	return func(c *config) { c.opts.AutoPair = autoPair }
 }
 
 // WithHints shows the rest of the only completion that fits, in grey after
 // the cursor.
-func WithHints(enabled bool) Option {
-	return func(c *config) { c.hints = enabled }
+func WithHints(hints bool) Option {
+	return func(c *config) { c.hints = hints }
 }
 
 // WithInlineHelp shows the short reminder below the line while searching the
 // history.
-func WithInlineHelp(enabled bool) Option {
-	return func(c *config) { c.inlineHelp = enabled }
+func WithInlineHelp(inlineHelp bool) Option {
+	return func(c *config) { c.inlineHelp = inlineHelp }
 }
 
 // WithMultilineIndent lines the rows after the first up under the prompt.
-func WithMultilineIndent(enabled bool) Option {
-	return func(c *config) { c.multilineIndent = enabled }
+func WithMultilineIndent(multilineIndent bool) Option {
+	return func(c *config) { c.multilineIndent = multilineIndent }
 }
 
 // WithAutoTab keeps completing while there is only one answer.
-func WithAutoTab(enabled bool) Option {
-	return func(c *config) { c.completeAutoTab = enabled }
+func WithAutoTab(autoTab bool) Option {
+	return func(c *config) { c.autoTab = autoTab }
 }
 
 // WithHintDelay waits d before showing a hint. Zero shows it at once.
-func WithHintDelay(d time.Duration) Option {
-	return func(c *config) { c.hintDelay = d }
+func WithHintDelay(hintDelay time.Duration) Option {
+	return func(c *config) { c.hintDelay = hintDelay }
 }
 
 // WithMatchPairs sets the pairs whose partner is highlighted, written one
 // after another such as "()[]{}".
-func WithMatchPairs(pairs string) Option {
-	return func(c *config) { c.opts.MatchPairs = pairs }
+func WithMatchPairs(matchPairs string) Option {
+	return func(c *config) { c.opts.MatchPairs = matchPairs }
 }
 
 // WithAutoPairs sets the pairs that close themselves when typed, which may
 // include quotes as the default set does.
-func WithAutoPairs(pairs string) Option {
-	return func(c *config) { c.opts.AutoPairs = pairs }
+func WithAutoPairs(autoPairs string) Option {
+	return func(c *config) { c.opts.AutoPairs = autoPairs }
 }
 
-// WithLog records everything the session reads from the keyboard and writes to
+// WithLogger records everything the session reads from the keyboard and writes to
 // the terminal, so that a session can be read back afterwards by someone who
 // was not watching it.
 //
@@ -465,8 +472,8 @@ func WithAutoPairs(pairs string) Option {
 // to the terminal, ">" for a key that was read, and "=" for a finished line.
 // The bytes are escaped so that the log can be read by eye, with the escape
 // byte written as "\e".
-func WithLog(w io.Writer) Option {
-	return func(c *config) { c.log = w }
+func WithLogger(logger io.Writer) Option {
+	return func(c *config) { c.logger = logger }
 }
 
 // New returns a Session.
@@ -480,11 +487,11 @@ func New(opts ...Option) (*Prompt, error) {
 	// which would otherwise mean every feature arrives switched off.
 	c := &config{
 		inFd:            -1,
-		out:             os.Stdout,
-		errOut:          os.Stderr,
+		stdout:          os.Stdout,
+		stderr:          os.Stderr,
 		promptMarker:    DefaultPromptMarker,
 		cpromptMarker:   DefaultPromptMarker,
-		historyEntries:  DefaultHistoryEntries,
+		historyLimit:    DefaultHistoryEntries,
 		hintDelay:       DefaultHintDelay,
 		color:           true,
 		beep:            true,
@@ -505,14 +512,14 @@ func New(opts ...Option) (*Prompt, error) {
 	}
 
 	in := io.Reader(os.Stdin)
-	if c.in != nil {
-		in = c.in
+	if c.stdin != nil {
+		in = c.stdin
 	}
-	errOut := c.errOut
+	errOut := c.stderr
 	if errOut == nil {
 		errOut = os.Stderr
 	}
-	r := &Session{plain: bufio.NewReader(in), errOut: errOut}
+	r := &Session{plain: bufio.NewReader(in), stderr: errOut}
 
 	// A missing keyboard is a mode rather than a failure: a program whose
 	// input is a pipe or a file still wants its lines, and gets them without
@@ -528,22 +535,22 @@ func New(opts ...Option) (*Prompt, error) {
 	// question of whether the output is a terminal are still asked of the real
 	// output, not of the log.
 	var slog *sessionLog
-	out := c.out
-	if c.log != nil {
-		slog = &sessionLog{w: c.log}
-		out = logWriter{w: c.out, log: slog}
+	out := c.stdout
+	if c.logger != nil {
+		slog = &sessionLog{w: c.logger}
+		out = logWriter{w: c.stdout, logger: slog}
 		if ttyErr == nil {
-			t.src = logReader{src: t.src, log: slog}
+			t.src = logReader{src: t.src, logger: slog}
 		}
 	}
 	tm := newTerm(out, termOptions{
 		// Color goes off when the output is not a terminal, so that a program
 		// whose output is redirected writes plain text rather than escape
 		// sequences into a file. The C makes the same check.
-		Color:  c.color && writesToTerminal(c.out),
+		Color:  c.color && writesToTerminal(c.stdout),
 		Beep:   c.beep,
 		IsUTF8: isUTF8,
-		Sizer:  outputSizer(c.out),
+		Sizer:  outputSizer(c.stdout),
 	})
 	bb := newBBCode(tm)
 	for _, s := range defaultStyles {
@@ -555,7 +562,7 @@ func New(opts ...Option) (*Prompt, error) {
 	// file may not exist yet, or may belong to someone else, and a program
 	// that cannot prompt because of it is worse than one with no history.
 	// LoadHistory is how a caller that wants to know asks.
-	_ = h.loadFrom(c.historyFile, c.historyEntries)
+	_ = h.loadFrom(c.historyFile, c.historyLimit)
 	cs := &completions{}
 	if c.completer != nil {
 		cs.setCompleter(c.completer, nil)
@@ -576,11 +583,11 @@ func New(opts ...Option) (*Prompt, error) {
 		hints:           c.hints,
 		inlineHelp:      c.inlineHelp,
 		multiline:       c.multiline,
-		completeAutoTab: c.completeAutoTab,
+		completeAutoTab: c.autoTab,
 		completePreview: true,
 		hintDelay:       c.hintDelay,
 	}
-	r.log = slog
+	r.logger = slog
 	r.canEdit = ttyErr == nil && isInteractive()
 	return &Prompt{Session: r, markup: &MarkupWriter{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
 }
@@ -632,15 +639,15 @@ func (s *Session) ReadLine(prompt string) (string, error) {
 	line, ok, err := s.env.readLine(prompt)
 	if err != nil {
 		if errors.Is(err, ErrInterrupted) {
-			s.log.note(logLine, "<interrupted>")
+			s.logger.note(logLine, "<interrupted>")
 		}
 		return "", err
 	}
 	if !ok {
-		s.log.note(logLine, "<end of input>")
+		s.logger.note(logLine, "<end of input>")
 		return "", io.EOF
 	}
-	s.log.note(logLine, line)
+	s.logger.note(logLine, line)
 	return line, nil
 }
 
@@ -778,13 +785,13 @@ type errWriter struct{ s *Session }
 
 // Write satisfies io.Writer.
 func (w errWriter) Write(p []byte) (int, error) {
-	if w.s == nil || w.s.errOut == nil {
+	if w.s == nil || w.s.stderr == nil {
 		return len(p), nil
 	}
 	if w.s.env != nil && w.s.env.term != nil {
 		w.s.env.term.flush()
 	}
-	n, err := w.s.errOut.Write(p)
+	n, err := w.s.stderr.Write(p)
 	if err != nil {
 		return n, fmt.Errorf("writing to the error stream: %w", err)
 	}
@@ -1097,13 +1104,13 @@ func escapeBytes(b []byte) string {
 
 // logWriter writes to a terminal and records what it wrote.
 type logWriter struct {
-	w   io.Writer
-	log *sessionLog
+	w      io.Writer
+	logger *sessionLog
 }
 
 // Write satisfies io.Writer.
 func (t logWriter) Write(p []byte) (int, error) {
-	t.log.record(logWrite, p)
+	t.logger.record(logWrite, p)
 	n, err := t.w.Write(p)
 	if err != nil {
 		return n, fmt.Errorf("writing to the terminal: %w", err)
@@ -1113,15 +1120,15 @@ func (t logWriter) Write(p []byte) (int, error) {
 
 // logReader reads keys from a terminal and records what it read.
 type logReader struct {
-	src byteReader
-	log *sessionLog
+	src    byteReader
+	logger *sessionLog
 }
 
 // readByte satisfies byteReader.
 func (t logReader) readByte(timeout time.Duration) (byte, bool) {
 	c, ok := t.src.readByte(timeout)
 	if ok {
-		t.log.record(logRead, []byte{c})
+		t.logger.record(logRead, []byte{c})
 	}
 	return c, ok
 }

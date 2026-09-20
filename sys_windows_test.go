@@ -635,7 +635,7 @@ func TestWindowsReadByteTimesOut(t *testing.T) {
 // to openTTYDevice is used rather than thrown away.
 //
 // It ignored its argument and always took the standard input, which made
-// WithInput silently does nothing on Windows: the caller's
+// WithStdin silently does nothing on Windows: the caller's
 // stream was accepted and discarded, the console was read instead, and
 // because opening it succeeded the reader stayed in editing mode, so it
 // looked as though it had worked. Found by windows-vm, by passing a file that

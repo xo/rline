@@ -87,11 +87,11 @@ func TestOptions(t *testing.T) {
 			return c.historyFile == "h.txt"
 		}},
 		{"history limit", WithHistoryLimit(12), func(c *config) bool {
-			return c.historyEntries == 12
+			return c.historyLimit == 12
 		}},
-		{"history off", WithHistory(false), func(c *config) bool { return c.historyEntries == 0 }},
+		{"history off", WithHistory(false), func(c *config) bool { return c.historyLimit == 0 }},
 		{"history on", WithHistory(true), func(c *config) bool {
-			return c.historyEntries == DefaultHistoryEntries
+			return c.historyLimit == DefaultHistoryEntries
 		}},
 		{"no color", WithColor(false), func(c *config) bool { return !c.color }},
 		{"color", WithColor(true), func(c *config) bool { return c.color }},
@@ -102,12 +102,12 @@ func TestOptions(t *testing.T) {
 		{"no hints", WithHints(false), func(c *config) bool { return !c.hints }},
 		{"no inline help", WithInlineHelp(false), func(c *config) bool { return !c.inlineHelp }},
 		{"no indent", WithMultilineIndent(false), func(c *config) bool { return !c.multilineIndent }},
-		{"auto tab", WithAutoTab(true), func(c *config) bool { return c.completeAutoTab }},
+		{"auto tab", WithAutoTab(true), func(c *config) bool { return c.autoTab }},
 		{"hint delay", WithHintDelay(time.Second), func(c *config) bool { return c.hintDelay == time.Second }},
 		{"match braces", WithMatchPairs("<>"), func(c *config) bool { return c.opts.MatchPairs == "<>" }},
 		{"auto braces", WithAutoPairs("<>"), func(c *config) bool { return c.opts.AutoPairs == "<>" }},
-		{"input reader", WithInput(strings.NewReader("x")), func(c *config) bool {
-			return c.in != nil
+		{"input reader", WithStdin(strings.NewReader("x")), func(c *config) bool {
+			return c.stdin != nil
 		}},
 	}
 	for _, test := range tests {
@@ -1224,7 +1224,7 @@ func TestStderrGoesWhereItIsToldAndKeepsItsOrder(t *testing.T) {
 		var out, errs bytes.Buffer
 		s := &Session{
 			env:    &env{term: newTerm(&out, termOptions{})},
-			errOut: &errs,
+			stderr: &errs,
 		}
 		if _, err := s.WriteString("result\n"); err != nil {
 			t.Fatalf("WriteString: %v", err)
@@ -1248,7 +1248,7 @@ func TestStderrGoesWhereItIsToldAndKeepsItsOrder(t *testing.T) {
 		var both bytes.Buffer
 		s := &Session{
 			env:    &env{term: newTerm(&both, termOptions{})},
-			errOut: &both,
+			stderr: &both,
 		}
 		for i := range 3 {
 			if _, err := fmt.Fprintf(s, "out %d\n", i); err != nil {
@@ -1274,7 +1274,7 @@ func TestStderrGoesWhereItIsToldAndKeepsItsOrder(t *testing.T) {
 		var both bytes.Buffer
 		tm := newTerm(&both, termOptions{})
 		tm.setBufferMode(buffered)
-		s := &Session{env: &env{term: tm}, errOut: &both}
+		s := &Session{env: &env{term: tm}, stderr: &both}
 
 		tm.write("drawn but not flushed")
 		if both.Len() != 0 {
@@ -1330,7 +1330,7 @@ func TestStderrKeepsItsWriterContract(t *testing.T) {
 	t.Run("a destination that fails says so", func(t *testing.T) {
 		t.Parallel()
 		boom := errors.New("the pipe went away")
-		s := &Session{errOut: failingWriter{err: boom}}
+		s := &Session{stderr: failingWriter{err: boom}}
 		n, err := s.Stderr().Write([]byte("error: something\n"))
 		if err == nil {
 			t.Fatal("a destination that refused the write reported success")
@@ -1361,12 +1361,12 @@ func TestWithStderrReachesTheSession(t *testing.T) {
 	var errs bytes.Buffer
 	c := &config{}
 	WithStderr(&errs)(c)
-	if c.errOut != &errs {
+	if c.stderr != &errs {
 		t.Error("WithStderr did not reach the setting")
 	}
 	// And with no option, errors go to standard error rather than nowhere.
 	fresh := &config{}
-	if fresh.errOut != nil {
+	if fresh.stderr != nil {
 		t.Error("a config starts with an error destination, so New cannot tell it was not set")
 	}
 }
