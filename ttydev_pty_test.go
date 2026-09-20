@@ -100,3 +100,73 @@ func TestTTYDeviceOnARealTerminal(t *testing.T) {
 		t.Error("the terminal was not put back the way it was")
 	}
 }
+
+// TestRawModeDiscardsWhatWasTypedBeforeIt checks that entering raw mode
+// throws away input that was already waiting, which is what termiosSetFlush
+// is for: TCSETSF and TIOCSETAF set the attributes and empty the input queue,
+// where TCSETS and TIOCSETA set them and leave it alone.
+//
+// Nothing else covers the difference. Found by ken-mba, who changed
+// TIOCSETAF to TIOCSETA on macOS and watched the whole suite pass; the same
+// change to TCSETSF here passes it too. The promise matters because a
+// keystroke typed before the prompt was drawn would otherwise be read as
+// though it had been typed at the prompt.
+func TestRawModeDiscardsWhatWasTypedBeforeIt(t *testing.T) {
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = leader.Close()
+		_ = follower.Close()
+	})
+
+	term, err := openTTY(int(follower.Fd()))
+	if err != nil {
+		t.Fatalf("opening the terminal: %v", err)
+	}
+	t.Cleanup(func() { _ = term.close() })
+
+	if _, err := leader.WriteString("abc\n"); err != nil {
+		t.Fatalf("writing to the terminal: %v", err)
+	}
+
+	// Waiting for the echo rather than sleeping. The terminal is still in
+	// canonical mode with echo on, so the line discipline sends back what it
+	// accepted, and that arriving is what proves the bytes reached the input
+	// queue. Without it this test could pass by flushing nothing, which is
+	// the shape that has cost this port time before. A byte-count ioctl
+	// would say so directly, but only Linux spells one that x/sys exports.
+	echoed := make(chan struct{})
+	go func() {
+		defer close(echoed)
+		_, _ = leader.Read(make([]byte, 64))
+	}()
+	select {
+	case <-echoed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the terminal never echoed what was typed, so nothing was waiting to be flushed and this test checked nothing")
+	}
+
+	if err := term.startRaw(); err != nil {
+		t.Fatalf("starting raw mode: %v", err)
+	}
+	defer term.endRaw()
+
+	if got, ok := term.readTimeout(200 * time.Millisecond); ok {
+		t.Errorf("raw mode kept %08x, which was typed before it started", got)
+	}
+
+	// And the terminal is still readable, so the silence above is a flushed
+	// queue rather than a terminal that stopped delivering.
+	if _, err := leader.WriteString("z"); err != nil {
+		t.Fatalf("writing to the terminal: %v", err)
+	}
+	got, ok := term.readTimeout(2 * time.Second)
+	if !ok {
+		t.Fatal("nothing arrived after raw mode started")
+	}
+	if got != key.Code('z') {
+		t.Errorf("read %08x after raw mode started, want %08x", got, key.Code('z'))
+	}
+}

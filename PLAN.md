@@ -1862,6 +1862,63 @@ code under test does not untag the test. windows-vm found it only by chasing
 `no tests to run` rather than reading past it, while intending to report the
 parameterisation as a tidy improvement to something that worked.
 
+A constant nothing exercised, found by mutating it and believed only after
+the behaviour was shown. `termiosSetFlush` is `TCSETSF` on the System V side
+and `TIOCSETAF` on the BSD side: both set the terminal attributes *and* empty
+the input queue, where `TCSETS` and `TIOCSETA` set them and leave it alone.
+The C asks for the flush by name, with `TCSAFLUSH`. ken-mba changed
+`TIOCSETAF` to `TIOCSETA` on macOS and the whole suite passed; the matching
+change here passed too. `termiosGet` was pinned; its neighbour was not.
+
+The part worth copying is what they did next, which was to say the finding
+was two thirds of a finding and hand it over unfinished. A mutation nothing
+catches is not yet a defect: it is either an untested promise or an
+equivalent mutant, and the difference needs a demonstration. Their probe hung
+and they called it open rather than reporting whichever answer they had.
+
+What made handing it over cheap was not the restraint but the precision, and
+that is ken-mba's own correction to this entry rather than a reading of it:
+the missing third was named exactly — a mutation that is not caught, a probe
+that hung, and no demonstration either way — so picking it up cost one
+afternoon's worth of context rather than a re-derivation. An unfinished
+handover that cannot say which third is missing costs the receiver more than
+finishing would have cost the sender. They also noted the motive was partly
+fatigue rather than judgement, which is worth recording because the rule has
+to work on a tired afternoon or it is not a rule.
+
+It was the promise, on both families. Measured on a pseudo-terminal on linux:
+with the flushing constant, four bytes typed before raw mode started were
+waiting beforehand and gone after, and nothing was read; with the
+non-flushing one the four bytes were still there and the editor read the `a`.
+ken-mba then measured the BSD constant on darwin, which is the side the
+finding came from: `TIOCSETAF` flushed and `TIOCSETA` left the `a` waiting.
+So the mutation is not equivalent on either family, and a keystroke typed
+before the prompt was drawn would have been read as though typed at it.
+
+The reason a probe hangs is the line discipline, and it was the whole
+difference between the attempt that failed and the one that worked: in
+canonical mode a byte-count ioctl reports nothing until a whole line is
+present, so a probe that types bare characters and waits for one to be
+waiting waits forever. Typing `abc\n` instead finished ken-mba's probe in
+0.31s, and the terminal echoed five bytes rather than four — the line
+discipline adds the carriage return.
+
+`TestRawModeDiscardsWhatWasTypedBeforeIt` covers it now, and it is built
+against this section's own rule rather than trusting the green. It waits for
+the terminal's echo instead of sleeping, because the echo coming back is what
+proves the bytes reached the queue, and a test that flushes an empty queue
+would otherwise pass while checking nothing. A byte-count ioctl would say so
+directly and is not portable: of the systems this builds for, only Linux
+spells one that `x/sys` exports. After the flush it writes one more byte and
+requires it to arrive, so the silence is a flushed queue rather than a
+terminal that stopped delivering — without that byte the test cannot tell a
+flush from a terminal that stopped delivering, and would pass for the wrong
+reason in exactly the case where something had gone properly wrong. Both
+halves were then broken on purpose:
+the mutation fails it twice over, the second failure reading `b` where `z`
+was sent because a kept queue shifts every later key, and removing the typed
+line fails it with the message saying nothing was waiting.
+
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.
 Before landing a corpus, break the code it covers on purpose, once per thing
