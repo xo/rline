@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/xo/rline/key"
+
+	"github.com/xo/rline/ansi"
 )
 
 // --------------------------------------------------------------------------
@@ -144,7 +146,7 @@ func (ev *env) writePrompt(e *editor, row int, inExtra bool) {
 }
 
 // refreshRows draws the rows of text between firstRow and lastRow.
-func (ev *env) refreshRows(e *editor, input *buffer, attrs *attrBuf,
+func (ev *env) refreshRows(e *editor, input *buffer, attrs *ansi.AttrBuf,
 	promptw, cpromptw int, inExtra bool, firstRow, lastRow int,
 ) {
 	input.forEachRow(e.termW, promptw, cpromptw, func(s []byte, row, rowStart, rowLen, _ int, isWrap bool) bool {
@@ -159,7 +161,7 @@ func (ev *env) refreshRows(e *editor, input *buffer, attrs *attrBuf,
 		if attrs == nil || (ev.noHighlight && ev.noBraceMatch) {
 			ev.term.write(text)
 		} else {
-			all := attrs.slice(rowStart + rowLen)
+			all := attrs.Extend(rowStart + rowLen)
 			ev.term.writeFormatted(text, all[rowStart:rowStart+rowLen])
 		}
 		if row < lastRow {
@@ -201,7 +203,7 @@ func (ev *env) refresh(e *editor) {
 	// The hint goes into the line itself while it is drawn, and comes back out
 	// at the end, so that everything below measures it as part of the text.
 	if e.hint.Len() > 0 {
-		e.attrs.insertAt(e.pos, e.hint.Len(), ev.bb.style("ic-hint"))
+		e.attrs.InsertAt(e.pos, e.hint.Len(), ev.bb.style("ic-hint"))
 		e.input.insertAt(e.hint.String(), e.pos)
 	}
 
@@ -266,8 +268,8 @@ func (ev *env) refresh(e *editor) {
 	// Take the hint back out, so the line is what the user typed again.
 	e.input.deleteAt(e.pos, e.hint.Len())
 	e.extra.deleteAt(0, e.hintHelp.Len())
-	e.attrs.clear()
-	e.attrsExtra.clear()
+	e.attrs.Clear()
+	e.attrsExtra.Clear()
 
 	e.curRows = rows
 	e.curRow = rc.row

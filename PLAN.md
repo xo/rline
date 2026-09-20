@@ -212,14 +212,24 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    the signal keys are off, reads keys through the decoder, and checks the
    terminal is put back. `tty_read_esc_response` is in the corpus, because it
    reads from the same byte source as the decoder.
-5. `attr.c`. Done. The attributes are a Go struct of comparable fields in
-   `bbcode.go`, rather than the 64 bit union of bit fields the C packs them into,
-   because Go compares a struct with `==` and nothing outside `attr.c` depends
-   on the packed value. The colors an attribute carries are `ansi.Code`, from
-   the `ansi` package: `term_color.c` holds `ic_rgb`, `ic_rgbx` and
-   `color_from_ansi256`, and the 256 color table was extracted from the C
-   source rather than typed out. `tools/build-probe-attr.sh` builds a fourth
-   probe, and `testdata/attr.txt` records 1678 of those calls.
+5. `attr.c`. Done, and split between the two packages. `ansi.Attr` is a Go
+   struct of comparable fields, rather than the 64 bit union of bit fields the
+   C packs them into, because Go compares a struct with `==` and nothing
+   outside `attr.c` depends on the packed value. Reading an attribute out of an
+   SGR escape sequence went with it, as `ansi.ParseSGR` and
+   `ansi.ParseEscapeSGR`, because that is reading ANSI and needs nothing else.
+   `ansi.AttrBuf`, the buffer of one attribute per byte, went with it. What
+   stayed in `bbcode.go` is `appendMarked`, the one place that buffer meets
+   rline's own text buffer, which is a join and so belongs where both are
+   known. `tools/build-probe-attr.sh` builds a fourth probe. Its 1678 recorded
+   calls are split the same way: 1669 in `ansi/testdata/attr.txt` and 9 in
+   `testdata/attrbuf.txt`. Each package's `-update` runs the one probe and
+   keeps the kinds it checks, and each fails if its corpus holds a kind
+   belonging to the other. Measured rather than assumed: moving one line
+   across the boundary fails both tests, and deleting one from either fails
+   that one. What the guard does not catch is a line going missing from the
+   middle of a kind that has a thousand of them, because it counts kinds
+   rather than lines.
 6. `term.c` and `term_color.c`. Done, apart from Windows. `ansi/ansi.go` holds
    the color reduction, which finds the nearest color a terminal can show when
    it understands fewer than a style asks for. `term.go` holds the terminal
@@ -233,8 +243,8 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 
 7. `bbcode.c` and `bbcode_colors.c`. Done. `bbcode.go` turns markup such as
    `[red]text[/red]` into text plus one attribute for every byte of it, and
-   `bbcode.go` holds the 172 HTML color names, extracted from the C
-   source rather than typed out. `tools/build-probe-bbcode.sh` builds the
+   `ansi/names.go` holds the 172 HTML color names, extracted from the C source
+   rather than typed out, because a color name is a color rather than markup. `tools/build-probe-bbcode.sh` builds the
    eighth probe, and `testdata/bbcode.txt` records 79 pieces of markup, each
    one parsed, measured and printed.
 8. `history.c` and `undo.c`. Done. `history.go` holds the list of lines the
@@ -1258,7 +1268,7 @@ point at any of these: every one of those lines ran, every time.
 
 ## Tests that pass without checking anything
 
-The rule above is one case of a wider one, which has now cost time seven times
+The rule above is one case of a wider one, which has now cost time eight times
 on this port. A test can report success while verifying nothing, and nothing
 about the run says so. The ways it has happened here:
 
@@ -1278,6 +1288,39 @@ encoder produced, so the unit test agreed with the bug and stayed green while
 F11 arrived as F4. A directory case on Windows expected the one answer that
 every directory gives there, so it passed for the wrong reason and would have
 stayed green through a real regression.
+
+A contract that was true by accident in two places. A nil ansi.AttrBuf is
+usable and every method accepts one, which is what lets rline pass nil down
+ten signatures to mean "record no attributes" instead of branching at each.
+Taking each nil guard out in turn showed three of them panicking the suite,
+Length, At and the fill behind SetAt and UpdateAt, and four of them changing
+nothing. So the words "every method" rested on three methods.
+`TestNilAttrBufAcceptsEveryMethod` calls all of them on a nil buffer, and all
+seven guards are load-bearing now, measured the same way.
+
+Code that no recording reaches at all, found by looking rather than by a
+failure. `ansi.ParseANSI256` reads a palette index out of text, and
+`testdata/bbcode.txt` holds no `ansi-color` tag, no `ansi-sgr` and no
+`bgcolor=`, so the whole 130,000 line corpus never calls it. The decimal scan
+behind it was written out again when the code moved packages, which is the
+worst combination: a reimplementation with nothing watching. `names_test.go`
+now pins both readers against what the C's sscanf does — leading space, an
+optional sign, digits, and whatever follows ignored — and five mutations of
+the scan, the hex reader and the range check are all caught.
+
+A refactor whose one behavioural change the whole corpus is blind to.
+Rewriting `updateProperty` to assign fields instead of writing through
+pointers dropped the `return name` on every property case, so a property fell
+through to the style search as well. All 130,000 recorded calls pass either
+way, because the C probe never defines a style whose name collides with a
+property, and because every property sets its field before the answer is read:
+the difference only appears once a style of that name exists to be applied on
+top. Verified by putting the fault back and watching the whole suite stay
+green, then measuring the real difference directly — a style named `bold`
+leaves `Color` at `None` when the answer is returned and at `0x01ff0000` when
+it is not. `TestPropertyBeatsAStyleOfTheSameName` now pins it, and fails on
+the fault. This is the corpus blind spot from the other side: a recording
+cannot rule out a case its author never thought to record.
 
 A corpus that cannot tell two answers apart. The completion menu recordings
 were first made against a `bbcode` with no styles defined, so every style name
@@ -1551,9 +1594,13 @@ one function over a corpus that lives in `testdata`.
 
 ## Where things live
 
-Two packages. `ansi` is one file and holds colors: the palette, a 24 bit RGB
-value, and the reduction that finds the nearest color a terminal can show. It
-depends on nothing in `rline` and a caller can use it on its own.
+Two packages. `ansi` holds what a terminal understands. `ansi.go` has colors, the
+palette, and the reduction that finds the nearest color a terminal can show;
+`attr.go` has the attribute that carries a color and reads one out of an SGR
+escape sequence; `attrbuf.go` has a run of attributes, one per byte;
+`names.go` has the 172 color names and reads a color out of written text. It
+depends on nothing outside the standard library, and a caller can use it on
+its own.
 
 `rline` is everything else: twenty source files and seventeen test files. The
 layout follows
@@ -1567,7 +1614,7 @@ which.
   text.go        the buffer, widths, word and line boundaries, rows and columns
   complete.go    completions, completers, file names and the menu
   history.go     the history list, its file, walking and searching
-  bbcode.go      attributes, markup and the highlighting built on it
+  bbcode.go      markup and the highlighting built on it
   term.go        writing to a terminal
   tty.go         reading keys, and decoding escape sequences into them
   winkey.go      turning Windows key events into sequences: untagged on purpose,

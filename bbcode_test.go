@@ -1,5 +1,6 @@
-// Tests for attributes, markup and highlighting, which are one subject and one
-// file. See the head of bbcode.go. Color itself is tested in ansi.
+// Tests for markup and highlighting, which are one subject and one file. See
+// the head of bbcode.go. The attribute, the buffer of them and the color one
+// carries are tested in ansi.
 
 package rline
 
@@ -9,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,76 +19,78 @@ import (
 )
 
 // --------------------------------------------------------------------------
-// attr_test.go
+// appendmarked_test.go
 
 const (
-	// attrCorpusPath holds what the C functions in attr.c returned.
-	attrCorpusPath = "testdata/attr.txt"
-
-	// attrDeltaPath holds the cases where the port answers differently on
-	// purpose, which is the deletion fault described on attrBuf.deleteAt.
-	attrDeltaPath = "testdata/attr-delta.txt"
+	// attrBufCorpusPath holds the recorded calls where the attribute buffer
+	// meets rline's own text buffer. The rest are checked in ansi.
+	attrBufCorpusPath = "testdata/attrbuf.txt"
 
 	// attrProbePath is where tools/build-probe-attr.sh puts the probe.
 	attrProbePath = ".build/probe-attr"
 )
 
-// TestAttrPortMatchesC replays every recorded call to a C function in attr.c
-// and checks that the Go port answers the same.
-//
-// One group of cases is allowed to differ, and only one. The C deletion moves
-// the wrong number of bytes, and the port does the intended thing instead.
-// Those differences are written to a delta file and compared against what is
-// committed. A difference anywhere else is a hard failure, so the delta file
-// cannot grow to cover a mistake in the port.
-func TestAttrPortMatchesC(t *testing.T) {
+// attrBufKinds are the recorded calls this package answers. The buffer itself
+// is ansi.AttrBuf and the ansi package checks it; what is left here is where
+// it meets rline's own text buffer, which is "abuf app" and the two append
+// kinds. The names carry two fields because "abuf" spans both packages.
+var attrBufKinds = []string{"abuf app", "append", "appendstr"}
+
+// attrBufKind names a recorded call the way attrBufKinds does.
+func attrBufKind(f []string) string {
+	if f[0] == "abuf" && len(f) > 1 {
+		return f[0] + " " + f[1]
+	}
+	return f[0]
+}
+
+// TestAttrBufMatchesC replays every recorded call to the attribute buffer in
+// attr.c and checks that the Go port answers the same. The attribute itself
+// moved to the ansi package and is checked there.
+
+func TestAttrBufMatchesC(t *testing.T) {
 	if *update {
 		attrRegenerate(t)
 	}
-	b, err := os.ReadFile(attrCorpusPath)
+	b, err := os.ReadFile(attrBufCorpusPath)
 	if err != nil {
 		t.Fatalf("reading the corpus: %v (run tools/build-probe-attr.sh, then go test -update)", err)
 	}
 	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
-	if len(lines) < 500 {
+	if len(lines) < 9 {
 		t.Fatalf("the corpus holds %d lines, which is too few", len(lines))
 	}
 	dumps := attrReplay()
 	counts := make(map[string]int, 16)
-	var delta strings.Builder
 	bad := 0
 	for i, line := range lines {
 		f := strings.Fields(line)
 		if len(f) == 0 {
-			t.Fatalf("%s:%d: empty line", attrCorpusPath, i+1)
+			t.Fatalf("%s:%d: empty line", attrBufCorpusPath, i+1)
 		}
-		counts[f[0]]++
+		counts[attrBufKind(f)]++
 		got, want := attrCheck(t, f, dumps)
 		if got == want {
 			continue
 		}
-		// The deletion sequence is the one place the port departs on purpose.
-		if f[0] == "abuf" && f[1] == "del" {
-			fmt.Fprintf(&delta, "%s\n  c:  %s\n  go: %s\n", strings.Join(f[:3], " "), want, got)
-			continue
-		}
 		bad++
 		if bad <= 20 {
-			t.Errorf("%s:%d: %s\n  got:  %s\n  want: %s", attrCorpusPath, i+1, strings.Join(f[:min(3, len(f))], " "), got, want)
+			t.Errorf("%s:%d: %s\n  got:  %s\n  want: %s", attrBufCorpusPath, i+1, strings.Join(f[:min(3, len(f))], " "), got, want)
 		}
 	}
 	if bad > 20 {
 		t.Errorf("%d differences in total, 20 shown", bad)
 	}
-	for _, kind := range []string{
-		"rgb", "rgbx", "ansi256", "none", "default", "fromcolor",
-		"sgr", "escsgr", "update", "iseq", "abuf", "append",
-	} {
+	for _, kind := range attrBufKinds {
 		if counts[kind] == 0 {
 			t.Errorf("the corpus holds no %s cases", kind)
 		}
 	}
-	attrCompareDelta(t, delta.String())
+	for kind := range counts {
+		if !slices.Contains(attrBufKinds, kind) {
+			t.Errorf("the corpus holds %d %s cases, which belong to ansi", counts[kind], kind)
+		}
+	}
 	t.Logf("checked %d calls: %v", len(lines), counts)
 }
 
@@ -95,32 +99,6 @@ func TestAttrPortMatchesC(t *testing.T) {
 func attrCheck(t *testing.T, f []string, dumps map[string][]string) (string, string) {
 	t.Helper()
 	switch f[0] {
-	case "rgb":
-		return fmt.Sprintf("%08x", uint32(ansi.RGBHex(mustU32(t, f[1])))), f[2]
-	case "rgbx":
-		r, g, b := mustInt(t, f[1]), mustInt(t, f[2]), mustInt(t, f[3])
-		return fmt.Sprintf("%08x", uint32(ansi.RGB(r, g, b))), f[4]
-	case "ansi256":
-		return fmt.Sprintf("%08x", uint32(ansi.FromANSI256(mustInt(t, f[1])))), f[2]
-	case "none":
-		return attrString(attr{}), strings.Join(f[1:], " ")
-	case "default":
-		return attrString(attrDefault()), strings.Join(f[1:], " ")
-	case "fromcolor":
-		return attrString(attrFromColor(ansi.Code(mustInt(t, f[1])))), strings.Join(f[2:], " ")
-	case "isnone":
-		return fmt.Sprintf("%d %d", boolInt(attr{}.isNone()), boolInt(attrDefault().isNone())),
-			strings.Join(f[1:], " ")
-	case "sgr":
-		return attrString(attrFromSGR(mustStr(t, f[1]))), strings.Join(f[2:], " ")
-	case "escsgr":
-		return attrString(attrFromEscSGR(mustStr(t, f[1]))), strings.Join(f[2:], " ")
-	case "update":
-		a, b := attrFromSGR(mustStr(t, f[1])), attrFromSGR(mustStr(t, f[2]))
-		return attrString(a.updateWith(b)), strings.Join(f[3:], " ")
-	case "iseq":
-		a, b := attrFromSGR(mustStr(t, f[1])), attrFromSGR(mustStr(t, f[2]))
-		return strconv.Itoa(boolInt(a == b)), f[3]
 	case "abuf":
 		key := f[1] + " " + f[2]
 		got, ok := dumps[key]
@@ -143,63 +121,12 @@ func attrCheck(t *testing.T, f []string, dumps map[string][]string) (string, str
 	return "", ""
 }
 
-// attrReplay runs the same operation sequences that tools/probe-attr.c runs,
-// and records what the buffer held after every step.
+// attrReplay runs the appending part of what tools/probe-attr.c runs, and
+// records both what it returned and what the buffer held afterwards. The rest
+// of the probe's buffer steps are replayed in the ansi package.
 func attrReplay() map[string][]string {
-	out := make(map[string][]string, 32)
-	dump := func(tag string, step int, ab *attrBuf) {
-		n := ab.length()
-		row := make([]string, 0, n+1)
-		row = append(row, strconv.Itoa(n))
-		for _, a := range ab.slice(n) {
-			row = append(row, attrString(a))
-		}
-		out[tag+" "+strconv.Itoa(step)] = row
-	}
-	sgr := attrFromSGR
-
-	ab := &attrBuf{}
-	step := 0
-	dump("fresh", step, ab)
-	step++
-	ab.setAt(0, 4, sgr("31"))
-	dump("fresh", step, ab)
-	step++
-	ab.setAt(2, 3, sgr("32"))
-	dump("fresh", step, ab)
-	step++
-	ab.updateAt(1, 3, sgr("1"))
-	dump("fresh", step, ab)
-	step++
-	ab.insertAt(2, 2, sgr("4"))
-	dump("fresh", step, ab)
-	step++
-	ab.clear()
-	dump("fresh", step, ab)
-
-	ab = &attrBuf{}
-	for i := range 24 {
-		ab.setAt(i, 1, attrFromColor(ansi.Code(i+1)))
-	}
-	step = 0
-	dump("del", step, ab)
-	step++
-	ab.deleteAt(4, 2)
-	dump("del", step, ab)
-	step++
-	ab.deleteAt(0, 1)
-	dump("del", step, ab)
-	step++
-	ab.deleteAt(10, 100)
-	dump("del", step, ab)
-	step++
-	ab.deleteAt(100, 1)
-	dump("del", step, ab)
-	step++
-	ab.deleteAt(0, 0)
-	dump("del", step, ab)
-
-	ab = &attrBuf{}
+	out := make(map[string][]string, 8)
+	ab := &ansi.AttrBuf{}
 	sb := &buffer{}
 	for i, c := range []struct {
 		s string
@@ -215,31 +142,17 @@ func attrReplay() map[string][]string {
 		if !c.n {
 			target = nil
 		}
-		out["append "+strconv.Itoa(i)] = []string{strconv.Itoa(target.appendTo(sb, c.s, sgr(c.a)))}
-		dump("app", i, ab)
+		out["append "+strconv.Itoa(i)] = []string{strconv.Itoa(appendMarked(target, sb, c.s, ansi.ParseSGR(c.a)))}
+		n := ab.Length()
+		row := make([]string, 0, n+1)
+		row = append(row, strconv.Itoa(n))
+		for _, a := range ab.Extend(n) {
+			row = append(row, attrString(a))
+		}
+		out["app "+strconv.Itoa(i)] = row
 	}
 	out["appendstr"] = []string{sb.string()}
 	return out
-}
-
-// attrCompareDelta checks the recorded departures against what is committed.
-func attrCompareDelta(t *testing.T, got string) {
-	t.Helper()
-	if *update {
-		if err := os.WriteFile(attrDeltaPath, []byte(got), 0o644); err != nil {
-			t.Fatalf("writing %s: %v", attrDeltaPath, err)
-		}
-		t.Logf("wrote %s: %d bytes", attrDeltaPath, len(got))
-		return
-	}
-	want, err := os.ReadFile(attrDeltaPath)
-	if err != nil {
-		t.Fatalf("reading %s: %v (run go test -update)", attrDeltaPath, err)
-	}
-	if got != string(want) {
-		t.Errorf("the departures from the C code changed.\nSee %s.\n got %d bytes, want %d",
-			attrDeltaPath, len(got), len(want))
-	}
 }
 
 // attrRegenerate runs the C probe and writes the corpus.
@@ -252,16 +165,23 @@ func attrRegenerate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("running the probe: %v", err)
 	}
-	if err := os.WriteFile(attrCorpusPath, out, 0o644); err != nil {
-		t.Fatalf("writing %s: %v", attrCorpusPath, err)
+	var w strings.Builder
+	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+		if slices.Contains(attrBufKinds, attrBufKind(strings.Fields(line))) {
+			w.WriteString(line)
+			w.WriteByte('\n')
+		}
 	}
-	t.Logf("wrote %s: %d bytes", attrCorpusPath, len(out))
+	if err := os.WriteFile(attrBufCorpusPath, []byte(w.String()), 0o644); err != nil {
+		t.Fatalf("writing %s: %v", attrBufCorpusPath, err)
+	}
+	t.Logf("wrote %s: %d bytes", attrBufCorpusPath, w.Len())
 }
 
 // attrString renders an attribute the way the C probe prints one.
-func attrString(a attr) string {
+func attrString(a ansi.Attr) string {
 	return fmt.Sprintf("%08x %08x %d %d %d %d",
-		uint32(a.color), uint32(a.bgColor), a.bold, a.italic, a.reverse, a.underline)
+		uint32(a.Fg), uint32(a.Bg), a.Bold, a.Italic, a.Reverse, a.Underline)
 }
 
 func boolInt(b bool) int {
@@ -269,15 +189,6 @@ func boolInt(b bool) int {
 		return 1
 	}
 	return 0
-}
-
-func mustU32(t *testing.T, s string) uint32 {
-	t.Helper()
-	v, err := strconv.ParseUint(s, 16, 64)
-	if err != nil {
-		t.Fatalf("reading hex %q: %v", s, err)
-	}
-	return uint32(v)
 }
 
 // --------------------------------------------------------------------------
@@ -387,12 +298,12 @@ func bbReplay(t *testing.T) []string {
 
 	for i, s := range bbCorpus {
 		var o buffer
-		var ab attrBuf
+		var ab ansi.AttrBuf
 		bb.appendTo(s, &o, &ab)
 		n := o.length()
 		row := make([]string, 0, n+4)
 		row = append(row, fmt.Sprintf("append %d %s %d", i, escapeBB(o.bytes()), n))
-		for _, a := range ab.slice(n) {
+		for _, a := range ab.Extend(n) {
 			row = append(row, bbAttr(a))
 		}
 		out = append(out, strings.Join(row, " "))
@@ -409,9 +320,9 @@ func bbReplay(t *testing.T) []string {
 }
 
 // bbAttr renders an attribute the way the bbcode probe prints one.
-func bbAttr(a attr) string {
+func bbAttr(a ansi.Attr) string {
 	return fmt.Sprintf("%08x/%08x/%d/%d/%d/%d",
-		uint32(a.color), uint32(a.bgColor), a.bold, a.italic, a.reverse, a.underline)
+		uint32(a.Fg), uint32(a.Bg), a.Bold, a.Italic, a.Reverse, a.Underline)
 }
 
 // escapeBB renders bytes the way the bbcode probe prints them, which spells
@@ -518,8 +429,8 @@ func TestHighlightMatchesC(t *testing.T) {
 // hlReplay runs the same script as the C probe.
 func hlReplay(t *testing.T) []string {
 	t.Helper()
-	matchAttr := attrFromSGR("1")
-	errorAttr := attrFromSGR("31")
+	matchAttr := ansi.ParseSGR("1")
+	errorAttr := ansi.ParseSGR("31")
 	out := make([]string, 0, 2400)
 
 	for b, braces := range hlBraceSets {
@@ -534,9 +445,9 @@ func hlReplay(t *testing.T) []string {
 	for b, braces := range hlBraceSets {
 		for _, line := range hlLines {
 			for cp := -1; cp <= len(line)+1; cp++ {
-				var ab attrBuf
+				var ab ansi.AttrBuf
 				if len(line) > 0 {
-					ab.setAt(0, len(line), attr{})
+					ab.SetAt(0, len(line), ansi.Attr{})
 				}
 				highlightMatchBraces(line, &ab, cp, braces, matchAttr, errorAttr)
 				out = append(out, fmt.Sprintf("braces %d %s %d %s",
@@ -558,8 +469,8 @@ func hlReplay(t *testing.T) []string {
 	for i, in := range inputs {
 		for _, pos := range poss {
 			for _, count := range counts {
-				var ab attrBuf
-				ab.setAt(0, len(in), attr{})
+				var ab ansi.AttrBuf
+				ab.SetAt(0, len(in), ansi.Attr{})
 				env := &LineStyle{input: in, attrs: &ab, bb: bb}
 				env.Style(pos, count, "bold")
 				out = append(out, fmt.Sprintf("hl %d %d %d %s %d %d",
@@ -576,9 +487,9 @@ func hlReplay(t *testing.T) []string {
 		{"", "[b]x[/b]"},
 	}
 	for i, f := range fmts {
-		var ab attrBuf
+		var ab ansi.AttrBuf
 		if len(f[0]) > 0 {
-			ab.setAt(0, len(f[0]), attr{})
+			ab.SetAt(0, len(f[0]), ansi.Attr{})
 		}
 		env := &LineStyle{input: f[0], attrs: &ab, bb: bb}
 		env.StyleMarkup(f[0], f[1])
@@ -588,11 +499,11 @@ func hlReplay(t *testing.T) []string {
 }
 
 // hlAttrs renders an attribute buffer the way the probe prints one.
-func hlAttrs(ab *attrBuf) string {
-	n := ab.length()
+func hlAttrs(ab *ansi.AttrBuf) string {
+	n := ab.Length()
 	parts := make([]string, 0, n+1)
 	parts = append(parts, fmt.Sprint(n))
-	for _, a := range ab.slice(n) {
+	for _, a := range ab.Extend(n) {
 		parts = append(parts, bbAttr(a))
 	}
 	return strings.Join(parts, " ")
@@ -632,6 +543,32 @@ func hlRegenerate(t *testing.T) {
 	t.Logf("wrote %s: %d bytes", hlCorpusPath, len(out))
 }
 
+// TestPropertyBeatsAStyleOfTheSameName covers a case the corpus cannot.
+//
+// updateProperty answers with the name it consumed, and an empty string when
+// the name was not a property at all. updateWithStyles reads that answer to
+// decide whether to go on and search the styles: a property is finished, and
+// anything else may still be a style or a color name.
+//
+// The C probe never defines a style whose name collides with a property, so
+// the whole recorded corpus passes whether that answer is returned or not.
+// Every property sets its field before the answer is read, which is why the
+// difference only shows when a style of the same name exists to be applied on
+// top. This pins the answer itself.
+func TestPropertyBeatsAStyleOfTheSameName(t *testing.T) {
+	t.Parallel()
+	bb := newBBCode(nil)
+	bb.styleDef("bold", "color=red")
+	got := bb.style("bold")
+	if got.Bold != ansi.FlagOn {
+		t.Errorf("the bold property was not applied: %+v", got)
+	}
+	if got.Fg != ansi.None {
+		t.Errorf("the style named bold was applied as well as the property, "+
+			"giving color %#08x; a property name is not a style name", uint32(got.Fg))
+	}
+}
+
 // TestHighlightFormattedEmpty covers the case the corpus cannot.
 //
 // An empty format leaves nothing in the attribute buffer, and the C then reads
@@ -644,12 +581,12 @@ func TestHighlightFormattedEmpty(t *testing.T) {
 	var sink bytes.Buffer
 	tm := newTerm(&sink, termOptions{NoColor: true})
 	bb := newBBCode(tm)
-	var ab attrBuf
-	ab.setAt(0, 5, attrFromSGR("31"))
+	var ab ansi.AttrBuf
+	ab.SetAt(0, 5, ansi.ParseSGR("31"))
 	env := &LineStyle{input: "hello", attrs: &ab, bb: bb}
 	env.StyleMarkup("hello", "")
-	want := attrFromSGR("31")
-	for i, got := range ab.slice(5) {
+	want := ansi.ParseSGR("31")
+	for i, got := range ab.Extend(5) {
 		if got != want {
 			t.Errorf("byte %d became %v, want it left alone as %v", i, got, want)
 		}
@@ -661,14 +598,14 @@ func TestHighlightFormattedEmpty(t *testing.T) {
 
 // newLineStyle returns a LineStyle over s, and the attribute buffer behind it,
 // which is how a test sees what a highlighter did.
-func newLineStyle(t *testing.T, s string) (*LineStyle, *attrBuf) {
+func newLineStyle(t *testing.T, s string) (*LineStyle, *ansi.AttrBuf) {
 	t.Helper()
 	var sink bytes.Buffer
 	tm := newTerm(&sink, termOptions{NoColor: true})
 	bb := newBBCode(tm)
 	bb.styleDef("keyword", "bold")
-	var ab attrBuf
-	ab.setAt(0, len(s), attr{})
+	var ab ansi.AttrBuf
+	ab.SetAt(0, len(s), ansi.Attr{})
 	return &LineStyle{input: s, attrs: &ab, bb: bb}, &ab
 }
 
@@ -725,10 +662,10 @@ func TestStyleCountsBytesAndStyleRunesCountsCharacters(t *testing.T) {
 }
 
 // markedBytes counts how many of the first n bytes carry any attribute.
-func markedBytes(ab *attrBuf, n int) int {
+func markedBytes(ab *ansi.AttrBuf, n int) int {
 	count := 0
-	for _, a := range ab.slice(n) {
-		if a != (attr{}) {
+	for _, a := range ab.Extend(n) {
+		if a != (ansi.Attr{}) {
 			count++
 		}
 	}
@@ -821,7 +758,7 @@ func TestHighlighterFuncRunsTheFunction(t *testing.T) {
 	tm := newTerm(&sink, termOptions{NoColor: true})
 	bb := newBBCode(tm)
 	bb.styleDef("keyword", "bold")
-	var ab attrBuf
+	var ab ansi.AttrBuf
 
 	var sawText string
 	h := HighlighterFunc(func(l *LineStyle) {
@@ -860,7 +797,7 @@ func TestStyleNamesResolveInOrder(t *testing.T) {
 	setTermEnv("", "xterm-256color", "")
 
 	// styleFor returns the attributes a tag of this name resolves to.
-	styleFor := func(define func(bb *bbCode), name string) attr {
+	styleFor := func(define func(bb *bbCode), name string) ansi.Attr {
 		var sink bytes.Buffer
 		tm := newTerm(&sink, termOptions{NoColor: true, Sizer: fixedSize{cols: 80, rows: 24}})
 		bb := newBBCode(tm)
@@ -873,8 +810,8 @@ func TestStyleNamesResolveInOrder(t *testing.T) {
 			bb.styleDef("twice", "color=red")
 			bb.styleDef("twice", "color=lime")
 		}, "twice")
-		if want := ansi.RGBHex(0x00ff00); got.color != want {
-			t.Errorf("the color is %08x, want %08x: the older definition won", got.color, want)
+		if want := ansi.RGBHex(0x00ff00); got.Fg != want {
+			t.Errorf("the color is %08x, want %08x: the older definition won", got.Fg, want)
 		}
 	})
 
@@ -884,11 +821,11 @@ func TestStyleNamesResolveInOrder(t *testing.T) {
 		got := styleFor(func(bb *bbCode) {
 			bb.styleDef("b", "color=red")
 		}, "b")
-		if got.bold == flagOn {
+		if got.Bold == ansi.FlagOn {
 			t.Error("the builtin bold won, so a caller cannot redefine a builtin name")
 		}
-		if want := ansi.RGBHex(0xff0000); got.color != want {
-			t.Errorf("the color is %08x, want %08x", got.color, want)
+		if want := ansi.RGBHex(0xff0000); got.Fg != want {
+			t.Errorf("the color is %08x, want %08x", got.Fg, want)
 		}
 	})
 
@@ -898,11 +835,11 @@ func TestStyleNamesResolveInOrder(t *testing.T) {
 		got := styleFor(func(bb *bbCode) {
 			bb.styleDef("red", "underline")
 		}, "red")
-		if got.underline != flagOn {
+		if got.Underline != ansi.FlagOn {
 			t.Error("the colour name won, so a caller cannot define a style named after a colour")
 		}
-		if got.color != ansi.None {
-			t.Errorf("the color is %08x, want none: the colour name was applied as well", got.color)
+		if got.Fg != ansi.None {
+			t.Errorf("the color is %08x, want none: the colour name was applied as well", got.Fg)
 		}
 	})
 }

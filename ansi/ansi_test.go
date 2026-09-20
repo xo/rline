@@ -91,11 +91,11 @@ func TestPaletteBits(t *testing.T) {
 		p    Palette
 		want int
 	}{
-		{Mono, 1},
-		{ANSI8, 3},
-		{ANSI16, 4},
-		{ANSI256, 8},
-		{TrueColor, 24},
+		{PaletteMono, 1},
+		{PaletteANSI8, 3},
+		{PaletteANSI16, 4},
+		{PaletteANSI256, 8},
+		{PaletteTrueColor, 24},
 		{Palette(99), 4},
 	} {
 		if got := test.p.Bits(); got != test.want {

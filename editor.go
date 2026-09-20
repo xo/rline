@@ -9,7 +9,11 @@
 
 package rline
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/xo/rline/ansi"
+)
 
 // --------------------------------------------------------------------------
 // editor.go
@@ -73,8 +77,8 @@ type editor struct {
 	opts editOptions
 
 	// Reused so that redrawing does not allocate.
-	attrs      attrBuf
-	attrsExtra attrBuf
+	attrs      ansi.AttrBuf
+	attrsExtra ansi.AttrBuf
 }
 
 //-------------------------------------------------------------

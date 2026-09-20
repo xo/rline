@@ -58,7 +58,7 @@ type term struct {
 	// the write path rather than by setAttr, because setAttr sets attributes
 	// by writing escape sequences, and appendEsc reads every sequence that
 	// goes past. See setAttr.
-	attr attr
+	attr ansi.Attr
 
 	// rawEnabled counts how many times raw mode was asked for. On a Unix
 	// system the tty does the work and this only counts.
@@ -88,11 +88,11 @@ func newTerm(out io.Writer, opts termOptions) *term {
 		mode:    lineBuffered,
 		width:   80,
 		height:  25,
-		palette: ansi.ANSI16, // near enough to universal
+		palette: ansi.PaletteANSI16, // near enough to universal
 		nocolor: opts.NoColor,
 		silent:  opts.Silent,
 		isUTF8:  opts.IsUTF8,
-		attr:    attrDefault(),
+		attr:    ansi.DefaultAttr(),
 	}
 	if os.Getenv("NO_COLOR") != "" {
 		t.nocolor = true
@@ -119,40 +119,40 @@ func detectPalette() ansi.Palette {
 	colorterm := os.Getenv("COLORTERM")
 	switch {
 	case containsAny(colorterm, "24bit", "truecolor", "direct"):
-		return ansi.TrueColor
+		return ansi.PaletteTrueColor
 	case containsAny(colorterm, "8bit", "256color"):
-		return ansi.ANSI256
+		return ansi.PaletteANSI256
 	case containsAny(colorterm, "4bit", "16color"):
-		return ansi.ANSI16
+		return ansi.PaletteANSI16
 	case containsAny(colorterm, "3bit", "8color"):
-		return ansi.ANSI8
+		return ansi.PaletteANSI8
 	case containsAny(colorterm, "1bit", "nocolor", "monochrome"):
-		return ansi.Mono
+		return ansi.PaletteMono
 	case os.Getenv("WT_SESSION") != "":
-		return ansi.TrueColor // Windows Terminal
+		return ansi.PaletteTrueColor // Windows Terminal
 	case os.Getenv("ITERM_SESSION_ID") != "":
-		return ansi.TrueColor // iTerm2
+		return ansi.PaletteTrueColor // iTerm2
 	case os.Getenv("VSCODE_PID") != "":
-		return ansi.TrueColor // the terminal inside VS Code
+		return ansi.PaletteTrueColor // the terminal inside VS Code
 	}
 	eterm := os.Getenv("TERM")
 	switch {
 	// The C tests COLORTERM for "24bit" a second time here. It cannot be
 	// reached, because the first test above already caught it.
 	case containsAny(eterm, "truecolor", "direct"):
-		return ansi.TrueColor
+		return ansi.PaletteTrueColor
 	case containsAny(eterm, "alacritty", "kitty"):
-		return ansi.TrueColor
+		return ansi.PaletteTrueColor
 	case containsAny(eterm, "256color", "gnome"):
-		return ansi.ANSI256
+		return ansi.PaletteANSI256
 	case containsAny(eterm, "16color"):
-		return ansi.ANSI16
+		return ansi.PaletteANSI16
 	case containsAny(eterm, "8color"):
-		return ansi.ANSI8
+		return ansi.PaletteANSI8
 	case containsAny(eterm, "monochrome", "nocolor", "dumb"):
-		return ansi.Mono
+		return ansi.PaletteMono
 	}
-	return ansi.ANSI16
+	return ansi.PaletteANSI16
 }
 
 // containsAny reports whether s holds any of the given parts.
@@ -294,7 +294,7 @@ func (t *term) appendEsc(s []byte) {
 		if t.nocolor {
 			return
 		}
-		t.attr = t.attr.updateWith(attrFromEscSGR(string(s)))
+		t.attr = t.attr.Merge(ansi.ParseEscapeSGR(string(s)))
 	}
 	t.buf.appendString(string(s))
 }
@@ -469,7 +469,7 @@ func (t *term) setColor(c ansi.Code) { t.write(ansi.Format(t.palette, c, false))
 func (t *term) setBgColor(c ansi.Code) { t.write(ansi.Format(t.palette, c, true)) }
 
 // getAttr returns the attributes the terminal is showing.
-func (t *term) getAttr() attr { return t.attr }
+func (t *term) getAttr() ansi.Attr { return t.attr }
 
 // setAttr makes the terminal show a, writing only what has to change.
 //
@@ -480,33 +480,33 @@ func (t *term) getAttr() attr { return t.attr }
 // names the nearest color it can show, so reading it back would record the
 // approximation. Storing the color that was asked for instead stops the next
 // call sending the same sequence again.
-func (t *term) setAttr(a attr) {
+func (t *term) setAttr(a ansi.Attr) {
 	if t.nocolor {
 		return
 	}
-	if a.color != t.attr.color && a.color != ansi.None {
-		t.setColor(a.color)
-		if t.palette < ansi.TrueColor && a.color.IsRGB() {
-			t.attr.color = a.color
+	if a.Fg != t.attr.Fg && a.Fg != ansi.None {
+		t.setColor(a.Fg)
+		if t.palette < ansi.PaletteTrueColor && a.Fg.IsRGB() {
+			t.attr.Fg = a.Fg
 		}
 	}
-	if a.bgColor != t.attr.bgColor && a.bgColor != ansi.None {
-		t.setBgColor(a.bgColor)
-		if t.palette < ansi.TrueColor && a.bgColor.IsRGB() {
-			t.attr.bgColor = a.bgColor
+	if a.Bg != t.attr.Bg && a.Bg != ansi.None {
+		t.setBgColor(a.Bg)
+		if t.palette < ansi.PaletteTrueColor && a.Bg.IsRGB() {
+			t.attr.Bg = a.Bg
 		}
 	}
-	if a.bold != t.attr.bold && a.bold != flagNone {
-		t.bold(a.bold == flagOn)
+	if a.Bold != t.attr.Bold && a.Bold != ansi.FlagUnset {
+		t.bold(a.Bold == ansi.FlagOn)
 	}
-	if a.underline != t.attr.underline && a.underline != flagNone {
-		t.underline(a.underline == flagOn)
+	if a.Underline != t.attr.Underline && a.Underline != ansi.FlagUnset {
+		t.underline(a.Underline == ansi.FlagOn)
 	}
-	if a.reverse != t.attr.reverse && a.reverse != flagNone {
-		t.reverse(a.reverse == flagOn)
+	if a.Reverse != t.attr.Reverse && a.Reverse != ansi.FlagUnset {
+		t.reverse(a.Reverse == ansi.FlagOn)
 	}
-	if a.italic != t.attr.italic && a.italic != flagNone {
-		t.italic(a.italic == flagOn)
+	if a.Italic != t.attr.Italic && a.Italic != ansi.FlagUnset {
+		t.italic(a.Italic == ansi.FlagOn)
 	}
 }
 
@@ -515,7 +515,7 @@ func (t *term) setAttr(a attr) {
 // A nil attrs writes the text plain. Otherwise the text is written in runs,
 // one per stretch that shares an attribute, and the attributes are put back
 // to what they were at the end.
-func (t *term) writeFormatted(s string, attrs []attr) {
+func (t *term) writeFormatted(s string, attrs []ansi.Attr) {
 	if attrs == nil {
 		t.write(s)
 		return
@@ -526,7 +526,7 @@ func (t *term) writeFormatted(s string, attrs []attr) {
 		t.startRaw()
 	}
 	base := t.getAttr()
-	var current attr
+	var current ansi.Attr
 	i, n := 0, 0
 	for i+n < len(s) && s[i+n] != 0 {
 		if current != attrs[i+n] {
@@ -536,7 +536,7 @@ func (t *term) writeFormatted(s string, attrs []attr) {
 				n = 0
 			}
 			current = attrs[i]
-			t.setAttr(base.updateWith(current))
+			t.setAttr(base.Merge(current))
 		}
 		n++
 	}

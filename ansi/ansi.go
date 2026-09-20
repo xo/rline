@@ -7,11 +7,21 @@
 // terminal will accept, matching it to the nearest color it has when the
 // terminal understands less than the color asks for.
 //
+// An [Attr] is a color, a background color, and four switches such as bold.
+// Each switch is three valued, so that [Attr.Merge] can lay one set over
+// another and leave alone whatever the top set says nothing about. An
+// [AttrBuf] holds one Attr per byte of some text.
+//
+// A color or an attribute can be read out of text: [ParseSGR] from an escape
+// sequence, [ParseColor] from a name or a hex value, [ParseANSI256] from a
+// palette index. Each reads the way the C's sscanf does, quirks and all.
+//
 // Which palette a terminal has is not decided here. That is a question about
 // the environment rather than about color, so the caller works it out and
-// passes the answer in.
+// passes the answer in. Neither is drawing: this package says what bytes mean
+// a color, and nothing about when to write them.
 //
-// Ported from isocline/src/term_color.c and isocline/src/common.h.
+// Ported from isocline/src/term_color.c, attr.c and common.h.
 package ansi
 
 import (
@@ -207,27 +217,32 @@ const CSI = "\x1b["
 type Palette int
 
 // Palette values, from least to most capable.
+//
+// The names carry the Palette prefix although the package name already says
+// ansi, because a Code constant and a Palette constant share this one
+// namespace: unprefixed, ansi.ANSI16 reads as a color beside ansi.Red rather
+// than as what a terminal can do.
 const (
-	Mono      Palette = iota // no color at all
-	ANSI8                    // the 8 basic codes, 30 to 37
-	ANSI16                   // the basic codes and the bright ones, 90 to 97
-	ANSI256                  // a 256 entry palette
-	TrueColor                // 24 bit color
+	PaletteMono      Palette = iota // no color at all
+	PaletteANSI8                    // the 8 basic codes, 30 to 37
+	PaletteANSI16                   // the basic codes and the bright ones, 90 to 97
+	PaletteANSI256                  // a 256 entry palette
+	PaletteTrueColor                // 24 bit color
 )
 
 // Bits returns how many bits of color the palette carries. The edit loop uses
 // this to decide how much of a highlight it can show.
 func (p Palette) Bits() int {
 	switch p {
-	case Mono:
+	case PaletteMono:
 		return 1
-	case ANSI8:
+	case PaletteANSI8:
 		return 3
-	case ANSI16:
+	case PaletteANSI16:
 		return 4
-	case ANSI256:
+	case PaletteANSI256:
 		return 8
-	case TrueColor:
+	case PaletteTrueColor:
 		return 24
 	}
 	return 4
@@ -395,13 +410,13 @@ func selector(bg bool) int {
 // nothing.
 func Format(p Palette, c Code, bg bool) string {
 	switch {
-	case c == None || p == Mono:
+	case c == None || p == PaletteMono:
 		return ""
-	case p == ANSI8:
+	case p == PaletteANSI8:
 		return formatANSI8(c, bg)
-	case !c.IsRGB() || p == ANSI16:
+	case !c.IsRGB() || p == PaletteANSI16:
 		return formatANSI16(c, bg)
-	case p == ANSI256:
+	case p == PaletteANSI256:
 		return formatANSI256(c, bg)
 	}
 	return formatRGB(c, bg)

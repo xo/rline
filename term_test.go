@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/xo/rline/ansi"
 )
 
 const (
@@ -166,7 +168,7 @@ func termReplay(t *testing.T) []string {
 		tm.setBufferMode(unbuffered)
 		emit("discard")
 		for i, s := range []string{"1", "1", "31", "31", "0", "4", "38;5;33", "38;2;1;2;3", "22", ""} {
-			tm.setAttr(attrFromSGR(s))
+			tm.setAttr(ansi.ParseSGR(s))
 			tm.flush()
 			emit("setattr")
 			out = append(out, fmt.Sprintf("attrstate %d %s", i, attrString(tm.getAttr())))
@@ -180,13 +182,13 @@ func termReplay(t *testing.T) []string {
 		tm := newT()
 		tm.setBufferMode(unbuffered)
 		emit("discard")
-		ab := &attrBuf{}
+		ab := &ansi.AttrBuf{}
 		sb := &buffer{}
-		ab.appendTo(sb, "red", attrFromSGR("31"))
-		ab.appendTo(sb, "plain", attr{})
-		ab.appendTo(sb, "bold", attrFromSGR("1"))
+		appendMarked(ab, sb, "red", ansi.ParseSGR("31"))
+		appendMarked(ab, sb, "plain", ansi.Attr{})
+		appendMarked(ab, sb, "bold", ansi.ParseSGR("1"))
 		s := sb.string()
-		tm.writeFormatted(s, ab.slice(sb.length()))
+		tm.writeFormatted(s, ab.Extend(sb.length()))
 		tm.flush()
 		emit("formatted")
 		tm.writeFormatted(s, nil)

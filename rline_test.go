@@ -19,6 +19,8 @@ import (
 	"unicode"
 
 	"github.com/xo/rline/internal/capture"
+
+	"github.com/xo/rline/ansi"
 )
 
 // --------------------------------------------------------------------------
@@ -158,7 +160,7 @@ func TestDefaultStylesAreDefined(t *testing.T) {
 		"ic-prompt", "ic-info", "ic-diminish", "ic-emphasis",
 		"ic-hint", "ic-error", "ic-bracematch",
 	} {
-		if bb.style(name) == (attr{}) {
+		if bb.style(name) == (ansi.Attr{}) {
 			t.Errorf("the style %q sets nothing", name)
 		}
 	}
