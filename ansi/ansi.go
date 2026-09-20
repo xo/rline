@@ -98,6 +98,9 @@ func FromColor(c color.Color) Code {
 // table, because the terminal's own theme decides the real answer and is not
 // knowable from here. None and Default both answer transparent black, which is
 // the only honest answer for "the terminal decides".
+//
+// The four results are named because image/color.Color names them, and
+// because four bare uint32 in a row say nothing about which is which.
 func (c Code) RGBA() (r, g, b, a uint32) {
 	var hex uint32
 	switch {

@@ -246,7 +246,7 @@ func (h *history) load() error {
 // mode is deliberately left out now: it cannot be expressed on Windows at
 // all, and the history is going to be rewritten, so guarding it here would
 // be work thrown away twice. PLAN.md records what that leaves open.
-func (h *history) save() (err error) {
+func (h *history) save() error {
 	if h.name == "" {
 		return nil
 	}

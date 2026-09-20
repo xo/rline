@@ -218,7 +218,7 @@ func widthDiverges(ranges []widthRange, s []byte) bool {
 // checkStringbufLine checks one recorded call. It returns the kind of call, a
 // difference that is always a failure, and a difference that a disputed
 // character width can explain.
-func checkStringbufLine(t *testing.T, line string) (kind, hard, soft string) {
+func checkStringbufLine(t *testing.T, line string) (string, string, string) {
 	t.Helper()
 	f := strings.Fields(line)
 	if len(f) == 0 {
