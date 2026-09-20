@@ -312,8 +312,8 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     which are textual includes of `editline.c` rather than separate units,
     are done as well. `history.go` holds walking through the history
     and the incremental search that Ctrl-R opens, which draws its own prompt
-    below the line and reads its own keys. `comp.go` holds
-    offering completions and the menu, which draws itself the same way.
+    below the line and reads its own keys. `comp.go` holds offering
+    completions, and `menu.go` the menu, which draws itself the same way.
 
     The completion menu cannot be driven from outside, because it reads its
     own keys: each recorded case loads the keys it types into the tty, calls
@@ -1626,7 +1626,8 @@ which.
   prompt.go      reading one line: drawing, the hint, resize, dispatch, help
   editor.go      the line being edited, its operations and the undo stack
   text.go        the buffer, widths, word and line boundaries, rows and columns
-  comp.go        completions, completers, file names and the menu
+  comp.go        completions, completers and file names
+  menu.go        the menu of completions, which reads its own keys
   history.go     the history list, its file, walking and searching
   bbcode.go      markup and the highlighting built on it
   term.go        writing to a terminal
