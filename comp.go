@@ -608,8 +608,8 @@ func unescapeWord(word []byte, isWordChar text.CharClass, escape byte) []byte {
 		}
 		wpos += ofs
 	}
-	if end := bytes.IndexByte(buf, 0); end >= 0 {
-		return buf[:end]
+	if before, _, ok := bytes.Cut(buf, []byte{0}); ok {
+		return before
 	}
 	return buf[:wlen]
 }
@@ -739,11 +739,10 @@ func colorFromKey(b *strings.Builder, setting, key string) bool {
 	if key == "" {
 		return false
 	}
-	i := strings.Index(setting, key)
-	if i < 0 {
+	_, rest, ok := strings.Cut(setting, key)
+	if !ok {
 		return false
 	}
-	rest := setting[i+len(key):]
 	if key[len(key)-1] != '=' {
 		// A file type key already ends with the equals sign. An extension
 		// key does not, so one has to follow it.
@@ -852,7 +851,7 @@ func matchExtension(name, extensions string) bool {
 	if extensions == "" {
 		return true
 	}
-	for _, ext := range strings.Split(extensions, ";") {
+	for ext := range strings.SplitSeq(extensions, ";") {
 		if endsWith(name, ext) {
 			return true
 		}
@@ -986,7 +985,7 @@ func filenameCompleter(cenv *Completion, prefix string, color bool,
 	}
 	// A relative path is completed under each root in turn. The C code does
 	// not stop when no more completions are accepted, and neither does this.
-	for _, root := range strings.Split(roots, ";") {
+	for root := range strings.SplitSeq(roots, ";") {
 		dir := root + string(dirSeparator)
 		if dirPrefix != "" {
 			// Without its trailing separator, because one was just added.

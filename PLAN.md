@@ -1824,6 +1824,22 @@ file. What a color is, and how one is reduced to what a terminal can actually
 show, is answerable without knowing anything about markup, a line, or a
 terminal session, so it is the `ansi` package and a caller can use it alone.
 
+A name earns its place by saying something the place it is used does not.
+`terminatingSignals` was a package-level slice of seven signals with one
+reader, and `signal.Notify(d.stopCh, terminatingSignals...)` said exactly
+what `signal.Notify(d.stopCh, unix.SIGTERM, ...)` says, so the name bought an
+indirection and some mutable package state and nothing else. It is inline
+now, with the paragraph explaining why those seven and not SIGSEGV.
+
+Checked for others with go/ast rather than by eye, and there are none. The
+seventeen composite literals with one reader are all data — the 172 colour
+names, the LS_COLORS table, the recorded test cases — where the name is how
+a reader finds a hundred lines of values. The twelve tiny functions with one
+caller are almost all predicates, where `isHexDigit(c)` plainly says more
+than the three comparisons it stands for, and several are named after the C
+functions they were ported from, so inlining would cut the thread back to
+the original. The test is not how many times a name is used.
+
 A method lives with the behavior it serves, which is usually but not always
 the file that declares its type. The two rules pull against each other and
 the order matters: group by behavior first, and a type whose methods all do
@@ -2001,7 +2017,7 @@ is not a passing one.
 
 ## Checks
 
-Three checks run on the Go code:
+Four checks run on the Go code, plus one that runs when someone remembers to.
 
 1. `gofmt -l .` names any file that is not formatted.
 2. `go vet ./...` reports suspicious code.
@@ -2025,6 +2041,19 @@ Three checks run on the Go code:
 with the toolchain of this module. A golangci-lint binary built elsewhere can
 fail to read the export data of a newer Go release, and then it reports every
 standard library import as an error.
+
+5. `modernize ./...` names constructs that a newer Go writes better. It is
+   not pinned and not in the module, because it rewrites source rather than
+   judging it: pinning it would freeze the definition of modern, which is the
+   one thing about this check that should move. Install it when it is wanted:
+
+       go install golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest
+
+   Then `modernize ./...` to see what it would change and `modernize -fix
+   ./...` to let it. Read the diff rather than trusting it: of the fifteen it
+   found here, fourteen were right as written and one produced
+   `_, after, ok := strings.Cut(...)` followed by `rest := after`, which is a
+   correct rewrite and a worse line than naming the value at the Cut.
 
 ## What rline offers usql
 

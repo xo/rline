@@ -175,7 +175,7 @@ func attrRegenerate(t *testing.T) {
 		t.Fatalf("running the probe: %v", err)
 	}
 	var b strings.Builder
-	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimRight(string(out), "\n"), "\n") {
 		if slices.Contains(attrKinds, attrKind(strings.Fields(line))) {
 			b.WriteString(line)
 			b.WriteByte('\n')

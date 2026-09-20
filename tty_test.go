@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -466,8 +467,8 @@ func checkWinKeyLine(t *testing.T, line string) (string, string) {
 
 	// The bytes, in the order the decoder will read them.
 	pushed := make([]byte, 0, len(term.pushedBytes))
-	for i := len(term.pushedBytes) - 1; i >= 0; i-- {
-		pushed = append(pushed, term.pushedBytes[i])
+	for _, v := range slices.Backward(term.pushedBytes) {
+		pushed = append(pushed, v)
 	}
 	if got, want := hexOrDash(pushed), f[3]; got != want {
 		return f[0], fmt.Sprintf("%s pushed %s, want %s", what, got, want)
@@ -715,7 +716,7 @@ func escapeSeeds(tb testing.TB) []escapeSeed {
 	if err != nil {
 		tb.Fatalf("reading the corpus for seeds: %v", err)
 	}
-	for _, line := range strings.Split(strings.TrimRight(string(b), "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimRight(string(b), "\n"), "\n") {
 		fields := strings.Fields(line)
 		if len(fields) < 3 || fields[0] != "keys" {
 			continue

@@ -165,7 +165,7 @@ func regenerate(t *testing.T) {
 		t.Fatalf("running the probe: %v", err)
 	}
 	var calls, widths strings.Builder
-	for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimRight(string(out), "\n"), "\n") {
 		if strings.HasPrefix(line, "width ") {
 			widths.WriteString(line)
 			widths.WriteByte('\n')

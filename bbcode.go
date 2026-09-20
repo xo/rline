@@ -15,6 +15,7 @@
 package rline
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/xo/rline/ansi"
@@ -316,9 +317,9 @@ func (bb *bbCode) updateWithStyles(t *bbTag, name, value string, useBgColor bool
 	}
 	// The styles defined by the caller are searched from the newest back, so a
 	// later definition of the same name wins.
-	for i := len(bb.styles) - 1; i >= 0; i-- {
-		if bb.styles[i].name == name {
-			t.attr = t.attr.Merge(bb.styles[i].attr)
+	for _, v := range slices.Backward(bb.styles) {
+		if v.name == name {
+			t.attr = t.attr.Merge(v.attr)
 			return
 		}
 	}

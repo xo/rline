@@ -21,19 +21,6 @@ import (
 //
 // Ported from isocline/src/tty.c.
 
-// terminatingSignals are the signals that mean the program is stopping. The
-// terminal has to go back to how it was before the program dies, or the shell
-// that started it is left with no echo and no line editing.
-//
-// isocline also catches SIGSEGV, SIGTRAP and SIGBUS. This port does not. The
-// Go runtime owns those, it needs them to print a stack trace and to run its
-// own checks, and taking them over would break more than a tidy terminal is
-// worth.
-var terminatingSignals = []os.Signal{
-	unix.SIGTERM, unix.SIGINT, unix.SIGQUIT, unix.SIGHUP,
-	unix.SIGTSTP, unix.SIGTTIN, unix.SIGTTOU,
-}
-
 // ttyDevice is a terminal opened on a file descriptor. It supplies the bytes
 // that a tty decodes, and it owns the terminal settings.
 type ttyDevice struct {
@@ -130,7 +117,17 @@ func (d *ttyDevice) watchSignals() {
 	}()
 
 	d.stopCh = make(chan os.Signal, 1)
-	signal.Notify(d.stopCh, terminatingSignals...)
+	// These are the signals that mean the program is stopping. The terminal
+	// has to go back to how it was before it dies, or the shell that started
+	// it is left with no echo and no line editing.
+	//
+	// isocline also catches SIGSEGV, SIGTRAP and SIGBUS. This port does not.
+	// The Go runtime owns those, it needs them to print a stack trace and to
+	// run its own checks, and taking them over would break more than a tidy
+	// terminal is worth.
+	signal.Notify(d.stopCh,
+		unix.SIGTERM, unix.SIGINT, unix.SIGQUIT, unix.SIGHUP,
+		unix.SIGTSTP, unix.SIGTTIN, unix.SIGTTOU)
 	go func() {
 		var sig os.Signal
 		select {
@@ -203,10 +200,7 @@ func (d *ttyDevice) readByte(timeout time.Duration) (byte, bool) {
 	if timeout < 0 {
 		return d.readNow()
 	}
-	ms := int(timeout / time.Millisecond)
-	if ms < 0 {
-		ms = 0
-	}
+	ms := max(int(timeout/time.Millisecond), 0)
 	fds := []unix.PollFd{{Fd: int32(d.fd), Events: unix.POLLIN}}
 	n, err := unix.Poll(fds, ms)
 	if err != nil || n < 1 {

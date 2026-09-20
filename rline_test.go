@@ -409,7 +409,7 @@ func TestExampleHighlightsAndSpansLines(t *testing.T) {
 	// A comment and a string are colored differently from a keyword, so the
 	// output holds more than one color.
 	colors := map[string]bool{}
-	for _, part := range strings.Split(raw, "\x1b[") {
+	for part := range strings.SplitSeq(raw, "\x1b[") {
 		if i := strings.IndexByte(part, 'm'); i > 0 {
 			colors[part[:i]] = true
 		}
@@ -674,7 +674,7 @@ func TestExampleWalksTheHistory(t *testing.T) {
 		t.Skipf("cannot record on this system: %v", err)
 	}
 	var ran []string
-	for _, ln := range strings.Split(stripEscapes(string(tr.Bytes())), "\n") {
+	for ln := range strings.SplitSeq(stripEscapes(string(tr.Bytes())), "\n") {
 		if ln = strings.Trim(ln, "\r "); strings.HasPrefix(ln, "ran ") {
 			ran = append(ran, ln)
 		}
@@ -729,7 +729,7 @@ func TestExampleSearchesTheHistory(t *testing.T) {
 	}
 	// The entry the search found is the one that ran, not the newer one.
 	last := ""
-	for _, ln := range strings.Split(plain, "\n") {
+	for ln := range strings.SplitSeq(plain, "\n") {
 		if ln = strings.Trim(ln, "\r "); strings.HasPrefix(ln, "ran ") {
 			last = ln
 		}
@@ -840,7 +840,7 @@ func TestExampleNoHintInsideAWord(t *testing.T) {
 	// Only the redraws of the line itself, because the banner is written in
 	// the same color a hint uses.
 	var drawn []string
-	for _, ln := range strings.Split(capture.Escape(tr.Bytes()), "\n") {
+	for ln := range strings.SplitSeq(capture.Escape(tr.Bytes()), "\n") {
 		if strings.Contains(ln, "wh") {
 			drawn = append(drawn, ln)
 		}
