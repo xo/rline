@@ -990,3 +990,27 @@ func TestHighlighterSeesTheWholeStatement(t *testing.T) {
 		t.Errorf("the highlighter never saw more than two rows at once, so it is being handed one row at a time: %q", seen)
 	}
 }
+
+// TestHintsCanBeTurnedOff checks the switch in the direction a user would
+// notice.
+//
+// Seven tests exercise hints being on and none exercised them being off, so
+// the guard that honours the switch could be removed entirely and the whole
+// suite stayed green. Tests that all point the same way look like coverage
+// of a switch and are coverage of one of its positions.
+func TestHintsCanBeTurnedOff(t *testing.T) {
+	t.Parallel()
+	const typed = "sel"
+	words := manyWords("select", "settle")
+
+	_, _, _, on := feedSession(t, typed+kEnter, feedOpts{Completer: words, Hints: true})
+	if drawn := stripEscapes(on); !strings.Contains(drawn, "select") {
+		t.Fatalf("with hints on the suggestion was never drawn, so this test "+
+			"cannot tell the two apart\ndrawn: %s", drawn)
+	}
+
+	_, _, _, off := feedSession(t, typed+kEnter, feedOpts{Completer: words})
+	if drawn := stripEscapes(off); strings.Contains(drawn, "select") {
+		t.Errorf("with hints off the suggestion was drawn anyway\ndrawn: %s", drawn)
+	}
+}
