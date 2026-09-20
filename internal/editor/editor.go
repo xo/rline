@@ -44,7 +44,6 @@ type EditOptions struct {
 	NoAutoPair bool
 }
 
-// Editor holds a line being edited.
 // noCopy makes `go vet` refuse a copy of whatever embeds it.
 //
 // An Editor holds two strings.Builder, which panic at run time if they are
@@ -67,6 +66,10 @@ func (*noCopy) Lock() {}
 // Unlock satisfies sync.Locker for vet's benefit. It is never called.
 func (*noCopy) Unlock() {}
 
+// Editor holds a line being edited.
+//
+// It must not be copied: see noCopy above for what goes wrong and what
+// stops it.
 type Editor struct {
 	_ noCopy
 
