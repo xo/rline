@@ -255,11 +255,11 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    `testdata/history.txt` records 424 cases, including the escaping of every
    byte on its own.
 9. `completions.c` and `completers.c`. `completions.c` is done, in
-   `complete.go`: the list of what the user could type, how much of the
+   `comp.go`: the list of what the user could type, how much of the
    line each one takes away on either side of the cursor, the order the menu
    shows them in, and filling in the longest start they all share. From
    `completers.c`, word and quoted word completion are done in
-   `complete.go`, which is the part that works out which word the completer
+   `comp.go`, which is the part that works out which word the completer
    should see and puts the quoting back on what comes back.
 
    `tools/build-probe-completions.sh` builds a sixth probe, and
@@ -267,7 +267,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    word completion over every combination of quote, escape and character
    class.
 
-   Completing a file name is done as well, in `complete.go`: reading a
+   Completing a file name is done as well, in `comp.go`: reading a
    directory, matching an extension, working out the type of an entry, and
    colouring it from `LS_COLORS` or `LSCOLORS`.
 
@@ -312,7 +312,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     which are textual includes of `editline.c` rather than separate units,
     are done as well. `history.go` holds walking through the history
     and the incremental search that Ctrl-R opens, which draws its own prompt
-    below the line and reads its own keys. `complete.go` holds
+    below the line and reads its own keys. `comp.go` holds
     offering completions and the menu, which draws itself the same way.
 
     The completion menu cannot be driven from outside, because it reads its
@@ -1612,7 +1612,7 @@ which.
   prompt.go      reading one line: drawing, the hint, resize, dispatch, help
   editor.go      the line being edited, its operations and the undo stack
   text.go        the buffer, widths, word and line boundaries, rows and columns
-  complete.go    completions, completers, file names and the menu
+  comp.go        completions, completers, file names and the menu
   history.go     the history list, its file, walking and searching
   bbcode.go      markup and the highlighting built on it
   term.go        writing to a terminal
