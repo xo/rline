@@ -837,3 +837,72 @@ func TestHighlighterFuncRunsTheFunction(t *testing.T) {
 		t.Errorf("the highlighter marked %d bytes, want 6", marked)
 	}
 }
+
+// TestStyleNamesResolveInOrder pins which answer wins when a name could be
+// more than one thing.
+//
+// A tag's name is looked up in four places in turn: the properties, the
+// styles the caller defined, the builtin styles, and the HTML colour names.
+// The order between them is a decision, and the recordings cannot reach any
+// of the boundaries: tools/probe-bbcode.c defines exactly two styles,
+// "mystyle" and "other", and neither collides with a property, a builtin or
+// a colour, so every recorded lookup finds its answer in one place only.
+// Measured rather than supposed — swapping the caller styles with the
+// builtins, putting the colours in front of the caller styles, and reversing
+// the search for the newest definition all leave the whole suite green.
+//
+// The fourth boundary, a property against a style of the same name, is
+// pinned separately by the Linux session, who found it while restructuring
+// the parser. This covers the other three.
+func TestStyleNamesResolveInOrder(t *testing.T) {
+	restore := saveEnv(t)
+	defer restore()
+	setTermEnv("", "xterm-256color", "")
+
+	// styleFor returns the attributes a tag of this name resolves to.
+	styleFor := func(define func(bb *bbCode), name string) attr {
+		var sink bytes.Buffer
+		tm := newTerm(&sink, termOptions{NoColor: true, Sizer: fixedSize{cols: 80, rows: 24}})
+		bb := newBBCode(tm)
+		define(bb)
+		return bb.style(name)
+	}
+
+	t.Run("the newest definition of a name wins", func(t *testing.T) {
+		got := styleFor(func(bb *bbCode) {
+			bb.styleDef("twice", "color=red")
+			bb.styleDef("twice", "color=lime")
+		}, "twice")
+		if want := ansi.RGBHex(0x00ff00); got.color != want {
+			t.Errorf("the color is %08x, want %08x: the older definition won", got.color, want)
+		}
+	})
+
+	t.Run("a caller's style beats a builtin of that name", func(t *testing.T) {
+		// "b" is builtin and means bold. A caller redefining it must be
+		// obeyed, or a program cannot name its own styles freely.
+		got := styleFor(func(bb *bbCode) {
+			bb.styleDef("b", "color=red")
+		}, "b")
+		if got.bold == flagOn {
+			t.Error("the builtin bold won, so a caller cannot redefine a builtin name")
+		}
+		if want := ansi.RGBHex(0xff0000); got.color != want {
+			t.Errorf("the color is %08x, want %08x", got.color, want)
+		}
+	})
+
+	t.Run("a caller's style beats a colour name", func(t *testing.T) {
+		// "red" is an HTML colour. A caller who defines a style called red
+		// has said what red means to them.
+		got := styleFor(func(bb *bbCode) {
+			bb.styleDef("red", "underline")
+		}, "red")
+		if got.underline != flagOn {
+			t.Error("the colour name won, so a caller cannot define a style named after a colour")
+		}
+		if got.color != ansi.None {
+			t.Errorf("the color is %08x, want none: the colour name was applied as well", got.color)
+		}
+	})
+}
