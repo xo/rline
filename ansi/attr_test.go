@@ -61,8 +61,17 @@ func TestAttrMatchesC(t *testing.T) {
 		t.Fatalf("reading the corpus: %v (run tools/build-probe-attr.sh, then go test -update)", err)
 	}
 	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
-	if len(lines) < 500 {
-		t.Fatalf("the corpus holds %d lines, which is too few", len(lines))
+	// A floor would let the corpus shrink. This test is driven by the corpus
+	// rather than replaying a script against it, so a line that goes missing
+	// is one case fewer checked and nothing else: measured by deleting a
+	// line from the middle and watching the suite stay green. The exact
+	// count is the smallest thing that notices, and changing it is a
+	// deliberate edit beside the corpus it describes.
+	if len(lines) != 1669 {
+		t.Fatalf("ansi/testdata/attr.txt holds %d lines, want %d: a corpus that changed size was "+
+			"either regenerated on purpose, in which case set this number, or "+
+			"lost lines, in which case it now checks less than it says",
+			len(lines), 1669)
 	}
 	dumps := attrBufReplay()
 	counts := make(map[string]int, 16)
