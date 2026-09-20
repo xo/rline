@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/xo/rline/ansi"
 )
 
 // Writing to a terminal.
@@ -47,7 +49,7 @@ type term struct {
 	// What the terminal can do.
 	width   int
 	height  int
-	palette palette
+	palette ansi.Palette
 	nocolor bool
 	silent  bool
 	isUTF8  bool
@@ -86,7 +88,7 @@ func newTerm(out io.Writer, opts termOptions) *term {
 		mode:    lineBuffered,
 		width:   80,
 		height:  25,
-		palette: paletteANSI16, // near enough to universal
+		palette: ansi.ANSI16, // near enough to universal
 		nocolor: opts.NoColor,
 		silent:  opts.Silent,
 		isUTF8:  opts.IsUTF8,
@@ -113,44 +115,44 @@ func newTerm(out io.Writer, opts termOptions) *term {
 // detectPalette works out how much color the terminal supports, from the
 // environment. COLORTERM decides when it is set, then a few terminals that
 // are known by their own variables, then TERM.
-func detectPalette() palette {
+func detectPalette() ansi.Palette {
 	colorterm := os.Getenv("COLORTERM")
 	switch {
 	case containsAny(colorterm, "24bit", "truecolor", "direct"):
-		return paletteRGB
+		return ansi.TrueColor
 	case containsAny(colorterm, "8bit", "256color"):
-		return paletteANSI256
+		return ansi.ANSI256
 	case containsAny(colorterm, "4bit", "16color"):
-		return paletteANSI16
+		return ansi.ANSI16
 	case containsAny(colorterm, "3bit", "8color"):
-		return paletteANSI8
+		return ansi.ANSI8
 	case containsAny(colorterm, "1bit", "nocolor", "monochrome"):
-		return paletteMono
+		return ansi.Mono
 	case os.Getenv("WT_SESSION") != "":
-		return paletteRGB // Windows Terminal
+		return ansi.TrueColor // Windows Terminal
 	case os.Getenv("ITERM_SESSION_ID") != "":
-		return paletteRGB // iTerm2
+		return ansi.TrueColor // iTerm2
 	case os.Getenv("VSCODE_PID") != "":
-		return paletteRGB // the terminal inside VS Code
+		return ansi.TrueColor // the terminal inside VS Code
 	}
 	eterm := os.Getenv("TERM")
 	switch {
 	// The C tests COLORTERM for "24bit" a second time here. It cannot be
 	// reached, because the first test above already caught it.
 	case containsAny(eterm, "truecolor", "direct"):
-		return paletteRGB
+		return ansi.TrueColor
 	case containsAny(eterm, "alacritty", "kitty"):
-		return paletteRGB
+		return ansi.TrueColor
 	case containsAny(eterm, "256color", "gnome"):
-		return paletteANSI256
+		return ansi.ANSI256
 	case containsAny(eterm, "16color"):
-		return paletteANSI16
+		return ansi.ANSI16
 	case containsAny(eterm, "8color"):
-		return paletteANSI8
+		return ansi.ANSI8
 	case containsAny(eterm, "monochrome", "nocolor", "dumb"):
-		return paletteMono
+		return ansi.Mono
 	}
-	return paletteANSI16
+	return ansi.ANSI16
 }
 
 // containsAny reports whether s holds any of the given parts.
@@ -204,7 +206,7 @@ func (t *term) getWidth() int { return t.width }
 func (t *term) getHeight() int { return t.height }
 
 // colorBits returns how many bits of color the terminal takes.
-func (t *term) colorBits() int { return t.palette.bits() }
+func (t *term) colorBits() int { return t.palette.Bits() }
 
 // startRaw notes that raw mode is wanted. On a Unix system the tty does the
 // work, so this only counts.
@@ -421,14 +423,14 @@ func (t *term) move(n int, cmd byte) {
 	if n <= 0 {
 		return
 	}
-	t.writef("%s%d%c", csi, n, cmd)
+	t.writef("%s%d%c", ansi.CSI, n, cmd)
 }
 
 // clearLine goes to the start of the line and clears it.
-func (t *term) clearLine() { t.write("\r" + csi + "K") }
+func (t *term) clearLine() { t.write("\r" + ansi.CSI + "K") }
 
 // clearToEndOfLine clears from the cursor to the end of the line.
-func (t *term) clearToEndOfLine() { t.write(csi + "K") }
+func (t *term) clearToEndOfLine() { t.write(ansi.CSI + "K") }
 
 // startOfLine puts the cursor at the start of the line.
 func (t *term) startOfLine() { t.write("\r") }
@@ -438,7 +440,7 @@ func (t *term) startOfLine() { t.write("\r") }
 //-------------------------------------------------------------
 
 // attrReset puts every attribute back to the default of the terminal.
-func (t *term) attrReset() { t.write(csi + "m") }
+func (t *term) attrReset() { t.write(ansi.CSI + "m") }
 
 // underline turns underlining on or off.
 func (t *term) underline(on bool) { t.write(onOff(on, "4m", "24m")) }
@@ -455,16 +457,16 @@ func (t *term) italic(on bool) { t.write(onOff(on, "3m", "23m")) }
 // onOff returns the escape sequence for whichever of the two applies.
 func onOff(on bool, yes, no string) string {
 	if on {
-		return csi + yes
+		return ansi.CSI + yes
 	}
-	return csi + no
+	return ansi.CSI + no
 }
 
 // setColor sets the color of the text.
-func (t *term) setColor(c Color) { t.write(fmtColor(t.palette, c, false)) }
+func (t *term) setColor(c ansi.Code) { t.write(ansi.Format(t.palette, c, false)) }
 
 // setBgColor sets the color behind the text.
-func (t *term) setBgColor(c Color) { t.write(fmtColor(t.palette, c, true)) }
+func (t *term) setBgColor(c ansi.Code) { t.write(ansi.Format(t.palette, c, true)) }
 
 // getAttr returns the attributes the terminal is showing.
 func (t *term) getAttr() attr { return t.attr }
@@ -482,15 +484,15 @@ func (t *term) setAttr(a attr) {
 	if t.nocolor {
 		return
 	}
-	if a.color != t.attr.color && a.color != ColorNone {
+	if a.color != t.attr.color && a.color != ansi.None {
 		t.setColor(a.color)
-		if t.palette < paletteRGB && a.color.isRGB() {
+		if t.palette < ansi.TrueColor && a.color.IsRGB() {
 			t.attr.color = a.color
 		}
 	}
-	if a.bgColor != t.attr.bgColor && a.bgColor != ColorNone {
+	if a.bgColor != t.attr.bgColor && a.bgColor != ansi.None {
 		t.setBgColor(a.bgColor)
-		if t.palette < paletteRGB && a.bgColor.isRGB() {
+		if t.palette < ansi.TrueColor && a.bgColor.IsRGB() {
 			t.attr.bgColor = a.bgColor
 		}
 	}

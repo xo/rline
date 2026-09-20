@@ -1,211 +1,26 @@
-// Color: what a color is, what carries it, and how a line is marked with it.
+// Attributes, markup and highlighting: what carries a color, and how a line
+// is marked with one.
 //
-// The file reads bottom up. A Color is an ANSI palette code or a 24 bit RGB
-// value, and the reduction turns one into whatever the terminal at hand can
-// show. An attr is a color and the switches that go with it, such as bold.
-// Markup, written like [red]text[/red], is the way a program names a set of
-// attributes in text. A highlighter marks stretches of a line with the same
-// attributes and writes no tags at all.
+// The file reads bottom up. A color itself is an ansi.Code, and the ansi
+// package reduces one to whatever the terminal at hand can show. An attr is a
+// color and the switches that go with it, such as bold. Markup, written like
+// [red]text[/red], is the way a program names a set of attributes in text. A
+// highlighter marks stretches of a line with the same attributes and writes no
+// tags at all.
 //
-// This is one subject rather than four, which is why it is one file although
-// it is the longest here. Splitting it would cut between a color and the
-// markup that names it.
+// This is one subject rather than three, which is why it is one file. Splitting
+// it would cut between an attribute and the markup that names it.
 //
-// Ported from isocline/src/attr.c, term_color.c, bbcode.c and highlight.c.
+// Ported from isocline/src/attr.c, bbcode.c and highlight.c.
 
 package rline
 
 import (
-	"fmt"
-	"image/color"
 	"strconv"
 	"strings"
+
+	"github.com/xo/rline/ansi"
 )
-
-// --------------------------------------------------------------------------
-// color.go
-
-// --------------------------------------------------------------------------
-// color.go
-
-// Colors.
-//
-// A Color is either an ANSI palette code or a 24 bit RGB value. Bit 24 is set
-// on an RGB value, which is what tells the two apart.
-//
-// Ported from isocline/src/term_color.c and isocline/src/common.h.
-
-// Color is a text color.
-type Color uint32
-
-// ColorNone means that no color was given.
-const ColorNone Color = 0
-
-// The ANSI palette. A terminal theme decides what these look like.
-const (
-	ANSIBlack   Color = 30
-	ANSIMaroon  Color = 31
-	ANSIGreen   Color = 32
-	ANSIOlive   Color = 33
-	ANSINavy    Color = 34
-	ANSIPurple  Color = 35
-	ANSITeal    Color = 36
-	ANSISilver  Color = 37
-	ANSIDefault Color = 39
-
-	ANSIGray    Color = 90
-	ANSIRed     Color = 91
-	ANSILime    Color = 92
-	ANSIYellow  Color = 93
-	ANSIBlue    Color = 94
-	ANSIFuchsia Color = 95
-	ANSIAqua    Color = 96
-	ANSIWhite   Color = 97
-
-	ANSIDarkGray  = ANSIGray
-	ANSILightGray = ANSISilver
-	ANSIMagenta   = ANSIFuchsia
-	ANSICyan      = ANSIAqua
-)
-
-// rgbFlag is bit 24. It marks a Color as an RGB value rather than a palette
-// code.
-const rgbFlag Color = 0x1000000
-
-// RGBHex returns the color with the 24 bit value hex, written the way a web
-// color is: 0xFF8800 is orange.
-func RGBHex(hex uint32) Color {
-	return rgbFlag | Color(hex&0xFFFFFF)
-}
-
-// RGB returns the color with the red, green and blue components r, g and b.
-// Each component is capped to the range 0 to 255.
-func RGB(r, g, b int) Color {
-	return RGBHex(cap8(r)<<16 | cap8(g)<<8 | cap8(b))
-}
-
-// FromColor returns the nearest Color to c, which lets a caller pass a color
-// from image/color or from any package that builds on it.
-//
-// The alpha channel is dropped: a terminal has no transparency, so a color is
-// used whatever its alpha says, and a fully transparent color comes out black
-// rather than invisible.
-func FromColor(c color.Color) Color {
-	r, g, b, _ := c.RGBA()
-	// RGBA returns each channel in the range 0 to 0xFFFF.
-	return RGB(int(r>>8), int(g>>8), int(b>>8))
-}
-
-// RGBA satisfies color.Color, so a Color can be handed to anything that works
-// with the standard library's colors.
-//
-// A palette color answers what that slot looks like in the usual 256 color
-// table, because the terminal's own theme decides the real answer and is not
-// knowable from here. ColorNone and ANSIDefault both answer transparent
-// black, which is the only honest answer for "the terminal decides".
-func (c Color) RGBA() (r, g, b, a uint32) {
-	var hex uint32
-	switch {
-	case c == ColorNone || c == ANSIDefault:
-		return 0, 0, 0, 0
-	case c.isRGB():
-		hex = uint32(c) & 0xFFFFFF
-	case c >= ANSIBlack && c <= ANSISilver:
-		hex = ansi256[c-ANSIBlack]
-	case c >= ANSIGray && c <= ANSIWhite:
-		hex = ansi256[8+c-ANSIGray]
-	default:
-		return 0, 0, 0, 0
-	}
-	to16 := func(v uint32) uint32 { return v<<8 | v }
-	return to16((hex >> 16) & 0xFF), to16((hex >> 8) & 0xFF), to16(hex & 0xFF), 0xFFFF
-}
-
-// cap8 limits i to the range 0 to 255.
-func cap8(i int) uint32 {
-	switch {
-	case i < 0:
-		return 0
-	case i > 255:
-		return 255
-	}
-	return uint32(i)
-}
-
-// isRGB reports whether the color carries an RGB value rather than a palette
-// code.
-func (c Color) isRGB() bool {
-	return c >= rgbFlag
-}
-
-// rgb returns the red, green and blue components of an RGB color.
-func (c Color) rgb() (int, int, int) {
-	return int(c>>16) & 0xFF, int(c>>8) & 0xFF, int(c) & 0xFF
-}
-
-// colorFromANSI256 returns the color that the 256 color palette gives the
-// index i. The first 16 entries are palette codes, and the rest are RGB. An
-// index outside 0 to 256 gives ANSIDefault, which is what the C code does.
-func colorFromANSI256(i int) Color {
-	switch {
-	case i >= 0 && i < 8:
-		return ANSIBlack + Color(i)
-	case i >= 8 && i < 16:
-		return ANSIDarkGray + Color(i-8)
-	case i >= 16 && i <= 255:
-		return RGBHex(ansi256[i])
-	}
-	return ANSIDefault
-}
-
-// ansi256 is the 256 color palette, taken from isocline/src/term_color.c. The
-// first 16 entries are unused, because colorFromANSI256 answers those from the
-// palette codes.
-var ansi256 = [256]uint32{
-	0x000000, 0x800000, 0x008000, 0x808000, 0x000080, 0x800080,
-	0x008080, 0xc0c0c0, 0x808080, 0xff0000, 0x00ff00, 0xffff00,
-	0x0000ff, 0xff00ff, 0x00ffff, 0xffffff, 0x000000, 0x00005f,
-	0x000087, 0x0000af, 0x0000d7, 0x0000ff, 0x005f00, 0x005f5f,
-	0x005f87, 0x005faf, 0x005fd7, 0x005fff, 0x008700, 0x00875f,
-	0x008787, 0x0087af, 0x0087d7, 0x0087ff, 0x00af00, 0x00af5f,
-	0x00af87, 0x00afaf, 0x00afd7, 0x00afff, 0x00d700, 0x00d75f,
-	0x00d787, 0x00d7af, 0x00d7d7, 0x00d7ff, 0x00ff00, 0x00ff5f,
-	0x00ff87, 0x00ffaf, 0x00ffd7, 0x00ffff, 0x5f0000, 0x5f005f,
-	0x5f0087, 0x5f00af, 0x5f00d7, 0x5f00ff, 0x5f5f00, 0x5f5f5f,
-	0x5f5f87, 0x5f5faf, 0x5f5fd7, 0x5f5fff, 0x5f8700, 0x5f875f,
-	0x5f8787, 0x5f87af, 0x5f87d7, 0x5f87ff, 0x5faf00, 0x5faf5f,
-	0x5faf87, 0x5fafaf, 0x5fafd7, 0x5fafff, 0x5fd700, 0x5fd75f,
-	0x5fd787, 0x5fd7af, 0x5fd7d7, 0x5fd7ff, 0x5fff00, 0x5fff5f,
-	0x5fff87, 0x5fffaf, 0x5fffd7, 0x5fffff, 0x870000, 0x87005f,
-	0x870087, 0x8700af, 0x8700d7, 0x8700ff, 0x875f00, 0x875f5f,
-	0x875f87, 0x875faf, 0x875fd7, 0x875fff, 0x878700, 0x87875f,
-	0x878787, 0x8787af, 0x8787d7, 0x8787ff, 0x87af00, 0x87af5f,
-	0x87af87, 0x87afaf, 0x87afd7, 0x87afff, 0x87d700, 0x87d75f,
-	0x87d787, 0x87d7af, 0x87d7d7, 0x87d7ff, 0x87ff00, 0x87ff5f,
-	0x87ff87, 0x87ffaf, 0x87ffd7, 0x87ffff, 0xaf0000, 0xaf005f,
-	0xaf0087, 0xaf00af, 0xaf00d7, 0xaf00ff, 0xaf5f00, 0xaf5f5f,
-	0xaf5f87, 0xaf5faf, 0xaf5fd7, 0xaf5fff, 0xaf8700, 0xaf875f,
-	0xaf8787, 0xaf87af, 0xaf87d7, 0xaf87ff, 0xafaf00, 0xafaf5f,
-	0xafaf87, 0xafafaf, 0xafafd7, 0xafafff, 0xafd700, 0xafd75f,
-	0xafd787, 0xafd7af, 0xafd7d7, 0xafd7ff, 0xafff00, 0xafff5f,
-	0xafff87, 0xafffaf, 0xafffd7, 0xafffff, 0xd70000, 0xd7005f,
-	0xd70087, 0xd700af, 0xd700d7, 0xd700ff, 0xd75f00, 0xd75f5f,
-	0xd75f87, 0xd75faf, 0xd75fd7, 0xd75fff, 0xd78700, 0xd7875f,
-	0xd78787, 0xd787af, 0xd787d7, 0xd787ff, 0xd7af00, 0xd7af5f,
-	0xd7af87, 0xd7afaf, 0xd7afd7, 0xd7afff, 0xd7d700, 0xd7d75f,
-	0xd7d787, 0xd7d7af, 0xd7d7d7, 0xd7d7ff, 0xd7ff00, 0xd7ff5f,
-	0xd7ff87, 0xd7ffaf, 0xd7ffd7, 0xd7ffff, 0xff0000, 0xff005f,
-	0xff0087, 0xff00af, 0xff00d7, 0xff00ff, 0xff5f00, 0xff5f5f,
-	0xff5f87, 0xff5faf, 0xff5fd7, 0xff5fff, 0xff8700, 0xff875f,
-	0xff8787, 0xff87af, 0xff87d7, 0xff87ff, 0xffaf00, 0xffaf5f,
-	0xffaf87, 0xffafaf, 0xffafd7, 0xffafff, 0xffd700, 0xffd75f,
-	0xffd787, 0xffd7af, 0xffd7d7, 0xffd7ff, 0xffff00, 0xffff5f,
-	0xffff87, 0xffffaf, 0xffffd7, 0xffffff, 0x080808, 0x121212,
-	0x1c1c1c, 0x262626, 0x303030, 0x3a3a3a, 0x444444, 0x4e4e4e,
-	0x585858, 0x626262, 0x6c6c6c, 0x767676, 0x808080, 0x8a8a8a,
-	0x949494, 0x9e9e9e, 0xa8a8a8, 0xb2b2b2, 0xbcbcbc, 0xc6c6c6,
-	0xd0d0d0, 0xdadada, 0xe4e4e4, 0xeeeeee,
-}
 
 // --------------------------------------------------------------------------
 // attr.go
@@ -241,8 +56,8 @@ const (
 // short there. No path produces one, because every color this package makes is
 // either a palette code or an RGB value with bit 24 set, which needs 25 bits.
 type attr struct {
-	color   Color
-	bgColor Color
+	color   ansi.Code
+	bgColor ansi.Code
 
 	bold      attrFlag
 	italic    attrFlag
@@ -254,8 +69,8 @@ type attr struct {
 // of the terminal.
 func attrDefault() attr {
 	return attr{
-		color:     ANSIDefault,
-		bgColor:   ANSIDefault,
+		color:     ansi.Default,
+		bgColor:   ansi.Default,
 		bold:      flagOff,
 		italic:    flagOff,
 		reverse:   flagOff,
@@ -265,7 +80,7 @@ func attrDefault() attr {
 
 // attrFromColor returns attributes that set the foreground color and say
 // nothing else.
-func attrFromColor(c Color) attr {
+func attrFromColor(c ansi.Code) attr {
 	return attr{color: c}
 }
 
@@ -276,10 +91,10 @@ func (a attr) isNone() bool {
 
 // updateWith lays b over a. Every part of b that says nothing leaves a alone.
 func (a attr) updateWith(b attr) attr {
-	if b.color != ColorNone {
+	if b.color != ansi.None {
 		a.color = b.color
 	}
-	if b.bgColor != ColorNone {
+	if b.bgColor != ansi.None {
 		a.bgColor = b.bgColor
 	}
 	if b.bold != flagNone {
@@ -377,17 +192,17 @@ func attrFromSGR(s string) attr {
 		case cmd == 27:
 			a.reverse = flagOff
 		case cmd == 39:
-			a.color = ANSIDefault
+			a.color = ansi.Default
 		case cmd == 49:
-			a.bgColor = ANSIDefault
+			a.bgColor = ansi.Default
 		case cmd >= 30 && cmd <= 37:
-			a.color = ANSIBlack + Color(cmd-30)
+			a.color = ansi.Black + ansi.Code(cmd-30)
 		case cmd >= 40 && cmd <= 47:
-			a.bgColor = ANSIBlack + Color(cmd-40)
+			a.bgColor = ansi.Black + ansi.Code(cmd-40)
 		case cmd >= 90 && cmd <= 97:
-			a.color = ANSIDarkGray + Color(cmd-90)
+			a.color = ansi.DarkGray + ansi.Code(cmd-90)
 		case cmd >= 100 && cmd <= 107:
-			a.bgColor = ANSIDarkGray + Color(cmd-100)
+			a.bgColor = ansi.DarkGray + ansi.Code(cmd-100)
 		case (cmd == 38 || cmd == 48) && sgrIsSep(s, i):
 			// SGR 38 and 48 take their own parameters, which is the one place
 			// where the format is not a flat list.
@@ -405,7 +220,7 @@ func sgrExtended(s string, i, cmd int, a *attr) int {
 	if !ok {
 		return i
 	}
-	set := func(c Color) {
+	set := func(c ansi.Code) {
 		if cmd == 38 {
 			a.color = c
 		} else {
@@ -416,13 +231,13 @@ func sgrExtended(s string, i, cmd int, a *attr) int {
 	case par == 5 && sgrIsSep(s, i):
 		i++
 		if par, i, ok = sgrNextPar(s, i); ok && par >= 0 && par <= 0xFF {
-			set(colorFromANSI256(par))
+			set(ansi.FromANSI256(par))
 		}
 	case par == 2 && sgrIsSep(s, i):
 		i++
 		var r, g, b int
 		if r, g, b, i, ok = sgrNextPar3(s, i); ok {
-			set(RGB(r, g, b))
+			set(ansi.RGB(r, g, b))
 		}
 	}
 	return i
@@ -568,223 +383,6 @@ func (ab *attrBuf) appendTo(b *buffer, s string, a attr) int {
 }
 
 // --------------------------------------------------------------------------
-// termcolor.go
-
-// Reducing a color to what a terminal accepts.
-//
-// A terminal may understand 24 bit color, or a 256 entry palette, or only the
-// 8 or 16 codes that ANSI defines. When it understands less than the color
-// asks for, the color has to be matched to the nearest one the terminal has.
-//
-// Ported from isocline/src/term_color.c.
-
-// csi is the control sequence introducer, which starts an escape sequence.
-const csi = "\x1b["
-
-// palette says how much color a terminal understands.
-type palette int
-
-// palette values, from least to most capable.
-const (
-	paletteMono    palette = iota // no color at all
-	paletteANSI8                  // the 8 basic codes, 30 to 37
-	paletteANSI16                 // the basic codes and the bright ones, 90 to 97
-	paletteANSI256                // a 256 entry palette
-	paletteRGB                    // 24 bit color
-)
-
-// bits returns how many bits of color the palette carries. The edit loop uses
-// this to decide how much of a highlight it can show.
-func (p palette) bits() int {
-	switch p {
-	case paletteMono:
-		return 1
-	case paletteANSI8:
-		return 3
-	case paletteANSI16:
-		return 4
-	case paletteANSI256:
-		return 8
-	case paletteRGB:
-		return 24
-	}
-	return 4
-}
-
-// isGrayish reports whether the three components are close enough to each
-// other to read as a shade of gray.
-func isGrayish(r, g, b int) bool {
-	return abs(r-g) <= 4 && abs((r+g)/2-b) <= 4
-}
-
-// abs returns the absolute value of i.
-func abs(i int) int {
-	if i < 0 {
-		return -i
-	}
-	return i
-}
-
-// rgbDistance approximates the perceived distance between two colors.
-//
-// This is a weighted euclidean distance whose weights shift with how much red
-// is in the color, from <https://www.compuphase.com/cmetric.htm>. The square
-// root is left out, because only the smallest distance matters, and the whole
-// thing is multiplied up to keep precision. The arithmetic needs 28 signed
-// bits, and the widest value it reaches is far inside an int32.
-func rgbDistance(paletteColor uint32, r2, g2, b2 int) int32 {
-	r1, g1, b1 := RGBHex(paletteColor).rgb()
-	rmean := int32(r1+r2) / 2
-	dr2 := sqr(int32(r1 - r2))
-	dg2 := sqr(int32(g1 - g2))
-	db2 := sqr(int32(b1 - b2))
-	return (512+rmean)*dr2 + 1024*dg2 + (767-rmean)*db2
-}
-
-// sqr returns x squared.
-func sqr(x int32) int32 {
-	return x * x
-}
-
-// rgbMatch returns the index of the entry in the palette closest to color,
-// looking only at the entries from start up to but not including end.
-//
-// The C keeps a sixteen entry cache in front of this, one per palette. The
-// answer is the same either way, because the match depends on nothing but the
-// palette and the color, so the port leaves the cache out.
-func rgbMatch(table *[256]uint32, start, end int, color Color) int {
-	r, g, b := color.rgb()
-	gray := isGrayish(r, g, b)
-	best := start
-	// The C starts from the largest int32 divided by four, which leaves room
-	// for the penalty below to multiply a distance without overflowing.
-	bestDist := int32(2147483647) / 4
-	for i := start; i < end; i++ {
-		dist := rgbDistance(table[i], r, g, b)
-		pr, pg, pb := RGBHex(table[i]).rgb()
-		if isGrayish(pr, pg, pb) != gray {
-			// Swapping a gray for a color, or the other way, is worse than the
-			// raw distance suggests. With few colors to choose from there is
-			// less room to be fussy, so the penalty is heavier.
-			if end-start <= 16 {
-				dist *= 4
-			} else {
-				dist = (dist / 4) * 5
-			}
-		}
-		if dist < bestDist {
-			best, bestDist = i, dist
-		}
-	}
-	return best
-}
-
-// rgbToANSI256 returns the palette index closest to an RGB color.
-//
-// The search skips the first sixteen entries, because a terminal theme is free
-// to draw those however it likes, so they are not reliable targets.
-func rgbToANSI256(color Color) int {
-	return rgbMatch(&ansi256, 16, 256, color)
-}
-
-// colorToANSI16 returns the ANSI code closest to color, from 30 to 37 and 90
-// to 97. A color that is already a palette code passes through.
-func colorToANSI16(color Color) int {
-	if !color.isRGB() {
-		return int(color)
-	}
-	c := rgbMatch(&ansi256, 0, 16, color)
-	if c < 8 {
-		return 30 + c
-	}
-	return 90 + c - 8
-}
-
-// colorToANSI8 returns the ANSI code closest to color, for a terminal that has
-// only the eight basic colors and makes the bright ones with bold.
-func colorToANSI8(color Color) int {
-	if !color.isRGB() {
-		return int(color)
-	}
-	c := 30 + rgbMatch(&ansi256, 0, 8, color)
-	r, g, b := color.rgb()
-	if r >= 196 || g >= 196 || b >= 196 {
-		c += 60
-	}
-	return c
-}
-
-// fmtColorANSI8 returns the escape sequence for a terminal with eight colors.
-// A bright color becomes bold plus the matching dim code.
-func fmtColorANSI8(color Color, bg bool) string {
-	c := colorToANSI8(color)
-	if bg {
-		c += 10
-	}
-	if c >= 90 {
-		return fmt.Sprintf("%s1;%dm", csi, c-60)
-	}
-	return fmt.Sprintf("%s22;%dm", csi, c)
-}
-
-// fmtColorANSI16 returns the escape sequence for a terminal with sixteen
-// colors.
-func fmtColorANSI16(color Color, bg bool) string {
-	c := colorToANSI16(color)
-	if bg {
-		c += 10
-	}
-	return fmt.Sprintf("%s%dm", csi, c)
-}
-
-// fmtColorANSI256 returns the escape sequence for a terminal with a 256 entry
-// palette.
-func fmtColorANSI256(color Color, bg bool) string {
-	if !color.isRGB() {
-		return fmtColorANSI16(color, bg)
-	}
-	return fmt.Sprintf("%s%d;5;%dm", csi, selector(bg), rgbToANSI256(color))
-}
-
-// fmtColorRGB returns the escape sequence for a terminal with 24 bit color.
-func fmtColorRGB(color Color, bg bool) string {
-	if !color.isRGB() {
-		return fmtColorANSI16(color, bg)
-	}
-	r, g, b := color.rgb()
-	return fmt.Sprintf("%s%d;2;%d;%d;%dm", csi, selector(bg), r, g, b)
-}
-
-// selector returns the SGR command that introduces an extended color, which is
-// 38 for the text and 48 for the background.
-func selector(bg bool) int {
-	if bg {
-		return 48
-	}
-	return 38
-}
-
-// fmtColor returns the escape sequence that sets color on a terminal with the
-// given palette, or an empty string when there is nothing to set.
-//
-// The C leaves its buffer untouched in that last case, and one of its two
-// callers passes a buffer it never initialized, so the C writes whatever the
-// stack held. There is nothing to reproduce in that, and the port writes
-// nothing.
-func fmtColor(p palette, color Color, bg bool) string {
-	switch {
-	case color == ColorNone || p == paletteMono:
-		return ""
-	case p == paletteANSI8:
-		return fmtColorANSI8(color, bg)
-	case !color.isRGB() || p == paletteANSI16:
-		return fmtColorANSI16(color, bg)
-	case p == paletteANSI256:
-		return fmtColorANSI256(color, bg)
-	}
-	return fmtColorRGB(color, bg)
-}
-
 // --------------------------------------------------------------------------
 // bbcode.go
 
@@ -953,9 +551,9 @@ func updateBool(field *attrFlag, _ string) {
 
 // updateColor reads a color, which may be "none", a hex value such as
 // "#ff0000", or an HTML color name.
-func updateColor(field *Color, value string) {
+func updateColor(field *ansi.Code, value string) {
 	if value == "" || value == "none" {
-		*field = ColorNone
+		*field = ansi.None
 		return
 	}
 	if value[0] == '#' {
@@ -963,7 +561,7 @@ func updateColor(field *Color, value string) {
 		// finds and does not widen a short value, so "#f00" is 0xf00 rather
 		// than 0xff0000.
 		if v, ok := scanHex(value[1:]); ok {
-			*field = RGBHex(v)
+			*field = ansi.RGBHex(v)
 		}
 		return
 	}
@@ -971,7 +569,7 @@ func updateColor(field *Color, value string) {
 		*field = c
 		return
 	}
-	*field = ColorNone
+	*field = ansi.None
 }
 
 // scanHex reads the hex digits at the front of s, the way sscanf reads %x.
@@ -997,9 +595,9 @@ func isHexDigit(c byte) bool {
 }
 
 // updateANSIColor reads a palette index between 0 and 256.
-func updateANSIColor(field *Color, value string) {
+func updateANSIColor(field *ansi.Code, value string) {
 	if n, ok := atoz(value); ok && n >= 0 && n <= 256 {
-		*field = colorFromANSI256(n)
+		*field = ansi.FromANSI256(n)
 	}
 }
 
@@ -1068,10 +666,10 @@ func updateProperty(t *bbTag, name, value string) string {
 		}
 		return name
 	}
-	setColor := func(field *Color, read func(*Color, string)) string {
-		c := ColorNone
+	setColor := func(field *ansi.Code, read func(*ansi.Code, string)) string {
+		c := ansi.None
 		read(&c, value)
-		if c != ColorNone {
+		if c != ansi.None {
 			*field = c
 		}
 		return name
@@ -1539,179 +1137,179 @@ func (bb *bbCode) columnWidth(s string) int {
 
 // htmlColors maps a color name to the color it stands for. The names that
 // start with "ansi-" give a palette code, and the rest give an RGB value.
-var htmlColors = map[string]Color{
-	"aliceblue":            RGBHex(0xf0f8ff),
-	"ansi-aqua":            ANSIAqua,
-	"ansi-black":           ANSIBlack,
-	"ansi-blue":            ANSIBlue,
-	"ansi-cyan":            ANSICyan,
-	"ansi-darkgray":        ANSIDarkGray,
-	"ansi-darkgrey":        ANSIDarkGray,
-	"ansi-default":         ANSIDefault,
-	"ansi-fuchsia":         ANSIFuchsia,
-	"ansi-gray":            ANSIGray,
-	"ansi-green":           ANSIGreen,
-	"ansi-grey":            ANSIGray,
-	"ansi-lightgray":       ANSILightGray,
-	"ansi-lightgrey":       ANSILightGray,
-	"ansi-lime":            ANSILime,
-	"ansi-magenta":         ANSIMagenta,
-	"ansi-maroon":          ANSIMaroon,
-	"ansi-navy":            ANSINavy,
-	"ansi-olive":           ANSIOlive,
-	"ansi-purple":          ANSIPurple,
-	"ansi-red":             ANSIRed,
-	"ansi-silver":          ANSISilver,
-	"ansi-teal":            ANSITeal,
-	"ansi-white":           ANSIWhite,
-	"ansi-yellow":          ANSIYellow,
-	"antiquewhite":         RGBHex(0xfaebd7),
-	"aqua":                 RGBHex(0x00ffff),
-	"aquamarine":           RGBHex(0x7fffd4),
-	"azure":                RGBHex(0xf0ffff),
-	"beige":                RGBHex(0xf5f5dc),
-	"bisque":               RGBHex(0xffe4c4),
-	"black":                RGBHex(0x000000),
-	"blanchedalmond":       RGBHex(0xffebcd),
-	"blue":                 RGBHex(0x0000ff),
-	"blueviolet":           RGBHex(0x8a2be2),
-	"brown":                RGBHex(0xa52a2a),
-	"burlywood":            RGBHex(0xdeb887),
-	"cadetblue":            RGBHex(0x5f9ea0),
-	"chartreuse":           RGBHex(0x7fff00),
-	"chocolate":            RGBHex(0xd2691e),
-	"coral":                RGBHex(0xff7f50),
-	"cornflowerblue":       RGBHex(0x6495ed),
-	"cornsilk":             RGBHex(0xfff8dc),
-	"crimson":              RGBHex(0xdc143c),
-	"cyan":                 RGBHex(0x00ffff),
-	"darkblue":             RGBHex(0x00008b),
-	"darkcyan":             RGBHex(0x008b8b),
-	"darkgoldenrod":        RGBHex(0xb8860b),
-	"darkgray":             RGBHex(0xa9a9a9),
-	"darkgreen":            RGBHex(0x006400),
-	"darkgrey":             RGBHex(0xa9a9a9),
-	"darkkhaki":            RGBHex(0xbdb76b),
-	"darkmagenta":          RGBHex(0x8b008b),
-	"darkolivegreen":       RGBHex(0x556b2f),
-	"darkorange":           RGBHex(0xff8c00),
-	"darkorchid":           RGBHex(0x9932cc),
-	"darkred":              RGBHex(0x8b0000),
-	"darksalmon":           RGBHex(0xe9967a),
-	"darkseagreen":         RGBHex(0x8fbc8f),
-	"darkslateblue":        RGBHex(0x483d8b),
-	"darkslategray":        RGBHex(0x2f4f4f),
-	"darkslategrey":        RGBHex(0x2f4f4f),
-	"darkturquoise":        RGBHex(0x00ced1),
-	"darkviolet":           RGBHex(0x9400d3),
-	"deeppink":             RGBHex(0xff1493),
-	"deepskyblue":          RGBHex(0x00bfff),
-	"dimgray":              RGBHex(0x696969),
-	"dimgrey":              RGBHex(0x696969),
-	"dodgerblue":           RGBHex(0x1e90ff),
-	"firebrick":            RGBHex(0xb22222),
-	"floralwhite":          RGBHex(0xfffaf0),
-	"forestgreen":          RGBHex(0x228b22),
-	"fuchsia":              RGBHex(0xff00ff),
-	"gainsboro":            RGBHex(0xdcdcdc),
-	"ghostwhite":           RGBHex(0xf8f8ff),
-	"gold":                 RGBHex(0xffd700),
-	"goldenrod":            RGBHex(0xdaa520),
-	"gray":                 RGBHex(0x808080),
-	"green":                RGBHex(0x008000),
-	"greenyellow":          RGBHex(0xadff2f),
-	"grey":                 RGBHex(0x808080),
-	"honeydew":             RGBHex(0xf0fff0),
-	"hotpink":              RGBHex(0xff69b4),
-	"indianred":            RGBHex(0xcd5c5c),
-	"indigo":               RGBHex(0x4b0082),
-	"ivory":                RGBHex(0xfffff0),
-	"khaki":                RGBHex(0xf0e68c),
-	"lavender":             RGBHex(0xe6e6fa),
-	"lavenderblush":        RGBHex(0xfff0f5),
-	"lawngreen":            RGBHex(0x7cfc00),
-	"lemonchiffon":         RGBHex(0xfffacd),
-	"lightblue":            RGBHex(0xadd8e6),
-	"lightcoral":           RGBHex(0xf08080),
-	"lightcyan":            RGBHex(0xe0ffff),
-	"lightgoldenrodyellow": RGBHex(0xfafad2),
-	"lightgray":            RGBHex(0xd3d3d3),
-	"lightgreen":           RGBHex(0x90ee90),
-	"lightgrey":            RGBHex(0xd3d3d3),
-	"lightpink":            RGBHex(0xffb6c1),
-	"lightsalmon":          RGBHex(0xffa07a),
-	"lightseagreen":        RGBHex(0x20b2aa),
-	"lightskyblue":         RGBHex(0x87cefa),
-	"lightslategray":       RGBHex(0x778899),
-	"lightslategrey":       RGBHex(0x778899),
-	"lightsteelblue":       RGBHex(0xb0c4de),
-	"lightyellow":          RGBHex(0xffffe0),
-	"lime":                 RGBHex(0x00ff00),
-	"limegreen":            RGBHex(0x32cd32),
-	"linen":                RGBHex(0xfaf0e6),
-	"magenta":              RGBHex(0xff00ff),
-	"maroon":               RGBHex(0x800000),
-	"mediumaquamarine":     RGBHex(0x66cdaa),
-	"mediumblue":           RGBHex(0x0000cd),
-	"mediumorchid":         RGBHex(0xba55d3),
-	"mediumpurple":         RGBHex(0x9370db),
-	"mediumseagreen":       RGBHex(0x3cb371),
-	"mediumslateblue":      RGBHex(0x7b68ee),
-	"mediumspringgreen":    RGBHex(0x00fa9a),
-	"mediumturquoise":      RGBHex(0x48d1cc),
-	"mediumvioletred":      RGBHex(0xc71585),
-	"midnightblue":         RGBHex(0x191970),
-	"mintcream":            RGBHex(0xf5fffa),
-	"mistyrose":            RGBHex(0xffe4e1),
-	"moccasin":             RGBHex(0xffe4b5),
-	"navajowhite":          RGBHex(0xffdead),
-	"navy":                 RGBHex(0x000080),
-	"oldlace":              RGBHex(0xfdf5e6),
-	"olive":                RGBHex(0x808000),
-	"olivedrab":            RGBHex(0x6b8e23),
-	"orange":               RGBHex(0xffa500),
-	"orangered":            RGBHex(0xff4500),
-	"orchid":               RGBHex(0xda70d6),
-	"palegoldenrod":        RGBHex(0xeee8aa),
-	"palegreen":            RGBHex(0x98fb98),
-	"paleturquoise":        RGBHex(0xafeeee),
-	"palevioletred":        RGBHex(0xdb7093),
-	"papayawhip":           RGBHex(0xffefd5),
-	"peachpuff":            RGBHex(0xffdab9),
-	"peru":                 RGBHex(0xcd853f),
-	"pink":                 RGBHex(0xffc0cb),
-	"plum":                 RGBHex(0xdda0dd),
-	"powderblue":           RGBHex(0xb0e0e6),
-	"purple":               RGBHex(0x800080),
-	"rebeccapurple":        RGBHex(0x663399),
-	"red":                  RGBHex(0xff0000),
-	"rosybrown":            RGBHex(0xbc8f8f),
-	"royalblue":            RGBHex(0x4169e1),
-	"saddlebrown":          RGBHex(0x8b4513),
-	"salmon":               RGBHex(0xfa8072),
-	"sandybrown":           RGBHex(0xf4a460),
-	"seagreen":             RGBHex(0x2e8b57),
-	"seashell":             RGBHex(0xfff5ee),
-	"sienna":               RGBHex(0xa0522d),
-	"silver":               RGBHex(0xc0c0c0),
-	"skyblue":              RGBHex(0x87ceeb),
-	"slateblue":            RGBHex(0x6a5acd),
-	"slategray":            RGBHex(0x708090),
-	"slategrey":            RGBHex(0x708090),
-	"snow":                 RGBHex(0xfffafa),
-	"springgreen":          RGBHex(0x00ff7f),
-	"steelblue":            RGBHex(0x4682b4),
-	"tan":                  RGBHex(0xd2b48c),
-	"teal":                 RGBHex(0x008080),
-	"thistle":              RGBHex(0xd8bfd8),
-	"tomato":               RGBHex(0xff6347),
-	"turquoise":            RGBHex(0x40e0d0),
-	"violet":               RGBHex(0xee82ee),
-	"wheat":                RGBHex(0xf5deb3),
-	"white":                RGBHex(0xffffff),
-	"whitesmoke":           RGBHex(0xf5f5f5),
-	"yellow":               RGBHex(0xffff00),
-	"yellowgreen":          RGBHex(0x9acd32),
+var htmlColors = map[string]ansi.Code{
+	"aliceblue":            ansi.RGBHex(0xf0f8ff),
+	"ansi-aqua":            ansi.Aqua,
+	"ansi-black":           ansi.Black,
+	"ansi-blue":            ansi.Blue,
+	"ansi-cyan":            ansi.Cyan,
+	"ansi-darkgray":        ansi.DarkGray,
+	"ansi-darkgrey":        ansi.DarkGray,
+	"ansi-default":         ansi.Default,
+	"ansi-fuchsia":         ansi.Fuchsia,
+	"ansi-gray":            ansi.Gray,
+	"ansi-green":           ansi.Green,
+	"ansi-grey":            ansi.Gray,
+	"ansi-lightgray":       ansi.LightGray,
+	"ansi-lightgrey":       ansi.LightGray,
+	"ansi-lime":            ansi.Lime,
+	"ansi-magenta":         ansi.Magenta,
+	"ansi-maroon":          ansi.Maroon,
+	"ansi-navy":            ansi.Navy,
+	"ansi-olive":           ansi.Olive,
+	"ansi-purple":          ansi.Purple,
+	"ansi-red":             ansi.Red,
+	"ansi-silver":          ansi.Silver,
+	"ansi-teal":            ansi.Teal,
+	"ansi-white":           ansi.White,
+	"ansi-yellow":          ansi.Yellow,
+	"antiquewhite":         ansi.RGBHex(0xfaebd7),
+	"aqua":                 ansi.RGBHex(0x00ffff),
+	"aquamarine":           ansi.RGBHex(0x7fffd4),
+	"azure":                ansi.RGBHex(0xf0ffff),
+	"beige":                ansi.RGBHex(0xf5f5dc),
+	"bisque":               ansi.RGBHex(0xffe4c4),
+	"black":                ansi.RGBHex(0x000000),
+	"blanchedalmond":       ansi.RGBHex(0xffebcd),
+	"blue":                 ansi.RGBHex(0x0000ff),
+	"blueviolet":           ansi.RGBHex(0x8a2be2),
+	"brown":                ansi.RGBHex(0xa52a2a),
+	"burlywood":            ansi.RGBHex(0xdeb887),
+	"cadetblue":            ansi.RGBHex(0x5f9ea0),
+	"chartreuse":           ansi.RGBHex(0x7fff00),
+	"chocolate":            ansi.RGBHex(0xd2691e),
+	"coral":                ansi.RGBHex(0xff7f50),
+	"cornflowerblue":       ansi.RGBHex(0x6495ed),
+	"cornsilk":             ansi.RGBHex(0xfff8dc),
+	"crimson":              ansi.RGBHex(0xdc143c),
+	"cyan":                 ansi.RGBHex(0x00ffff),
+	"darkblue":             ansi.RGBHex(0x00008b),
+	"darkcyan":             ansi.RGBHex(0x008b8b),
+	"darkgoldenrod":        ansi.RGBHex(0xb8860b),
+	"darkgray":             ansi.RGBHex(0xa9a9a9),
+	"darkgreen":            ansi.RGBHex(0x006400),
+	"darkgrey":             ansi.RGBHex(0xa9a9a9),
+	"darkkhaki":            ansi.RGBHex(0xbdb76b),
+	"darkmagenta":          ansi.RGBHex(0x8b008b),
+	"darkolivegreen":       ansi.RGBHex(0x556b2f),
+	"darkorange":           ansi.RGBHex(0xff8c00),
+	"darkorchid":           ansi.RGBHex(0x9932cc),
+	"darkred":              ansi.RGBHex(0x8b0000),
+	"darksalmon":           ansi.RGBHex(0xe9967a),
+	"darkseagreen":         ansi.RGBHex(0x8fbc8f),
+	"darkslateblue":        ansi.RGBHex(0x483d8b),
+	"darkslategray":        ansi.RGBHex(0x2f4f4f),
+	"darkslategrey":        ansi.RGBHex(0x2f4f4f),
+	"darkturquoise":        ansi.RGBHex(0x00ced1),
+	"darkviolet":           ansi.RGBHex(0x9400d3),
+	"deeppink":             ansi.RGBHex(0xff1493),
+	"deepskyblue":          ansi.RGBHex(0x00bfff),
+	"dimgray":              ansi.RGBHex(0x696969),
+	"dimgrey":              ansi.RGBHex(0x696969),
+	"dodgerblue":           ansi.RGBHex(0x1e90ff),
+	"firebrick":            ansi.RGBHex(0xb22222),
+	"floralwhite":          ansi.RGBHex(0xfffaf0),
+	"forestgreen":          ansi.RGBHex(0x228b22),
+	"fuchsia":              ansi.RGBHex(0xff00ff),
+	"gainsboro":            ansi.RGBHex(0xdcdcdc),
+	"ghostwhite":           ansi.RGBHex(0xf8f8ff),
+	"gold":                 ansi.RGBHex(0xffd700),
+	"goldenrod":            ansi.RGBHex(0xdaa520),
+	"gray":                 ansi.RGBHex(0x808080),
+	"green":                ansi.RGBHex(0x008000),
+	"greenyellow":          ansi.RGBHex(0xadff2f),
+	"grey":                 ansi.RGBHex(0x808080),
+	"honeydew":             ansi.RGBHex(0xf0fff0),
+	"hotpink":              ansi.RGBHex(0xff69b4),
+	"indianred":            ansi.RGBHex(0xcd5c5c),
+	"indigo":               ansi.RGBHex(0x4b0082),
+	"ivory":                ansi.RGBHex(0xfffff0),
+	"khaki":                ansi.RGBHex(0xf0e68c),
+	"lavender":             ansi.RGBHex(0xe6e6fa),
+	"lavenderblush":        ansi.RGBHex(0xfff0f5),
+	"lawngreen":            ansi.RGBHex(0x7cfc00),
+	"lemonchiffon":         ansi.RGBHex(0xfffacd),
+	"lightblue":            ansi.RGBHex(0xadd8e6),
+	"lightcoral":           ansi.RGBHex(0xf08080),
+	"lightcyan":            ansi.RGBHex(0xe0ffff),
+	"lightgoldenrodyellow": ansi.RGBHex(0xfafad2),
+	"lightgray":            ansi.RGBHex(0xd3d3d3),
+	"lightgreen":           ansi.RGBHex(0x90ee90),
+	"lightgrey":            ansi.RGBHex(0xd3d3d3),
+	"lightpink":            ansi.RGBHex(0xffb6c1),
+	"lightsalmon":          ansi.RGBHex(0xffa07a),
+	"lightseagreen":        ansi.RGBHex(0x20b2aa),
+	"lightskyblue":         ansi.RGBHex(0x87cefa),
+	"lightslategray":       ansi.RGBHex(0x778899),
+	"lightslategrey":       ansi.RGBHex(0x778899),
+	"lightsteelblue":       ansi.RGBHex(0xb0c4de),
+	"lightyellow":          ansi.RGBHex(0xffffe0),
+	"lime":                 ansi.RGBHex(0x00ff00),
+	"limegreen":            ansi.RGBHex(0x32cd32),
+	"linen":                ansi.RGBHex(0xfaf0e6),
+	"magenta":              ansi.RGBHex(0xff00ff),
+	"maroon":               ansi.RGBHex(0x800000),
+	"mediumaquamarine":     ansi.RGBHex(0x66cdaa),
+	"mediumblue":           ansi.RGBHex(0x0000cd),
+	"mediumorchid":         ansi.RGBHex(0xba55d3),
+	"mediumpurple":         ansi.RGBHex(0x9370db),
+	"mediumseagreen":       ansi.RGBHex(0x3cb371),
+	"mediumslateblue":      ansi.RGBHex(0x7b68ee),
+	"mediumspringgreen":    ansi.RGBHex(0x00fa9a),
+	"mediumturquoise":      ansi.RGBHex(0x48d1cc),
+	"mediumvioletred":      ansi.RGBHex(0xc71585),
+	"midnightblue":         ansi.RGBHex(0x191970),
+	"mintcream":            ansi.RGBHex(0xf5fffa),
+	"mistyrose":            ansi.RGBHex(0xffe4e1),
+	"moccasin":             ansi.RGBHex(0xffe4b5),
+	"navajowhite":          ansi.RGBHex(0xffdead),
+	"navy":                 ansi.RGBHex(0x000080),
+	"oldlace":              ansi.RGBHex(0xfdf5e6),
+	"olive":                ansi.RGBHex(0x808000),
+	"olivedrab":            ansi.RGBHex(0x6b8e23),
+	"orange":               ansi.RGBHex(0xffa500),
+	"orangered":            ansi.RGBHex(0xff4500),
+	"orchid":               ansi.RGBHex(0xda70d6),
+	"palegoldenrod":        ansi.RGBHex(0xeee8aa),
+	"palegreen":            ansi.RGBHex(0x98fb98),
+	"paleturquoise":        ansi.RGBHex(0xafeeee),
+	"palevioletred":        ansi.RGBHex(0xdb7093),
+	"papayawhip":           ansi.RGBHex(0xffefd5),
+	"peachpuff":            ansi.RGBHex(0xffdab9),
+	"peru":                 ansi.RGBHex(0xcd853f),
+	"pink":                 ansi.RGBHex(0xffc0cb),
+	"plum":                 ansi.RGBHex(0xdda0dd),
+	"powderblue":           ansi.RGBHex(0xb0e0e6),
+	"purple":               ansi.RGBHex(0x800080),
+	"rebeccapurple":        ansi.RGBHex(0x663399),
+	"red":                  ansi.RGBHex(0xff0000),
+	"rosybrown":            ansi.RGBHex(0xbc8f8f),
+	"royalblue":            ansi.RGBHex(0x4169e1),
+	"saddlebrown":          ansi.RGBHex(0x8b4513),
+	"salmon":               ansi.RGBHex(0xfa8072),
+	"sandybrown":           ansi.RGBHex(0xf4a460),
+	"seagreen":             ansi.RGBHex(0x2e8b57),
+	"seashell":             ansi.RGBHex(0xfff5ee),
+	"sienna":               ansi.RGBHex(0xa0522d),
+	"silver":               ansi.RGBHex(0xc0c0c0),
+	"skyblue":              ansi.RGBHex(0x87ceeb),
+	"slateblue":            ansi.RGBHex(0x6a5acd),
+	"slategray":            ansi.RGBHex(0x708090),
+	"slategrey":            ansi.RGBHex(0x708090),
+	"snow":                 ansi.RGBHex(0xfffafa),
+	"springgreen":          ansi.RGBHex(0x00ff7f),
+	"steelblue":            ansi.RGBHex(0x4682b4),
+	"tan":                  ansi.RGBHex(0xd2b48c),
+	"teal":                 ansi.RGBHex(0x008080),
+	"thistle":              ansi.RGBHex(0xd8bfd8),
+	"tomato":               ansi.RGBHex(0xff6347),
+	"turquoise":            ansi.RGBHex(0x40e0d0),
+	"violet":               ansi.RGBHex(0xee82ee),
+	"wheat":                ansi.RGBHex(0xf5deb3),
+	"white":                ansi.RGBHex(0xffffff),
+	"whitesmoke":           ansi.RGBHex(0xf5f5f5),
+	"yellow":               ansi.RGBHex(0xffff00),
+	"yellowgreen":          ansi.RGBHex(0x9acd32),
 }
 
 // --------------------------------------------------------------------------

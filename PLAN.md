@@ -215,18 +215,18 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 5. `attr.c`. Done. The attributes are a Go struct of comparable fields in
    `bbcode.go`, rather than the 64 bit union of bit fields the C packs them into,
    because Go compares a struct with `==` and nothing outside `attr.c` depends
-   on the packed value. The colors came with it, in `bbcode.go`, because the SGR
-   parser needs them: `term_color.c` holds `ic_rgb`, `ic_rgbx` and
+   on the packed value. The colors an attribute carries are `ansi.Code`, from
+   the `ansi` package: `term_color.c` holds `ic_rgb`, `ic_rgbx` and
    `color_from_ansi256`, and the 256 color table was extracted from the C
    source rather than typed out. `tools/build-probe-attr.sh` builds a fourth
    probe, and `testdata/attr.txt` records 1678 of those calls.
-6. `term.c` and `term_color.c`. Done, apart from Windows. `bbcode.go` holds
+6. `term.c` and `term_color.c`. Done, apart from Windows. `ansi/ansi.go` holds
    the color reduction, which finds the nearest color a terminal can show when
    it understands fewer than a style asks for. `term.go` holds the terminal
    itself: the writer, the buffering, cursor movement, the attribute state, and
    working out the size and how much color the terminal supports.
    `tools/build-probe-termcolor.sh` and `tools/build-probe-term.sh` build the
-   sixth and seventh probes. `testdata/termcolor.txt` records 5522 calls and
+   sixth and seventh probes. `ansi/testdata/termcolor.txt` records 5522 calls and
    `testdata/term.txt` records a script of 256 steps, driven through a real
    pseudo-terminal because the C asks the terminal for the cursor position when
    it cannot get the size any other way.
@@ -1505,11 +1505,16 @@ type across files by what the methods do: `os` splits `File` across
 `file.go`, `stat.go` and `dir.go`. Group by behavior.
 
 A file past five hundred to a thousand lines is a reason to look, not a limit
-to obey. `bbcode.go` is two thousand and stays whole, because a color, the
-attribute that carries it, the markup that names it and the highlighter that
-applies it are one subject. A split there would cut between a color and the
-markup for it. A file that long which covers three subjects is a different
-matter and splits by behavior.
+to obey. `bbcode.go` is long and stays whole, because the attribute that
+carries a color, the markup that names it and the highlighter that applies it
+are one subject. A split there would cut between an attribute and the markup
+for it. A file that long which covers three subjects is a different matter and
+splits by behavior.
+
+A color itself is not part of that subject, which is why it is not in that
+file. What a color is, and how one is reduced to what a terminal can actually
+show, is answerable without knowing anything about markup, a line, or a
+terminal session, so it is the `ansi` package and a caller can use it alone.
 
 Platform-specific code follows four patterns, in this order of preference.
 
@@ -1546,7 +1551,12 @@ one function over a corpus that lives in `testdata`.
 
 ## Where things live
 
-One package, twenty source files and seventeen test files. The layout follows
+Two packages. `ansi` is one file and holds colors: the palette, a 24 bit RGB
+value, and the reduction that finds the nearest color a terminal can show. It
+depends on nothing in `rline` and a caller can use it on its own.
+
+`rline` is everything else: twenty source files and seventeen test files. The
+layout follows
 what a reader is looking for rather than what the C file it came from was
 called, so several C files land in one Go file and the header of each says
 which.
@@ -1557,8 +1567,7 @@ which.
   text.go        the buffer, widths, word and line boundaries, rows and columns
   complete.go    completions, completers, file names and the menu
   history.go     the history list, its file, walking and searching
-  bbcode.go      markup and the highlighting built on it
-  color.go       colors, attributes and reducing one to what a terminal takes
+  bbcode.go      attributes, markup and the highlighting built on it
   term.go        writing to a terminal
   tty.go         reading keys, and decoding escape sequences into them
   winkey.go      turning Windows key events into sequences: untagged on purpose,

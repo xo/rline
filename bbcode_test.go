@@ -1,5 +1,5 @@
-// Tests for color, attributes, markup and highlighting, which are one
-// subject and one file. See the head of bbcode.go.
+// Tests for attributes, markup and highlighting, which are one subject and one
+// file. See the head of bbcode.go. Color itself is tested in ansi.
 
 package rline
 
@@ -7,16 +7,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"image/color"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
-)
 
-// --------------------------------------------------------------------------
-// color_test.go
+	"github.com/xo/rline/ansi"
+)
 
 // --------------------------------------------------------------------------
 // attr_test.go
@@ -98,18 +96,18 @@ func attrCheck(t *testing.T, f []string, dumps map[string][]string) (string, str
 	t.Helper()
 	switch f[0] {
 	case "rgb":
-		return fmt.Sprintf("%08x", uint32(RGBHex(mustU32(t, f[1])))), f[2]
+		return fmt.Sprintf("%08x", uint32(ansi.RGBHex(mustU32(t, f[1])))), f[2]
 	case "rgbx":
 		r, g, b := mustInt(t, f[1]), mustInt(t, f[2]), mustInt(t, f[3])
-		return fmt.Sprintf("%08x", uint32(RGB(r, g, b))), f[4]
+		return fmt.Sprintf("%08x", uint32(ansi.RGB(r, g, b))), f[4]
 	case "ansi256":
-		return fmt.Sprintf("%08x", uint32(colorFromANSI256(mustInt(t, f[1])))), f[2]
+		return fmt.Sprintf("%08x", uint32(ansi.FromANSI256(mustInt(t, f[1])))), f[2]
 	case "none":
 		return attrString(attr{}), strings.Join(f[1:], " ")
 	case "default":
 		return attrString(attrDefault()), strings.Join(f[1:], " ")
 	case "fromcolor":
-		return attrString(attrFromColor(Color(mustInt(t, f[1])))), strings.Join(f[2:], " ")
+		return attrString(attrFromColor(ansi.Code(mustInt(t, f[1])))), strings.Join(f[2:], " ")
 	case "isnone":
 		return fmt.Sprintf("%d %d", boolInt(attr{}.isNone()), boolInt(attrDefault().isNone())),
 			strings.Join(f[1:], " ")
@@ -181,7 +179,7 @@ func attrReplay() map[string][]string {
 
 	ab = &attrBuf{}
 	for i := range 24 {
-		ab.setAt(i, 1, attrFromColor(Color(i+1)))
+		ab.setAt(i, 1, attrFromColor(ansi.Code(i+1)))
 	}
 	step = 0
 	dump("del", step, ab)
@@ -281,207 +279,6 @@ func mustU32(t *testing.T, s string) uint32 {
 	}
 	return uint32(v)
 }
-
-// --------------------------------------------------------------------------
-// termcolor_test.go
-
-const (
-	// termColorCorpusPath holds what the C color reduction returned.
-	termColorCorpusPath = "testdata/termcolor.txt"
-
-	// termColorProbePath is where tools/build-probe-termcolor.sh puts the probe.
-	termColorProbePath = ".build/probe-termcolor"
-)
-
-// TestTermColorMatchesC replays every recorded call to the color reduction in
-// term_color.c and checks that the Go port answers the same.
-func TestTermColorMatchesC(t *testing.T) {
-	if *update {
-		termColorRegenerate(t)
-	}
-	b, err := os.ReadFile(termColorCorpusPath)
-	if err != nil {
-		t.Fatalf("reading the corpus: %v (run tools/build-probe-termcolor.sh, then go test -update)", err)
-	}
-	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
-	if len(lines) < 1000 {
-		t.Fatalf("the corpus holds %d lines, which is too few", len(lines))
-	}
-	counts := make(map[string]int, 8)
-	bad := 0
-	for i, line := range lines {
-		f := strings.Fields(line)
-		if len(f) < 3 {
-			t.Fatalf("%s:%d: cannot read %q", termColorCorpusPath, i+1, line)
-		}
-		counts[f[0]]++
-		var got, want string
-		switch f[0] {
-		case "ansi16":
-			got, want = strconv.Itoa(colorToANSI16(Color(mustU32(t, f[1])))), f[2]
-		case "ansi8":
-			got, want = strconv.Itoa(colorToANSI8(Color(mustU32(t, f[1])))), f[2]
-		case "to256":
-			got, want = strconv.Itoa(rgbToANSI256(Color(mustU32(t, f[1])))), f[2]
-		case "grayish":
-			r, g, bl := Color(mustU32(t, f[1])).rgb()
-			got, want = strconv.Itoa(boolInt(isGrayish(r, g, bl))), f[2]
-		case "fmt":
-			p := palette(mustInt(t, f[1]))
-			color := Color(mustU32(t, f[2]))
-			bg := f[3] == "1"
-			got, want = escapeForCorpus(fmtColor(p, color, bg)), f[4]
-		default:
-			t.Fatalf("%s:%d: unknown kind of call %q", termColorCorpusPath, i+1, f[0])
-		}
-		if got == want {
-			continue
-		}
-		bad++
-		if bad <= 20 {
-			t.Errorf("%s:%d: %s\n  got:  %s\n  want: %s", termColorCorpusPath, i+1, line, got, want)
-		}
-	}
-	if bad > 20 {
-		t.Errorf("%d differences in total, 20 shown", bad)
-	}
-	for _, kind := range []string{"ansi16", "ansi8", "to256", "fmt", "grayish"} {
-		if counts[kind] == 0 {
-			t.Errorf("the corpus holds no %s cases", kind)
-		}
-	}
-	t.Logf("checked %d calls: %v", len(lines), counts)
-}
-
-// TestPaletteBits checks how much color each palette carries.
-func TestPaletteBits(t *testing.T) {
-	t.Parallel()
-	for _, test := range []struct {
-		p    palette
-		want int
-	}{
-		{paletteMono, 1},
-		{paletteANSI8, 3},
-		{paletteANSI16, 4},
-		{paletteANSI256, 8},
-		{paletteRGB, 24},
-		{palette(99), 4},
-	} {
-		if got := test.p.bits(); got != test.want {
-			t.Errorf("palette(%d).bits() = %d, want %d", test.p, got, test.want)
-		}
-	}
-}
-
-// escapeForCorpus renders an escape sequence the way the C probe prints one.
-func escapeForCorpus(s string) string {
-	if s == "" {
-		return "-"
-	}
-	return strings.ReplaceAll(s, "\x1b", `\e`)
-}
-
-// termColorRegenerate runs the C probe and writes the corpus.
-func termColorRegenerate(t *testing.T) {
-	t.Helper()
-	if _, err := os.Stat(termColorProbePath); err != nil {
-		t.Fatalf("no probe at %s: run tools/build-probe-termcolor.sh", termColorProbePath)
-	}
-	out, err := exec.Command(termColorProbePath).Output()
-	if err != nil {
-		t.Fatalf("running the probe: %v", err)
-	}
-	if err := os.WriteFile(termColorCorpusPath, out, 0o644); err != nil {
-		t.Fatalf("writing %s: %v", termColorCorpusPath, err)
-	}
-	t.Logf("wrote %s: %d bytes", termColorCorpusPath, len(out))
-}
-
-// ----------------------------------------------------------------------------
-// Bridging to image/color
-
-// TestColorSatisfiesImageColor checks the two ways a Color meets the standard
-// library: answering RGBA, and being made from anything that does.
-func TestColorSatisfiesImageColor(t *testing.T) {
-	t.Parallel()
-
-	t.Run("an RGB color answers its own components", func(t *testing.T) {
-		t.Parallel()
-		// RGBA reports each channel in the range 0 to 0xFFFF, so a byte of
-		// 0xFF becomes 0xFFFF and 0x00 stays 0.
-		r, g, b, a := RGB(0x12, 0x34, 0x56).RGBA()
-		for _, test := range []struct {
-			name string
-			got  uint32
-			want uint32
-		}{
-			{"red", r, 0x1212},
-			{"green", g, 0x3434},
-			{"blue", b, 0x5656},
-			{"alpha", a, 0xFFFF},
-		} {
-			if test.got != test.want {
-				t.Errorf("%s is %#04x, want %#04x", test.name, test.got, test.want)
-			}
-		}
-	})
-
-	t.Run("no color is transparent", func(t *testing.T) {
-		t.Parallel()
-		// ColorNone and ANSIDefault both mean the terminal decides, and
-		// transparent black is the only honest answer to that.
-		for _, c := range []Color{ColorNone, ANSIDefault} {
-			if r, g, b, a := c.RGBA(); r|g|b|a != 0 {
-				t.Errorf("%v gave %v %v %v %v, want all zero", c, r, g, b, a)
-			}
-		}
-	})
-
-	t.Run("a palette color answers the usual table", func(t *testing.T) {
-		t.Parallel()
-		// Not the terminal's theme, which is not knowable here, but the
-		// table the 256 color palette uses.
-		for _, c := range []Color{ANSIBlack, ANSIMaroon, ANSISilver, ANSIGray, ANSIRed, ANSIWhite} {
-			if _, _, _, a := c.RGBA(); a != 0xFFFF {
-				t.Errorf("%v is not opaque", c)
-			}
-		}
-		if r, _, _, _ := ANSIMaroon.RGBA(); r == 0 {
-			t.Error("dark red has no red in it")
-		}
-	})
-
-	t.Run("FromColor takes a standard color", func(t *testing.T) {
-		t.Parallel()
-		// color.RGBA is the ordinary one a caller will have.
-		got := FromColor(color.RGBA{R: 0x12, G: 0x34, B: 0x56, A: 0xFF})
-		if want := RGB(0x12, 0x34, 0x56); got != want {
-			t.Errorf("FromColor gave %#08x, want %#08x", uint32(got), uint32(want))
-		}
-	})
-
-	t.Run("FromColor drops the alpha rather than the color", func(t *testing.T) {
-		t.Parallel()
-		// A terminal has no transparency. A fully transparent color comes
-		// out black, which is what color.RGBA's premultiplied channels say,
-		// rather than coming out invisible.
-		if got := FromColor(color.RGBA{}); got != RGB(0, 0, 0) {
-			t.Errorf("a transparent color gave %#08x, want black", uint32(got))
-		}
-	})
-
-	t.Run("a round trip through RGBA keeps the color", func(t *testing.T) {
-		t.Parallel()
-		for _, want := range []Color{RGB(0, 0, 0), RGB(255, 255, 255), RGBHex(0xFF8800)} {
-			if got := FromColor(want); got != want {
-				t.Errorf("%#08x came back as %#08x", uint32(want), uint32(got))
-			}
-		}
-	})
-}
-
-// --------------------------------------------------------------------------
-// bbcode_test.go
 
 // --------------------------------------------------------------------------
 // bbcode_test.go
