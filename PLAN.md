@@ -1308,6 +1308,20 @@ now pins both readers against what the C's sscanf does — leading space, an
 optional sign, digits, and whatever follows ignored — and five mutations of
 the scan, the hex reader and the range check are all caught.
 
+Code that answered nothing where the C answers something, found by a reader
+rather than a test. `ansi.scanHex` carried the comment "sscanf into a 32 bit
+value keeps the low bits of a longer number", and for up to sixteen hex
+digits it did. Past that the number overflows the 64 bit accumulator, and the
+port refused the whole value where the C library saturates and hands back
+0xffffffff, so `[#fffffffffffffffff]` gave no color instead of white. Found
+by windows-vm, who noticed the code contradicting its own comment and said
+plainly that settling it needed a compiler they do not have. Settled here by
+running gcc on the same strings, which also showed the comment right about
+the low bits and wrong about where they stop: "#123456789" is 0x23456789 and
+"#100000000" is black, not a refusal. The measured answers are now in
+`names_test.go` as the expectations, and the comment says which library was
+measured, because the C standard leaves an unrepresentable value undefined.
+
 A refactor whose one behavioural change the whole corpus is blind to.
 Rewriting `updateProperty` to assign fields instead of writing through
 pointers dropped the `return name` on every property case, so a property fell

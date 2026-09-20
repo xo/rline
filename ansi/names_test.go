@@ -32,6 +32,15 @@ func TestParseColor(t *testing.T) {
 		{"#zz", None, "a hash with no hex digits"},
 		{"#ff0000ff", RGBHex(0xff0000ff & 0xFFFFFF), "sscanf keeps the low bits of a longer value"},
 		{"#ff0000junk", RGBHex(0xff0000), "and stops at the first byte that is not a digit"},
+		// Everything below was measured against gcc on glibc rather than
+		// reasoned about. A 64 bit accumulator holds the digits, saturating
+		// rather than wrapping, and its low 32 bits are the answer. Found by
+		// windows-vm, who noticed scanHex contradicting its own comment.
+		{"#123456789", RGBHex(0x23456789), "nine digits give the low bits, not a refusal"},
+		{"#100000000", RGBHex(0x000000), "which here is black rather than no color"},
+		{"#ffffffffffffffff", RGBHex(0xffffff), "sixteen digits still fit the accumulator"},
+		{"#fffffffffffffffff", RGBHex(0xffffff), "seventeen saturate it"},
+		{"#123456789abcdef012", RGBHex(0xffffff), "and a saturated value is not its own low bits"},
 	} {
 		if got := ParseColor(test.in); got != test.want {
 			t.Errorf("ParseColor(%q) = %#08x, want %#08x: %s",

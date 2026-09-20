@@ -8,7 +8,11 @@
 
 package ansi
 
-import "strconv"
+import (
+	"errors"
+	"math"
+	"strconv"
+)
 
 // ParseColor reads a color written as text: the empty string or "none" for no
 // color, a hex value such as "#ff0000", or one of the names in [ColorByName].
@@ -58,6 +62,24 @@ func ColorByName(name string) (Code, bool) {
 }
 
 // scanHex reads the hex digits at the front of s, the way sscanf reads %x.
+//
+// sscanf into a 32 bit value keeps the low bits of a longer number, so
+// "123456789" is 0x23456789 and "100000000" is zero. Past sixteen digits the
+// number overflows the 64 bit accumulator the C library reads it into, and
+// glibc stops there rather than wrapping, which leaves every longer string
+// answering 0xffffffff. Measured against gcc on glibc:
+//
+//	#ffffff              0x00ffffff
+//	#123456789           0x23456789   the low bits, not a refusal
+//	#100000000           0x00000000
+//	#ffffffffffffffff    0xffffffff   sixteen digits, still exact
+//	#fffffffffffffffff   0xffffffff   seventeen, now saturated
+//	#123456789abcdef012  0xffffffff   and not its own low bits
+//
+// The C standard leaves an unrepresentable value undefined, so this is what
+// one library does rather than what every library must. It is reproduced
+// because a caller can reach it from ordinary markup, [#fffffffffffffffff],
+// and answering nothing where the C answers white is the larger surprise.
 func scanHex(s string) (uint32, bool) {
 	n := 0
 	for n < len(s) && isHexDigit(s[n]) {
@@ -66,9 +88,10 @@ func scanHex(s string) (uint32, bool) {
 	if n == 0 {
 		return 0, false
 	}
-	// sscanf into a 32 bit value keeps the low bits of a longer number.
 	v, err := strconv.ParseUint(s[:n], 16, 64)
-	if err != nil {
+	if errors.Is(err, strconv.ErrRange) {
+		v = math.MaxUint64
+	} else if err != nil {
 		return 0, false
 	}
 	return uint32(v), true
