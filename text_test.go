@@ -797,8 +797,17 @@ type widthRange struct {
 // silent shift in where the cursor lands.
 func TestWidthDelta(t *testing.T) {
 	cRanges := readWidthRanges(t, widthPath)
-	if len(cRanges) < 100 {
-		t.Fatalf("%s holds %d ranges, which is too few", widthPath, len(cRanges))
+	// An exact count rather than a floor. The ranges cover every code point
+	// between them, so one going missing from the middle leaves the table
+	// still covering the whole space and still ending at 10ffff, with one
+	// stretch answering whatever its neighbour answers: measured by deleting
+	// a line and watching the suite stay green. Changing this number is a
+	// deliberate edit beside the corpus it describes.
+	if len(cRanges) != 805 {
+		t.Fatalf("%s holds %d ranges, want 805: a corpus that changed size was "+
+			"either regenerated on purpose, in which case set this number, or "+
+			"lost lines, in which case it now checks less than it says",
+			widthPath, len(cRanges))
 	}
 	if got := cRanges[len(cRanges)-1].Hi; got != 0x10FFFF {
 		t.Fatalf("%s stops at %06x, want 10ffff", widthPath, got)
