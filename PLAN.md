@@ -1697,6 +1697,29 @@ file. What a color is, and how one is reduced to what a terminal can actually
 show, is answerable without knowing anything about markup, a line, or a
 terminal session, so it is the `ansi` package and a caller can use it alone.
 
+A method lives with the behavior it serves, which is usually but not always
+the file that declares its type. The two rules pull against each other and
+the order matters: group by behavior first, and a type whose methods all do
+one thing then ends up in one file without anyone arranging it.
+
+Checked with go/ast rather than by eye, because a regex missed cases both
+ways. What is left after the check is all deliberate. `env` is the session,
+and its methods are in the file for the subject they serve: completion in
+`comp.go`, the history walk in `history.go`, the menu in `menu.go`. Moving
+them to `prompt.go` because that is where the struct is declared would empty
+`menu.go` of everything it was split out to hold. `capture.Transcript.Encode`
+sits in `transcript.go` with `Escape` and `writeBlock`, which are the only
+things it uses. And `ttyDevice` and `fileSizer` are each declared once per
+platform under mutually exclusive build tags, so the methods beside each
+declaration are already at home; a tool that keys on the type name alone
+reports those as strays and is wrong.
+
+Two were genuinely astray and moved. `showSearchMatch` was in `history.go`
+and writes markup into the area below the line, which is drawing rather than
+history. `fieldReader` walks the fields of a recorded line and is used by two
+test files, so it belonged in `common_test.go` with the other shared
+helpers rather than in whichever one happened to declare it.
+
 Platform-specific code follows four patterns, in this order of preference.
 
 Logic that is specific to one system but makes no system call stays untagged.
@@ -1750,6 +1773,15 @@ library.
 `internal/editor` is a line being edited and the operations that change it,
 with the undo stack behind them. It depends on `internal/text` and on `ansi`
 and on nothing else.
+
+The buffer is in `internal/text` rather than in `internal/editor`, which is
+where the refactor list asked for it, and the reason is what the six callers
+in `rline` use it for. Only the editor edits with it. `term.go` buffers escape
+sequences in one, `bbcode.go` renders markup into two, `menu.go` builds the
+completion menu, `comp.go` applies a completion, `history.go` assembles an
+entry, and `prompt.go` holds the area below the line. Putting it in the editor
+would make the terminal writer and the highlighter import the editor to reach
+a byte buffer, which is the cycle that sent `brace.go` down to the same place.
 
 Both are `internal` on purpose. Moving the editor out of `rline` exports 42 of
 its members, fourteen of them fields that the redraw path, history search and

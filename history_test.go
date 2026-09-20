@@ -22,60 +22,6 @@ const (
 	historyProbePath = ".build/probe-history"
 )
 
-// fieldReader walks the fields of a recorded line in order. Several kinds of
-// line carry a list whose length is given by the field in front of it, so
-// reading them by position is easier to get wrong than reading them in turn.
-type fieldReader struct {
-	t *testing.T
-	f []string
-	i int
-}
-
-// next returns the next field as it was written.
-func (p *fieldReader) next() string {
-	p.t.Helper()
-	if p.i >= len(p.f) {
-		p.t.Fatalf("the line ran out after %d fields: %s", len(p.f), strings.Join(p.f, " "))
-	}
-	s := p.f[p.i]
-	p.i++
-	return s
-}
-
-// str returns the next field as the bytes it stands for.
-func (p *fieldReader) str() string {
-	p.t.Helper()
-	return string(mustHex(p.t, p.next()))
-}
-
-// num returns the next field as a number.
-func (p *fieldReader) num() int {
-	p.t.Helper()
-	return mustInt(p.t, p.next())
-}
-
-// flag returns the next field as a yes or no.
-func (p *fieldReader) flag() bool {
-	p.t.Helper()
-	return p.num() == 1
-}
-
-// list returns a list of strings, led by how many there are.
-func (p *fieldReader) list() []string {
-	p.t.Helper()
-	n := p.num()
-	out := make([]string, n)
-	for i := range n {
-		out[i] = p.str()
-	}
-	return out
-}
-
-// rest returns every field that is left, as written.
-func (p *fieldReader) rest() []string {
-	return p.f[p.i:]
-}
-
 // TestHistoryPort replays every recorded call to the C history and undo code
 // and checks that the Go port does the same.
 func TestHistoryPort(t *testing.T) {

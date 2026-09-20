@@ -329,33 +329,6 @@ func nullableHex(s string, present bool) string {
 	return hexOrDash([]byte(s))
 }
 
-// rawList returns a list of fields as they were written, led by how many
-// there are. Some lists hold fields that join several values with a colon,
-// which are not hexadecimal on their own.
-func (p *fieldReader) rawList() []string {
-	p.t.Helper()
-	n := p.num()
-	out := make([]string, n)
-	for i := range n {
-		out[i] = p.next()
-	}
-	return out
-}
-
-// nullableStr reads a field that the probe may have written as a null
-// pointer, which becomes an empty string here.
-func (p *fieldReader) nullableStr() string {
-	p.t.Helper()
-	s := p.next()
-	if s == "!" {
-		return ""
-	}
-	if s == "-" {
-		return ""
-	}
-	return string(mustHex(p.t, s))
-}
-
 // regenerateCompletions runs the C probe and writes the corpus.
 func regenerateCompletions(t *testing.T) {
 	t.Helper()
@@ -764,20 +737,6 @@ func checkFilesCase(t *testing.T, p *fieldReader) string {
 		}
 	}
 	return ""
-}
-
-// envStr reads a field that names an environment variable's value, where a
-// null pointer means the variable was not set at all.
-func (p *fieldReader) envStr() string {
-	p.t.Helper()
-	s := p.next()
-	if s == "!" {
-		return "\x00unset"
-	}
-	if s == "-" {
-		return ""
-	}
-	return string(mustHex(p.t, s))
 }
 
 // setEnvOrUnset sets a variable, or removes it when the recorded value says

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -53,4 +54,99 @@ func hexOrDash(b []byte) string {
 		return "-"
 	}
 	return hex.EncodeToString(b)
+}
+
+// fieldReader walks the fields of a recorded line in order. Several kinds of
+// line carry a list whose length is given by the field in front of it, so
+// reading them by position is easier to get wrong than reading them in turn.
+type fieldReader struct {
+	t *testing.T
+	f []string
+	i int
+}
+
+// next returns the next field as it was written.
+func (p *fieldReader) next() string {
+	p.t.Helper()
+	if p.i >= len(p.f) {
+		p.t.Fatalf("the line ran out after %d fields: %s", len(p.f), strings.Join(p.f, " "))
+	}
+	s := p.f[p.i]
+	p.i++
+	return s
+}
+
+// str returns the next field as the bytes it stands for.
+func (p *fieldReader) str() string {
+	p.t.Helper()
+	return string(mustHex(p.t, p.next()))
+}
+
+// num returns the next field as a number.
+func (p *fieldReader) num() int {
+	p.t.Helper()
+	return mustInt(p.t, p.next())
+}
+
+// flag returns the next field as a yes or no.
+func (p *fieldReader) flag() bool {
+	p.t.Helper()
+	return p.num() == 1
+}
+
+// list returns a list of strings, led by how many there are.
+func (p *fieldReader) list() []string {
+	p.t.Helper()
+	n := p.num()
+	out := make([]string, n)
+	for i := range n {
+		out[i] = p.str()
+	}
+	return out
+}
+
+// rest returns every field that is left, as written.
+func (p *fieldReader) rest() []string {
+	return p.f[p.i:]
+}
+
+// rawList returns a list of fields as they were written, led by how many
+// there are. Some lists hold fields that join several values with a colon,
+// which are not hexadecimal on their own.
+func (p *fieldReader) rawList() []string {
+	p.t.Helper()
+	n := p.num()
+	out := make([]string, n)
+	for i := range n {
+		out[i] = p.next()
+	}
+	return out
+}
+
+// nullableStr reads a field that the probe may have written as a null
+// pointer, which becomes an empty string here.
+func (p *fieldReader) nullableStr() string {
+	p.t.Helper()
+	s := p.next()
+	if s == "!" {
+		return ""
+	}
+	if s == "-" {
+		return ""
+	}
+	return string(mustHex(p.t, s))
+}
+
+// envStr reads a field that names an environment variable's value, where a
+// null pointer means the variable was not set at all.
+func (p *fieldReader) envStr() string {
+	p.t.Helper()
+	s := p.next()
+	if s == "!" {
+		return "\x00unset"
+	}
+	if s == "-" {
+		return ""
+	}
+	return string(mustHex(p.t, s))
 }

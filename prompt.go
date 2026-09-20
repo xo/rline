@@ -319,6 +319,26 @@ func appendHintHelp(e *editor.Editor, help string) {
 	e.HintHelp.WriteString("[/ic-info]\n")
 }
 
+// showSearchMatch fills the area below the line with the entry that was found,
+// underlining the part that matched.
+func (ev *env) showSearchMatch(e *editor.Editor, hidx int, entry string, matchPos, matchLen int) {
+	// The entry is written between [!pre] tags, so that a bracket in it is
+	// text rather than markup.
+	lo := min(max(matchPos, 0), len(entry))
+	hi := min(max(lo+matchLen, lo), len(entry))
+	e.Extra.Appendf("[ic-info]%d. [/][ic-diminish][!pre]", hidx)
+	e.Extra.AppendString(entry[:lo])
+	e.Extra.AppendString("[/pre][u ic-emphasis][!pre]")
+	e.Extra.AppendString(entry[lo:hi])
+	e.Extra.AppendString("[/pre][/u][!pre]")
+	e.Extra.AppendString(entry[hi:])
+	e.Extra.AppendString("[/pre][/ic-diminish]")
+	if !ev.noHelp {
+		e.Extra.AppendString("\n[ic-info](use tab for the next match)[/]")
+	}
+	e.Extra.AppendString("\n")
+}
+
 // refreshHint draws the line and works out the hint to show inside it.
 //
 // A hint is the rest of the only completion that fits. When more than one
