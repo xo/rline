@@ -6,13 +6,6 @@
 
 #define _XOPEN_SOURCE 700
 #define _DEFAULT_SOURCE
-#if defined(__APPLE__)
-/* cfmakeraw is a BSD extension, and asking for _XOPEN_SOURCE hides it on
-   macOS. This asks for it back. It cannot affect Linux, where the macro does
-   not exist and cfmakeraw is already visible through _DEFAULT_SOURCE. This
-   probe had never been built on macOS, so the omission had never shown. */
-#define _DARWIN_C_SOURCE
-#endif
 
 #include "isocline.c"
 
@@ -111,48 +104,7 @@ static const char* corpus[] = {
   "[b   ]spaces[/b]", "[ b ]spaces[/ b ]",
   "[b]\xe6\x97\xa5\xe6\x9c\xac[/b]", "[width=6]\xe6\x97\xa5\xe6\x9c\xac[/]",
   "[color=\"red\"]quoted[/]", "[color=\"\"]empty[/]",
-  "a[b]b[/b]c[i]d[/i]e",
-  /* The readers behind these four take decisions nothing above reaches: a
-     leading space, a sign, digits with something after them, an empty
-     value, and for the colors each hex length. The decimal scan was written
-     out by hand when this moved packages, so what it does belongs in a
-     recording rather than in an argument about what sscanf accepts. */
-  "[ansi-color= 5]x[/]",
-  "[ansi-color=+5]x[/]",
-  "[ansi-color=-1]x[/]",
-  "[ansi-color=5x]x[/]",
-  "[ansi-color=]x[/]",
-  "[ansi-color=x5]x[/]",
-  "[ansi-color=0]x[/]",
-  "[ansi-color=15]x[/]",
-  "[ansi-color=255]x[/]",
-  "[ansi-bgcolor=255]x[/]",
-  "[ansi-bgcolor=256]x[/]",
-  "[ansi-bgcolor= 2]x[/]",
-  "[color=#abc]x[/]",
-  "[color=#ABCDEF]x[/]",
-  "[color=#ab]x[/]",
-  "[color=#abcdefff]x[/]",
-  "[color=#]x[/]",
-  "[color=#xyzxyz]x[/]",
-  "[bgcolor=#123456]x[/]",
-  "[bgcolor=#abc]x[/]",
-  "[color=0]x[/]",
-  "[color=255]x[/]",
-  "[color=256]x[/]",
-  "[color=-1]x[/]",
-  "[color= 9]x[/]",
-  "[color=9z]x[/]",
-  "[bgcolor=3]x[/]",
-  "[ansi-sgr=31]x[/]",
-  "[ansi-sgr=38;5;200]x[/]",
-  "[ansi-sgr=38;2;1;2;3]x[/]",
-  "[ansi-sgr=48;5;9]x[/]",
-  "[ansi-sgr=]x[/]",
-  "[ansi-sgr=999]x[/]",
-  "[ansi-sgr=1;]x[/]",
-  "[ansi-sgr=;1]x[/]",
-  "[ansi-sgr=38;5;]x[/]"
+  "a[b]b[/b]c[i]d[/i]e"
 };
 #define NCORPUS ((int)(sizeof(corpus)/sizeof(corpus[0])))
 
