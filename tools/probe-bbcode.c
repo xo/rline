@@ -7,6 +7,13 @@
 #define _XOPEN_SOURCE 700
 #define _DEFAULT_SOURCE
 
+#if defined(__APPLE__)
+/* cfmakeraw is a BSD extension, and asking for _XOPEN_SOURCE hides it on
+   macOS. This asks for it back. It cannot affect Linux, where the macro does
+   not exist and cfmakeraw is already visible through _DEFAULT_SOURCE. */
+#define _DARWIN_C_SOURCE
+#endif
+
 #include "isocline.c"
 
 #include <stdio.h>
