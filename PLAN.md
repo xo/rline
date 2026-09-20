@@ -1435,6 +1435,30 @@ command and it happened to be run before the message was sent. Had
 `highlightMatchBraces` been harder to read, or had the message gone first
 and the investigation second, it would have cost what the other three did.
 
+A wrapper that looked like a habit and was load-bearing.
+`defer func() { _ = f.Close() }()` appeared twelve times, and the item
+against it assumed the plain `defer f.Close()` would do. Measured first:
+that form fails errcheck, which golangci-lint v2 has on by default, so the
+wrapper was not ceremony but the thing keeping the tree lint-clean.
+
+The fix is a four-line errcheck exclusion for `(*os.File).Close` and nothing
+wider, with its own reason written beside it. A deferred close on a file
+opened for reading is the one unchecked error worth having: the read has
+already succeeded or already failed and the close cannot change either.
+
+Two things about it are worth knowing rather than discovering. errcheck
+cannot scope an exclusion to deferred calls, so a future unchecked close on
+a file opened for WRITING passes too — which is why `history.go` checks its
+write close explicitly and says why, and why the one remaining wrapper in
+`sys_windows_test.go` is on a file from `os.Create` and now says that is the
+reason. And the exclusion was checked for over-reach rather than assumed
+narrow: an unchecked `f.Write` is still reported.
+
+Four wrappers stay because they are not closes at all —
+`windows.SetConsoleCursorPosition`, `windows.SetConsoleMode`, `os.RemoveAll`
+and the library's own `Prompt.Close` — and dropping those errors is a
+decision each time rather than a pattern.
+
 Three options for three streams, named two ways. `WithInput`, `WithOutput`
 and `WithStderr` matched no established pattern: the standard library and the
 readline packages are symmetric one way, and cobra is symmetric the other.

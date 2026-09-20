@@ -930,7 +930,7 @@ func completeInDir(cenv *Completion, color bool, dir, dirPrefix, base string,
 	if err != nil {
 		return true
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 	// Read in directory order rather than sorted, which is what the C sees.
 	// Nothing depends on the order, because the menu sorts before it shows.
 	entries, err := f.ReadDir(-1)

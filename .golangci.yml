@@ -12,6 +12,19 @@ linters:
     - usetesting
     - wrapcheck
   settings:
+    errcheck:
+      # A deferred close on a file opened for reading is the one unchecked
+      # error worth having: the read already succeeded or already failed, and
+      # the close can say nothing that changes either. Writing it as
+      # `defer func() { _ = f.Close() }()` is three tokens of ceremony that
+      # say only what this line says once.
+      #
+      # This is (*os.File).Close and nothing wider. It is not scoped to defer,
+      # because errcheck cannot express that, so a future unchecked close on a
+      # file opened for WRITING would also pass. That is the cost, and it is
+      # why history.go checks its write close explicitly and says why.
+      exclude-functions:
+        - (*os.File).Close
     errorlint:
       errorf: true
       asserts: true

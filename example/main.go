@@ -68,7 +68,7 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("opening the log: %w", err)
 		}
-		defer func() { _ = f.Close() }()
+		defer f.Close()
 		opts = append(opts, rline.WithLogger(f))
 	}
 	p, err := rline.New(opts...)

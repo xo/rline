@@ -52,7 +52,7 @@ func Record(ctx context.Context, path string, s Session) (*Transcript, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = leader.Close() }()
+	defer leader.Close()
 	if err := setWinsize(leader, s.Cols, s.Rows); err != nil {
 		_ = follower.Close()
 		return nil, err

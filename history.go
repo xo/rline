@@ -217,7 +217,7 @@ func (h *history) load() error {
 		h.partial = true
 		return fmt.Errorf("opening the history file %s: %w", h.name, err)
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 	r := bufio.NewReader(f)
 	var buf text.Buffer
 	for {

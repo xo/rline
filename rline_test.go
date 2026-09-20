@@ -188,7 +188,7 @@ func TestWritesToTerminalLooksAtTheWriter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("making a file: %v", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 	t.Logf("the standard input is a terminal: %v", isTerminal(int(os.Stdin.Fd())))
 	if writesToTerminal(f) {
 		t.Errorf("a plain file is taken for a terminal, so colour would be written into it")

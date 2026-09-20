@@ -255,6 +255,9 @@ func TestConsoleEscapesFromOff(t *testing.T) {
 	if err != nil {
 		t.Fatalf("making the report: %v", err)
 	}
+	// Written out rather than deferred bare: this one was opened for writing,
+	// so its close error is the one that could matter, and dropping it is a
+	// decision rather than the read-only case the lint config excludes.
 	defer func() { _ = report.Close() }()
 	say := func(format string, a ...any) {
 		_, _ = fmt.Fprintf(report, format+"\n", a...)
@@ -340,7 +343,7 @@ func TestConsoleWritesToTerminalOnAConsole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("making a file: %v", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 	if writesToTerminal(f) {
 		t.Error("a plain file is taken for a terminal while a console is on the standard input, " +
 			"so colour would be written into a redirected output")
@@ -654,7 +657,7 @@ func TestConsoleOpenTTYDeviceHonoursItsArgument(t *testing.T) {
 	if err != nil {
 		t.Fatalf("making a file: %v", err)
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 
 	// A plain file is not a console, so opening it as one has to fail. If the
 	// argument were ignored this would take the console and succeed.
