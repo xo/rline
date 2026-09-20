@@ -45,7 +45,31 @@ type EditOptions struct {
 }
 
 // Editor holds a line being edited.
+// noCopy makes `go vet` refuse a copy of whatever embeds it.
+//
+// An Editor holds two strings.Builder, which panic at run time if they are
+// written to after being copied. That was containable while the editor was
+// an unexported struct in one package with one set of callers; exporting it
+// across a package boundary means any code that can see the type can write
+// `c := *e` and get a panic that neither the compiler nor vet would mention.
+// Demonstrated rather than supposed: copying an Editor and writing to the
+// copy panics with "illegal use of non-zero Builder copied by value", and
+// `go vet ./...` says nothing about it.
+//
+// vet's copylocks check does notice a type with Lock and Unlock, so this
+// turns that run-time panic into a build-time complaint. It holds no state
+// and costs nothing; an Editor is always used through a pointer.
+type noCopy struct{}
+
+// Lock satisfies sync.Locker for vet's benefit. It is never called.
+func (*noCopy) Lock() {}
+
+// Unlock satisfies sync.Locker for vet's benefit. It is never called.
+func (*noCopy) Unlock() {}
+
 type Editor struct {
+	_ noCopy
+
 	// The line and where the cursor is in it.
 	Input text.Buffer
 	Pos   int
