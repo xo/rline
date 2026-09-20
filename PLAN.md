@@ -1400,6 +1400,28 @@ it removed the choice rather than reminding anyone to make it, and pipefail
 in the scripts that gate is the same move. Nobody has the equivalent for an
 interactive shell.
 
+A difference read as a fault. Comparing the Enter handler against pyrepl,
+which is the closest modern implementation and which rline resembles closely
+because WithContinue is its more_lines callback, turned up a clause rline
+does not have: pyrepl breaks the row whenever the cursor has rows below it,
+before asking the callback at all. Measured here, rline submits in that case:
+going up into the first row of a finished statement and pressing Enter hands
+the statement back rather than splitting the row.
+
+That was written up as a bug and a guard was added, which broke a test that
+had recorded the opposite on purpose. The C is the reason: isocline's Enter
+finishes wherever the cursor is, and its only exception is the line
+continuation character. pyrepl needs its heuristic because Enter is the only
+key it has; rline has Ctrl-J, which breaks a row without finishing, so the
+heuristic would take a choice away rather than add one.
+
+So the guard came out and the documentation says which behaviour this is and
+why. The lesson is about the method rather than the key: a difference from a
+well-made neighbour is a question, not a finding, and the way to tell is to
+ask what the thing being ported does and whether the neighbour has the same
+alternatives available. Both answers were one command away and neither was
+run before the change was written.
+
 A document that describes files that are gone. PLAN.md's list of where
 things live named `winkey.go`, deleted eight commits earlier when its
 contents moved into `tty.go`, and `password.go`, whose code is in `rline.go`.

@@ -375,14 +375,19 @@ func WithCompleter(completer Completer) Option {
 // WithContinue decides whether Enter finishes the line or starts another row
 // inside it.
 //
-// The function is handed everything typed so far, across every row, and
-// answers true when the line is not finished. That is how a prompt keeps
-// reading until a statement is closed, and it keeps the whole statement in one
-// buffer, so the cursor can be moved between its rows and the whole thing is
-// handed back at once.
+// The function is handed everything typed so far, across every row, not the
+// row that was just typed, and answers true when it is not finished. That is
+// how a prompt keeps reading until a statement is closed, and it keeps the
+// whole statement in one buffer, so the cursor can be moved between its rows
+// and the whole thing is handed back at once.
+//
+// Enter finishes the line wherever the cursor is, including on a row above
+// the last one, which is what the C does. Ctrl-J breaks a row without
+// finishing. pyrepl instead makes Enter above the last row always break,
+// because it has no separate key for that; this has one.
 //
 // Without this, Enter always finishes the line.
-func WithContinue(fn func(line string) bool) Option {
+func WithContinue(fn func(text string) bool) Option {
 	return func(c *config) { c.isIncomplete = fn }
 }
 
