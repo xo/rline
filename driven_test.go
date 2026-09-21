@@ -161,7 +161,7 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 	_ = h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
 		term:          tm,
-		tty:           newTTY(&feedKeys{keys: keys}),
+		keys:          newDecoder(&feedKeys{keys: keys}),
 		bb:            newBBCode(tm),
 		history:       h,
 		completions:   &completions{},
@@ -181,7 +181,7 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 		completePreview: true,
 	}
 	if opt.NotUTF8 {
-		ev.tty.isUTF8 = false
+		ev.keys.isUTF8 = false
 	}
 	if opt.Completer != nil {
 		ev.completions.setCompleter(opt.Completer, nil)

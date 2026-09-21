@@ -11,8 +11,8 @@ import (
 // answers.
 func TestOpenTTYIsUnsupported(t *testing.T) {
 	t.Parallel()
-	if _, err := openTTY(0); !errors.Is(err, errUnsupported) {
-		t.Errorf("openTTY gave %v, want %v", err, errUnsupported)
+	if _, err := openDecoder(0); !errors.Is(err, errUnsupported) {
+		t.Errorf("openDecoder gave %v, want %v", err, errUnsupported)
 	}
 	if isTerminal(0) {
 		t.Error("isTerminal said yes on a platform that cannot tell")

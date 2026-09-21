@@ -21,9 +21,9 @@ import (
 //
 // Ported from isocline/src/tty.c.
 
-// ttyDevice is a terminal opened on a file descriptor. It supplies the bytes
-// that a tty decodes, and it owns the terminal settings.
-type ttyDevice struct {
+// tty is a terminal opened on a file descriptor. It supplies the bytes
+// that a keyDecoder decodes, and it owns the terminal settings.
+type tty struct {
 	// fd is the file descriptor that input arrives on.
 	fd int
 
@@ -66,12 +66,12 @@ func fileIsTerminal(f *os.File) bool {
 	return isTerminal(int(f.Fd()))
 }
 
-// openTTYDevice prepares fd for reading keys. A negative fd means standard
+// openTTY prepares fd for reading keys. A negative fd means standard
 // input, as it does in the C code.
 //
 // This works out the raw settings but does not apply them. startRaw does
 // that, so that the terminal is only in raw mode while a line is being read.
-func openTTYDevice(fd int) (*ttyDevice, error) {
+func openTTY(fd int) (*tty, error) {
 	if fd < 0 {
 		fd = int(os.Stdin.Fd())
 	}
@@ -79,7 +79,7 @@ func openTTYDevice(fd int) (*ttyDevice, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading the settings of file descriptor %d: %w", fd, errNotATerminal)
 	}
-	d := &ttyDevice{fd: fd, origMode: *mode, done: make(chan struct{})}
+	d := &tty{fd: fd, origMode: *mode, done: make(chan struct{})}
 
 	// Raw mode, following the termios manual page.
 	raw := *mode
@@ -102,7 +102,7 @@ func openTTYDevice(fd int) (*ttyDevice, error) {
 
 // watchSignals starts listening for a window resize and for the signals that
 // end the program.
-func (d *ttyDevice) watchSignals() {
+func (d *tty) watchSignals() {
 	d.resizeCh = make(chan os.Signal, 1)
 	signal.Notify(d.resizeCh, unix.SIGWINCH)
 	go func() {
@@ -150,7 +150,7 @@ func (d *ttyDevice) watchSignals() {
 }
 
 // close puts the terminal back and stops watching for signals.
-func (d *ttyDevice) close() error {
+func (d *tty) close() error {
 	d.endRaw()
 	d.stopOnce.Do(func() {
 		signal.Stop(d.resizeCh)
@@ -163,7 +163,7 @@ func (d *ttyDevice) close() error {
 
 // startRaw puts the terminal into raw mode, so that a key arrives as soon as
 // it is pressed rather than at the end of a line. Calling it twice is safe.
-func (d *ttyDevice) startRaw() error {
+func (d *tty) startRaw() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.rawEnabled {
@@ -177,7 +177,7 @@ func (d *ttyDevice) startRaw() error {
 }
 
 // endRaw puts the terminal back the way it was.
-func (d *ttyDevice) endRaw() {
+func (d *tty) endRaw() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if !d.rawEnabled {
@@ -196,7 +196,7 @@ func (d *ttyDevice) endRaw() {
 // A byte that does not arrive leaves nothing behind, which is what the escape
 // decoder needs: it keeps the byte it already had and reads that as alt and
 // that character.
-func (d *ttyDevice) readByte(timeout time.Duration) (byte, bool) {
+func (d *tty) readByte(timeout time.Duration) (byte, bool) {
 	if timeout < 0 {
 		return d.readNow()
 	}
@@ -212,7 +212,7 @@ func (d *ttyDevice) readByte(timeout time.Duration) (byte, bool) {
 }
 
 // readNow reads one byte, waiting for it if the terminal is set to wait.
-func (d *ttyDevice) readNow() (byte, bool) {
+func (d *tty) readNow() (byte, bool) {
 	var buf [1]byte
 	n, err := unix.Read(d.fd, buf[:])
 	if err != nil || n != 1 {
@@ -226,7 +226,7 @@ func (d *ttyDevice) readNow() (byte, bool) {
 // It answers yes when nothing is watching for the signal, because then there
 // is no way to tell, and redrawing a line that did not need it costs less
 // than leaving a line drawn at the wrong width.
-func (d *ttyDevice) resizeEvent() bool {
+func (d *tty) resizeEvent() bool {
 	if !d.watching.Load() {
 		return true
 	}
@@ -250,15 +250,15 @@ func localeIsUTF8() bool {
 	return text.ContainsFold(loc, "UTF-8") || text.ContainsFold(loc, "utf8") || text.CompareFold(loc, "C") == 0
 }
 
-// openTTY opens the terminal on fd and returns a tty that reads keys from it.
+// openDecoder opens the terminal on fd and returns a keyDecoder reading it.
 // A negative fd means standard input.
-func openTTY(fd int) (*tty, error) {
-	d, err := openTTYDevice(fd)
+func openDecoder(fd int) (*keyDecoder, error) {
+	d, err := openTTY(fd)
 	if err != nil {
 		return nil, err
 	}
-	t := newTTY(d)
-	t.dev = d
+	t := newDecoder(d)
+	t.ctrl = d
 	t.isUTF8 = localeIsUTF8()
 	return t, nil
 }

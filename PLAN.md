@@ -42,7 +42,7 @@ full suite, and a person has driven the editor by hand on each.
 Seven more compile and are not tested: FreeBSD, NetBSD, OpenBSD, Dragonfly,
 Solaris, illumos and the mobile variants that Go folds into darwin and linux.
 The Unix file is tagged `unix && !aix` and the ioctl numbers they need sit in
-`ttydev_bsd.go` and `ttydev_sysv.go`. Nothing else in the terminal layer
+`tty_bsd.go` and `tty_sysv.go`. Nothing else in the terminal layer
 asks anything of the system that `golang.org/x/sys/unix` does not answer per
 system.
 
@@ -69,7 +69,7 @@ That settles the risk DeepSeek named when it argued against widening the tag.
 different values, and the suite passes on all of them.
 
 illumos is the one that earned its console time. It is the only one that
-takes `ttydev_nosti.go`,
+takes `tty_nosti.go`,
 since FreeBSD and NetBSD both have `TIOCSTI`. Those two files had nothing
 behind them before it.
 
@@ -108,13 +108,13 @@ What a virtual machine would still add: the twelfth device test. Thirteen of
 the fourteen test files build for these systems, and the terminal layer has
 eleven of its twelve tests there.
 
-The twelfth is `TestTTYDeviceOnARealTerminal`, which needs a pseudo-terminal.
+The twelfth is `TestTTYOnARealTerminal`, which needs a pseudo-terminal.
 `capture.OpenPTY` is written for Linux and macOS, and FreeBSD opens one
-differently again. It lives in `ttydev_pty_test.go` under `linux || darwin`
+differently again. It lives in `tty_pty_test.go` under `linux || darwin`
 for that reason, so the eleven that use pipes are not held back by the one
 that does not.
 
-Widening the device tests is what found this. The tag on `ttydev_test.go` was
+Widening the device tests is what found this. The tag on `tty_test.go` was
 still `linux || darwin` after its source widened, so the layer the widening
 enabled had no tests at all on the systems it enabled it for. That is the
 same shape as the check that left the build, and it was one line of my own
@@ -125,7 +125,7 @@ Recording sessions does not reach FreeBSD either. `internal/capture` is
 set and no need for one: the corpus is recorded from the C, and the C build
 would have to run there too.
 
-Anything else, including aix, falls to `ttydev_other.go`. It reads plain
+Anything else, including aix, falls to `tty_other.go`. It reads plain
 lines with no editing and says the terminal is unsupported, which is a mode
 rather than a failure.
 
@@ -195,19 +195,19 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    landed. `tools/build-probe-stringbuf.sh` builds a second probe, and
    `internal/text/testdata/stringbuf.txt` records 76164 of those calls.
 4. `tty.c` and `tty_esc.c`. The decoding half is done. `tty_esc.c` is ported
-   whole, in `tty.go`. From `tty.c` what is ported is the key codes, now
-   the exported `key` package, and the reader in `tty.go`: the two pushback
+   whole, in `decoder.go`. From `tty.c` what is ported is the key codes, now
+   the exported `key` package, and the reader in `decoder.go`: the two pushback
    buffers, the UTF-8 assembly, the dispatch, and the rewriting of the keys
    that terminals disagree about. `tools/build-probe-tty.sh` builds a third
    probe, and `testdata/tty.txt` records 7157 decodes.
 
-   The terminal itself is done too, in `ttydev_posix.go` with the per system
-   requests in `ttydev_sysv.go` and `ttydev_bsd.go`: raw mode through
+   The terminal itself is done too, in `tty_posix.go` with the per system
+   requests in `tty_sysv.go` and `tty_bsd.go`: raw mode through
    `termios`, the UTF-8 test, the resize event, interrupting a read, and
    `tty_read_esc_response`. Windows is still `errUnsupported`.
 
    That half needs a real terminal, which a corpus cannot give, so
-   `TestTTYDeviceOnARealTerminal` opens a pseudo-terminal through
+   `TestTTYOnARealTerminal` opens a pseudo-terminal through
    `capture.OpenPTY`, goes into raw mode, checks that echo and line mode and
    the signal keys are off, reads keys through the decoder, and checks the
    terminal is put back. `tty_read_esc_response` is in the corpus, because it
@@ -442,7 +442,7 @@ reads "no steps". So the words a caller prints and the identifier they looked
 it up by are the same words, and neither can drift from the other. Context
 belongs in the wrapping at the place the error is returned, which is where it
 knows what was being attempted — `record_unix.go` names the session, and
-`ttydev_other.go` says that it was reading keys.
+`tty_other.go` says that it was reading keys.
 
 That rule is a test rather than a convention. `TestErrorsAreConstants` derives
 the text from the name rather than writing it out, so the check is the rule
@@ -463,7 +463,7 @@ whatever its type, so `errors.Is` is still the way to ask, and
 Two things follow from the type comparing by value. Two errors with the same
 text are the same error, so the test checks that none of them share text.
 And a constant declared where the building platform does not read it is one
-the linter reports, which is why `errUnsupported` lives in `ttydev_other.go`
+the linter reports, which is why `errUnsupported` lives in `tty_other.go`
 under its own build tag rather than beside the rest.
 
 The Windows terminal layer used to have its own `errNotATerminal` reading
@@ -808,7 +808,8 @@ two questions that are the same on one system and not on another, so the
 system where they differ is the one that finds out.
 
 And a third instance of the same shape, found by windows-vm while regression
-testing the API reshape. `openTTYDevice` on Windows took a descriptor and
+testing the API reshape. What was then `openTTYDevice` on Windows and is
+now `openTTY` took a descriptor and
 ignored it, always opening the standard input, so `WithStdin` and the
 `WithInputFd` that then existed silently did nothing there: the caller's stream was accepted and
 discarded, the console was read instead, and because opening it succeeded the
@@ -1070,7 +1071,8 @@ key is reported, so a modifier is the way to reach any key the terminal has
 taken.
 
 The escape wait is reachable on Windows, which an old comment denied. When the
-Windows `openTTY` stopped setting `escInitialTimeout` — `newTTY` now sets it
+Windows opener stopped setting `escInitialTimeout` — what was then `newTTY`
+and is now `newDecoder` sets it
 for every system — the line it removed carried a comment saying nothing there
 ever waits for an escape byte, because the console delivers a key event whole.
 Half of that is right. windows-vm measured it on a real console at 91335a9:
@@ -1584,8 +1586,10 @@ identifiers a rename touches rather than against the disk.
 
 A document that describes files that are gone. PLAN.md's list of where
 things live named `winkey.go`, deleted eight commits earlier when its
-contents moved into `tty.go`, and `password.go`, whose code is in `rline.go`.
-It also said `ttydev_posix.go` is tagged `linux || darwin` while the file
+contents moved into what was then `decoder.go` and is now `decoder.go`, and
+`password.go`, whose code is in `rline.go`. It also said what was then
+`tty_posix.go` and is now `tty_posix.go` is tagged `linux || darwin`
+while the file
 says `unix && !aix` and another section of the same document says so
 correctly, so it contradicted itself. Found by windows-vm while checking a
 message of mine that repeated the listing.
@@ -1836,7 +1840,7 @@ checked that any figure was right.
 100ms against 100ms and never looked at the 200. It also sat in a file tagged
 `unix && !aix`, so Windows, plan9 and js ran neither figure: `go test -run
 TestDefaultEscInitialIsSane` there prints `no tests to run`, which is not a
-skip and says nothing. And `tty_test.go`'s untagged mention asserts
+skip and says nothing. And `decoder_test.go`'s untagged mention asserts
 `escInitialTimeout == defaultEscInitial()`, which ties the constructor to the
 function and passes whatever the function returns.
 
@@ -1852,7 +1856,7 @@ the branch, `defaultEscInitial()` calls it with `runtime.GOOS` — still a
 constant, so nothing costs anything at run time — and `TestEscInitialFigures`
 names the figures for darwin, linux, windows, freebsd and solaris in an
 untagged file. The 200-to-300 mutation now fails on linux, and the test
-compiles into the windows, plan9 and js test binaries. `tty_test.go`'s wiring
+compiles into the windows, plan9 and js test binaries. `decoder_test.go`'s wiring
 assertion stays, because it is the only thing tying the constructor to the
 function and the table does not cover that.
 
@@ -1919,6 +1923,20 @@ the mutation fails it twice over, the second failure reading `b` where `z`
 was sent because a kept queue shifts every later key, and removing the typed
 line fails it with the message saying nothing was waiting.
 
+Reading a green exit code from a command that does not answer the question.
+Three times in one afternoon, by two different sessions, and the same shape
+each time: `go vet` was run on a deliberately broken tree and its success
+reported as evidence about tests. It is not. Vet type-checks, so a wrong
+*value* passes it every time — ken-mba nearly reported a clean linux vet of a
+tree with the escape figure mutated as proof the figure was not portable,
+which is true, but the vet does not show it; and the same reflex, in the
+other direction, invented the rule that vet cannot see test files at all.
+Both are assumptions about a tool's scope presented as facts about the
+code. The rule is narrow: a mutation is answered by running the thing that
+would fail, and when that cannot be run, by reading the source that decides
+it. An exit code from a command that never executes the assertion is not
+weak evidence, it is none.
+
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.
 Before landing a corpus, break the code it covers on purpose, once per thing
@@ -1961,8 +1979,8 @@ both by coincidence of this particular pair, and reading that coincidence as
 the structure would have produced a file that was right by accident.
 
 The rule the project already had said it: name a file for the axis it splits
-on rather than for one system on it. So `ttydev_sysv.go` is `linux ||
-solaris` and `ttydev_bsd.go` is the five BSDs including darwin, each holding
+on rather than for one system on it. So `tty_sysv.go` is `linux ||
+solaris` and `tty_bsd.go` is the five BSDs including darwin, each holding
 the two ioctls and nothing else.
 
 The timeout went the other way entirely, under the rule that comes first in
@@ -1974,8 +1992,9 @@ inside — a constant, so the branch is resolved at build time — and the test
 names both figures, which means every run checks the macOS one. Before this
 the 200ms sat where only a Mac ever compiled it.
 
-That removed a duplication nobody had noticed: `newTTY` set the timeout from
-an untagged constant and `openTTY` overwrote it one line later with the
+That removed a duplication nobody had noticed: the constructor, then `newTTY`
+and now `newDecoder`, set the timeout from an untagged constant and the
+Unix opener overwrote it one line later with the
 per-system copy. Both were 100ms everywhere but macOS, so changing one and
 not the other would have split the behaviour of a real terminal from the
 behaviour of the test harness, silently.
@@ -2017,7 +2036,7 @@ and its methods are in the file for the subject they serve: completion in
 them to `prompt.go` because that is where the struct is declared would empty
 `menu.go` of everything it was split out to hold. `capture.Transcript.Encode`
 sits in `transcript.go` with `Escape` and `writeBlock`, which are the only
-things it uses. And `ttyDevice` and `fileSizer` are each declared once per
+things it uses. And `tty` and `fileSizer` are each declared once per
 platform under mutually exclusive build tags, so the methods beside each
 declaration are already at home; a tool that keys on the type name alone
 reports those as strays and is wrong.
@@ -2033,7 +2052,7 @@ Platform-specific code follows four patterns, in this order of preference.
 Logic that is specific to one system but makes no system call stays untagged.
 It then compiles and runs its tests everywhere, so it cannot rot on the one
 machine nobody builds on. Turning Windows key events into escape sequences is
-written this way, and it sits inside `tty.go`, which carries no build tag
+written this way, and it sits inside `decoder.go`, which carries no build tag
 either, so every system compiles it and every system runs its tests.
 
 Code that orchestrates a platform-specific step stays untagged and calls a
@@ -2042,23 +2061,23 @@ this: the reading, the clearing and the echo back are one untagged function,
 and only turning the echo off is per system.
 
 Code shared by a group of systems takes the broad tag for that group.
-`ttydev_posix.go` is `unix && !aix`, and holds everything the Unix systems do
+`tty_posix.go` is `unix && !aix`, and holds everything the Unix systems do
 the same way.
 
 Values that differ per system take a narrow tag, and the file is named for
-what it covers. `ttydev_sysv.go` and `ttydev_bsd.go` hold two ioctl numbers
+what it covers. `tty_sysv.go` and `tty_bsd.go` hold two ioctl numbers
 each. A system nobody mapped gets no constants and falls to the stub in
-`ttydev_other.go`, which reads plain lines and says the terminal is
+`tty_other.go`, which reads plain lines and says the terminal is
 unsupported.
 
 Name a file for the axis it splits on rather than for one system on it.
-`ttydev_sti.go` and `ttydev_nosti.go` split on whether the system has the
+`tty_sti.go` and `tty_nosti.go` split on whether the system has the
 `TIOCSTI` ioctl, which is what actually differs: OpenBSD removed it and
 Solaris does not offer it, while five other systems have it.
 
 Gemini recommends a fuzz test in a file of its own, because the corpus and
 the helpers crowd out the unit tests. This project puts them together anyway,
-in `tty_test.go`, because Ken asked for fewer files and the fuzz test here is
+in `decoder_test.go`, because Ken asked for fewer files and the fuzz test here is
 one function over a corpus that lives in `testdata`.
 
 ## Where things live
@@ -2123,9 +2142,9 @@ in one Go file and the header of each says which.
 Per system, one file each where the tags allow it. `sys_darwin.go`,
 `sys_nondarwin.go`, `sys_unix.go` and `sys_windows.go` each hold everything
 that shares their tag. Four files keep their own tags because no other file
-shares them: `ttydev_posix.go` is `unix && !aix`, `ttydev_sysv.go` is
-`linux || solaris`, `ttydev_bsd.go` is the five BSDs including darwin, and
-`ttydev_other.go` and `termsize_other.go` are both
+shares them: `tty_posix.go` is `unix && !aix`, `tty_sysv.go` is
+`linux || solaris`, `tty_bsd.go` is the five BSDs including darwin, and
+`tty_other.go` and `termsize_other.go` are both
 `(!unix || aix) && !windows`, which is the fallback.
 
 Test files follow the source files rather than the old one-to-one pairing,
@@ -2191,16 +2210,34 @@ Four checks run on the Go code, plus one that runs when someone remembers to.
    test file whose tag no longer matches its source still compiles on the
    systems where both are excluded, and only vet on a system where they
    disagree says so. That happened the moment the Unix tag widened, and
-   `ttydev_other_test.go` kept the old tag for an hour. The systems worth
+   what is now `tty_other_test.go` kept the old tag for an hour. The systems worth
    naming are linux, darwin, windows, freebsd, netbsd, openbsd, dragonfly,
    solaris, illumos and plan9. This also checks that the fallback still
-   compiles. `ttydev_other.go` exists so
+   compiles. `tty_other.go` exists so
    that such a system builds and reads plain lines, and a function added with
    implementations for only two of the three tag groups breaks it invisibly:
    vet for linux, darwin and windows all pass, and nobody builds the rest.
    That happened at 95ec387, when `fileIsTerminal` was split out of what was
    then `isATTY` and is now `isTerminal`, with no answer here, and nothing
    said so for a day.
+Cross-vet is the whole type-check, including test files. `go vet`
+type-checks a package's tests as well as its source, so a rename that breaks
+a file tagged for another system fails the cross-vet from any machine.
+Measured both ways rather than assumed: an undefined symbol appended to
+`sys_windows_test.go` on linux gives `GOOS=windows go vet ./...` the same
+error and the same exit code as `GOOS=windows go test -c`, and windows-vm ran
+the mirror, breaking `tty_test.go` — tagged out on Windows — and finding
+that `GOOS=linux go vet ./...` catches it while the native vet correctly does
+not. So `limitToLength` was not a gap in what the loop can see; it was a gap
+in the loop being run.
+
+What that leaves for another machine is the run, not the build. `go test -c`
+can in principle fail where vet passes — link-time symbols, cgo, assembly, a
+`//go:linkname` that resolves to nothing — and none of those apply to this
+package, which is pure Go. So a remote platform is asked whether the tests
+pass, whether a real console behaves, and whether the banner still hashes to
+its baseline. It is not asked whether the names resolve.
+
 4. `go tool golangci-lint run ./...` runs the linters that `.golangci.yml`
    names.
 
@@ -2334,6 +2371,58 @@ statement that answered a different question. That is the ordinary way a
 document goes wrong, and it is why the file and line matter more than the
 sentence — ken-mba found it by opening `usql/rline/rline.go` rather than by
 re-reading this.
+
+## The terminal types are named for what they are
+
+Three types shared the terminal between them and only one was named for what
+it does. `ttyDevice` held the file descriptor, the saved and raw termios pair
+and the signal watchers, which is what a tty is. `tty` held two pushback
+buffers and sixteen escape-decoding methods, plus five that forward to the
+device — and it runs with no device at all, which every test that feeds it an
+`idleReader` proves. `term` is the output half and was already right.
+
+So the device is `tty`, the decoder is `keyDecoder`, and the constructors
+follow: `openTTYDevice` is `openTTY`, the old `openTTY` is `openDecoder`, and
+`newTTY` is `newDecoder`. The field on `env` that paired with `term *term` is
+`keys *keyDecoder`. Files follow the types: `tty.go` is `decoder.go` and the
+`ttydev_*.go` family is `tty_*.go`, which crosses — the old `tty_test.go`
+tested the decoder and is `decoder_test.go`, while `ttydev_test.go` takes the
+name `tty_test.go`. Tests named for the wrong half were renamed with them,
+including three whose names had become inverted: `TestOpenTTYDeviceRejectsAPipe`
+called `openTTY` and `TestOpenTTYRejectsAPipe` called `openDecoder`.
+
+`gopls rename` did the work for the systems it can see, which on Linux is
+every file except the Windows pair, `tty_other*.go` and `tty_nosti.go`. Those
+were patched by hand in an order that word boundaries make safe: `openTTY`
+before `openTTYDevice`, since `\b` does not match inside the longer name, and
+`*tty` before `ttyDevice`, since renaming the device first would have created
+`*tty` occurrences that must not move. Fifteen `GOOS/GOARCH` pairs vet clean,
+including plan9, js and aix, which is the check that covers what gopls could
+not see.
+
+The one thing the rename must not break is that `TestEscInitialFigures` stays
+untagged. It was in `tty_test.go`, which is now `decoder_test.go`; the file
+that inherits the name `tty_test.go` is tagged `unix && !aix`. Checked rather
+than assumed: the test is still in the windows test binary.
+
+### The interface keeps a method the decoder never calls
+
+`terminalDevice` is `terminalController`, and narrowing it to match its name
+was tried and reverted. Inside `decoder.go` the interface is used only to
+control — `ctrl` appears ten times and all ten are in the five forwarding
+methods, while reads go through `src` — so the embedded `byteReader` looks
+like a dependency nothing uses. It is not. `readNoEcho` in `rline.go` reads a
+password through `ctrl` on purpose, because `WithLogger` wraps `src` in a
+`logReader` that records every byte and the terminal underneath is never
+wrapped. Reading the password through `src` would write it into the session
+log.
+
+Two models were asked and both endorsed the narrowing, because the fact they
+were given — that the interface is only ever used for control — was measured
+in one file and stated as though it held for the package. It holds for
+`decoder.go` and is false for `rline.go`. The compiler caught it, which is
+luck: had the password path used the decoder's own `readByte`, the narrowing
+would have compiled and quietly started logging passwords.
 
 ## Open questions
 

@@ -15,14 +15,14 @@ import (
 )
 
 // --------------------------------------------------------------------------
-// tty.go
+// decoder.go
 
 // --------------------------------------------------------------------------
-// tty.go
+// decoder.go
 
 // Reading keys from a terminal.
 //
-// A tty turns a stream of bytes into key codes. It sits on a byteReader,
+// A keyDecoder turns a stream of bytes into key codes. It sits on a byteReader,
 // which is the terminal on a real run and a fixed slice of bytes in a test.
 //
 // Two pushback buffers sit in front of that reader. The byte buffer holds
@@ -72,7 +72,7 @@ func escInitialFor(goos string) time.Duration {
 	return 100 * time.Millisecond
 }
 
-// byteReader supplies the bytes that a tty decodes.
+// byteReader supplies the bytes that a keyDecoder decodes.
 type byteReader interface {
 	// readByte returns the next byte of input. It reports false when none
 	// arrived before timeout, and then it has consumed nothing. A negative
@@ -80,8 +80,8 @@ type byteReader interface {
 	readByte(timeout time.Duration) (byte, bool)
 }
 
-// tty reads key codes from a terminal.
-type tty struct {
+// keyDecoder reads key codes from a terminal.
+type keyDecoder struct {
 	// src is where the bytes come from.
 	src byteReader
 
@@ -99,14 +99,21 @@ type tty struct {
 	pushedBytes []byte
 	pushedCodes []key.Code
 
-	// dev is the terminal, when src is one. It is nil when the bytes come
-	// from somewhere else, such as a test.
-	dev terminalDevice
+	// ctrl is the terminal the bytes come from, when they come from one. It
+	// is nil when they come from somewhere else, such as a test, and every
+	// method that uses it checks for that.
+	ctrl terminalController
 }
 
-// terminalDevice is a byteReader that is a terminal, so its settings can be
-// changed and its signals watched.
-type terminalDevice interface {
+// terminalController is a byteReader that is a terminal, so its settings can
+// be changed and its signals watched.
+//
+// The read is load-bearing and an attempt to drop it was reverted. Inside
+// this file the decoder only ever controls through this interface and reads
+// through src, so the embedded byteReader looks unused; the password path in
+// rline.go reads through it on purpose, because src may be wrapped by a
+// logReader and the terminal underneath it never is. See readNoEcho.
+type terminalController interface {
 	byteReader
 
 	// startRaw makes keys arrive one at a time, and endRaw puts the terminal
@@ -125,9 +132,9 @@ type terminalDevice interface {
 	close() error
 }
 
-// newTTY returns a tty that reads from src.
-func newTTY(src byteReader) *tty {
-	return &tty{
+// newDecoder returns a keyDecoder that reads from src.
+func newDecoder(src byteReader) *keyDecoder {
+	return &keyDecoder{
 		src:               src,
 		isUTF8:            true,
 		escInitialTimeout: defaultEscInitial(),
@@ -143,7 +150,7 @@ func newTTY(src byteReader) *tty {
 // the UTF-8 assembly pushes back whatever it did not use, so a zero byte in
 // the middle of an invalid sequence is lost rather than read as a key. The
 // differential fuzzer found this on the input f5 00 30.
-func (t *tty) pushByte(b byte) {
+func (t *keyDecoder) pushByte(b byte) {
 	if b == 0 || len(t.pushedBytes) >= ttyPushMax {
 		return
 	}
@@ -152,7 +159,7 @@ func (t *tty) pushByte(b byte) {
 
 // readByte returns the next byte, from the pushback buffer first and from src
 // after that. It reports false when nothing arrived before timeout.
-func (t *tty) readByte(timeout time.Duration) (byte, bool) {
+func (t *keyDecoder) readByte(timeout time.Duration) (byte, bool) {
 	if n := len(t.pushedBytes); n > 0 {
 		b := t.pushedBytes[n-1]
 		t.pushedBytes = t.pushedBytes[:n-1]
@@ -165,7 +172,7 @@ func (t *tty) readByte(timeout time.Duration) (byte, bool) {
 }
 
 // pushCode puts a whole key back, to be returned by the next read.
-func (t *tty) pushCode(c key.Code) {
+func (t *keyDecoder) pushCode(c key.Code) {
 	if len(t.pushedCodes) >= ttyPushMax {
 		return
 	}
@@ -173,7 +180,7 @@ func (t *tty) pushCode(c key.Code) {
 }
 
 // popCode takes a pushed back key, if there is one.
-func (t *tty) popCode() (key.Code, bool) {
+func (t *keyDecoder) popCode() (key.Code, bool) {
 	if n := len(t.pushedCodes); n > 0 {
 		c := t.pushedCodes[n-1]
 		t.pushedCodes = t.pushedCodes[:n-1]
@@ -188,7 +195,7 @@ func (t *tty) popCode() (key.Code, bool) {
 // It reads as many bytes as the first one allows, then decodes what it got.
 // Bytes the decoder did not use are put back, so that an invalid sequence
 // does not swallow the character after it.
-func (t *tty) readUTF8(c0 byte) key.Code {
+func (t *keyDecoder) readUTF8(c0 byte) key.Code {
 	buf := make([]byte, 0, 4)
 	buf = append(buf, c0)
 	if c0 > 0x7F {
@@ -216,7 +223,7 @@ func (t *tty) readUTF8(c0 byte) key.Code {
 
 // readTimeout reads one key. It reports false when nothing arrived before
 // timeout. A negative timeout waits for as long as it takes.
-func (t *tty) readTimeout(timeout time.Duration) (key.Code, bool) {
+func (t *keyDecoder) readTimeout(timeout time.Duration) (key.Code, bool) {
 	// A key that was pushed back is returned as it was. It has been through
 	// modifyCode already.
 	if code, ok := t.popCode(); ok {
@@ -244,7 +251,7 @@ func (t *tty) readTimeout(timeout time.Duration) (key.Code, bool) {
 
 // read waits for one key and returns it. It returns key.None when the input
 // ends.
-func (t *tty) read() key.Code {
+func (t *keyDecoder) read() key.Code {
 	code, ok := t.readTimeout(-1)
 	if !ok {
 		return key.None
@@ -288,44 +295,44 @@ func modifyCode(code key.Code) key.Code {
 
 // startRaw makes keys arrive one at a time. It does nothing when the bytes do
 // not come from a terminal.
-func (t *tty) startRaw() error {
-	if t.dev == nil {
+func (t *keyDecoder) startRaw() error {
+	if t.ctrl == nil {
 		return nil
 	}
-	return t.dev.startRaw()
+	return t.ctrl.startRaw()
 }
 
 // endRaw puts the terminal back the way it was.
-func (t *tty) endRaw() {
-	if t.dev != nil {
-		t.dev.endRaw()
+func (t *keyDecoder) endRaw() {
+	if t.ctrl != nil {
+		t.ctrl.endRaw()
 	}
 }
 
 // close puts the terminal back and stops watching its signals.
-func (t *tty) close() error {
-	if t.dev == nil {
+func (t *keyDecoder) close() error {
+	if t.ctrl == nil {
 		return nil
 	}
-	return t.dev.close()
+	return t.ctrl.close()
 }
 
 // resizeEvent reports whether the window changed size since the last call. It
 // answers yes when there is no terminal to ask, because then there is no way
 // to tell and redrawing costs less than being wrong.
-func (t *tty) resizeEvent() bool {
-	if t.dev == nil {
+func (t *keyDecoder) resizeEvent() bool {
+	if t.ctrl == nil {
 		return true
 	}
-	return t.dev.resizeEvent()
+	return t.ctrl.resizeEvent()
 }
 
 // asyncStop makes a read that is waiting for a key return.
-func (t *tty) asyncStop() bool {
-	if t.dev == nil {
+func (t *keyDecoder) asyncStop() bool {
+	if t.ctrl == nil {
 		return false
 	}
-	return t.dev.asyncStop()
+	return t.ctrl.asyncStop()
 }
 
 // escDelayMax is the longest wait that setEscDelay accepts. The C code clamps
@@ -334,7 +341,7 @@ const escDelayMax = time.Second
 
 // setEscDelay sets how long the decoder waits for the byte after an escape,
 // and for each byte after that. Each is held between zero and one second.
-func (t *tty) setEscDelay(initial, follow time.Duration) {
+func (t *keyDecoder) setEscDelay(initial, follow time.Duration) {
 	t.escInitialTimeout = clampDelay(initial)
 	t.escTimeout = clampDelay(follow)
 }
@@ -364,7 +371,7 @@ func clampDelay(d time.Duration) time.Duration {
 // it goes and only writes the terminating zero once it succeeds, so a failure
 // leaves bytes there that are not a string and that no caller may read. This
 // returns an empty string instead.
-func (t *tty) readEscResponse(escStart byte, finalST bool, max int) (string, bool) {
+func (t *keyDecoder) readEscResponse(escStart byte, finalST bool, max int) (string, bool) {
 	c, ok := t.readByte(2 * t.escInitialTimeout)
 	if !ok || c != '\x1B' {
 		return "", false
@@ -621,7 +628,7 @@ func decodeSS3(final byte) key.Code {
 // A digit only counts once the byte after it has arrived. So a sequence that
 // ends on a digit loses that digit, and "ESC [ 1" reads its number as 1
 // rather than as 1 from the digit.
-func (t *tty) readCSINum(peek byte, timeout time.Duration) (byte, uint32) {
+func (t *keyDecoder) readCSINum(peek byte, timeout time.Duration) (byte, uint32) {
 	num := uint32(1)
 	count, value := 0, uint32(0)
 	for peek >= '0' && peek <= '9' && count < 16 {
@@ -643,7 +650,7 @@ func (t *tty) readCSINum(peek byte, timeout time.Duration) (byte, uint32) {
 // readCSI reads the rest of a sequence after its start byte. c1 is '[' for a
 // CSI sequence and 'O' for an SS3 one, peek is the byte after that, and mods
 // holds the modifiers found so far.
-func (t *tty) readCSI(c1, peek byte, mods key.Code, timeout time.Duration) key.Code {
+func (t *keyDecoder) readCSI(c1, peek byte, mods key.Code, timeout time.Duration) key.Code {
 	// Linux sometimes sends a second start byte, as in ESC [ [ 15 ~ for F5.
 	if c1 == '[' && text.CharSetHas("[Oo", peek) {
 		start := peek
@@ -756,7 +763,7 @@ func (t *tty) readCSI(c1, peek byte, mods key.Code, timeout time.Duration) key.C
 // These arrive when a query that term.c sent is answered later than expected,
 // so the answer turns up in the middle of typing. It ends at a bell, at
 // ESC backslash, or at any byte below the bell, which is put back.
-func (t *tty) readOSC(peek byte, timeout time.Duration) key.Code {
+func (t *keyDecoder) readOSC(peek byte, timeout time.Duration) key.Code {
 	for {
 		c := peek
 		if c <= '\x07' {
@@ -790,7 +797,7 @@ func (t *tty) readOSC(peek byte, timeout time.Duration) key.Code {
 //
 // Nothing arriving within initial means the user pressed the Escape key. A
 // byte that starts no sequence the decoder knows becomes alt and that byte.
-func (t *tty) readEsc(initial, follow time.Duration) key.Code {
+func (t *keyDecoder) readEsc(initial, follow time.Duration) key.Code {
 	var mods key.Code
 	peek, ok := t.readByte(initial)
 	if !ok {
@@ -874,7 +881,7 @@ func csiMods(mods key.Code) uint32 {
 // The buffer is a stack, so the bytes go in backwards. A zero byte ends the
 // sequence and everything from it is dropped, because the C code measures
 // what it is given with strlen.
-func (t *tty) pushBytes(s string) {
+func (t *keyDecoder) pushBytes(s string) {
 	n := text.LimitToLength(s)
 	if n <= 0 || len(t.pushedBytes)+n > ttyPushMax {
 		return
@@ -917,16 +924,16 @@ func csiUnicodeSequence(mods key.Code, code uint32) string {
 }
 
 // pushCSIVT pushes the sequence for a key named by number.
-func (t *tty) pushCSIVT(mods key.Code, vtcode uint32) {
+func (t *keyDecoder) pushCSIVT(mods key.Code, vtcode uint32) {
 	t.pushBytes(csiVTSequence(mods, vtcode))
 }
 
 // pushCSIXterm pushes the sequence for a key named by a letter.
-func (t *tty) pushCSIXterm(mods key.Code, xcode byte) {
+func (t *keyDecoder) pushCSIXterm(mods key.Code, xcode byte) {
 	t.pushBytes(csiXtermSequence(mods, xcode))
 }
 
 // pushCSIUnicode pushes a character.
-func (t *tty) pushCSIUnicode(mods key.Code, code uint32) {
+func (t *keyDecoder) pushCSIUnicode(mods key.Code, code uint32) {
 	t.pushBytes(csiUnicodeSequence(mods, code))
 }

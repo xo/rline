@@ -32,7 +32,7 @@ import (
 // Ctrl-C raises an interrupt rather than coming back as a key.
 
 // startNoEcho turns off echo while leaving canonical mode on.
-func (d *ttyDevice) startNoEcho() error {
+func (d *tty) startNoEcho() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	mode := d.origMode
@@ -46,7 +46,7 @@ func (d *ttyDevice) startNoEcho() error {
 }
 
 // endNoEcho puts the terminal back the way it was found.
-func (d *ttyDevice) endNoEcho() {
+func (d *tty) endNoEcho() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	mode := d.origMode

@@ -2,7 +2,7 @@
 //
 // The menu is the one part of the editor that reads its own keys, so it
 // cannot be driven from outside: each case loads the keys it types into the
-// tty, calls the menu once, and compares what was drawn and what was left
+// decoder, calls the menu once, and compares what was drawn and what was left
 // behind. tools/probe-completion-menu.c runs the same script against the C.
 
 package rline
@@ -284,9 +284,9 @@ func menuReplay(t *testing.T) []string {
 							ev.completePreview = !noPreview
 							ev.completeAutoTab = autoTab
 
-							ev.tty = newTTY(&idleReader{bytes: []byte(script.keys)})
-							ev.tty.isUTF8 = utf8
-							ev.tty.setEscDelay(0, 0)
+							ev.keys = newDecoder(&idleReader{bytes: []byte(script.keys)})
+							ev.keys.isUTF8 = utf8
+							ev.keys.setEscDelay(0, 0)
 
 							tm.flush()
 							out = append(out, emit())
@@ -300,7 +300,7 @@ func menuReplay(t *testing.T) []string {
 								caseno, set.name, script.name,
 								boolInt(more), boolInt(noPreview), boolInt(autoTab), boolInt(utf8),
 								emit(), e.Pos, escapeBB([]byte(e.Input.String())),
-								ev.completions.count(), pushedCodes(ev.tty)))
+								ev.completions.count(), pushedCodes(ev.keys)))
 							caseno++
 						}
 					}
@@ -312,7 +312,7 @@ func menuReplay(t *testing.T) []string {
 }
 
 // pushedCodes formats the keys the menu handed back to the edit loop.
-func pushedCodes(t *tty) string {
+func pushedCodes(t *keyDecoder) string {
 	if len(t.pushedCodes) == 0 {
 		return "-"
 	}

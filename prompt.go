@@ -34,7 +34,7 @@ import (
 type env struct {
 	// Where input comes from and output goes.
 	term *term
-	tty  *tty
+	keys *keyDecoder
 	bb   *bbCode
 
 	// What the editor draws from.
@@ -184,7 +184,7 @@ func (ev *env) refreshRows(e *editor.Editor, input *text.Buffer, attrs *ansi.Att
 // ttyIsUTF8 reports whether the terminal reads UTF-8. No terminal at all
 // counts as UTF-8, which is what the C answers for a null one.
 func (ev *env) ttyIsUTF8() bool {
-	return ev.tty == nil || ev.tty.isUTF8
+	return ev.keys == nil || ev.keys.isUTF8
 }
 
 // refresh draws the whole line, the hint inside it and anything shown below
@@ -434,9 +434,9 @@ func (ev *env) resize(e *editor.Editor) bool {
 // user pauses long enough.
 func (ev *env) readKey(e *editor.Editor) key.Code {
 	if ev.hintDelay <= 0 || e.Hint.Len() == 0 {
-		return ev.tty.read()
+		return ev.keys.read()
 	}
-	c, ok := ev.tty.readTimeout(ev.hintDelay)
+	c, ok := ev.keys.readTimeout(ev.hintDelay)
 	if ok {
 		// Something was typed before the delay ran out, so the hint is stale.
 		e.Hint.Reset()
@@ -446,7 +446,7 @@ func (ev *env) readKey(e *editor.Editor) key.Code {
 	if e.Hint.Len() > 0 {
 		ev.refresh(e)
 	}
-	return ev.tty.read()
+	return ev.keys.read()
 }
 
 // act redraws when an operation changed something. The C redraws inside each
@@ -635,13 +635,13 @@ func (ev *env) cursorRowDown(e *editor.Editor) {
 // because the terminal rewrites it on the way in, and the editor never sees
 // the key that ends a line.
 func (ev *env) readLine(promptText string) (string, bool, error) {
-	if err := ev.tty.startRaw(); err != nil {
+	if err := ev.keys.startRaw(); err != nil {
 		return "", false, fmt.Errorf("switching the terminal to raw mode: %w", err)
 	}
 	ev.term.startRaw()
 	line, ok, c := ev.editLine(promptText)
 	ev.term.endRaw(false)
-	ev.tty.endRaw()
+	ev.keys.endRaw()
 	// The finished line stays on screen and the cursor moves below it.
 	ev.term.writeln("")
 	ev.term.flush()
@@ -664,7 +664,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 	for {
 		ev.term.flush()
 		c := ev.readKey(e)
-		if ev.tty.resizeEvent() {
+		if ev.keys.resizeEvent() {
 			ev.resize(e)
 		}
 		// The hint is dropped after a possible resize, so that the resize

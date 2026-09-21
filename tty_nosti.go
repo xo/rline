@@ -3,7 +3,7 @@
 package rline
 
 // Stopping a read from another goroutine, on the systems that have no ioctl
-// for it. See ttydev_sti.go for the other half.
+// for it. See tty_sti.go for the other half.
 
 // asyncStop reports that a waiting read cannot be made to return.
 //
@@ -11,6 +11,6 @@ package rline
 // way to put a byte into the input of the terminal. Answering false is what
 // the C code does on a system with no such request, and the caller falls back
 // to waiting for the read to end on its own.
-func (d *ttyDevice) asyncStop() bool {
+func (d *tty) asyncStop() bool {
 	return false
 }

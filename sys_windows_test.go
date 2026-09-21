@@ -205,19 +205,19 @@ func TestConsoleReadsEscapeSequences(t *testing.T) {
 	}
 }
 
-// openConsoleForTest opens the console and returns both the tty and the
+// openConsoleForTest opens the console and returns both the decoder and the
 // device behind it. The tests need the device as well, because writing
-// events into the console needs its handle, and the tty only keeps it as an
+// events into the console needs its handle, and the decoder only keeps it as an
 // interface.
-func openConsoleForTest(t *testing.T) (*tty, *ttyDevice) {
+func openConsoleForTest(t *testing.T) (*keyDecoder, *tty) {
 	t.Helper()
-	d, err := openTTYDevice(-1)
+	d, err := openTTY(-1)
 	if err != nil {
 		t.Fatalf("opening the console: %v", err)
 	}
 	t.Cleanup(func() { _ = d.close() })
-	term := newTTY(d)
-	term.dev = d
+	term := newDecoder(d)
+	term.ctrl = d
 	term.isUTF8 = localeIsUTF8()
 	return term, d
 }
@@ -391,7 +391,7 @@ func keyRecord(down bool, virt uint16, char rune, state uint32) inputRecord {
 
 // pendingOf feeds events to a device and returns the bytes they produced.
 func pendingOf(records ...inputRecord) string {
-	d := &ttyDevice{}
+	d := &tty{}
 	for i := range records {
 		d.handleEvent(&records[i])
 	}
@@ -466,7 +466,7 @@ func TestWindowsSurrogatePair(t *testing.T) {
 // reported once.
 func TestWindowsResizeEvent(t *testing.T) {
 	t.Parallel()
-	d := &ttyDevice{}
+	d := &tty{}
 	if d.resizeEvent() {
 		t.Error("a resize was reported before one happened")
 	}
@@ -509,7 +509,7 @@ func TestWindowsSequencesDecodeBack(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			bytes := pendingOf(test.event)
-			term := newTTY(&idleReader{bytes: []byte(bytes)})
+			term := newDecoder(&idleReader{bytes: []byte(bytes)})
 			term.setEscDelay(0, 0)
 			got, ok := term.readTimeout(0)
 			if !ok {
@@ -530,7 +530,7 @@ func TestWindowsSequencesDecodeBack(t *testing.T) {
 // it has to fail rather than half work.
 //
 // Both calls pass -1, which is what asks for the standard input. They passed
-// 0 while openTTY ignored its argument, and 0 is a handle now rather than a
+// 0 while openDecoder ignored its argument, and 0 is a handle now rather than a
 // descriptor, so the first call opened handle 0 — not a console — and the
 // test reported that a real console was not one. That failure only appeared
 // from a console, because under go test isTerminal(0) is false and the else path
@@ -543,17 +543,17 @@ func TestWindowsSequencesDecodeBack(t *testing.T) {
 func TestWindowsOpenTTYNeedsAConsole(t *testing.T) {
 	if isTerminal(0) {
 		// Running with a real console attached, so opening it must work.
-		term, err := openTTY(-1)
+		term, err := openDecoder(-1)
 		if err != nil {
 			t.Fatalf("opening a real console: %v", err)
 		}
 		t.Cleanup(func() { _ = term.close() })
-		if term.dev == nil {
+		if term.ctrl == nil {
 			t.Error("the tty has no device")
 		}
 		return
 	}
-	if _, err := openTTY(-1); !errors.Is(err, errNotATerminal) {
+	if _, err := openDecoder(-1); !errors.Is(err, errNotATerminal) {
 		t.Errorf("opening something that is not a console gave %v, want %v", err, errNotATerminal)
 	}
 }
@@ -575,7 +575,7 @@ func TestWindowsRawModeRoundTrip(t *testing.T) {
 	if !isTerminal(0) {
 		t.Skip("no console on standard input: see the comment above for how to run this so it checks raw mode")
 	}
-	d, err := openTTYDevice(-1)
+	d, err := openTTY(-1)
 	if err != nil {
 		t.Fatalf("opening the console: %v", err)
 	}
@@ -602,7 +602,7 @@ func TestWindowsRawModeRoundTrip(t *testing.T) {
 }
 
 // consoleMode reads the current mode of the console.
-func consoleMode(t *testing.T, d *ttyDevice) uint32 {
+func consoleMode(t *testing.T, d *tty) uint32 {
 	t.Helper()
 	var mode uint32
 	if err := windows.GetConsoleMode(d.handle, &mode); err != nil {
@@ -619,7 +619,7 @@ func TestWindowsReadByteTimesOut(t *testing.T) {
 	if !isTerminal(0) {
 		t.Skip("no console on standard input: see TestWindowsRawModeRoundTrip for how to run this")
 	}
-	d, err := openTTYDevice(-1)
+	d, err := openTTY(-1)
 	if err != nil {
 		t.Fatalf("opening the console: %v", err)
 	}
@@ -634,7 +634,7 @@ func TestWindowsReadByteTimesOut(t *testing.T) {
 }
 
 // TestConsoleOpenTTYDeviceHonoursItsArgument checks that a descriptor handed
-// to openTTYDevice is used rather than thrown away.
+// to openTTY is used rather than thrown away.
 //
 // It ignored its argument and always took the standard input, which made
 // WithStdin silently does nothing on Windows: the caller's
@@ -660,7 +660,7 @@ func TestConsoleOpenTTYDeviceHonoursItsArgument(t *testing.T) {
 
 	// A plain file is not a console, so opening it as one has to fail. If the
 	// argument were ignored this would take the console and succeed.
-	if d, err := openTTYDevice(int(f.Fd())); err == nil {
+	if d, err := openTTY(int(f.Fd())); err == nil {
 		_ = d.close()
 		t.Error("a plain file opened as a console, so the descriptor was thrown away " +
 			"and the console taken instead")
@@ -668,7 +668,7 @@ func TestConsoleOpenTTYDeviceHonoursItsArgument(t *testing.T) {
 
 	// And a negative descriptor still means the standard input, which is what
 	// every caller that has not been given one passes.
-	d, err := openTTYDevice(-1)
+	d, err := openTTY(-1)
 	if err != nil {
 		t.Fatalf("opening the standard input as a console: %v", err)
 	}

@@ -34,7 +34,7 @@ func isTerminal(_ int) bool {
 	return false
 }
 
-// openTTY reports that this platform cannot read keys yet.
-func openTTY(_ int) (*tty, error) {
+// openDecoder reports that this platform cannot read keys yet.
+func openDecoder(_ int) (*keyDecoder, error) {
 	return nil, fmt.Errorf("reading keys on this platform: %w", errUnsupported)
 }

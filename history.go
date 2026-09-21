@@ -625,9 +625,9 @@ func (ev *env) historySearch(e *editor.Editor, initial string) {
 		// as though it had been abandoned.
 		c := key.Esc
 		if found {
-			c = ev.tty.read()
+			c = ev.keys.read()
 		}
-		if ev.tty.resizeEvent() {
+		if ev.keys.resizeEvent() {
 			ev.resize(e)
 		}
 		e.Extra.Clear()

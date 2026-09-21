@@ -4,7 +4,7 @@
 // The menu is not a separate drawing surface. It writes into the editor's
 // extra buffer and calls the same refresh the rest of the editor uses, so what
 // appears below the line is the same mechanism as the hint help. What it does
-// have of its own is a key loop: it reads the tty directly rather than going
+// have of its own is a key loop: it reads the decoder directly rather than going
 // through readKey, which is what the C does.
 //
 // Sharing the extra buffer with the hint help would be a trap if both could
@@ -206,8 +206,8 @@ func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 		// nothing to wait for, and if one ever did linger readKey would draw
 		// it over the menu. The resize check readKey would have done is done
 		// here instead, which is what the C does.
-		c = ev.tty.read()
-		if ev.tty.resizeEvent() {
+		c = ev.keys.read()
+		if ev.keys.resizeEvent() {
 			ev.resize(e)
 		}
 		e.Extra.Clear()
@@ -246,7 +246,7 @@ func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 			c = 0
 			if ev.complete(e, selected) && ev.completeAutoTab {
 				// Try to complete again straight away.
-				ev.tty.pushCode(key.EventAutoTab)
+				ev.keys.pushCode(key.EventAutoTab)
 			}
 
 		case ev.completePreview && !c.IsVirtKey():
@@ -267,7 +267,7 @@ func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 
 	ev.completions.clear()
 	if c != 0 {
-		ev.tty.pushCode(c)
+		ev.keys.pushCode(c)
 	}
 }
 

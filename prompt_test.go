@@ -338,7 +338,7 @@ func newResizeEnv(t *testing.T) (*env, *editor.Editor, *bytes.Buffer, *resizable
 	_ = h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
 		term:            tm,
-		tty:             newTTY(&feedKeys{}),
+		keys:            newDecoder(&feedKeys{}),
 		bb:              newBBCode(tm),
 		history:         h,
 		completions:     &completions{},

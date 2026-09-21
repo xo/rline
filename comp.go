@@ -1091,7 +1091,7 @@ func (ev *env) generateCompletions(e *editor.Editor, autoTab bool) {
 		}
 	case count == 1:
 		if ev.complete(e, 0) && ev.completeAutoTab {
-			ev.tty.pushCode(key.EventAutoTab)
+			ev.keys.pushCode(key.EventAutoTab)
 		}
 	default:
 		if !moreAvailable {

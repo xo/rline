@@ -85,8 +85,8 @@ const (
 	vkF12    = 0x7B
 )
 
-// ttyDevice is the console that keys arrive on.
-type ttyDevice struct {
+// tty is the console that keys arrive on.
+type tty struct {
 	handle windows.Handle
 
 	// mu guards the mode, because the mode is put back from elsewhere when
@@ -120,9 +120,9 @@ type ttyDevice struct {
 // which is always about the standard input. Do not give it a second meaning.
 // Two faults on this platform came from one function standing for two
 // questions — writesToTerminal asked this one about the output, and
-// openTTYDevice took a descriptor and threw it away — so anything that wants
+// openTTY took a descriptor and threw it away — so anything that wants
 // to ask about a particular stream has its own function. fileIsTerminal asks
-// about a file, and openTTYDevice now honours the descriptor it is handed.
+// about a file, and openTTY now honours the descriptor it is handed.
 func isTerminal(_ int) bool {
 	h, err := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
 	if err != nil {
@@ -142,9 +142,9 @@ func fileIsTerminal(f *os.File) bool {
 	return windows.GetConsoleMode(windows.Handle(f.Fd()), &mode) == nil
 }
 
-// openTTYDevice prepares the console for reading keys. The file descriptor is
+// openTTY prepares the console for reading keys. The file descriptor is
 // ignored, for the reason isTerminal gives.
-func openTTYDevice(fd int) (*ttyDevice, error) {
+func openTTY(fd int) (*tty, error) {
 	// A negative descriptor means the standard input, as it does on Unix.
 	// Anything else is a handle the caller gave, because f.Fd() on Windows
 	// returns a handle rather than a descriptor.
@@ -166,17 +166,17 @@ func openTTYDevice(fd int) (*ttyDevice, error) {
 	if err := windows.GetConsoleMode(h, &mode); err != nil {
 		return nil, fmt.Errorf("reading the console mode: %w", errNotATerminal)
 	}
-	return &ttyDevice{handle: h, origMode: mode}, nil
+	return &tty{handle: h, origMode: mode}, nil
 }
 
 // close puts the console back the way it was.
-func (d *ttyDevice) close() error {
+func (d *tty) close() error {
 	d.endRaw()
 	return nil
 }
 
 // startRaw puts the console into the mode that delivers keys one at a time.
-func (d *ttyDevice) startRaw() error {
+func (d *tty) startRaw() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.rawEnabled {
@@ -231,7 +231,7 @@ func consoleOutput() (windows.Handle, uint32, bool) {
 // have been needed. That fails here, loudly, rather than printing the escape
 // sequences to the user. No such console has been found: the one measured
 // accepts the flag even when it starts with it off.
-func (d *ttyDevice) startOutputEscapes() error {
+func (d *tty) startOutputEscapes() error {
 	h, mode, ok := consoleOutput()
 	if !ok {
 		// The output is going to a file or a pipe rather than a console, so
@@ -250,7 +250,7 @@ func (d *ttyDevice) startOutputEscapes() error {
 }
 
 // endRaw puts the console back the way it was.
-func (d *ttyDevice) endRaw() {
+func (d *tty) endRaw() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if !d.rawEnabled {
@@ -268,7 +268,7 @@ func (d *ttyDevice) endRaw() {
 
 // readByte returns the next byte of the sequence built from a key event,
 // reading another event when the last one has been used up.
-func (d *ttyDevice) readByte(timeout time.Duration) (byte, bool) {
+func (d *tty) readByte(timeout time.Duration) (byte, bool) {
 	if b, ok := d.takePending(); ok {
 		return b, true
 	}
@@ -277,7 +277,7 @@ func (d *ttyDevice) readByte(timeout time.Duration) (byte, bool) {
 }
 
 // takePending returns the next byte already built, if there is one.
-func (d *ttyDevice) takePending() (byte, bool) {
+func (d *tty) takePending() (byte, bool) {
 	if len(d.pending) == 0 {
 		return 0, false
 	}
@@ -290,7 +290,7 @@ func (d *ttyDevice) takePending() (byte, bool) {
 //
 // A zero byte ends it and everything from there is dropped, which is what the
 // C code does by measuring the sequence with strlen.
-func (d *ttyDevice) push(s string) {
+func (d *tty) push(s string) {
 	if n := text.LimitToLength(s); n > 0 {
 		d.pending = append(d.pending, s[:n]...)
 	}
@@ -298,7 +298,7 @@ func (d *ttyDevice) push(s string) {
 
 // waitForKey reads console events until one turns into something to read, or
 // until the wait runs out. A negative timeout waits for as long as it takes.
-func (d *ttyDevice) waitForKey(timeout time.Duration) {
+func (d *tty) waitForKey(timeout time.Duration) {
 	for len(d.pending) == 0 {
 		if timeout >= 0 && !d.inputWaiting(&timeout) {
 			return
@@ -314,7 +314,7 @@ func (d *ttyDevice) waitForKey(timeout time.Duration) {
 
 // inputWaiting reports whether an event is there to be read, waiting up to
 // timeout for one and taking what it waited off the timeout.
-func (d *ttyDevice) inputWaiting(timeout *time.Duration) bool {
+func (d *tty) inputWaiting(timeout *time.Duration) bool {
 	count, err := pendingConsoleEvents(d.handle)
 	if err != nil {
 		return false
@@ -340,7 +340,7 @@ func (d *ttyDevice) inputWaiting(timeout *time.Duration) bool {
 
 // handleEvent turns one console event into bytes to be read, if it is a key
 // press that means anything.
-func (d *ttyDevice) handleEvent(record *inputRecord) {
+func (d *tty) handleEvent(record *inputRecord) {
 	if record.eventType == windowBufferSizeEvent {
 		d.resized.Store(true)
 		return
@@ -400,7 +400,7 @@ func (d *ttyDevice) handleEvent(record *inputRecord) {
 // pushVirtualKey turns a key with no character of its own into a sequence.
 // A key with no rule here is ignored, which is what happens to shift and the
 // other keys that only modify.
-func (d *ttyDevice) pushVirtualKey(mods key.Code, virt uint16) {
+func (d *tty) pushVirtualKey(mods key.Code, virt uint16) {
 	switch virt {
 	case vkUp:
 		d.push(csiXtermSequence(mods, 'A'))
@@ -457,13 +457,13 @@ func (d *ttyDevice) pushVirtualKey(mods key.Code, virt uint16) {
 // resizeEvent reports whether the window changed size since the last call.
 // The console always reports these once raw mode is on, so unlike the Unix
 // side there is no case where it has to guess.
-func (d *ttyDevice) resizeEvent() bool {
+func (d *tty) resizeEvent() bool {
 	return d.resized.Swap(false)
 }
 
 // asyncStop makes a waiting read return, by putting a ctrl+c into the input
 // of the console as a key going down and then coming up.
-func (d *ttyDevice) asyncStop() bool {
+func (d *tty) asyncStop() bool {
 	var events [2]inputRecord
 	events[0] = makeKeyEventRecord(byte(key.CtrlC), true)
 	events[1] = makeKeyEventRecord(byte(key.CtrlC), false)
@@ -480,14 +480,14 @@ func localeIsUTF8() bool {
 	return true
 }
 
-// openTTY opens the console and returns a tty that reads keys from it.
-func openTTY(fd int) (*tty, error) {
-	d, err := openTTYDevice(fd)
+// openDecoder opens the console and returns a keyDecoder that reads it.
+func openDecoder(fd int) (*keyDecoder, error) {
+	d, err := openTTY(fd)
 	if err != nil {
 		return nil, err
 	}
-	t := newTTY(d)
-	t.dev = d
+	t := newDecoder(d)
+	t.ctrl = d
 	t.isUTF8 = localeIsUTF8()
 	return t, nil
 }

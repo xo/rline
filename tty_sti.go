@@ -25,7 +25,7 @@ import (
 // behind a build option that distributions turn off, and macOS allows it only
 // to a privileged process. It answers false when the system refuses, which is
 // what the C code does on a system that has no such request at all.
-func (d *ttyDevice) asyncStop() bool {
+func (d *tty) asyncStop() bool {
 	c := byte(key.CtrlC)
 	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(d.fd),
 		uintptr(unix.TIOCSTI), uintptr(unsafe.Pointer(&c)))

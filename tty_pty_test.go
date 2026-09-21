@@ -13,20 +13,20 @@ import (
 
 // The one device test that needs a real terminal rather than a pipe.
 //
-// It is here rather than in ttydev_test.go because it needs capture.OpenPTY,
+// It is here rather than in tty_test.go because it needs capture.OpenPTY,
 // which is written for Linux and macOS only. The other eleven device tests
 // use pipes and environment variables, so they run on every Unix the package
 // builds for. Splitting them is what gives FreeBSD and its relatives real
 // coverage of the terminal layer without anyone writing pseudo-terminal code
 // for a system they cannot run.
 
-// TestTTYDeviceOnARealTerminal drives the whole terminal path against a
+// TestTTYOnARealTerminal drives the whole terminal path against a
 // pseudo-terminal: opening it, going into raw mode, reading keys through the
 // decoder, and putting the terminal back.
 //
 // Nothing else covers raw mode. A pipe is not a terminal, so the unit tests
 // above stop at the point where the settings are read.
-func TestTTYDeviceOnARealTerminal(t *testing.T) {
+func TestTTYOnARealTerminal(t *testing.T) {
 	leader, follower, err := capture.OpenPTY()
 	if err != nil {
 		t.Skipf("no pseudo-terminal available: %v", err)
@@ -40,7 +40,7 @@ func TestTTYDeviceOnARealTerminal(t *testing.T) {
 		t.Fatal("the follower side of a pseudo-terminal is not a terminal")
 	}
 
-	term, err := openTTY(fd)
+	term, err := openDecoder(fd)
 	if err != nil {
 		t.Fatalf("opening the terminal: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestRawModeDiscardsWhatWasTypedBeforeIt(t *testing.T) {
 		_ = follower.Close()
 	})
 
-	term, err := openTTY(int(follower.Fd()))
+	term, err := openDecoder(int(follower.Fd()))
 	if err != nil {
 		t.Fatalf("opening the terminal: %v", err)
 	}

@@ -526,7 +526,7 @@ func New(opts ...Option) (*Prompt, error) {
 	// editing. The terminal is built either way, because the output is still
 	// worth writing even when there is nothing to edit on. Losing it was the
 	// bug this shape fixes.
-	t, ttyErr := openTTY(c.inFd)
+	t, ttyErr := openDecoder(c.inFd)
 	isUTF8 := true
 	if ttyErr == nil {
 		isUTF8 = t.isUTF8
@@ -569,7 +569,7 @@ func New(opts ...Option) (*Prompt, error) {
 	}
 	r.env = &env{
 		term:            tm,
-		tty:             t,
+		keys:            t,
 		bb:              bb,
 		history:         h,
 		completions:     cs,
@@ -659,7 +659,7 @@ func (s *Session) ReadLine(prompt string) (string, error) {
 // there is nobody to prompt and the prompt would only dirty the output, so it
 // is left out. That is what the C does as well.
 func (s *Session) readPlain(prompt string) (string, error) {
-	if s.env != nil && s.env.tty != nil {
+	if s.env != nil && s.env.keys != nil {
 		s.env.term.write(prompt)
 		s.env.term.write(s.env.promptMarker)
 		s.env.term.flush()
@@ -698,10 +698,10 @@ func (s *Session) Close() error {
 		return nil
 	}
 	s.env.term.restore()
-	if s.env.tty == nil {
+	if s.env.keys == nil {
 		return nil
 	}
-	if err := s.env.tty.close(); err != nil {
+	if err := s.env.keys.close(); err != nil {
 		return fmt.Errorf("closing the terminal: %w", err)
 	}
 	return nil
@@ -1168,14 +1168,14 @@ func (s *Session) Password(prompt string) (string, error) {
 	// Echo off with canonical mode left on, where the terminal can see it.
 	// Where that is not available the line is still hidden, by reading it in
 	// raw mode, but the terminal has no way to know it is a password.
-	if dev, ok := s.env.tty.dev.(noEchoDevice); ok {
+	if dev, ok := s.env.keys.ctrl.(noEchoDevice); ok {
 		return s.readNoEcho(dev)
 	}
-	if err := s.env.tty.startRaw(); err != nil {
+	if err := s.env.keys.startRaw(); err != nil {
 		return "", fmt.Errorf("switching the terminal to raw mode: %w", err)
 	}
 	line, err := s.readHidden()
-	s.env.tty.endRaw()
+	s.env.keys.endRaw()
 	// The line the user typed is invisible, so the cursor has to be moved on
 	// by hand or the next thing written lands beside the prompt.
 	s.env.term.writeln("")
@@ -1200,7 +1200,12 @@ func (s *Session) readNoEcho(dev noEchoDevice) (string, error) {
 	defer dev.endNoEcho()
 	var sb strings.Builder
 	for {
-		c, ok := s.env.tty.dev.readByte(-1)
+		// Through ctrl rather than through the decoder's src, and that is
+		// the whole point: WithLogger wraps src in a logReader that records
+		// every byte it reads, while ctrl is the terminal underneath. Reading
+		// a password through src would write it into the session log.
+		// TestPasswordStaysOutOfTheLog covers this.
+		c, ok := s.env.keys.ctrl.readByte(-1)
 		switch {
 		case !ok:
 			// The input ended, which is Ctrl-D on an empty line.
@@ -1225,7 +1230,7 @@ func (s *Session) readNoEcho(dev noEchoDevice) (string, error) {
 func (s *Session) readHidden() (string, error) {
 	var sb strings.Builder
 	for {
-		switch c := s.env.tty.read(); c {
+		switch c := s.env.keys.read(); c {
 		case key.Enter, key.Linefeed:
 			return sb.String(), nil
 		case key.CtrlC:
@@ -1263,7 +1268,7 @@ func (s *Session) readHidden() (string, error) {
 
 // readPlainPassword reads a line when there is no terminal to hide it on.
 func (s *Session) readPlainPassword(prompt string) (string, error) {
-	if s.env != nil && s.env.tty != nil {
+	if s.env != nil && s.env.keys != nil {
 		s.env.term.write(prompt)
 		s.env.term.flush()
 	}
