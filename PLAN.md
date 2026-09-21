@@ -2424,9 +2424,39 @@ in one file and stated as though it held for the package. It holds for
 luck: had the password path used the decoder's own `readByte`, the narrowing
 would have compiled and quietly started logging passwords.
 
+## A password reaches the session log on the systems without no-echo
+
+Found while narrowing `terminalController`, and not fixed here because the
+fix is a decision about what a logger is for.
+
+`Password` has two paths. Where the terminal can turn echo off and leave its
+own line editing on, it calls `readNoEcho`, which reads through `ctrl` and so
+never touches the `logReader`. Where it cannot, it goes to raw mode and calls
+`readHidden`, which reads through the decoder — `keys.read()`, then `src`,
+which `WithLogger` has wrapped. Every byte of the password is recorded.
+
+`startNoEcho` is declared in `sys_unix.go` alone, tagged `unix && !aix`. So
+Unix takes the safe path and Windows, aix and the fallback systems take the
+other one, whenever a logger is set.
+
+Demonstrated rather than reasoned: driving `readHidden` with a logger over a
+fed `hunter2` leaves the log holding
+
+    "> h\n> u\n> n\n> t\n> e\n> r\n> 2\n> \\r\n"
+
+which is the password, one byte to a line. Worth keeping the shape of that
+string, because the obvious test for this bug does not find it: a
+`strings.Contains(log, "hunter2")` returns false. A check written the natural
+way would have passed while the password sat there in full.
+
+What it needs is a way to stop recording for the length of a password read,
+which is a change to what `sessionLog` promises rather than to the password
+code, and the logger's type is already an open question below. Fixing one
+without the other would settle the second by accident.
+
 ## Open questions
 
-Six questions have no answer yet.
+Seven questions have no answer yet.
 
 First, does `rline` adopt `github.com/xo/terminfo`? isocline contains no
 terminfo code. `term.c` reads the `TERM`, `COLORTERM`, `NO_COLOR`,
@@ -2490,6 +2520,13 @@ it is not what a program embedding this would want: a Go program has
 `log/slog`, and a writer cannot carry a level, a field or a handler. Changing
 it is Ken's, and it is why the option was named for a logger rather than for
 a log.
+
+Seventh, how does a logger stop recording? The section above has a password
+reaching the session log on every system without a no-echo terminal. The fix
+is not in the password code, which is already careful; it is that nothing can
+ask `sessionLog` to stop for a moment. Whatever answers the sixth question
+should answer this one, because a handler with levels and fields has somewhere
+to put "not this" and an `io.Writer` does not.
 
 `WithContinue` belongs to the same question, from the other side. Its
 parameter is the only one that does not name the field it sets, because the
