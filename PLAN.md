@@ -1937,6 +1937,37 @@ would fail, and when that cannot be run, by reading the source that decides
 it. An exit code from a command that never executes the assertion is not
 weak evidence, it is none.
 
+The untested side was untested because it is the side this machine does not
+take. Three findings in two days took this shape, and the common factor is
+not the kind of value. ken-mba's were a number and an ioctl request;
+this one is a whole code path. In each case the value was handled correctly
+wherever anyone ran it, and nothing read back the branch the developer's own
+system never reaches: the macOS escape figure from Linux, the flush constant
+from a machine whose termios request is the other one, and the logged
+password path from a Unix that always takes the unlogged one.
+
+That is a different failure from forgetting to test something. The test
+exists, it runs, it passes, and it exercises the arm this machine compiles.
+What is missing is a reason for any machine to execute the other arm, and no
+amount of care on one system produces it. The fixes have all had the same
+shape too: make the branch a value a test can name — a parameter instead of
+`runtime.GOOS`, a mutation at the use site instead of the definition, a
+compile-time assertion instead of a runtime one — so that the arm not taken
+is still checkable from here.
+
+Enumerate the arms; do not list them. The platform split above was got wrong
+twice before it was got right, and both times by measuring rather than
+guessing. ken-mba looped over seven targets typed by hand and reported the six
+that answered yes, which was true of every target the loop was given and
+false as a statement about the port: linux was never asked. The correction
+named eight and was also a typed list, two short. The right answer came from
+`go tool dist list`, which knows what the arms are. A loop cannot report on
+what it was not given, and its output looks identical either way — so a
+measurement over a hand-written list carries the author's blind spot into
+something that reads like data. This belongs with the fixes above: replacing
+a sense of which arms exist with something that knows is the same move as
+replacing `runtime.GOOS` with a parameter.
+
 What to do about it. Write the expected value from the C, the specification
 or the intent, never from running the code and recording what came out.
 Before landing a corpus, break the code it covers on purpose, once per thing
@@ -2435,9 +2466,21 @@ never touches the `logReader`. Where it cannot, it goes to raw mode and calls
 `readHidden`, which reads through the decoder — `keys.read()`, then `src`,
 which `WithLogger` has wrapped. Every byte of the password is recorded.
 
-`startNoEcho` is declared in `sys_unix.go` alone, tagged `unix && !aix`. So
-Unix takes the safe path and Windows, aix and the fallback systems take the
-other one, whenever a logger is set.
+`startNoEcho` is declared in `sys_unix.go` alone, tagged `unix && !aix`. The
+split was taken from `go tool dist list` rather than from a list anyone typed,
+which took three attempts to get right and is the method note below. Ten
+targets compile that file and take the unlogged path — android, darwin,
+dragonfly, freebsd, illumos, ios, linux, netbsd, openbsd and solaris — and
+five do not: aix, js, plan9, wasip1 and windows. Of those five only Windows
+and aix have a terminal to speak of, so Windows is where it matters.
+
+The branch is a runtime type assertion rather than a build tag, which matters
+for how it was checked. ken-mba measured it on a real pseudo-terminal on
+darwin — `ctrl.(noEchoDevice)` is true there, so `Password` calls
+`readNoEcho` — and windows-vm measured the other side on a real console,
+where the assertion is false and `Password` takes `readHidden`. Both went
+through the public API rather than calling the inner function, which is what
+makes them statements about what a caller gets.
 
 Demonstrated rather than reasoned: driving `readHidden` with a logger over a
 fed `hunter2` leaves the log holding
@@ -2448,6 +2491,51 @@ which is the password, one byte to a line. Worth keeping the shape of that
 string, because the obvious test for this bug does not find it: a
 `strings.Contains(log, "hunter2")` returns false. A check written the natural
 way would have passed while the password sat there in full.
+
+And "recoverable" undersells it, which is windows-vm's correction after
+seeing the real artefact. The bytes are in order, one per line, in a column,
+with nothing between them: a person who opens the log reads the password at a
+glance, more easily than if it had been written as one string, because it is
+the only column in the file. So the two facts point opposite ways. A human
+sees it immediately; a grep, a secret scanner looking for a known value, and
+a test asserting the password is absent all answer no. The only thing that
+fails to find it is a program looking for the obvious, which is every cheap
+way of asking.
+
+What defeats the check is the framing interleaved with the content, not the
+escaping. A scanner that strips the direction prefixes and joins the read
+lines finds the password at once. So the rule for a log format that has to
+survive a secret scanner is that framing must not be able to split a value
+across records — or, from the other side, any check on this log has to
+reassemble before it searches, and the obvious check does not.
+
+The safe path is safe by accident, and now says so. `Password` reaches
+`readNoEcho` through a type assertion, so if `*tty` stopped satisfying
+`noEchoDevice` — the method moved, renamed, or given a narrower tag — the
+assertion would just be false and every Unix would fall through to the logged
+path. Nothing would fail, and the only signal would be passwords in logs
+where the natural check does not find them. `tty_test.go` now carries
+`var _ noEchoDevice = (*tty)(nil)`, in a file whose build tag is the one on
+`sys_unix.go`, so the breakage is a compile error. Checked by renaming
+`startNoEcho`: vet reports `*tty does not implement noEchoDevice`.
+
+Here the build tag is the claim rather than a limitation, which is worth
+saying after a week of treating tags as the thing that hides checks. The
+assertion is only true where `sys_unix.go` is built; in an untagged file it
+would fail on Windows for exactly the reason the finding exists. Matching the
+tag states the claim precisely. That is windows-vm's distinction and it is
+the first time in this document a tag has been the right answer rather than
+the problem.
+
+And the two sides were not symmetrical. Unix had a compile error if the safe
+path was lost; Windows had a paragraph, and paragraphs in this document have
+gone stale three times. The direction that would rot it is the harmless one —
+someone adding `startNoEcho` to `sys_windows.go` would make Windows safe and
+this entry false, with nothing to notice. So `sys_windows_test.go` carries
+`TestConsoleDoesNotOfferNoEcho`, a runtime check, because Go cannot assert at
+compile time that a type does *not* satisfy an interface. It is a test whose
+failure means the document is wrong rather than the code, and it says so in
+its own message.
 
 What it needs is a way to stop recording for the length of a password read,
 which is a change to what `sessionLog` promises rather than to the password

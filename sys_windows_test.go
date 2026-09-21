@@ -674,3 +674,29 @@ func TestConsoleOpenTTYDeviceHonoursItsArgument(t *testing.T) {
 	}
 	_ = d.close()
 }
+
+// TestConsoleDoesNotOfferNoEcho pins the Windows half of the password
+// finding, which is otherwise only written down.
+//
+// Password asks whether the terminal is a noEchoDevice and takes the
+// unlogged path when it is. The console is not one — startNoEcho exists only
+// in sys_unix.go — so Windows takes readHidden, which reads through the
+// logger. The Unix side of that claim became a compile error when
+// tty_test.go gained its noEchoDevice assertion. This side was a paragraph,
+// and a paragraph is what has gone stale three times in this document.
+//
+// A failure here is not a defect and does not mean anything broke. It means
+// the console gained a no-echo mode, so Windows became safe and the entry in
+// PLAN.md now says the opposite of what the code does. Fix the document,
+// then delete this test.
+//
+// Go cannot assert at compile time that a type does not satisfy an
+// interface, so this is a runtime check. It needs no console and runs
+// wherever the package is tested on Windows.
+func TestConsoleDoesNotOfferNoEcho(t *testing.T) {
+	t.Parallel()
+	if _, ok := any((*tty)(nil)).(noEchoDevice); ok {
+		t.Error("the console now offers no-echo, so Password no longer takes the " +
+			"logged path: the Windows part of the password entry in PLAN.md is stale")
+	}
+}

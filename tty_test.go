@@ -209,3 +209,31 @@ func TestSetEscDelayClamps(t *testing.T) {
 			term.escInitialTimeout, term.escTimeout)
 	}
 }
+
+// The safe password path is reached by a runtime type assertion, so nothing
+// breaks loudly if it stops being reachable.
+//
+// Password asks whether the terminal is a noEchoDevice and, if it is, calls
+// readNoEcho, which reads through ctrl and so around the logReader that
+// WithLogger installs. If *tty stopped satisfying noEchoDevice — the method
+// moved, renamed, or given a narrower build tag — the assertion would simply
+// be false, Password would fall through to readHidden, and that reads through
+// the decoder and therefore through the logger. Nothing would fail. The only
+// signal would be passwords appearing in session logs, one byte to a line,
+// where the natural check does not find them. See the section in PLAN.md.
+//
+// So this says it at compile time instead. The build tag on this file is the
+// one on sys_unix.go, which is where startNoEcho is declared: if the two ever
+// disagree, this line stops being compiled on a system that needs it, which
+// is the failure it exists to catch.
+//
+// What makes this a claim about the branch and not merely about the type:
+// Password asserts on ctrl, whose static type is terminalController, and a
+// type can satisfy an interface while the value at the branch is something
+// else. It cannot here, because ctrl has exactly one concrete type on these
+// systems — openDecoder in tty_posix.go is the only assignment outside the
+// Windows file and its tests. If a second controller ever reached ctrl on a
+// Unix, a wrapper or a promoted test double, this line would still compile
+// and would stop saying what it is read as saying. Found by ken-mba, who
+// went looking for the gap and reported that there is none.
+var _ noEchoDevice = (*tty)(nil)
