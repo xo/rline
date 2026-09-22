@@ -1,0 +1,67 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> s
+< \r\e[32msql> \e[39ms\e[K\r\e[6C
+> e
+< \r\e[32msql> \e[39mse\e[K\r\e[7C
+> l
+< \r\e[32msql> \e[39msel\e[K\r\e[8C
+> e
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+> c
+< \r\e[32msql> \e[39mselec\e[K\r\e[10C
+> t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[11C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[K\r\e[12C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  \e[K\r\e[13C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  a\e[K\r\e[14C
+> l
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  al\e[K\r\e[15C
+> p
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alp\e[K\r\e[16C
+> h
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alph\e[K\r\e[17C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha\e[K\r\e[18C
+> ,
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,\e[K\r\e[19C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha, \e[K\r\e[20C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  \e[K\r\e[21C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  b\e[K\r\e[22C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  be\e[K\r\e[23C
+> t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  bet\e[K\r\e[24C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  beta\e[K\r\e[25C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betaf\e[K\r\e[26C
+> r
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafr\e[K\r\e[27C
+> o
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafro\e[K\r\e[28C
+> m
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafrom\e[K\r\e[29C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafrom \e[K\r\e[30C
+> g
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafrom g\e[K\r\e[31C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafrom ga\e[K\r\e[32C
+> m
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafrom gam\e[K\r\e[33C
+> m
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafrom gamm\e[K\r\e[34C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafrom gamma\e[K\r\e[35C
+> ;
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m  alpha,  betafrom gamma;\e[K\r\e[36C

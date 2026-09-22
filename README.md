@@ -1,4 +1,13 @@
-# rline
+<div align="center">
+  <a href="#quickstart" title="Quickstart">Quickstart</a> |
+  <a href="#the-example" title="The example">Example</a> |
+  <a href="#platforms" title="Platforms">Platforms</a> |
+  <a href="#how-the-port-was-checked" title="How the port was checked">How it was checked</a> |
+  <a href="https://pkg.go.dev/github.com/xo/rline" title="Go Reference">Reference</a> |
+  <a href="#about" title="About">About</a>
+</div>
+
+<br/>
 
 `rline` is a readline package for Go. A readline package reads a line of text
 from a terminal, and gives the person typing it editing, history, completion
@@ -9,6 +18,28 @@ against any C library.
 
 `rline` is a port of [isocline][isocline], a readline replacement written in C
 by Daan Leijen, under the MIT license.
+
+[![Unit Tests][rline-ci-status]][rline-ci]
+[![Go Reference][goref-rline-status]][goref-rline]
+[![Discord Discussion][discord-status]][discord]
+
+[rline-ci]: https://github.com/xo/rline/actions/workflows/test.yml "Test CI"
+[rline-ci-status]: https://github.com/xo/rline/actions/workflows/test.yml/badge.svg "Test CI"
+[goref-rline]: https://pkg.go.dev/github.com/xo/rline "Go Reference"
+[goref-rline-status]: https://pkg.go.dev/badge/github.com/xo/rline.svg "Go Reference"
+[discord]: https://discord.gg/WDWAgXwJqN "Discord Discussion"
+[discord-status]: https://img.shields.io/discord/829150509658013727.svg?label=Discord&logo=Discord&colorB=7289da&style=flat-square "Discord Discussion"
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/xo/rline/assets/rline.gif" alt="Editing a SQL statement with rline: syntax highlighting as each word is typed, moving within the line, continuing over several rows, and a completion menu" width="720">
+</div>
+
+The recording is generated rather than taken by hand.
+[`contrib/make-demo-gif.sh`](contrib/make-demo-gif.sh) opens a real terminal
+on a private compositor, types the session with a virtual keyboard and records
+it, so it can be made again after the code changes and shows what `rline` does
+now rather than what it did when somebody last remembered to take a
+screenshot. See [uitest/README.md](uitest/README.md) for the harness.
 
 ## Status
 

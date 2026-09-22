@@ -1,0 +1,83 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> s
+< \r\e[32msql> \e[39ms\e[K\r\e[6C
+> e
+< \r\e[32msql> \e[39mse\e[K\r\e[7C
+> l
+< \r\e[32msql> \e[39msel\e[K\r\e[8C
+> e
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+> c
+< \r\e[32msql> \e[39mselec\e[K\r\e[10C
+> t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[11C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[K\r\e[12C
+> 1
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m\e[K\r\e[13C
+> ;
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[14C
+> s
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;s\e[K\r\e[15C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;se\e[K\r\e[16C
+> l
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;sel\e[K\r\e[17C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;sele\e[K\r\e[18C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;selec\e[K\r\e[19C
+> t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[20C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m \e[K\r\e[21C
+> 2
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m2\e[39m\e[22m\e[K\r\e[22C
+> 2
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m22\e[39m\e[22m\e[K\r\e[23C
+> 2
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m222\e[39m\e[22m\e[K\r\e[24C
+> 2
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m2222\e[39m\e[22m\e[K\r\e[25C
+> 2
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m22222\e[39m\e[22m\e[K\r\e[26C
+> ;
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m22222\e[39m\e[22m;\e[K\r\e[27C
+> \r
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m1\e[39m\e[22m;\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m22222\e[39m\e[22m;\e[K\r\e[27C
+< \n
+= select 1;select 22222;
+< ran 1 line(s): select 1;select 22222;\n
+< \e[32msql> \e[39m
+> s
+< \r\e[32msql> \e[39ms\e[K\r\e[6C
+> e
+< \r\e[32msql> \e[39mse\e[K\r\e[7C
+> l
+< \r\e[32msql> \e[39msel\e[K\r\e[8C
+> e
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+> c
+< \r\e[32msql> \e[39mselec\e[K\r\e[10C
+> t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[11C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[K\r\e[12C
+> 3
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m\e[K\r\e[13C
+> ;
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[96m\e[1m3\e[39m\e[22m;\e[K\r\e[14C

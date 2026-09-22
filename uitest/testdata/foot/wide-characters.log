@@ -1,0 +1,67 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> -
+< \r\e[32msql> \e[39m-\e[K\r\e[6C
+> -
+< \r\e[32msql> \e[39m\e[90m--\e[39m\e[K\r\e[7C
+>  
+< \r\e[32msql> \e[39m\e[90m-- \e[39m\e[K\r\e[8C
+> �
+> �
+> �
+< \r\e[32msql> \e[39m\e[90m-- 日\e[39m\e[K\r\e[10C
+> �
+> �
+> �
+< \r\e[32msql> \e[39m\e[90m-- 日本\e[39m\e[K\r\e[12C
+> �
+> �
+> �
+< \r\e[32msql> \e[39m\e[90m-- 日本語\e[39m\e[K\r\e[14C
+>  
+< \r\e[32msql> \e[39m\e[90m-- 日本語 \e[39m\e[K\r\e[15C
+> a
+< \r\e[32msql> \e[39m\e[90m-- 日本語 a\e[39m\e[K\r\e[16C
+> n
+< \r\e[32msql> \e[39m\e[90m-- 日本語 an\e[39m\e[K\r\e[17C
+> d
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and\e[39m\e[K\r\e[18C
+>  
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and \e[39m\e[K\r\e[19C
+> �
+> �
+> �
+> �
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨\e[39m\e[K\r\e[21C
+> �
+> �
+> �
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍\e[39m\e[K\r\e[21C
+> �
+> �
+> �
+> �
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩\e[39m\e[K\r\e[23C
+> �
+> �
+> �
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩‍\e[39m\e[K\r\e[23C
+> �
+> �
+> �
+> �
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩‍👧\e[39m\e[K\r\e[25C
+>  
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩‍👧 \e[39m\e[K\r\e[26C
+> e
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩‍👧 e\e[39m\e[K\r\e[27C
+> n
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩‍👧 en\e[39m\e[K\r\e[28C
+> d
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩‍👧 end\e[39m\e[K\r\e[29C
+> \x7f
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩‍👧 en\e[39m\e[K\r\e[28C
+< \r\e[32msql> \e[39m\e[90m-- 日本語 and 👨‍👩‍👧 en\e[39m\e[K\r\e[28C

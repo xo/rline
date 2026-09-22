@@ -1,0 +1,185 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> s
+< \r\e[32msql> \e[39ms\e[K\r\e[6C
+> e
+< \r\e[32msql> \e[39mse\e[K\r\e[7C
+> l
+< \r\e[32msql> \e[39msel\e[K\r\e[8C
+> e
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+> c
+< \r\e[32msql> \e[39mselec\e[K\r\e[10C
+> t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[11C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[K\r\e[12C
+> '
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'\e[39m\e[22m\e[K\r\e[13C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'a\e[39m\e[22m\e[K\r\e[14C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aa\e[39m\e[22m\e[K\r\e[15C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaa\e[39m\e[22m\e[K\r\e[16C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaa\e[39m\e[22m\e[K\r\e[17C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaa\e[39m\e[22m\e[K\r\e[18C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaa\e[39m\e[22m\e[K\r\e[19C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaa\e[39m\e[22m\e[K\r\e[20C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaa\e[39m\e[22m\e[K\r\e[21C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaa\e[39m\e[22m\e[K\r\e[22C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaa\e[39m\e[22m\e[K\r\e[23C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaab\e[39m\e[22m\e[K\r\e[24C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabb\e[39m\e[22m\e[K\r\e[25C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbb\e[39m\e[22m\e[K\r\e[26C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbb\e[39m\e[22m\e[K\r\e[27C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbb\e[39m\e[22m\e[K\r\e[28C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbb\e[39m\e[22m\e[K\r\e[29C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbb\e[39m\e[22m\e[K\r\e[30C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbb\e[39m\e[22m\e[K\r\e[31C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbb\e[39m\e[22m\e[K\r\e[32C
+> b
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbb\e[39m\e[22m\e[K\r\e[33C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbc\e[39m\e[22m\e[K\r\e[34C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbcc\e[39m\e[22m\e[K\r\e[35C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccc\e[39m\e[22m\e[K\r\e[36C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbcccc\e[39m\e[22m\e[K\r\e[37C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccc\e[39m\e[22m\e[K\r\e[38C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbcccccc\e[39m\e[22m\e[K\r\e[39C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccc\e[39m\e[22m\e[K\r\e[40C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbcccccccc\e[39m\e[22m\e[K\r\e[41C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccc\e[39m\e[22m\e[K\r\e[42C
+> c
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbcccccccccc\e[39m\e[22m\e[K\r\e[43C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccd\e[39m\e[22m\e[K\r\e[44C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccdd\e[39m\e[22m\e[K\r\e[45C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddd\e[39m\e[22m\e[K\r\e[46C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccdddd\e[39m\e[22m\e[K\r\e[47C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddd\e[39m\e[22m\e[K\r\e[48C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccdddddd\e[39m\e[22m\e[K\r\e[49C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddd\e[39m\e[22m\e[K\r\e[50C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccdddddddd\e[39m\e[22m\e[K\r\e[51C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddd\e[39m\e[22m\e[K\r\e[52C
+> d
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\e[39m\e[22m\e[K\r\e[53C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccdddddddddde\e[39m\e[22m\e[K\r\e[54C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddee\e[39m\e[22m\e[K\r\e[55C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeee\e[39m\e[22m\e[K\r\e[56C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeee\e[39m\e[22m\e[K\r\e[57C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeee\e[39m\e[22m\e[K\r\e[58C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeee\e[39m\e[22m\e[K\r\e[59C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeee\e[39m\e[22m\e[K\r\e[60C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeee\e[39m\e[22m\e[K\r\e[61C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeee\e[39m\e[22m\e[K\r\e[62C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee\e[39m\e[22m\e[K\r\e[63C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeef\e[39m\e[22m\e[K\r\e[64C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeff\e[39m\e[22m\e[K\r\e[65C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeefff\e[39m\e[22m\e[K\r\e[66C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffff\e[39m\e[22m\e[K\r\e[67C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeefffff\e[39m\e[22m\e[K\r\e[68C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffff\e[39m\e[22m\e[K\r\e[69C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeefffffff\e[39m\e[22m\e[K\r\e[70C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffff\e[39m\e[22m\e[K\r\e[71C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeefffffffff\e[39m\e[22m\e[K\r\e[72C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffff\e[39m\e[22m\e[K\r\e[73C
+> g
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffg\e[39m\e[22m\e[K\r\e[74C
+> g
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgg\e[39m\e[22m\e[K\r\e[75C
+> g
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggg\e[39m\e[22m\e[K\r\e[76C
+> g
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffgggg\e[39m\e[22m\e[K\r\e[77C
+> g
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m\e[K\r\e[78C
+> g
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mg\e[39m\e[22m\e[K\r\e[6C
+> g
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mgg\e[39m\e[22m\e[K\r\e[7C
+> g
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggg\e[39m\e[22m\e[K\r\e[8C
+> g
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mgggg\e[39m\e[22m\e[K\r\e[9C
+> g
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggg\e[39m\e[22m\e[K\r\e[10C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mgggggh\e[39m\e[22m\e[K\r\e[11C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghh\e[39m\e[22m\e[K\r\e[12C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhh\e[39m\e[22m\e[K\r\e[13C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhh\e[39m\e[22m\e[K\r\e[14C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhhh\e[39m\e[22m\e[K\r\e[15C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhhhh\e[39m\e[22m\e[K\r\e[16C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhhhhh\e[39m\e[22m\e[K\r\e[17C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhhhhhh\e[39m\e[22m\e[K\r\e[18C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhhhhhhh\e[39m\e[22m\e[K\r\e[19C
+> h
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhhhhhhhh\e[39m\e[22m\e[K\r\e[20C
+> '
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhhhhhhhh'\e[39m\e[22m\e[K\r\e[21C
+> ;
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[92m\e[1m'aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeeeffffffffffggggg\e[39m\e[22m←\e[K\n\e[32m...> \e[39m\e[92m\e[1mggggghhhhhhhhhh'\e[39m\e[22m;\e[K\r\e[22C

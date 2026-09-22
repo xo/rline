@@ -1,0 +1,80 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> o
+< \r\e[32msql> \e[39mo\e[K\r\e[6C
+> n
+< \r\e[32msql> \e[39m\e[91m\e[1mon\e[39m\e[22m\e[K\r\e[7C
+> e
+< \r\e[32msql> \e[39mone\e[K\r\e[8C
+>  
+< \r\e[32msql> \e[39mone \e[K\r\e[9C
+> t
+< \r\e[32msql> \e[39mone t\e[K\r\e[10C
+> w
+< \r\e[32msql> \e[39mone tw\e[K\r\e[11C
+> o
+< \r\e[32msql> \e[39mone two\e[K\r\e[12C
+>  
+< \r\e[32msql> \e[39mone two \e[K\r\e[13C
+> t
+< \r\e[32msql> \e[39mone two t\e[K\r\e[14C
+> h
+< \r\e[32msql> \e[39mone two th\e[K\r\e[15C
+> r
+< \r\e[32msql> \e[39mone two thr\e[K\r\e[16C
+> e
+< \r\e[32msql> \e[39mone two thre\e[K\r\e[17C
+> e
+< \r\e[32msql> \e[39mone two three\e[K\r\e[18C
+> \x01
+< \r\e[32msql> \e[39mone two three\e[K\r\e[5C
+> \x05
+< \r\e[32msql> \e[39mone two three\e[K\r\e[18C
+> \e
+> b
+< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
+> \e
+> [
+> 1
+> ;
+> 5
+> D
+< \r\e[32msql> \e[39mone two three\e[K\r\e[8C
+> \e
+> [
+> 1
+> ;
+> 5
+> C
+< \r\e[32msql> \e[39mone two three\e[K\r\e[9C
+> \x17
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+> \x15
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C

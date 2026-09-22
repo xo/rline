@@ -1,0 +1,59 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> s
+< \r\e[32msql> \e[39ms\e[K\r\e[6C
+> e
+< \r\e[32msql> \e[39mse\e[K\r\e[7C
+> l
+< \r\e[32msql> \e[39msel\e[K\r\e[8C
+> e
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+> c
+< \r\e[32msql> \e[39mselec\e[K\r\e[10C
+> t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[11C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[K\r\e[12C
+> f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m f\e[K\r\e[13C
+> r
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m fr\e[K\r\e[14C
+> m
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm\e[K\r\e[15C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm \e[K\r\e[16C
+> x
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x\e[K\r\e[17C
+> ;
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[18C
+> o
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o\e[K\r\e[19C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[K\r\e[20C
+> w
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o w\e[K\r\e[21C
+> h
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o wh\e[K\r\e[22C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o whe\e[K\r\e[23C
+> r
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o wher\e[K\r\e[24C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m\e[K\r\e[25C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m \e[K\r\e[26C
+> y
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y\e[K\r\e[27C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y \e[K\r\e[28C
+> =
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y =\e[K\r\e[29C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[K\r\e[30C
+> 1
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m\e[K\r\e[31C
+> ;
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C

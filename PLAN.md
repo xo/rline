@@ -2743,6 +2743,122 @@ which is a change to what `sessionLog` promises rather than to the password
 code, and the logger's type is already an open question below. Fixing one
 without the other would settle the second by accident.
 
+## Tests against a real terminal
+
+`internal/capture` drives a pseudo-terminal and compares bytes, and a
+pseudo-terminal is not a terminal emulator: nothing renders the escape
+sequences, so nothing checks what a person would see. It also cannot test the
+other direction, because a real terminal decides for itself which bytes a
+keystroke becomes, and shift-enter, ctrl-left and alt-backspace do not exist
+in ASCII.
+
+`uitest/` opens real emulators, types with the compositor's own virtual
+keyboard, and records three things: the byte log, which `WithLogger` already
+produces and which is uniform across every terminal; a screenshot after every
+step; and, where the terminal can be asked, its screen as text. Only the byte
+log is compared. Screenshots are for a person, because font rendering varies
+by machine, by hinting and by graphics driver, and an image comparison would
+fail for reasons that have nothing to do with this port. See `uitest/README.md`
+for the matrix and the reasoning behind it, which came from Gemini and
+DeepSeek asked independently.
+
+### The keys go to a compositor, not to a window
+
+This is the thing to understand before changing any of it. A synthesised
+keystroke is delivered to whatever has keyboard focus at the instant it is
+sent, and a check beforehand does not make that safe: the check and the
+keystroke are different moments. The first version of this harness did check,
+and still typed test input into Ken's own windows twice, because a terminal
+window closed between the two and focus moved on. One of them landed in the
+middle of a sentence he was writing.
+
+So on Linux the tests run on a private headless compositor with its own
+runtime directory, and the injector is pointed at that socket. Nothing can
+reach the desktop, because the desktop is a different compositor. That is
+isolation rather than a guard, and it is the difference between a race that is
+usually won and one that cannot be run.
+
+macOS and Windows have no equivalent yet and share the desktop with a focus
+check, which is the weaker arrangement. It is written down in the README
+rather than glossed, and `-visible` does the same on Linux for anyone who
+wants to watch.
+
+### What isolation fixed that was not about safety
+
+The runs were not reproducible on a desktop and the reason was the same
+tiling that makes a desktop useful. A terminal opens at the size it asked for
+and is then resized to fit the layout: foot asked for 80x24, got it, and was
+tiled to 47x174 a second later. Every resize is a SIGWINCH and a redraw, so
+three runs of one session produced 86, 66 and 42 lines. On a compositor with
+one window and a fixed output they are equal.
+
+The other candidate was ruled out rather than assumed. A redraw loop in the
+port would have looked the same from outside, so the demo was left idle on a
+plain pseudo-terminal for five seconds: it wrote nothing after its prompt. The
+repaints were the desktop's, not the port's.
+
+### Things it found before it was finished
+
+An emulator's own bug, which is what a matrix is for: wezterm panics at
+`window/src/os/wayland/keyboard.rs:113:38` on this machine and never draws.
+Found because the harness keeps whatever the terminal writes to its stderr,
+which was added after a window closed too fast for Ken to read the error in
+it.
+
+A GTK rule nobody would guess: an application id that is not reverse-DNS is
+ignored silently, so ghostty and gnome-terminal kept their own and the harness
+could not find its window. The window is now identified by a title the program
+sets itself with OSC 0, which every terminal supports because it is a terminal
+feature rather than a launcher flag — and it must be unique, since matching a
+shared id like `org.gnome.Terminal` would have found Ken's own windows and
+typed into one.
+
+A path that was relative when it had to be absolute: a terminal chooses the
+working directory of the program it runs, and wezterm chooses the home
+directory, so the demo wrote its log where nothing was watching and the run
+reported that the program had never started.
+
+And a hole in the isolation that isolation alone did not close.
+gnome-terminal does not open a window itself: it asks gnome-terminal-server
+over D-Bus. The private compositor sets `WAYLAND_DISPLAY`, which that server
+never sees, because it is already running on the person's own session bus and
+the request goes to it. Six windows opened on Ken's desktop from one run.
+Nothing was typed into them — the focus check queries the private compositor,
+found no window of ours there, and refused — which is the argument for
+keeping a guard behind the isolation rather than instead of it. The fix is a
+private message bus, `dbus-run-session`, so there is no server to answer and
+one starts inside the right environment. Measured both ways: six windows
+before, none after.
+
+The general shape is worth more than the fix. An environment variable is a
+request to the process you start, and a process that delegates to another one
+does not carry it: anything reached through D-Bus activation, a daemon or a
+socket already in the environment is outside whatever the variable was meant
+to contain. Isolation by environment holds only for children, and the leak
+looks exactly like success from inside the sandbox.
+
+### What it cannot pin down
+
+The completion menu. Tab on an ambiguous prefix draws a numbered menu under
+the line, and typing the number picks an entry — sometimes. On other runs the
+same number arrives as a plain character and the line becomes `se2` rather
+than `select`, so whether the menu is still listening when the next key
+arrives is not something this harness can currently time. The log differed
+about one run in three.
+
+That session is marked `Watch`, which means it takes its screenshots and
+compares no golden. A golden that is usually right is worse than none,
+because the failures teach whoever sees them to rerun rather than to look.
+What the menu does between opening and the next keystroke is an open question
+rather than a settled one, and the screenshots are still there to look at.
+
+Hints, which are the other timing-dependent feature, are pinned and stable.
+They needed a fixed wait rather than the quiescence rule: the hint is drawn
+after rline's own delay of no typing, so the log goes quiet *before* the hint
+appears and a step that waits only for quiet sends its next key into the gap.
+`hintSettle` is that wait, and it is tied by a comment to `DefaultHintDelay`
+so the two cannot drift apart silently.
+
 ## Gaps left on purpose
 
 Everything else in this document arrived because something was wrong. These
