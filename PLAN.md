@@ -2837,6 +2837,42 @@ socket already in the environment is outside whatever the variable was meant
 to contain. Isolation by environment holds only for children, and the leak
 looks exactly like success from inside the sandbox.
 
+### Quiescence has to be longer than the program's own delays
+
+The rule that a step is finished when the log has been quiet for a while is
+only sound if the program has stopped deciding to draw. rline has not: it
+draws a hint after `DefaultHintDelay` of no typing. The harness's quiet period
+was 400ms and that delay is 400ms, so the two landed together and the next
+keystroke raced the hint. Any session that typed a word with a completion
+behind it then differed between runs, which is most of them.
+
+It surfaced in the history session rather than in the sessions about hints,
+and that is the part worth keeping: the sessions written *about* hints carried
+long deliberate waits and passed, while the one that typed `select` on its way
+to somewhere else did not. A harness's timing bug hides in the tests that are
+not about timing.
+
+The quiet period is now comfortably past that delay, and both constants say in
+a comment that they move together. The general form: a quiescence rule must be
+longer than the longest redraw the program delays on its own, and a program
+that draws on a timer has to declare that timer to whatever is timing it.
+
+### A key injector that drops keys, found through its goldens
+
+`wtype` uploads a keymap and then sends the key, and with no pause between
+them the key can arrive before the compositor has applied the map, so it is
+dropped. The text path was given `-s 60 -d 12` early, after "select 1;"
+arrived as "tes aselect 1;". The key path was not, and nothing noticed for a
+day, because a dropped arrow key does not look like a dropped key: it looks
+like an editor that ignored an arrow.
+
+Measured over three runs each, before and after: `hints` went from 1/3 to 3/3
+and `hints-arrows` from 0/3 to 3/3. The damage was wider than the flake — the
+goldens for every session using arrows had been recorded through the same
+injector, so some of them had pinned runs where a keystroke never arrived. All
+were regenerated. A golden recorded through a broken harness is worse than no
+golden, because it pins the harness's bug as the expected answer.
+
 ### What it cannot pin down
 
 The completion menu. Tab on an ambiguous prefix draws a numbered menu under

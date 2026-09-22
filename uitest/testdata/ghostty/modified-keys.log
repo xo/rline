@@ -30,46 +30,53 @@
 < \r\e[32msql> \e[39mone two thre\e[K\r\e[17C
 > e
 < \r\e[32msql> \e[39mone two three\e[K\r\e[18C
+> \x01
+< \r\e[32msql> \e[39mone two three\e[K\r\e[5C
+> \x05
+< \r\e[32msql> \e[39mone two three\e[K\r\e[18C
 > \e
 > b
 < \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
-< \r\e[32msql> \e[39mone two three\e[K\r\e[12C
+> \e
+> [
+> 1
+> ;
+> 5
+> D
+< \r\e[32msql> \e[39mone two three\e[K\r\e[8C
+> \e
+> [
+> 1
+> ;
+> 5
+> C
+< \r\e[32msql> \e[39mone two three\e[K\r\e[9C
+> \x17
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+> \x15
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C
+< \r\e[32msql> \e[39mtwo three\e[K\r\e[5C

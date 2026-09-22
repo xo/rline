@@ -1,0 +1,90 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> s
+< \r\e[32msql> \e[39ms\e[K\r\e[6C
+> e
+< \r\e[32msql> \e[39mse\e[K\r\e[7C
+> l
+< \r\e[32msql> \e[39msel\e[K\r\e[8C
+> e
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+> c
+< \r\e[32msql> \e[39mselec\e[K\r\e[10C
+> t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[11C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[K\r\e[12C
+> n
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m n\e[K\r\e[13C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m na\e[K\r\e[14C
+> m
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m nam\e[K\r\e[15C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name\e[K\r\e[16C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name \e[K\r\e[17C
+> w
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name w\e[K\r\e[18C
+> h
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name wh\e[K\r\e[19C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\r\e[20C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[90mre\e[39m\e[K\r\e[20C
+> \r
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39m\e[K\r\e[5C
+> f
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mf\e[K\r\e[6C
+> r
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfr\e[K\r\e[7C
+> o
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\r\e[8C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[90mm\e[39m\e[K\r\e[8C
+> \e
+> [
+> A
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\r\e[1A\e[8C
+> \e
+> [
+> F
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\r\e[1A\e[20C
+> \e
+> [
+> B
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\r\e[8C
+> \e
+> [
+> F
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\r\e[8C
+> \r
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39m\e[K\r\e[5C
+> w
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mw\e[K\r\e[6C
+> h
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mwh\e[K\r\e[7C
+> e
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mwhe\e[K\r\e[8C
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mwhe\e[90mre\e[39m\e[K\r\e[8C
+> \e
+> [
+> A
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mwhe\e[K\r\e[1A\e[8C
+> \e
+> [
+> A
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mwhe\e[K\r\e[2A\e[8C
+> \e
+> [
+> B
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mwhe\e[K\r\e[1A\e[8C
+> \e
+> [
+> B
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mwhe\e[K\r\e[8C
+> \e
+> [
+> F
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name whe\e[K\n\e[32m...> \e[39mfro\e[K\n\e[32m...> \e[39mwhe\e[K\r\e[8C

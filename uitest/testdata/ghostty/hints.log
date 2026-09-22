@@ -1,0 +1,31 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> w
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39mw\e[K\r\e[6C
+> h
+< \r\e[32msql> \e[39mwh\e[K\r\e[7C
+> e
+< \r\e[32msql> \e[39mwhe\e[K\r\e[8C
+< \r\e[32msql> \e[39mwhe\e[90mre\e[39m\e[K\r\e[8C
+> n
+< \r\e[32msql> \e[39mwhen\e[K\r\e[9C
+> \x7f
+< \r\e[32msql> \e[39mwhe\e[K\r\e[8C
+>  
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C
+< \r\e[32msql> \e[39mwhe \e[K\r\e[9C

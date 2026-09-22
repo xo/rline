@@ -340,7 +340,14 @@ func typeKey(name string) error {
 	}
 	// wtype wants each modifier pressed and released around the key, in
 	// order, rather than a single joined name.
-	args := []string{}
+	//
+	// -s first, for the same reason typeText has it: wtype uploads a keymap
+	// and sends the key, and with no pause the key can be sent before the
+	// compositor has applied the keymap, so it is dropped. Measured — the
+	// text path was fixed for this hours before the key path was, and the
+	// symptom here was arrow keys that arrived on most runs and vanished on
+	// some, which read as a flaky editor rather than as a flaky harness.
+	args := []string{"-s", "60"}
 	for _, m := range mods {
 		args = append(args, "-M", m)
 	}

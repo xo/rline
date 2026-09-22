@@ -63,8 +63,66 @@
 < \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma\e[K\r\e[34C
 > ;
 < \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[35C
+> \e
+> [
+> H
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[5C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[6C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[7C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[8C
+> \e
+> [
+> F
 < \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[35C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[35C
+> \e
+> [
+> D
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[34C
+> \e
+> [
+> D
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[33C
+> \e
+> [
+> D
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[32C
+> \e
+> [
+> 1
+> ;
+> 5
+> D
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[28C
+> \e
+> [
+> 1
+> ;
+> 5
+> D
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[23C
+> \e
+> [
+> 1
+> ;
+> 5
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[24C
+> \e
+> [
+> H
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[5C
+> \e
+> [
+> F
 < \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[35C
 < \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[35C
 < \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta \e[91m\e[1mfrom\e[39m\e[22m gamma;\e[K\r\e[35C

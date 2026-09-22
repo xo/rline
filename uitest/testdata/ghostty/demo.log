@@ -1,0 +1,171 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> s
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39ms\e[K\r\e[6C
+> e
+< \r\e[32msql> \e[39mse\e[K\r\e[7C
+> l
+< \r\e[32msql> \e[39msel\e[K\r\e[8C
+< \r\e[32msql> \e[39msel\e[90mect\e[39m\e[K\r\e[8C
+> \t
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[11C
+> \e
+> [
+> F
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m\e[K\r\e[11C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m \e[K\r\e[12C
+> n
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m n\e[K\r\e[13C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m na\e[K\r\e[14C
+> m
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m nam\e[K\r\e[15C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name\e[K\r\e[16C
+> ,
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name,\e[K\r\e[17C
+>  
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, \e[K\r\e[18C
+> e
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, e\e[K\r\e[19C
+> m
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, em\e[K\r\e[20C
+> a
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, ema\e[K\r\e[21C
+> i
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, emai\e[K\r\e[22C
+> l
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\r\e[23C
+> \r
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[K\r\e[5C
+> f
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39mf\e[K\r\e[6C
+> r
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39mfr\e[K\r\e[7C
+> o
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39mfro\e[K\r\e[8C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39mfro\e[90mm\e[39m\e[K\r\e[8C
+> m
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m\e[K\r\e[9C
+>  
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m \e[K\r\e[10C
+> u
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m u\e[K\r\e[11C
+> s
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m us\e[K\r\e[12C
+> e
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m use\e[K\r\e[13C
+> r
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m user\e[K\r\e[14C
+> s
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\r\e[15C
+> \r
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[K\r\e[5C
+> w
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39mw\e[K\r\e[6C
+> h
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39mwh\e[K\r\e[7C
+> e
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39mwhe\e[K\r\e[8C
+> r
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39mwher\e[K\r\e[9C
+> e
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m\e[K\r\e[10C
+>  
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m \e[K\r\e[11C
+> a
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m a\e[K\r\e[12C
+> c
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m ac\e[K\r\e[13C
+> t
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m act\e[K\r\e[14C
+> i
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m acti\e[K\r\e[15C
+> v
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m activ\e[K\r\e[16C
+> e
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active\e[K\r\e[17C
+>  
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active \e[K\r\e[18C
+> =
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active =\e[K\r\e[19C
+>  
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[K\r\e[20C
+> t
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = t\e[K\r\e[21C
+> r
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = tr\e[K\r\e[22C
+> u
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = tru\e[K\r\e[23C
+> e
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[95m\e[1mtrue\e[39m\e[22m\e[K\r\e[24C
+> \e
+> [
+> A
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[95m\e[1mtrue\e[39m\e[22m\e[K\r\e[1A\e[15C
+> \e
+> [
+> H
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[95m\e[1mtrue\e[39m\e[22m\e[K\r\e[1A\e[5C
+> \e
+> [
+> F
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[95m\e[1mtrue\e[39m\e[22m\e[K\r\e[1A\e[15C
+> \e
+> [
+> B
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[95m\e[1mtrue\e[39m\e[22m\e[K\r\e[15C
+> \e
+> [
+> F
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[95m\e[1mtrue\e[39m\e[22m\e[K\r\e[24C
+> ;
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[95m\e[1mtrue\e[39m\e[22m;\e[K\r\e[25C
+> \r
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m name, email\e[K\n\e[32m...> \e[39m\e[91m\e[1mfrom\e[39m\e[22m users\e[K\n\e[32m...> \e[39m\e[91m\e[1mwhere\e[39m\e[22m active = \e[95m\e[1mtrue\e[39m\e[22m;\e[K\r\e[25C
+< \n
+= select name, email\nfrom users\nwhere active = true;
+< ran 3 line(s): select name, email from users where active = true;\n
+< \e[32msql> \e[39m
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C
+< \r\e[32msql> \e[39m\e[K\r\e[5C

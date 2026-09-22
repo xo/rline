@@ -31,50 +31,71 @@
 < \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[18C
 > \e
 > [
+> H
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[5C
+> \e
+> [
 > C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[6C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[7C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[8C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[9C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[10C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[11C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;\e[K\r\e[12C
 > o
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o\e[K\r\e[19C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x;\e[K\r\e[13C
+> \e
+> [
+> F
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x;\e[K\r\e[19C
+> \x7f
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x\e[K\r\e[18C
 >  
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[K\r\e[20C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[K\r\e[19C
 > w
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o w\e[K\r\e[21C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x w\e[K\r\e[20C
 > h
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o wh\e[K\r\e[22C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x wh\e[K\r\e[21C
 > e
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o whe\e[K\r\e[23C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x whe\e[K\r\e[22C
 > r
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o wher\e[K\r\e[24C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x wher\e[K\r\e[23C
 > e
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m\e[K\r\e[25C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m\e[K\r\e[24C
 >  
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m \e[K\r\e[26C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m \e[K\r\e[25C
 > y
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y\e[K\r\e[27C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y\e[K\r\e[26C
 >  
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y \e[K\r\e[28C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y \e[K\r\e[27C
 > =
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y =\e[K\r\e[29C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y =\e[K\r\e[28C
 >  
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[K\r\e[30C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y = \e[K\r\e[29C
 > 1
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m\e[K\r\e[31C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m\e[K\r\e[30C
 > ;
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
-< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m frm x;o \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[32C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[31C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[31C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[31C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[31C
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m ofrm x \e[91m\e[1mwhere\e[39m\e[22m y = \e[96m\e[1m1\e[39m\e[22m;\e[K\r\e[31C

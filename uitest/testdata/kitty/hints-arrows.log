@@ -1,0 +1,77 @@
+< \e[m\e[1mrline\e[22m SQL example.\n
+< \e[90mA statement ends at a semicolon. \\q or exit leaves.\e[39m\n
+< \e[90mEnter carries on until then, so up and down move between the rows.\e[39m\n
+< \e[90m\\pass reads a password without showing it, then echoes it back.\e[39m\n
+< \e[32msql> \e[39m
+> s
+< \r\e[32msql> \e[39ms\e[K\r\e[6C
+> e
+< \r\e[32msql> \e[39mse\e[K\r\e[7C
+> l
+< \r\e[32msql> \e[39msel\e[K\r\e[8C
+> e
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+< \r\e[32msql> \e[39msele\e[90mct\e[39m\e[K\r\e[9C
+> \e
+> [
+> D
+< \r\e[32msql> \e[39msele\e[K\r\e[8C
+> \e
+> [
+> D
+< \r\e[32msql> \e[39msele\e[K\r\e[7C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39msele\e[K\r\e[8C
+> \e
+> [
+> C
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+> \e
+> [
+> H
+< \r\e[32msql> \e[39msele\e[K\r\e[5C
+> \e
+> [
+> F
+< \r\e[32msql> \e[39msele\e[K\r\e[9C
+>  
+< \r\e[32msql> \e[39msele \e[K\r\e[10C
+> f
+< \r\e[32msql> \e[39msele f\e[K\r\e[11C
+> r
+< \r\e[32msql> \e[39msele fr\e[K\r\e[12C
+> o
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+> \e
+> [
+> H
+< \r\e[32msql> \e[39msele fro\e[K\r\e[5C
+> \e
+> [
+> F
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[K\r\e[13C
+< \r\e[32msql> \e[39msele fro\e[90mm\e[39m\e[K\r\e[13C

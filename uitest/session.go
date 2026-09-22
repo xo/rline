@@ -78,10 +78,22 @@ func Resize(cols, rows int) Step { return Step{Cols: cols, Rows: rows} }
 // Default limits.
 const (
 	// DefaultQuiet is how long to leave the program alone before deciding it
-	// has finished drawing. It is longer than internal/capture's 200ms
-	// because a terminal emulator has a frame to draw as well, and a
-	// screenshot taken mid-frame is a flake nobody will reproduce.
-	DefaultQuiet = 400 * time.Millisecond
+	// has finished drawing.
+	//
+	// It has to be longer than the longest redraw the program delays on its
+	// own, or quiescence is not quiescence. rline draws a hint after
+	// DefaultHintDelay of no typing, which is 400ms, and this was 400ms as
+	// well: the log went quiet and the hint landed at about the same moment,
+	// so the next key raced it and any session that typed a word with a
+	// completion behind it differed between runs. The history session caught
+	// it — a hint in the blessed log, the next keystroke in its place on the
+	// rerun.
+	//
+	// So this is comfortably past that delay rather than equal to it. It
+	// also has to clear the emulator's own frame, because a screenshot taken
+	// mid-frame is a flake nobody will reproduce. Anything that changes
+	// DefaultHintDelay has to change this with it.
+	DefaultQuiet = 900 * time.Millisecond
 
 	// DefaultStart is how long to wait for the terminal to open and the
 	// program inside it to draw its first prompt. Opening a window, creating
@@ -324,6 +336,63 @@ var sessions = []Session{
 			Step{Key: "BackSpace", Wait: hintSettle},
 			// And a space ends the word, so there is nothing left to hint.
 			Step{Text: " ", Wait: hintSettle},
+		},
+	},
+	{
+		Name:  "hints-arrows",
+		About: "A hint against left and right movement on one line. The completer refuses while the cursor is inside a word, so the hint has to go when the cursor steps back into one and return when it steps out.",
+		Keys: []Step{
+			// A prefix with a hint waiting on it.
+			Step{Text: "sele", Wait: hintSettle},
+			// Left puts the cursor inside the word. example's completer
+			// returns nothing when the byte under the cursor is a word byte,
+			// because completing there would give "seleect", so the hint has
+			// to disappear rather than sit in a column the cursor no longer
+			// owns.
+			Step{Key: "Left", Wait: hintSettle},
+			Step{Key: "Left", Wait: hintSettle},
+			// Back out to the end, where it is offered again.
+			Step{Key: "Right", Wait: hintSettle},
+			Step{Key: "Right", Wait: hintSettle},
+			// Home and End are the same question asked in one step rather
+			// than two, and Home has the cursor on a word byte as well.
+			Step{Key: "Home", Wait: hintSettle},
+			Step{Key: "End", Wait: hintSettle},
+			// A second word, so the line has one hinted word and one behind
+			// it: what is drawn has to be about the word the cursor is in.
+			Step{Text: " fro", Wait: hintSettle},
+			Step{Key: "Home", Wait: hintSettle},
+			Step{Key: "End", Wait: hintSettle},
+		},
+	},
+	{
+		Name:  "hints-multiline",
+		About: "Hints on a statement spread over rows, and moving between those rows with up and down. The hint has to be drawn on the row the cursor is on rather than the last one, and moving away has to take it with it.",
+		Keys: []Step{
+			// First row, ending on a word that has a hint.
+			Step{Text: "select name whe", Wait: hintSettle},
+			// Enter continues rather than submits: no semicolon yet. A hint
+			// is showing, and accepting it is what Return does while one is,
+			// so this row ends as "where" rather than "whe".
+			Press("Return"),
+			// Second row, also ending mid-word.
+			Step{Text: "fro", Wait: hintSettle},
+			// Up moves to the first row. The hint belonged to the second,
+			// and what is drawn now has to be about where the cursor is.
+			Step{Key: "Up", Wait: hintSettle},
+			Step{Key: "End", Wait: hintSettle},
+			// Back down to the row that was being typed.
+			Step{Key: "Down", Wait: hintSettle},
+			Step{Key: "End", Wait: hintSettle},
+			// A third row, so there is one above and one below the cursor
+			// when it moves again.
+			Press("Return"),
+			Step{Text: "whe", Wait: hintSettle},
+			Step{Key: "Up", Wait: hintSettle},
+			Step{Key: "Up", Wait: hintSettle},
+			Step{Key: "Down", Wait: hintSettle},
+			Step{Key: "Down", Wait: hintSettle},
+			Step{Key: "End", Wait: hintSettle},
 		},
 	},
 	{

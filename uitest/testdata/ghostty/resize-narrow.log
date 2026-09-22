@@ -130,8 +130,19 @@
 < \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long←\e[K\n\e[32m...> \e[39m_name\e[K\r\e[10C
 > ;
 < \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long←\e[K\n\e[32m...> \e[39m_name;\e[K\r\e[11C
-< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long←\e[K\n\e[32m...> \e[39m_name;\e[K\r\e[11C
-< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long←\e[K\n\e[32m...> \e[39m_name;\e[K\r\e[11C
-< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long←\e[K\n\e[32m...> \e[39m_name;\e[K\r\e[11C
-< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long←\e[K\n\e[32m...> \e[39m_name;\e[K\r\e[11C
-< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long←\e[K\n\e[32m...> \e[39m_name;\e[K\r\e[11C
+> \e
+> [
+> H
+< \r\e[2A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\n\r\e[K\r\e[1A\e[36C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[1A\e[5C
+> \e
+> [
+> F
+< \r\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[36C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[36C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[36C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[36C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[36C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[36C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[36C
+< \r\e[1A\e[32msql> \e[39m\e[91m\e[1mselect\e[39m\e[22m alpha, beta, gamma, delta←\e[K\n\e[32m...> \e[39m \e[91m\e[1mfrom\e[39m\e[22m a_table_with_a_long_name;\e[K\r\e[36C
