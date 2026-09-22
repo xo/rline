@@ -2743,6 +2743,20 @@ which is a change to what `sessionLog` promises rather than to the password
 code, and the logger's type is already an open question below. Fixing one
 without the other would settle the second by accident.
 
+## The shape of the test suite
+
+TESTING.md holds the design: seven layers, what each alone can answer, what it
+must not be asked, what is missing today, and what usql needs that nothing
+tests. It was written against Gemini and DeepSeek asked the same question
+independently, and it records where both of them disagree with what this
+repository currently does rather than settling it here.
+
+The short version of the gaps: resize and bracketed paste are untested
+anywhere, history search and undo are pinned to the C and untested as
+properties, there is no layer holding rline to usql's contract at all, and the
+layer that drives a Session over fixed input has no name and no directory,
+which is why it is the one a new feature skips.
+
 ## Tests against a real terminal
 
 `internal/capture` drives a pseudo-terminal and compares bytes, and a
