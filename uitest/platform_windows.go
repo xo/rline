@@ -217,7 +217,7 @@ $w::MoveWindow($h, $r.X, $r.Y, [int]$width, [int]$height, $true) | Out-Null
 func screenshot(_ Terminal, path string) error {
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolving the screenshot path: %w", err)
 	}
 	return pwsh(fmt.Sprintf(`
 $sig = @"
@@ -263,14 +263,4 @@ func pwshOut(script string) (string, error) {
 		return "", fmt.Errorf("%s: %w", shell, err)
 	}
 	return string(out), nil
-}
-
-// runTool is unused on Windows, where every helper goes through PowerShell.
-// It exists so that the platform files offer the same names.
-func runTool(name string, args ...string) error {
-	out, err := exec.Command(name, args...).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%s: %w: %s", name, err, strings.TrimSpace(string(out)))
-	}
-	return nil
 }

@@ -244,7 +244,7 @@ func windowBounds() ([4]int, error) {
 			return (item 1 of p as text) & "," & (item 2 of p as text) & "," & (item 1 of s as text) & "," & (item 2 of s as text)
 		end tell`, frontApp)).Output()
 	if err != nil {
-		return [4]int{}, err
+		return [4]int{}, fmt.Errorf("asking for the front window's bounds: %w", err)
 	}
 	var b [4]int
 	for i, f := range strings.Split(strings.TrimSpace(string(out)), ",") {
@@ -291,7 +291,7 @@ func quote(s string) string {
 
 // shellJoin quotes a command for a shell inside an AppleScript string.
 func shellJoin(cmd []string) string {
-	var parts []string
+	parts := make([]string, 0, len(cmd))
 	for _, c := range cmd {
 		parts = append(parts, strings.ReplaceAll(c, `"`, `\\\"`))
 	}

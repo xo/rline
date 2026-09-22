@@ -2909,6 +2909,36 @@ appears and a step that waits only for quiet sends its next key into the gap.
 `hintSettle` is that wait, and it is tied by a comment to `DefaultHintDelay`
 so the two cannot drift apart silently.
 
+## The linter only ever looked at this machine
+
+CI went red on the commit that added `uitest`, and the useful part is that
+`tools/lint.sh` had said the tree was clean. It was clean, for Linux.
+
+golangci-lint analyses the build it is pointed at, exactly as `go vet` does, so
+on this machine it never opened `platform_darwin.go` or `platform_windows.go`.
+Four findings went out in them: an unused function on Windows that a comment
+in the file admitted was unused, an unwrapped `filepath.Abs`, an unwrapped
+`exec.Cmd.Output` on darwin, and a slice that wanted preallocating. The macOS
+and Windows runners found all four in the step that this repository treats as
+the last word on style.
+
+It is the same fault as a test file whose build tag takes it out of the build,
+one layer up, and the lesson had already been written down here — for vet, and
+not carried across to the linter. Cross-vet was widened twice this week while
+the linter stayed pointed at one system.
+
+The fix is the one the loop already uses: the linter honours `GOOS`, so it now
+runs for linux, darwin and windows. Three rather than fifteen, because that is
+where the platform files are and a fourth would analyse the same fallback
+twice. It costs a few seconds and needs nothing installed, which is the
+uncomfortable part — the check was cheap and available the whole time.
+
+The arm runner failed for something else entirely: the linter is built by that
+script, and on `ubuntu-26.04-arm` the link step called the system compiler and
+got `collect2: fatal error: cannot find 'ld'`. That is the image's toolchain
+rather than this repository, and the answer is that the linter needs no C at
+all, so it is built with `CGO_ENABLED=0` and never asks.
+
 ## Gaps left on purpose
 
 Everything else in this document arrived because something was wrong. These
