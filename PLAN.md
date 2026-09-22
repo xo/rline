@@ -1410,6 +1410,18 @@ and survived only because go build is quiet on success, so absence of output
 and exit zero coincide almost always. They come apart exactly when the tool
 is noisy on success, which is when you least want to be wrong.
 
+windows-vm's is the fifth, and it came with the diagnosis that generalises
+the rest. They piped vet through head and read the pipeline's status, and
+printed `exit=0` beside `android/amd64` on a line whose own output said the
+vet had failed. They caught it only because the output contradicted the
+number beside it — had vet been quiet on failure, as `go build` is, the wrong
+figure would have travelled with nothing to disagree with it. The narrow
+lesson is not "do not pipe". It is that the reach for a pipe is a reach to
+shorten output, output is longest when something is going wrong, and so the
+habit fails hardest in exactly the case it is used most. Writing the status
+into a variable before touching the output is the fix that does not depend on
+remembering.
+
 ken-mba's reading of why is the useful one: a rule cannot compete with a
 reflex. Piping into tail is what your hands type when you want to see the
 last line, and wanting to see the last line has nothing to do with wanting to
@@ -2241,16 +2253,177 @@ Four checks run on the Go code, plus one that runs when someone remembers to.
    test file whose tag no longer matches its source still compiles on the
    systems where both are excluded, and only vet on a system where they
    disagree says so. That happened the moment the Unix tag widened, and
-   what is now `tty_other_test.go` kept the old tag for an hour. The systems worth
-   naming are linux, darwin, windows, freebsd, netbsd, openbsd, dragonfly,
-   solaris, illumos and plan9. This also checks that the fallback still
-   compiles. `tty_other.go` exists so
+   what is now `tty_other_test.go` kept the old tag for an hour. The systems
+   are not named: the loop enumerates `go tool dist list`, which is 47 pairs
+   and 15 systems, for the reason in the entry below. This also checks that
+   the fallback still compiles. `tty_other.go` exists so
    that such a system builds and reads plain lines, and a function added with
    implementations for only two of the three tag groups breaks it invisibly:
    vet for linux, darwin and windows all pass, and nobody builds the rest.
    That happened at 95ec387, when `fileIsTerminal` was split out of what was
    then `isATTY` and is now `isTerminal`, with no answer here, and nothing
    said so for a day.
+Enumerate the targets; do not name them. The loop here and the one in CI
+were both hand-written lists of ten systems, and both were reported as
+coverage for months. `go tool dist list` gives 47 pairs across 15 systems, so
+the lists were silently missing aix, android, ios, js and wasip1 — and aix is
+a system this package makes a specific claim about, in the `unix && !aix` tag
+that four files carry. Nothing in the output said so, because a loop cannot
+report on what it was not given and ten clean lines read exactly as
+forty-seven would.
+
+Enumerating also removed the pinned `GOARCH=amd64`. That pin existed because
+a sweep over arm64 hit `unsupported GOOS/GOARCH pair dragonfly/arm64`; an
+enumeration never proposes a pair that does not exist, so the loop now covers
+both architectures wherever the toolchain has them. `android/arm64` vets
+clean while the other three android pairs do not, which a per-system list
+could not have expressed at all.
+
+A target that cannot be asked is reported, not skipped — and "cannot" turned
+out to be two different things. android and ios need external linking, and
+`CGO_ENABLED` defaults to 0 for a cross-target, so the first sweep counted
+five pairs as unaskable. ken-mba separated the cases: four need a toolchain
+nobody has, and `ios/arm64` merely needed the variable, because a Mac's own
+clang can target it. That is a missing NDK in one case and an environment
+variable in the other, and only the first is a fact about the machine.
+
+Being askable is a property of the pair and the machine together, not of the
+pair — and the reason is the host's C compiler, which windows-vm found by
+reading the *second* error rather than the first. With cgo off the message is
+`requires external (cgo) linking, but cgo is not enabled`, which is about the
+build settings. Turn cgo on and the message becomes `C compiler "gcc" not
+found` or `C compiler "clang" not found`, which is about the machine. The
+first was hiding the second, so the retry is not only a way to ask more
+pairs, it is what makes the failures say why.
+
+Each target names the compiler it wants: android asks for gcc, ios for clang.
+So a pair is askable where the host has a compiler that can *target* that
+GOARCH, and presence alone is not enough. Measured here, on a box that has
+both gcc and clang: `android/arm` fails with `gcc: error: unrecognized
+command-line option '-marm'` and `ios/arm64` with `gcc_arm64.S:30:19: error:
+expected ']'`, both of which are a compiler that exists and cannot aim there.
+`android/arm64` links internally and needs no external compiler at all, which
+is why it is clean on every machine with cgo off or on, without being a
+special case.
+
+That accounts for every cell in the table above, including the two
+asymmetries, and it explains the one pair nobody has asked. `android/arm`
+fails on both machines for the same reason wearing different clothes: here
+`gcc: error: unrecognized command-line option '-marm'`, and on ken-mba's Mac
+`clang: error: unsupported option '-mno-thumb' for target 'arm64-apple-darwin'`
+— each host compiler refusing a flag the toolchain emits for 32-bit ARM,
+because the compiler being invoked is the host's and not a cross one. So the
+last cell needs an NDK rather than a variable, and that is the single piece
+of work between 46 of 47 and all of them. It is a toolchain to install, not
+anything in this tree, and nobody is proposing it: installing an NDK to vet
+one pair of a package with no cgo is a poor trade, and the record saying
+which pair is unasked and why is worth more than the pair. It also makes
+predictions — the GitHub Windows runner ships a mingw gcc, so the three
+android pairs that fail on a bare Windows box should go clean there while ios
+stays red with a clang message. If android stays red the rule is wrong and
+the cause is something other than compiler presence. The prediction being
+falsifiable on a runner we already have is the part worth keeping; the rule
+is only as good as the next matrix run. With cgo on, this Linux box answers `android/386`, `android/amd64` and
+`ios/amd64`, which ken-mba's Mac cannot; the Mac answers `ios/arm64`, which
+this box cannot. Neither answers `android/arm`. So between two machines,
+five of the six pairs are reachable and each of us had reported a different
+subset of them as impossible. The loop now retries with `CGO_ENABLED=1`
+before giving up, which takes this machine from five unaskable to two, and
+the matrix is what makes it worth doing: the union across runners covers
+more than any single job, and no job can know that alone.
+
+Dropping the rest would be the same fault as the hand-written list — a loop
+that quietly skips what it cannot build reports clean for the wrong reason —
+so the loop counts them and says how many, separating the two kinds. Checked
+twice by breaking the tree on purpose, because a loop just taught to tolerate
+a class of failure is the one that starts passing for the wrong reason: an
+undefined symbol in `sys_windows_test.go` exits 1 at `windows/386`, and one
+in `tty_other.go` exits 1 at `aix/ppc64` — a platform the ten-name list never
+asked at all.
+
+The general form is ken-mba's and outlives this loop: an exit code that means
+two things is the same fault that cost the mutation harness its third answer,
+where vet exiting non-zero for a build failure and for a diagnostic were
+indistinguishable. Here it was "cannot ask" and "did not ask correctly".
+
+The retry only vets the same program because this module has no cgo, and that
+was measured rather than assumed on the way in: `go list` reports zero
+`CgoFiles` in all seven packages, and on every target where both invocations
+can list at all the file set is byte-identical with cgo off and on. What
+changes is the link mode. If a cgo file ever arrives, the retry starts
+quietly vetting a different program and this paragraph is the thing that
+should have been read first.
+
+An answer that arrives exactly shaped to end the investigation deserves the
+check you were about to skip — with ken-mba's caveat, which is what keeps it
+from being a rule that covers more than it does. It worked for them because
+the convenient answer was also a large claim, and large claims are where
+anyone is already primed to look. A convenient answer that is small would not
+trip it, and the small convenient answer nobody bothers to check is exactly
+where this fails. There is no fix for that, so it is written here as a
+detector with a known blind spot rather than as a practice.
+
+A correction placed beside the error instead of on top of it. The comment
+above the no-echo guard claimed that if its build tag and `sys_unix.go`'s ever
+disagreed, the line would stop being compiled "which is the failure it exists
+to catch". That is false: the guard catches a lost `startNoEcho`, and a lost
+tag makes it silently stop existing. When ken-mba measured that and sent it,
+the sentence added was true — the pairing is hand-maintained and nothing
+enforces it — and it was appended to the false clause, which stayed. The
+paragraph then asserted both things four lines apart, and the false one came
+first, so a reader who stopped early got the wrong answer and a reader who
+went on got a contradiction.
+
+Worse than the gap it was fixing, and worth separating from it. A missing
+record leaves a question open and the next person finds nothing; a record
+that denies the gap answers the question wrongly, and it answers it in the
+very place that would otherwise have prompted someone to check. The fix is to
+delete the wrong clause rather than to qualify it — appending is what feels
+like correcting, because the new sentence is true and adding it is the part
+that takes effort.
+
+And neither the writer nor the conversation could have caught it. ken-mba had
+a message saying the fact was recorded, which it was, and no reason to open
+the file; the author read the paragraph already knowing what it was meant to
+say. It surfaced only because ken-mba applied to this record the check this
+document had just recommended for theirs. That is the argument for the
+arrangement, better than the platform columns were: not that two measure more
+than one, but that nobody can audit their own record.
+
+Getting that check wrong is its own entry, and it is a shape not yet in this
+list. ken-mba first compared hashes of `go list` output across the two
+invocations and found `ios/arm64` DIFFERS — on the one pair the whole
+correction rested on. It does not differ. With cgo off, `go list` on
+`ios/arm64` fails outright and prints the same `requires external (cgo)
+linking` message, so the hash being compared was an error message against a
+file list. A comparison cannot tell "these differ" from "one of them did not
+run", and it reports the second as the first. The fix is the same as
+everywhere else here — check that both sides succeeded before comparing what
+they said — and the comparison in this document's own check has an explicit
+"one failed, not comparable" branch for that reason.
+
+And the retry fires only on failure, which is a different loop from one that
+always runs with cgo on. Counted: 47 pairs, 5 first-pass failures, 5 retries
+attempted, 42 pairs that never reached it. ken-mba computed the macOS column
+and got the same arithmetic with different membership — 42 clean, 1 rescued,
+4 still failing — where the one it rescues is among the two this box cannot
+ask and three of its four failures are the ones this box rescues. Between the
+two, 46 of 47 pairs are vetted and `android/arm` is the only pair neither can
+reach.
+
+Which leaves a reporting problem the matrix does not solve, and this is a
+decision rather than a fix. A pair that no runner can ask and a pair that one
+runner covers are different facts, and a per-job report cannot tell them
+apart: summarising by the worst answer per pair calls four covered pairs
+unasked, and by the best answer loses that those four rest on a single
+runner. ken-mba's answer is the best answer with the runner named beside it,
+so that losing a runner shows up as coverage moving rather than as nothing
+changing. That needs the jobs to pool their results, which GitHub Actions
+does not do without an artifact and a collecting job, and none of that is
+built. What exists is each job printing its own counts, and this paragraph
+recording the union. If the matrix ever loses a runner, nothing will say
+which pairs went with it.
+
 Cross-vet is the whole type-check, including test files. `go vet`
 type-checks a package's tests as well as its source, so a rename that breaks
 a file tagged for another system fails the cross-vet from any machine.
@@ -2517,7 +2690,35 @@ path. Nothing would fail, and the only signal would be passwords in logs
 where the natural check does not find them. `tty_test.go` now carries
 `var _ noEchoDevice = (*tty)(nil)`, in a file whose build tag is the one on
 `sys_unix.go`, so the breakage is a compile error. Checked by renaming
-`startNoEcho`: vet reports `*tty does not implement noEchoDevice`.
+`startNoEcho`: vet reports `*tty does not implement noEchoDevice`, and
+ken-mba confirmed the property that actually matters by running the same
+rename from illumos, android, linux and dragonfly — targets that machine
+never takes — and getting the error from each, while windows and aix exit 0
+because the tag excludes them, which is right.
+
+What the guard cannot guard is its own tag, measured rather than worried
+about. Narrowing `tty_test.go` to `//go:build linux` and changing nothing
+else leaves vet at 0 on darwin, illumos, dragonfly and linux, and the suite
+green: the guard has silently stopped covering nine of the ten platforms it
+was written for and nothing anywhere says so. No guard is proposed for it —
+the regress has to stop somewhere and one tag is a far smaller surface than
+what it protects — but the pairing with `sys_unix.go` is hand-maintained
+rather than derived, and that is now written beside it so the next person
+knows which fact to keep true.
+
+The guard is sufficient only because three separate facts hold, and it is
+worth having them in one place rather than scattered across a comment, a
+commit message and a peer's message. The assertion covers the *type*.
+`ctrl` having exactly one concrete type on those systems — `openDecoder` is
+the only assignment outside the Windows file — is what makes a claim about
+the type a claim about the *value* at the branch. And a nil `ctrl` would make
+the assertion false with no panic, dropping a safe platform to the logged
+path silently; that is unreachable through `New`, because `canEdit` is
+`ttyErr == nil && isInteractive()` at `rline.go:591` and `ctrl` is set by
+`openDecoder` on exactly the path where `ttyErr` is nil, so `canEdit` implies
+`ctrl` set. A `Session` built by hand in a test can have neither, but that is
+the test's doing rather than something the package can reach. Take away any
+one of the three and the guard stops meaning what it is read as meaning.
 
 Here the build tag is the claim rather than a limitation, which is worth
 saying after a week of treating tags as the thing that hides checks. The
@@ -2541,6 +2742,39 @@ What it needs is a way to stop recording for the length of a password read,
 which is a change to what `sessionLog` promises rather than to the password
 code, and the logger's type is already an open question below. Fixing one
 without the other would settle the second by accident.
+
+## Gaps left on purpose
+
+Everything else in this document arrived because something was wrong. These
+are here because somebody weighed them and said no, and a reader has no way
+to tell the two apart unless the text does it for them. ken-mba's point, and
+worth the section on its own.
+
+The flush is asserted on two platforms of seven. `termiosSetFlush` is
+compiled wherever `tty_sysv.go` or `tty_bsd.go` is, which is seven systems,
+and `TestRawModeDiscardsWhatWasTypedBeforeIt` needs a pseudo-terminal, so it
+runs on linux and darwin only. On NetBSD and OmniOS the suite reports it as
+absent rather than as passing, and a run report should say so rather than let
+a green summary imply otherwise.
+
+`capture.OpenPTY` is not untagged over unix, though it could be. It exists
+for linux and darwin, and `posix_openpt` is what `record_darwin.go` already
+uses and what `tools/probe-refresh.c` does for every system this builds for,
+so untagging it would let the flush test follow the constant rather than the
+harness and cover all five BSDs. It is not done because nobody can check it:
+of those five, this machine has SSH to a NetBSD VM and none of the others,
+and ken-mba has none. Adding coverage that cannot be verified on the systems
+it claims to cover is the failure this whole week was about, pointed in the
+direction that looks like diligence.
+
+`android/arm` is the one vet target nobody asks. It needs an NDK on every
+machine we have, for the reason in the cross-vet section, and installing one
+to vet a single pair of a package with no cgo is a poor trade.
+
+The cross-vet matrix does not pool its results. Each job reports its own
+counts and this document records the union; if a runner disappears, nothing
+will say which pairs went with it. Pooling needs an artifact and a collecting
+job, and that is machinery for a report.
 
 ## Open questions
 

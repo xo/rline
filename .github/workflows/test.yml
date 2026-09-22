@@ -25,7 +25,7 @@ jobs:
           - name: linux-amd64
             runner: ubuntu-latest
           - name: linux-arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-26.04-arm
           - name: windows-amd64
             runner: windows-latest
           - name: macos-arm64
@@ -73,10 +73,57 @@ jobs:
       - name: vet every system
         shell: bash
         run: |
-          for goos in linux darwin windows freebsd netbsd openbsd dragonfly solaris illumos plan9; do
-            echo "== $goos =="
-            GOOS=$goos GOARCH=amd64 go vet ./... || exit 1
+          # Enumerated from the toolchain, not typed. This loop was ten GOOS
+          # values written by hand, and a loop cannot report on what it was
+          # not given: its output looked the same as a complete one. It was
+          # silently missing aix, android, ios, js and wasip1 — and aix is a
+          # platform this package's own build tags name, `unix && !aix`.
+          #
+          # go tool dist list also gives real pairs, which is why GOARCH is
+          # no longer pinned to amd64. That pin existed because an arm64
+          # sweep hit "unsupported GOOS/GOARCH pair dragonfly/arm64"; an
+          # enumeration never proposes a pair that does not exist.
+          #
+          # A target that cannot be asked is reported rather than skipped,
+          # and "cannot" is separated from "not as invoked". android and ios
+          # need external linking, so CGO_ENABLED=0 — the default for a
+          # cross-target — stops vet before it reads any source. That is an
+          # environment variable, not a missing toolchain, so the loop
+          # retries with cgo on before giving up.
+          #
+          # Which pairs survive that retry depends on the runner, and the
+          # matrix is what makes it worth doing: with cgo on, linux answers
+          # android/386, android/amd64 and ios/amd64, while a macOS runner
+          # answers ios/arm64 because its own clang can target it. Neither
+          # answers android/arm. So these pairs are not unaskable in
+          # themselves — being askable is a property of the pair and the
+          # machine together, and the union across the matrix covers more
+          # than any single job.
+          #
+          # Swallowing the rest would be the same failure as the hand-written
+          # list: a loop that quietly drops what it cannot build reports
+          # clean for the wrong reason.
+          unaskable=0
+          withcgo=0
+          for pair in $(go tool dist list); do
+            if GOOS=${pair%/*} GOARCH=${pair#*/} go vet ./... 2>/tmp/vet.err; then
+              continue
+            fi
+            if grep -q 'requires external (cgo) linking' /tmp/vet.err; then
+              if CGO_ENABLED=1 GOOS=${pair%/*} GOARCH=${pair#*/} go vet ./... 2>/tmp/vet.err; then
+                echo "-- $pair: vetted with CGO_ENABLED=1"
+                withcgo=$((withcgo + 1))
+                continue
+              fi
+              echo "-- $pair: not askable on this runner, no cgo cross toolchain"
+              unaskable=$((unaskable + 1))
+              continue
+            fi
+            echo "== $pair =="
+            cat /tmp/vet.err
+            exit 1
           done
+          echo "vetted $(go tool dist list | wc -l) pairs: $withcgo needed cgo, $unaskable not askable here"
 
       # One test is skipped on Windows rather than the package it lives in.
       # TestGoldenSetIsPresent fails there by design, because recording a

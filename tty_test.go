@@ -222,10 +222,16 @@ func TestSetEscDelayClamps(t *testing.T) {
 // signal would be passwords appearing in session logs, one byte to a line,
 // where the natural check does not find them. See the section in PLAN.md.
 //
-// So this says it at compile time instead. The build tag on this file is the
-// one on sys_unix.go, which is where startNoEcho is declared: if the two ever
-// disagree, this line stops being compiled on a system that needs it, which
-// is the failure it exists to catch.
+// So this says it at compile time instead. What it catches is a lost
+// startNoEcho, and not a lost tag: the build tag on this file has to be the
+// one on sys_unix.go, where startNoEcho is declared, and that pairing is
+// hand-maintained rather than derived. Nothing enforces it and a
+// disagreement is silent — narrowing this file's tag to linux leaves vet at
+// 0 on darwin and on illumos and the whole suite green, while the guard
+// covers one platform of the ten it was written for. Measured twice by
+// ken-mba, the second time against the pushed tree. So if the tags drift
+// this line does not fail, it stops existing, and the only thing keeping
+// them together is somebody reading this paragraph.
 //
 // What makes this a claim about the branch and not merely about the type:
 // Password asserts on ctrl, whose static type is terminalController, and a

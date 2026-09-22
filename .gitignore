@@ -1,6 +1,9 @@
 /isocline/
 /.build/
 /example/example
+/example/example.exe
 /rlex
 rline_example_history
 .mutate.lock/
+/uitest/uitest
+/uitest/uitest.exe
