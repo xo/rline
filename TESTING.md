@@ -192,19 +192,38 @@ Neither rline nor isocline ever asks for focus reporting, so those sequences
 should not arrive at all — unless something else enabled it and did not turn
 it off. Which is the next issue.
 
-**#508, and why it is probably the same bug.** Input meant for a pager is read
-by the prompt instead, and the first pager after startup behaves while a later
-one does not. That asymmetry is a terminal handed to a child and taken back in
-a different state than it was lent in. A pager that enables focus reporting and
-exits without disabling it would leave exactly the condition the family above
-needs.
-
 Stated as separable claims, because the middle one is the only one measured:
 a program can leave modes set that rline did not set; rline mis-decodes two of
 them into keystrokes; and that is what the four reports describe. The third is
 a hypothesis. The second is a defect either way — a notification is not a key,
 and decoding one as the other is the same species as an empty candidate list
 being indistinguishable from nothing to complete.
+
+**#508 is a second seam, not the other end of this one.** It was recorded here
+as probably the same fault, and the usql session corrected that with the
+reporter's measurement: `less` opens the terminal directly and reads every
+other keypress, so nothing is left in a bad state and two processes are simply
+both reading. The correction is worth keeping because the tidy story — one
+root cause behind five issues — was mine and was wrong, and the thing that
+broke it was somebody going to the thread rather than reasoning further.
+
+It is testable here today, which the same correction established: the
+reporter's reproduction is twenty lines, imports a line editor directly and
+needs no database and no pager configuration. Run against this port with a
+control:
+
+    no child holding the terminal   the editor read 10 of 10
+    with a child                    the editor read 0 of 10
+
+The child was `cat`, which reads greedily; `less` reads one key and waits,
+which is why the report describes alternation rather than starvation. The
+split belongs to the other reader rather than to the bug.
+
+What it asks of this API is a way to stop reading and give the terminal back
+for the length of a child, and to take it back afterwards. And the reporter's
+asymmetry — the first pager after startup behaves, later ones do not — is
+unexplained, so a fix that stops the double-read without accounting for it is
+probably incomplete.
 
 **#472, which needs two things neither implementation has.** Tab is bound to
 completion, so a literal tab cannot be typed or pasted: `select 'a<TAB>b'` is

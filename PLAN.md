@@ -2637,13 +2637,49 @@ instance.
 
 Neither this port nor isocline ever enables focus reporting, so in a clean
 terminal they never arrive. They arrive when something else turned it on and
-did not turn it off, which a pager or an editor run from the same shell can do.
+did not turn it off, which a program run from the same shell can do.
 
 Four usql issues over five years describe what that would look like from the
-outside, and a fifth describes a pager handing the terminal back in a state it
-was not lent in. See TESTING.md. The link between them is a hypothesis; the
-mis-decode is measured and is a defect on its own terms, because a
-notification is not a keystroke.
+outside — 93, 122, 483 and 490, two of them naming alt-tab. See TESTING.md.
+The mis-decode is measured; that it is what those four reporters saw is a
+hypothesis.
+
+A fifth issue, 508, was first recorded here as the other end of this and is
+not. It is a second seam and the two are unrelated: see the section below.
+
+## Two programs reading one terminal, and no way to say whose turn it is
+
+usql issue 508: input meant for a pager is read by the prompt instead. It was
+recorded here as probably the same fault as the focus-reporting mis-decode
+above, on the reasoning that a pager could leave a mode set. That was wrong
+and the usql session corrected it with the reporter's own measurement: strace
+shows `less` opening the terminal directly and reading every other keypress.
+Nothing is left in a bad state. Two processes have the terminal open and the
+kernel gives each keystroke to whoever reads first.
+
+This port inherits it, measured with a control rather than assumed. A child
+started on the same pseudo-terminal, then ten keys sent:
+
+    no child      the editor read 10 of 10
+    with a child  the editor read 0 of 10
+
+The child there was `cat`, which reads greedily in a loop and took everything.
+`less` reads one key and waits, which is why the reporter saw a clean
+alternation rather than starvation. So the split is not a property of the bug,
+it is a property of the other reader, and a fix that tunes the sharing rather
+than ending it would behave differently against every pager.
+
+What it asks for is a contract this API does not have: a way to stop reading
+and give the terminal back for the length of a child process, and to take it
+back afterwards. Whether that is a Suspend and Resume pair or handing the
+caller the descriptor with a documented obligation is a design question. What
+is not in question is that "whoever reads first wins" is what happens when
+nothing says whose turn it is.
+
+One thing the reporter found constrains any answer: the first pager after
+startup behaves and later ones do not. Nothing here explains that asymmetry
+yet, and a fix that stops the double-read without explaining it is probably
+incomplete.
 
 ## A password reaches the session log on the systems without no-echo
 
