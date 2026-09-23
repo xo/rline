@@ -24,6 +24,9 @@ const appID = "com.github.xo.rline"
 var errNoDesktop = errors.New("uitest needs a desktop with synthetic input and window capture, " +
 	"and this platform has no implementation; the byte-level tests in internal/capture run everywhere")
 
+// setFontSize is accepted and ignored: there is no terminal here to ask.
+func setFontSize(int) {}
+
 func platformReady() error              { return errNoDesktop }
 func platformTerminals() []Terminal     { return nil }
 func focusWindow(Terminal) error        { return errNoDesktop }

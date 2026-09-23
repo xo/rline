@@ -2909,6 +2909,31 @@ appears and a step that waits only for quiet sends its next key into the gap.
 `hintSettle` is that wait, and it is tied by a comment to `DefaultHintDelay`
 so the two cannot drift apart silently.
 
+## Verifying with a list, in the commit about not using lists
+
+The commit that added a font size to uitest broke every CI job at aix/ppc64
+with `undefined: setFontSize`. Two mistakes made it, and the second is the one
+worth keeping.
+
+The first: the edit that added the function to `platform_other.go` was a
+string replacement whose anchor no longer matched, because gofmt had realigned
+that line earlier in the same session. Every other edit that day asserted the
+match count first. This one did not, so it reported success and changed
+nothing.
+
+The second: it was then verified by vetting darwin and windows, typed by hand,
+in the same week as a commit arguing that a loop over a hand-written list
+carries the author's blind spot into something that reads like data. The
+enumeration was one command away and had been written into the CI workflow two
+days earlier. Knowing the rule, having written it down, and having automated
+it elsewhere were all insufficient; what would have been sufficient is running
+it here.
+
+Worth being exact about what the local check would have caught. `go vet` for
+darwin and windows passed, because those files did get the function. aix takes
+the fallback, and nothing pointed at the fallback until CI did. So the blind
+spot was not subtle: it was the one platform group the edit was actually for.
+
 ## The linter only ever looked at this machine
 
 CI went red on the commit that added `uitest`, and the useful part is that
