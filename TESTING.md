@@ -236,6 +236,43 @@ typing wants a quoted-insert binding. Both are new work rather than port gaps.
 vi mode named as prior art. Not urgent, and worth knowing before a mode
 abstraction is designed rather than after.
 
+### The five that arrived later, three of them measured
+
+usql now carries a `readline` label and thirteen open issues wear it. Five
+were not in the first list, and three of those were checkable here without
+usql.
+
+**#215, the one with priority, is this package's and cannot be fixed without
+it.** `\echo -n` suppresses its trailing newline correctly and the editor then
+erases the line before drawing the next prompt, so the output is never seen.
+psql leaves it and draws the prompt after it. Measured: the redraw begins with
+`term.startOfLine()`, an unconditional carriage return, and then draws over
+whatever was on that row. There is no way for a caller to say "I have left the
+cursor mid-line on purpose, draw after it". So a consumer cannot fix this
+alone, which is what makes it the priority of the thirteen.
+
+**#414 is already answered by the port's design.** The report is a history
+file corrupted on exit with entries concatenated and no newlines between them.
+Here every entry is escaped before it is written — an embedded newline becomes
+the two characters `\n` — and each is followed by a real newline, so a
+multi-line query cannot run into the next entry. The file is also written
+beside the old one and renamed over it rather than truncated, and a file that
+was not read in full is refused rather than saved over. Three separate
+departures from the C, and the first of them is the one 414 describes.
+
+**#546's described mechanism is not in this port.** The reporter's diagnosis,
+which they flagged as coming from an AI and unverified, is that in a static
+build the reader stops blocking and returns empty results, spinning the
+caller's loop. Measured: with input already at its end, the first `ReadLine`
+returns `io.EOF` in about a microsecond and every later one does too. A caller
+that checks the error cannot spin. That does not clear the static-link case,
+which is untested and is a different question from EOF handling; it does say
+that the mechanism as described is not here.
+
+**#72 and #320 are history behaviour and are not yet examined**: prefix
+filtering on up-arrow, and walking history by query rather than by line. Both
+are plausible requirements rather than defects, and both want the model layer.
+
 ### The shape they share
 
 Every one of these produces plausible output rather than an error. Nobody
