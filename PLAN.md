@@ -3050,6 +3050,93 @@ counts and this document records the union; if a runner disappears, nothing
 will say which pairs went with it. Pooling needs an artifact and a collecting
 job, and that is machinery for a report.
 
+## What usql needs, and who moves first
+
+usql carries a `readline` label, and what wears it is the queue this package
+plans against:
+
+    https://github.com/xo/usql/issues?q=is%3Aissue+is%3Aopen+label%3Areadline
+
+The arrangement is that usql attacks them as they come in and this package
+plans for them. So the job here is to know, for each one, whether rline has to
+offer something before usql can do anything at all — and to have measured that
+rather than assumed it. Thirteen are open today, and they sort into six kinds.
+
+### rline must offer something new, or the issue cannot be fixed at all
+
+**215, drawing a prompt after output that was left mid-line.** `\echo -n`
+suppresses its newline correctly and the editor then erases the row before
+drawing the next prompt. The redraw opens with `term.startOfLine()`, an
+unconditional carriage return, so whatever a caller deliberately left on that
+row is written over. Nothing in the API expresses "the cursor is where I meant
+to leave it". This is the one Ken kept as a numbered backlog item, and it is
+the clearest case of the shape: usql cannot fix it from its side.
+
+**508, a child process reading the same terminal.** Measured here with a
+control: ten keys, no child, the editor reads ten; with a child holding the
+same pseudo-terminal, it reads none. The split belongs to the other reader —
+`cat` reads greedily and takes everything, `less` reads one key and waits,
+which is why the report describes alternation. What is missing is a contract
+for handing the terminal over for the length of a child and taking it back.
+The reporter's asymmetry, that the first pager after startup behaves,
+constrains any answer and is not yet explained.
+
+**478's invariant, which is about what can be observed.** `SetCompleter` and
+`SetHighlighter` are write-only, so nothing can ask a Session what it holds
+and no test can assert that connecting replaced the completer. Inside, the two
+states already differ.
+
+### rline has a defect of its own
+
+**The focus mis-decode**, behind 93, 122, 483 and 490 as a hypothesis and a
+defect on its own terms regardless. `CSI I` and `CSI O` are decoded as Tab and
+F3 when they are focus notifications. Two of those four reporters named
+alt-tab; none named a pager.
+
+### New features, never in isocline either
+
+**472**, which wants both halves: bracketed paste so a paste does not trigger
+completion, and a quoted-insert binding so a tab can be typed. `key.CtrlV`
+exists as a code with nothing behind it, and bracketed paste is in neither
+implementation. Nobody dropped these in the port.
+
+**236 and 552**, vi bindings, filed five years apart. Worth knowing before a
+mode abstraction is designed rather than after.
+
+### Already answered here
+
+**414**, a history file with entries concatenated and no newlines. Every entry
+is escaped before writing, so an embedded newline becomes two characters, and
+each entry is followed by a real one. The file is renamed over rather than
+truncated, and one that was not read in full is refused. Keep it as a
+regression test rather than as work.
+
+### Probably not this package, stated narrowly
+
+**546**, a busy loop on static builds. At end of input the first `ReadLine`
+returns `io.EOF` in about a microsecond and so does every later one, so a
+caller that checks the error cannot spin. That covers the EOF path and not the
+static-link case: if a static build changes what `isTerminal` answers, a
+different path is taken before EOF handling is reached. The mechanism as the
+reporter described it is not here; that is narrower than "not ours".
+
+**528** is evidence rather than a proposal — it predates the decision to use
+this package.
+
+### Not examined
+
+**72**, prefix filtering on up-arrow, and **320**, walking history by query
+rather than by line. Both read as requirements rather than defects and both
+want the model layer.
+
+### What is not guarded
+
+None of the above has a test. 508 and the focus mis-decode were measured by
+probes that were then removed, and 414 is answered by design rather than by
+anything that would fail if the design changed. They are findings, not
+behaviour anyone is holding in place, and the layer that would hold them —
+the consumer contract — is the one TESTING.md records as absent.
+
 ## Open questions
 
 Eight questions have no answer yet.
