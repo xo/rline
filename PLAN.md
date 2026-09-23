@@ -2628,6 +2628,23 @@ in one file and stated as though it held for the package. It holds for
 luck: had the password path used the decoder's own `readByte`, the narrowing
 would have compiled and quietly started logging passwords.
 
+## A focus notification is read as a keystroke
+
+Measured while reading usql's open issues. The escape decoder maps `CSI I` to
+Tab or PageUp and `CSI O` to F3. Those are focus in and focus out, which a
+terminal sends when a window gains or loses the keyboard — on alt-tab, for
+instance.
+
+Neither this port nor isocline ever enables focus reporting, so in a clean
+terminal they never arrive. They arrive when something else turned it on and
+did not turn it off, which a pager or an editor run from the same shell can do.
+
+Four usql issues over five years describe what that would look like from the
+outside, and a fifth describes a pager handing the terminal back in a state it
+was not lent in. See TESTING.md. The link between them is a hypothesis; the
+mis-decode is measured and is a defect on its own terms, because a
+notification is not a keystroke.
+
 ## A password reaches the session log on the systems without no-echo
 
 Found while narrowing `terminalController`, and not fixed here because the

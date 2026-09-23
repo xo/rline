@@ -170,6 +170,65 @@ worth stating either way: an API that lets a caller reach a state where a
 feature silently yields nothing, with no way to ask whether the feature is
 attached at all, will grow this bug again in some other shape.
 
+## What usql's open issues ask for
+
+From the usql session, as requirements for the migration rather than as bugs.
+Eight issues are held open against the switch to this package.
+
+**A five-year family: #93, #122, #483, #490.** The same symptom in four
+reports across five years — the editor silently starts treating ordinary keys
+as though a meta prefix were pending, so `b` goes back a word, `f` forward,
+`d` deletes to end of line. Two name alt-tab or window switching as the
+trigger, on Windows; two name no trigger and no platform.
+
+Measured here, which is a mechanism and not yet a demonstration: the escape
+decoder turns `CSI I` into Tab or PageUp and `CSI O` into F3. Those two
+sequences are what a terminal sends on focus in and focus out, and alt-tab is
+what produces them. So a focus notification arrives as a keystroke, and a
+spurious Tab opens the completion menu, after which ordinary keys do something
+other than insert themselves.
+
+Neither rline nor isocline ever asks for focus reporting, so those sequences
+should not arrive at all — unless something else enabled it and did not turn
+it off. Which is the next issue.
+
+**#508, and why it is probably the same bug.** Input meant for a pager is read
+by the prompt instead, and the first pager after startup behaves while a later
+one does not. That asymmetry is a terminal handed to a child and taken back in
+a different state than it was lent in. A pager that enables focus reporting and
+exits without disabling it would leave exactly the condition the family above
+needs.
+
+Stated as separable claims, because the middle one is the only one measured:
+a program can leave modes set that rline did not set; rline mis-decodes two of
+them into keystrokes; and that is what the four reports describe. The third is
+a hypothesis. The second is a defect either way — a notification is not a key,
+and decoding one as the other is the same species as an empty candidate list
+being indistinguishable from nothing to complete.
+
+**#472, which needs two things neither implementation has.** Tab is bound to
+completion, so a literal tab cannot be typed or pasted: `select 'a<TAB>b'` is
+impossible. `key.CtrlV` exists as a code and nothing implements literal-next,
+and bracketed paste is absent from rline and from isocline both. Paste wants
+bracketed paste, because pasted text should not trigger completion at all;
+typing wants a quoted-insert binding. Both are new work rather than port gaps.
+
+**#236 and #552, vi bindings**, filed five years apart, with chzyer/readline's
+vi mode named as prior art. Not urgent, and worth knowing before a mode
+abstraction is designed rather than after.
+
+### The shape they share
+
+Every one of these produces plausible output rather than an error. Nobody
+reported a crash; they reported that `b` went backwards. That is why the
+family survived five years and four reporters: each report reads as user
+confusion. It is the same shape as the completer that silently returned
+nothing, and the same shape this repository keeps finding in its own tests.
+
+The test that would catch the family is one that drives a session, injects a
+focus sequence mid-line, and asserts what the next ordinary key does. That is
+L3, and it does not need a database, a terminal emulator, or usql.
+
 ## Organisation
 
 Assertions for anything that can be stated: a cursor column, a history entry,
