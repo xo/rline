@@ -134,6 +134,42 @@ before it is a test.
 
 And the seam itself: an API under which usql stops owning the read loop.
 
+## A regression test waiting for the consumer layer
+
+From the usql session, and the clearest argument yet for building L5.
+
+usql issue 478: table name completion stopped working between 0.18.x and
+0.19.x. Three lines had been dropped from `handler.go` — the reinstalling of
+the completer after a successful connect — so usql kept the default completer
+it had installed at startup, which knows connection strings and has no
+database connection and therefore no table names. Reported by five people
+against three databases on two platforms, live for about ten months, and
+eventually found to have been fixed months earlier with nobody closing the
+issue.
+
+What makes it worth a test here rather than only there is the shape of the
+failure. Completion did not error and did not crash. It returned an empty
+candidate list, which is indistinguishable from "there is nothing to complete
+at this point". Nothing in any suite noticed.
+
+The test is not that completion returns the right names, which needs a
+database. It is that the completer in effect after connecting is not the one
+installed before it — the invariant that actually broke — and it belongs at
+L5, which is the layer that does not exist.
+
+### What it asks of rline's API
+
+`SetCompleter` is write-only: there is no way to ask a Session which completer
+it holds. Inside, the two states are already distinct, because `completer ==
+nil` short-circuits before anything is generated. From outside they are not,
+and a caller cannot write the assertion that would have caught this.
+
+Whether to expose that is a design question rather than a test one, so it is
+in PLAN.md's open questions rather than settled here. The general form is
+worth stating either way: an API that lets a caller reach a state where a
+feature silently yields nothing, with no way to ask whether the feature is
+attached at all, will grow this bug again in some other shape.
+
 ## Organisation
 
 Assertions for anything that can be stated: a cursor column, a history entry,

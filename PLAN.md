@@ -2999,7 +2999,7 @@ job, and that is machinery for a report.
 
 ## Open questions
 
-Seven questions have no answer yet.
+Eight questions have no answer yet.
 
 First, does `rline` adopt `github.com/xo/terminfo`? isocline contains no
 terminfo code. `term.c` reads the `TERM`, `COLORTERM`, `NO_COLOR`,
@@ -3070,6 +3070,19 @@ is not in the password code, which is already careful; it is that nothing can
 ask `sessionLog` to stop for a moment. Whatever answers the sixth question
 should answer this one, because a handler with levels and fields has somewhere
 to put "not this" and an `io.Writer` does not.
+
+Eighth, can a caller ask what is attached? `SetCompleter` and
+`SetHighlighter` are write-only, so a program cannot tell "no completer" from
+"a completer that found nothing", and neither can a test. Inside, the two are
+already distinct — `completer == nil` short-circuits before anything is
+generated — so this is about what the API exposes rather than about what the
+port knows.
+
+It is not hypothetical. usql issue 478 was exactly this: three lines that
+reinstall the completer after connecting were dropped, completion silently
+returned nothing for about ten months across three databases and two
+platforms, and no suite noticed because an empty candidate list is what "there
+is nothing to complete here" also looks like. See TESTING.md.
 
 `WithContinue` belongs to the same question, from the other side. Its
 parameter is the only one that does not name the field it sets, because the
