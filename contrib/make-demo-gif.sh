@@ -33,30 +33,52 @@ done
 
 # foot starts fastest and its defaults are plain, which keeps the recording
 # about rline rather than about somebody's terminal theme.
+# A large font rather than a large picture. The terminal's default gives an
+# 80x24 window about 480 pixels wide, and enlarging that afterwards is the one
+# thing that cannot be done well: terminal glyphs are pixel exact, so any
+# resampling smears every stem. At size 20 the same 80 by 24 is about 1284
+# pixels wide and every one of them is a pixel the terminal drew.
 echo "== recording"
-go run ./uitest -terminal foot -session demo -video
+go run ./uitest -terminal foot -session demo -video -font-size 20
 
 mp4=uitest/out/session.mp4
 gif=uitest/out/rline.gif
 [[ -f "$mp4" ]] || { echo "no recording at $mp4; is wf-recorder installed?" >&2; exit 1; }
 
-# The window is centred on the compositor's 1920x1080 output at its opening
-# size of 80x24 characters, which foot draws at 480x384 pixels. Only the rows
-# that hold anything are kept: a terminal with seventeen blank rows under the
-# prompt makes a poor picture.
-w=480; h=208
-x=$(( (1920 - 480) / 2 ))
-y=$(( (1080 - 384) / 2 ))
+# The window is centred on the compositor's 1920x1080 output. Its size is read
+# from a screenshot the run just took rather than assumed, because it depends
+# on the font and on what the terminal makes of the requested size.
+shot=$(ls uitest/out/foot/demo/*.png | tail -1)
+read -r ww wh < <(python3 -c "
+import struct,sys
+d=open(sys.argv[1],'rb').read()
+w,h=struct.unpack('>II', d[16:24]); print(w,h)" "$shot")
+
+# Only the rows that hold anything are kept: a terminal with two thirds of it
+# blank under the prompt makes a poor picture. Eight rows of the twenty-four.
+w=$ww
+h=$(( wh * 8 / 24 ))
+x=$(( (1920 - ww) / 2 ))
+y=$(( (1080 - wh) / 2 ))
+echo "== window ${ww}x${wh}, keeping ${w}x${h}"
 
 echo "== converting"
+# No scaling at all. An earlier version of this enlarged 480 pixels to 720
+# with lanczos, which is a 1.5x resample of pixel-exact glyphs, and the result
+# was legible but fuzzy — every stem softened and every dim grey edge smeared.
+# The font is what makes the picture large now, so the frames are used at the
+# size the terminal drew them.
+#
 # Two passes: the first works out a palette for these frames, the second uses
-# it. One pass with the default palette gives visible banding on the dimmed
-# help text, which is most of the picture.
+# it. The full 256 rather than 96, because a GIF may have them and the dimmed
+# help text banded visibly at 96. No dithering either: dithering trades
+# banding for a stippled texture, and on flat terminal colours there is no
+# banding left to trade once the palette is large enough.
 ffmpeg -v error -y -i "$mp4" \
-  -vf "crop=$w:$h:$x:$y,fps=12,scale=720:-1:flags=lanczos,palettegen=max_colors=96" \
+  -vf "crop=$w:$h:$x:$y,fps=15,palettegen=max_colors=256:stats_mode=full" \
   /tmp/rline-palette.png
 ffmpeg -v error -y -i "$mp4" -i /tmp/rline-palette.png \
-  -lavfi "crop=$w:$h:$x:$y,fps=12,scale=720:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3" \
+  -lavfi "crop=$w:$h:$x:$y,fps=15[x];[x][1:v]paletteuse=dither=none:diff_mode=rectangle" \
   -loop 0 "$gif"
 rm -f /tmp/rline-palette.png
 

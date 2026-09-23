@@ -64,17 +64,18 @@ func platformTerminals() []Terminal {
 		{
 			Name: "foot", Bin: "foot", Engine: "foot",
 			Args: func(c, r int, cmd []string) []string {
-				return append([]string{"foot", "--app-id=" + appID,
-					fmt.Sprintf("--window-size-chars=%dx%d", c, r), "--"}, cmd...)
+				argv := append([]string{"foot", "--app-id=" + appID}, fontArgs("foot")...)
+				return append(append(argv, fmt.Sprintf("--window-size-chars=%dx%d", c, r), "--"), cmd...)
 			},
 		},
 		{
 			Name: "alacritty", Bin: "alacritty", Engine: "alacritty",
 			Args: func(c, r int, cmd []string) []string {
-				return append([]string{"alacritty", "--class", appID,
+				argv := append([]string{"alacritty", "--class", appID}, fontArgs("alacritty")...)
+				return append(append(argv,
 					"-o", fmt.Sprintf("window.dimensions.columns=%d", c),
 					"-o", fmt.Sprintf("window.dimensions.lines=%d", r),
-					"-e"}, cmd...)
+					"-e"), cmd...)
 			},
 		},
 		{
@@ -91,11 +92,12 @@ func platformTerminals() []Terminal {
 		{
 			Name: "ghostty", Bin: "ghostty", Engine: "ghostty",
 			Args: func(c, r int, cmd []string) []string {
-				return append([]string{"ghostty", "--class=" + appID,
+				argv := append([]string{"ghostty", "--class=" + appID}, fontArgs("ghostty")...)
+				return append(append(argv,
 					fmt.Sprintf("--window-width=%d", c),
 					fmt.Sprintf("--window-height=%d", r),
 					"--cursor-style-blink=false",
-					"-e"}, cmd...)
+					"-e"), cmd...)
 			},
 		},
 		{
@@ -145,6 +147,48 @@ func platformTerminals() []Terminal {
 			},
 		},
 	}
+}
+
+// fontSize is the point size the terminals are asked to use, or zero for
+// whatever each one's own default is.
+//
+// It exists for the recording in the README rather than for the tests. A
+// terminal's default font is small, so an 80x24 window is about 480x384
+// pixels, and a picture of that has to be enlarged to be read — which cannot
+// be done well, because terminal glyphs are pixel exact and any resampling
+// smears every stem. Asking for a larger font instead makes the window
+// genuinely bigger: at size 20 the same 80 by 24 is 1284x890, and every pixel
+// in it is one the terminal drew.
+//
+// It changes nothing the tests compare. The byte log depends on the number of
+// rows and columns, which is fixed, and not on how large they are drawn.
+var fontSize int
+
+// fontArgs returns the arguments that set the font size for a terminal, or
+// nothing when none was asked for or the terminal has no flag for it.
+//
+// gnome-terminal is missing on purpose: its font comes from a profile rather
+// than the command line, and setting one would mean writing to the person's
+// dconf.
+func fontArgs(name string) []string {
+	if fontSize == 0 {
+		return nil
+	}
+	switch name {
+	case "foot":
+		return []string{fmt.Sprintf("--font=monospace:size=%d", fontSize)}
+	case "alacritty":
+		return []string{"-o", fmt.Sprintf("font.size=%d", fontSize)}
+	case "kitty":
+		return []string{"-o", fmt.Sprintf("font_size=%d", fontSize)}
+	case "ghostty":
+		return []string{fmt.Sprintf("--font-size=%d", fontSize)}
+	case "wezterm":
+		return []string{"--config", fmt.Sprintf("font_size=%d", fontSize)}
+	case "xterm":
+		return []string{"-fa", "monospace", "-fs", fmt.Sprint(fontSize)}
+	}
+	return nil
 }
 
 // appID is what every terminal is told to call itself, so that a compositor
@@ -561,3 +605,6 @@ func swayQuery() ([]byte, error) {
 	}
 	return out, nil
 }
+
+// setFontSize records the point size the terminals should be asked for.
+func setFontSize(n int) { fontSize = n }

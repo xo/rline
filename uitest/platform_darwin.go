@@ -306,3 +306,7 @@ func runTool(name string, args ...string) error {
 	}
 	return nil
 }
+
+// setFontSize is accepted and ignored: the terminals here take their font
+// from their own settings rather than from a command line.
+func setFontSize(int) {}

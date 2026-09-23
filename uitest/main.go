@@ -27,8 +27,10 @@ func main() {
 		visible  = flag.Bool("visible", false, "run on your real desktop instead of a private compositor; types wherever focus is, so do not use the machine while it runs")
 		video    = flag.Bool("video", false, "record the run to out/session.mp4")
 		vnc      = flag.Bool("vnc", false, "serve the private compositor over VNC on 127.0.0.1:5900 and wait 10s for you to connect")
+		font     = flag.Int("font-size", 0, "ask the terminal for this point size, for a capture with more pixels in it; zero means the terminal's own default")
 	)
 	flag.Parse()
+	setFontSize(*font)
 
 	if *list {
 		listTerminals()
