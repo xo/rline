@@ -4,6 +4,7 @@
   <a href="#platforms" title="Platforms">Platforms</a> |
   <a href="#how-the-port-was-checked" title="How the port was checked">How it was checked</a> |
   <a href="https://pkg.go.dev/github.com/xo/rline" title="Go Reference">Reference</a> |
+  <a href="#documents" title="Documents">Documents</a> |
   <a href="#about" title="About">About</a>
 </div>
 
@@ -195,8 +196,8 @@ A person also drove the Windows editor by hand from a real console.
 Everything else on that platform is a test or an injected record. The
 Platforms section below says what that run covered.
 
-`PLAN.md` records the port order, every place the port departs from the C, and
-why.
+[docs/PORT.md](docs/PORT.md) records the port order, every place the port
+departs from the C, and why.
 
 ## Platforms
 
@@ -229,6 +230,26 @@ unproven.
 Any other system builds and reads plain lines with no editing. That is a
 mode rather than a failure: the prompt still works, and the keys are not
 read one at a time.
+
+## Documents
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to change the project, the checks
+  to run, and how to install the agent skills.
+- [AGENTS.md](AGENTS.md): the rules for a coding agent. `CLAUDE.md` imports
+  it.
+- [docs/PLAN.md](docs/PLAN.md): the plan, every decision, and the open
+  questions.
+- [docs/BACKLOG.md](docs/BACKLOG.md): the work that is known and not done.
+- [docs/PORT.md](docs/PORT.md): the port against the C, the departures from
+  it, and the faults found in it.
+- [docs/TESTING.md](docs/TESTING.md): the design of the test suite.
+- [docs/LESSONS.md](docs/LESSONS.md): what the tests taught.
+- [docs/PLATFORMS.md](docs/PLATFORMS.md): the systems rline runs on, and the
+  checks.
+- [docs/LAYOUT.md](docs/LAYOUT.md): where code goes.
+- [docs/USQL.md](docs/USQL.md): what usql needs from rline.
+- [uitest/README.md](uitest/README.md): the harness that drives real
+  terminals.
 
 ## About
 

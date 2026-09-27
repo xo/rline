@@ -123,7 +123,7 @@ func (ev *env) completionMenu(e *editor.Editor, moreAvailable bool) {
 	// sets it before anything reads it, which is why it starts at nothing
 	// rather than at count as the C does: the C's initial value is dead, and
 	// keeping it would have hidden that the one comparison which could have
-	// read it never does. See the note in PLAN.md.
+	// read it never does. See the note in docs/PORT.md.
 	var countDisplayed int
 	// The first entry is selected up front only when there is no preview to
 	// show; with preview on, nothing is selected until the user moves.

@@ -63,7 +63,8 @@ fi
 # answer most likely to be wrong, because the test that would have caught it
 # may simply not have been asked. So that answer is never reported on its
 # own: the whole package runs before anything is said. The rule used to be a
-# paragraph in PLAN.md and it caught both sessions, so it is a step here now.
+# paragraph in what is now docs/LESSONS.md and it caught both sessions, so it
+# is a step here now.
 wide=
 if [ -n "$pattern" ]; then
     go test -count=1 -run "$pattern" ./... >/dev/null 2>&1

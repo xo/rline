@@ -137,7 +137,7 @@ Gathered from Gemini and DeepSeek, both asked independently.
   wraps at once or waits for the next character. This decides how a prompt
   redraws and what backspacing over a margin does.
 - **`DECSCUSR` cursor shape.** Terminal.app largely ignores it and conhost
-  has mishandled it. This is an open question in PLAN.md and the matrix is
+  has mishandled it. This is an open question in docs/PLAN.md and the matrix is
   how it gets answered.
 - **Character width.** Terminal.app uses older `wcwidth` tables and breaks on
   ZWJ emoji and flags; the modern engines do grapheme clustering.

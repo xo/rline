@@ -1296,7 +1296,7 @@ func CompareFold(a, b string) int {
 //
 // This makes the C code sort differently on a machine where char is unsigned,
 // which is the default on ARM. The port keeps the x86 order, because that is
-// what the corpus records. See the note in PLAN.md.
+// what the corpus records. See the note in docs/PORT.md.
 //
 // When a runs out before n bytes and b keeps going, the result is -1.
 func CompareFoldN(a, b string, n int) int {

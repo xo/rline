@@ -438,7 +438,7 @@ func (d *tty) pushVirtualKey(mods key.Code, virt uint16) {
 		// half with recorded cases behind it on two systems, 23 and 24 are
 		// the numbers every other terminal uses, and no recorded session
 		// carries the C's answer, because nothing records on Windows. So
-		// this sends what the decoder reads. PLAN.md has the whole of it.
+		// this sends what the decoder reads. docs/PORT.md has the whole of it.
 		var vtcode uint32
 		switch {
 		case virt >= vkF1 && virt <= vkF5:

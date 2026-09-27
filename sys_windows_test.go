@@ -687,7 +687,7 @@ func TestConsoleOpenTTYDeviceHonoursItsArgument(t *testing.T) {
 //
 // A failure here is not a defect and does not mean anything broke. It means
 // the console gained a no-echo mode, so Windows became safe and the entry in
-// PLAN.md now says the opposite of what the code does. Fix the document,
+// docs/USQL.md now says the opposite of what the code does. Fix the document,
 // then delete this test.
 //
 // Go cannot assert at compile time that a type does not satisfy an
@@ -697,6 +697,7 @@ func TestConsoleDoesNotOfferNoEcho(t *testing.T) {
 	t.Parallel()
 	if _, ok := any((*tty)(nil)).(noEchoDevice); ok {
 		t.Error("the console now offers no-echo, so Password no longer takes the " +
-			"logged path: the Windows part of the password entry in PLAN.md is stale")
+			"logged path: the Windows part of the password entry in docs/USQL.md " +
+			"is stale")
 	}
 }

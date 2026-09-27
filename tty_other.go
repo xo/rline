@@ -26,7 +26,7 @@ const errUnsupported Error = "unsupported"
 // It exists so that such a system still compiles and still reads plain lines.
 // So every function the rest of the package calls needs an answer here, and a
 // missing one is invisible to everyone: go vet for the three real targets
-// passes, and nobody builds this. See the Checks section of PLAN.md.
+// passes, and nobody builds this. See the Checks section of docs/PLATFORMS.md.
 
 // isTerminal reports whether fd is a terminal. Nothing can tell on this system
 // yet, so it answers no.

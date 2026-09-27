@@ -220,7 +220,7 @@ func TestSetEscDelayClamps(t *testing.T) {
 // be false, Password would fall through to readHidden, and that reads through
 // the decoder and therefore through the logger. Nothing would fail. The only
 // signal would be passwords appearing in session logs, one byte to a line,
-// where the natural check does not find them. See the section in PLAN.md.
+// where the natural check does not find them. See the section in docs/USQL.md.
 //
 // So this says it at compile time instead. What it catches is a lost
 // startNoEcho, and not a lost tag: the build tag on this file has to be the

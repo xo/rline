@@ -628,7 +628,7 @@ func outputSizer(w io.Writer) sizer {
 // It returns ErrInterrupted when the user abandoned the line, which is Ctrl-C
 // or Ctrl-G. This is a deliberate departure: the C clears the line and hands
 // back an empty string, so a caller cannot tell an abandoned line from Enter
-// on an empty one, and a shell has to. See PLAN.md.
+// on an empty one, and a shell has to. See D13 in docs/PLAN.md.
 func (s *Session) ReadLine(prompt string) (string, error) {
 	if s.closed {
 		return "", ErrClosed

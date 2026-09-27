@@ -112,7 +112,7 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		// A Go caller cannot pass the absence of a string, so an empty
 		// display means the same as none at all and shows the replacement.
 		// The C code keeps them apart and shows the empty one. This is the
-		// one place the two differ, and it is recorded in PLAN.md.
+		// one place the two differ, and it is recorded in docs/PORT.md.
 		if display == "" {
 			wantShown = repl
 		}

@@ -1,4 +1,5 @@
-# The checks PLAN.md lists, run on every system that has a hosted runner.
+# The checks docs/PLATFORMS.md lists, run on every system that has a hosted
+# runner.
 #
 # The matrix is the three supported systems plus Linux on arm64. macOS
 # runners are arm64 and Windows runners are amd64, so between them the four
@@ -135,8 +136,8 @@ jobs:
       # with it, which is tagged !linux && !darwin and exists to check this
       # very platform, so the only automated Windows environment anyone has
       # would stop running the one test written for it. That is the
-      # tagged-out shape from PLAN.md, chosen on purpose. Skipping the one
-      # test costs nothing and they measured it green.
+      # tagged-out shape from docs/LESSONS.md, chosen on purpose. Skipping the
+      # one test costs nothing and they measured it green.
       - name: test
         shell: bash
         run: |

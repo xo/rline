@@ -1184,7 +1184,7 @@ func TestLoadHistoryReportsWhatItCannotRead(t *testing.T) {
 		// whole subtest passed a nil error there. windows-vm found it. The
 		// comment claimed "every system this builds for" without anyone
 		// having asked two of them, which is the same shape as the rest of
-		// the list in PLAN.md.
+		// the list in docs/LESSONS.md.
 		_ = h.loadFrom(filepath.Join(dir, "a\x00b.txt"), DefaultHistoryEntries)
 		err := s.LoadHistory()
 		if err == nil {

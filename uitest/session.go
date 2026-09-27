@@ -311,7 +311,7 @@ var sessions = []Session{
 			// next key arrives is not something this harness can currently
 			// pin down. A golden that is right two times in three is worse
 			// than no golden, so the menu is opened and closed here, and
-			// picking from it is an open question in PLAN.md.
+			// picking from it is an open question in docs/LESSONS.md.
 			Step{Key: "Escape", Wait: hintSettle},
 			// Nothing begins with this, so Tab has nothing to offer and the
 			// line has to be left exactly as it was.

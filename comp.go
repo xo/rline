@@ -657,7 +657,7 @@ func requoteReplacement(replacement string, quote byte, isWordChar text.CharClas
 //
 // Windows uses a backslash, and this will need a file per system when
 // Windows is taken on. That is deferred until there is a Windows host to
-// check it on, and PLAN.md says so.
+// check it on, and docs/BACKLOG.md holds it.
 const dirSeparator = '/'
 
 // fileType says what kind of entry a name is, which decides its colour. The

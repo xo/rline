@@ -6,8 +6,8 @@ against Gemini and DeepSeek asked the same question independently, and where
 they disagreed with each other or with what this repository already does, the
 disagreement is recorded rather than resolved by whoever wrote this down.
 
-PLAN.md holds the record of what happened and what was learned. This holds the
-shape.
+LESSONS.md holds the record of what happened and what was learned, and PLAN.md
+holds the decisions. This holds the shape.
 
 ## The layers
 
@@ -75,8 +75,8 @@ L2 half exists, in `driven_test.go` and the `feedEnv` helper, and has no name.
 It is the layer most likely to be skipped when a feature is added, because
 there is no directory that obviously wants the test.
 
-L5 does not exist at all. There is a section in PLAN.md measuring what usql
-would need, and no test that holds rline to it.
+L5 does not exist at all. USQL.md measures what usql would need, and no test
+holds rline to it.
 
 ## The gaps, by feature
 
@@ -103,7 +103,7 @@ redo chain dropping when you type after undoing.
 which is a redraw problem with a modal in it.
 
 **Password.** There is one test and a known defect: on the systems without a
-no-echo terminal the password is written into the session log. See PLAN.md.
+no-echo terminal the password is written into the session log. See USQL.md.
 
 **BBcode, palette reduction and wcwidth** are pinned at L1 and thin at L0.
 Malformed tags, RGB to 256 to 16 being deterministic and monotonic, combining
