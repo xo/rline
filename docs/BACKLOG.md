@@ -129,6 +129,21 @@ something from rline before usql can fix them.
     `tty.go` for reading keys. `d08ea9a` renamed that file `decoder.go`, and
     `tty.go` does not exist. The list in AGENTS.md is correct.
 
+## Found while the transit example was written
+
+27. rline does not tell a highlighter what changed. It hands over the whole
+    text, so a highlighter that parses again from the old tree, as transit
+    asks, has to compare the text with the text before. `editBetween` in
+    `example/transit/main.go` does that. From: the transit example, which
+    Ken asked for as the test of the transit API.
+28. rline sorts the completions before it draws the menu, so a completer
+    cannot put the keywords before the other tokens. From: the transit
+    example.
+29. No test in `example/transit` holds the rule that a node with the same
+    range as the node before it keeps the first style. No sample in seven
+    languages had two such nodes with different styles, so breaking the rule
+    changed nothing. From: the transit example.
+
 ## Known and not asked for
 
 These are C functions with no option behind them in rline. The state that

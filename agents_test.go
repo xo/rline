@@ -304,6 +304,7 @@ var decisionRef = regexp.MustCompile(`(?:([A-Za-z0-9]+)\s+|(U\+))?\bD([1-9][0-9]
 // name. A reference to one of those names the repository first.
 var otherRepositories = map[string]bool{
 	"dbmeta": true, "dbimp": true, "usql": true, "dburl": true, "tblfmt": true,
+	"transit": true,
 }
 
 // TestEveryDecisionReferenceExists makes sure that a bare decision number in a

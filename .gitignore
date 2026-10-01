@@ -1,6 +1,7 @@
 /isocline/
 /.build/
 /example/example
+/example/transit/transit
 /example/example.exe
 /rlex
 rline_example_history

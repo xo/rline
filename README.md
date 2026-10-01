@@ -10,6 +10,20 @@
 
 <br/>
 
+[![Unit Tests][rline-ci-status]][rline-ci]
+[![Go Reference][goref-rline-status]][goref-rline]
+[![Releases][release-status]][releases]
+[![Discord Discussion][discord-status]][discord]
+
+[rline-ci]: https://github.com/xo/rline/actions/workflows/test.yml "Test CI"
+[rline-ci-status]: https://github.com/xo/rline/actions/workflows/test.yml/badge.svg "Test CI"
+[goref-rline]: https://pkg.go.dev/github.com/xo/rline "Go Reference"
+[goref-rline-status]: https://pkg.go.dev/badge/github.com/xo/rline.svg "Go Reference"
+[release-status]: https://img.shields.io/github/v/release/xo/rline?display_name=tag "Latest Release"
+[releases]: https://github.com/xo/rline/releases "Releases"
+[discord]: https://discord.gg/WDWAgXwJqN "Discord Discussion"
+[discord-status]: https://img.shields.io/discord/829150509658013727.svg?label=Discord&logo=Discord&colorB=7289da&style=flat-square "Discord Discussion"
+
 `rline` is a readline package for Go. A readline package reads a line of text
 from a terminal, and gives the person typing it editing, history, completion
 and colored output.
@@ -19,17 +33,6 @@ against any C library.
 
 `rline` is a port of [isocline][isocline], a readline replacement written in C
 by Daan Leijen, under the MIT license.
-
-[![Unit Tests][rline-ci-status]][rline-ci]
-[![Go Reference][goref-rline-status]][goref-rline]
-[![Discord Discussion][discord-status]][discord]
-
-[rline-ci]: https://github.com/xo/rline/actions/workflows/test.yml "Test CI"
-[rline-ci-status]: https://github.com/xo/rline/actions/workflows/test.yml/badge.svg "Test CI"
-[goref-rline]: https://pkg.go.dev/github.com/xo/rline "Go Reference"
-[goref-rline-status]: https://pkg.go.dev/badge/github.com/xo/rline.svg "Go Reference"
-[discord]: https://discord.gg/WDWAgXwJqN "Discord Discussion"
-[discord-status]: https://img.shields.io/discord/829150509658013727.svg?label=Discord&logo=Discord&colorB=7289da&style=flat-square "Discord Discussion"
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/xo/rline/assets/rline.gif" alt="Editing a SQL statement with rline: syntax highlighting as each word is typed, moving within the line, continuing over several rows, and a completion menu" width="720">
@@ -159,6 +162,18 @@ went: `<` for what was written to the terminal, `>` for a key that was read,
 and `=` for a finished line. The bytes are escaped, so the log can be read by
 eye.
 
+`example/transit/` highlights and completes code with [transit][transit],
+the pure Go port of tree-sitter. After each key it parses the text again from
+the old tree and marks it with the grammar's highlight query, and Tab offers
+what the parser can accept at the cursor. It is a module of its own, so
+`rline` gets no new dependency, and it needs a checkout of transit beside
+this one. Run it from its folder, with one of bash, c, go, javascript, json,
+python, ruby and rust:
+
+```sh
+cd example/transit && go run . -lang python
+```
+
 ## How the port was checked
 
 Reading C and writing Go that looks like it is not enough to know the two
@@ -256,5 +271,20 @@ read one at a time.
 `rline` supports [usql][usql], a universal command-line interface for SQL
 databases.
 
+<br/>
+
+<div align="center">
+  <a href="https://github.com/xo/usql" title="A command line client for many databases">usql</a> |
+  <a href="https://github.com/xo/dburl" title="Database connection URLs">dburl</a> |
+  <a href="https://github.com/xo/dbmeta" title="Database metadata">dbmeta</a> |
+  <a href="https://github.com/xo/dbimp" title="Database drivers in pure Go">dbimp</a> |
+  <a href="https://github.com/xo/cql" title="A database/sql driver for Cassandra">cql</a> |
+  <a href="https://github.com/xo/dbtpl" title="Go code generated from a database">dbtpl</a> |
+  <a href="https://github.com/xo/tblfmt" title="Tables of database results">tblfmt</a> |
+  <a href="https://github.com/xo/rline" title="The line editor of usql, this project">rline</a> |
+  <a href="https://github.com/xo/transit" title="tree-sitter in pure Go">transit</a>
+</div>
+
 [isocline]: https://github.com/daanx/isocline
 [usql]: https://github.com/xo/usql
+[transit]: https://github.com/xo/transit

@@ -87,6 +87,11 @@ The other folders:
   (`build-*.sh`), the linter module (`tools/lint`), `lint.sh`, `lint.ps1`
   and `mutate.sh`.
 - `example/`: a small SQL prompt that uses the package.
+- `example/transit/`: a prompt that highlights and completes code with
+  transit. It is a module of its own, so that rline gets no new dependency
+  (D7), and its `go.mod` takes rline and transit from the checkouts beside
+  this one. The root's `./...` does not reach it, so run `go test ./...`
+  inside it.
 - `uitest/`: drives real terminal emulators. It does not run in CI.
 - `contrib/`: installers for what `uitest` drives, and the script that makes
   the demonstration GIF.
