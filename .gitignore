@@ -1,8 +1,9 @@
 /isocline/
 /.build/
-/example/example
-/example/transit/transit
-/example/example.exe
+/_examples/sql/sql
+/_examples/sql/sql.exe
+/_examples/transit/transit
+/_examples/transit/transit.exe
 /rlex
 rline_example_history
 .mutate.lock/

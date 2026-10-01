@@ -134,15 +134,55 @@ something from rline before usql can fix them.
 27. rline does not tell a highlighter what changed. It hands over the whole
     text, so a highlighter that parses again from the old tree, as transit
     asks, has to compare the text with the text before. `editBetween` in
-    `example/transit/main.go` does that. From: the transit example, which
+    `_examples/transit/main.go` does that. From: the transit example, which
     Ken asked for as the test of the transit API.
 28. rline sorts the completions before it draws the menu, so a completer
     cannot put the keywords before the other tokens. From: the transit
     example.
-29. No test in `example/transit` holds the rule that a node with the same
+29. No test in `_examples/transit` holds the rule that a node with the same
     range as the node before it keeps the first style. No sample in seven
     languages had two such nodes with different styles, so breaking the rule
     changed nothing. From: the transit example.
+
+## Found when the examples moved
+
+30. Nothing vets or lints `_examples/sql` since D37 moved it, because
+    `./...` leaves out a folder whose name starts with an underscore. The
+    tests still build it. Naming the folder in the vet steps of CI and in
+    `tools/lint.sh` would put it back under both. From: D37.
+
+## Found while answering usql
+
+31. The comment on `Completion.Add` says that the completion replaces the
+    prefix that was handed to the completer. A completer given to rline
+    directly is handed everything before the cursor, and `Add` sets
+    `DeleteBefore` to 0, so it deletes nothing. Measured: typing `sel`, then
+    Tab with `Add("select")`, gives `selselect`. Either the comment or the
+    code is wrong, and which one is Ken's choice. Until then, a completer
+    uses `AddCandidate` with `DeleteBefore`, as `_examples/sql` does. From:
+    a question from the usql session on 2026-10-01.
+32. No test holds that a highlighter is given every row of the text.
+    `prompt.go` hands it `e.Input.String()`, which holds them all, and
+    "What rline offers usql" in [USQL.md](USQL.md) says that usql's
+    highlighting rests on it. From: a question from the usql session on
+    2026-10-01.
+33. A continuation prompt that follows the text. usql draws `%R` on each row,
+    which says whether the row is inside a string or a parenthesis. rline has
+    one continuation marker for every row, set by `WithPrompt` or
+    `SetPrompt`. Nothing says what happens if `SetPrompt` runs during an
+    edit, and nothing tests it. Supporting `%R` needs new API, such as a
+    function that is given the text and returns the prompt of each row, and
+    Ken decides it. From: the usql session, 2026-10-01.
+34. Text that the next `ReadLine` starts with. usql's `\e` opens an editor
+    on the query buffer and gives the edited text back for more editing.
+    `ReadLine` takes only the prompt text, so the text cannot be placed in
+    the line. This needs new API, and Ken decides it. From: the usql
+    session, 2026-10-01.
+35. A way to change `WithContinue` after the `Session` is made. There is a
+    `SetCompleter` and a `SetHighlighter`, and no setter for the function
+    that decides whether Enter continues. So a read such as usql's
+    `\prompt` keeps the continuation rule of SQL, unless the function asks
+    usql which mode it is in. From: the usql session, 2026-10-01.
 
 ## Known and not asked for
 

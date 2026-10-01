@@ -214,7 +214,7 @@ func TestExampleRunsUnderATerminal(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	build := exec.Command("go", "build", "-o", bin, "./example")
+	build := exec.Command("go", "build", "-o", bin, "./_examples/sql")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
@@ -301,7 +301,7 @@ func TestExampleWithPipedInput(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	build := exec.Command("go", "build", "-o", bin, "./example")
+	build := exec.Command("go", "build", "-o", bin, "./_examples/sql")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
@@ -362,7 +362,7 @@ func TestExampleHighlightsAndSpansLines(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
@@ -431,7 +431,7 @@ func TestExamplePromptFollowsTheStatement(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	for _, test := range []struct {
@@ -492,7 +492,7 @@ func TestExampleQuitsOnALine(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	for _, test := range []struct {
@@ -565,7 +565,7 @@ func TestExampleArrowsMoveBetweenRows(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
@@ -605,7 +605,7 @@ func TestExamplePasswordIsHidden(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
@@ -654,7 +654,7 @@ func TestExampleWalksTheHistory(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
@@ -699,7 +699,7 @@ func TestExampleSearchesTheHistory(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
@@ -751,7 +751,7 @@ func TestExampleCompletionMenuColumns(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	for _, test := range []struct {
@@ -817,7 +817,7 @@ func TestExampleNoHintInsideAWord(t *testing.T) {
 		t.Skip("building the example takes a moment")
 	}
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
@@ -1660,7 +1660,7 @@ func TestHistorySaveIsAtomic(t *testing.T) {
 func TestExampleRemembersBetweenRuns(t *testing.T) {
 	t.Parallel()
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	dir := t.TempDir()
@@ -1739,7 +1739,7 @@ func TestExampleRemembersBetweenRuns(t *testing.T) {
 func TestExampleCarriesOnAfterAnInterrupt(t *testing.T) {
 	t.Parallel()
 	bin := exampleBinary(t)
-	if out, err := exec.Command("go", "build", "-o", bin, "./example").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{

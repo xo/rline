@@ -126,7 +126,7 @@ C cannot tell them apart, and a shell has to.
 
 ## The example
 
-`example/` is a small SQL prompt. It shows input over more than one line,
+`_examples/sql/` is a small SQL prompt. It shows input over more than one line,
 highlighting that changes as the line is typed, and a completer.
 
 A statement ends at a semicolon. Until then Enter starts another row inside the
@@ -142,27 +142,21 @@ was run from rather than the home directory, so that running it leaves
 nothing where the person running it is not looking. The up arrow brings back
 what was typed in an earlier run.
 
-Run it with:
+Run it from the root of the repository with:
 
 ```sh
-go run ./example
+go run ./_examples/sql
 ```
 
-Do not build it with `go build -o example ./example`. The name given to `-o`
-is a directory that already exists. So the binary lands at `example/example`
-rather than in the current directory, and an older binary of the same name
-goes on running. Use a different name:
-
-```sh
-go build -o rlex ./example && ./rlex
-```
+The folder starts with an underscore, so `go build ./...` and `go test ./...`
+leave the examples out, and a command has to name the folder.
 
 Pass `-log FILE` to record the session. Every line says which direction it
 went: `<` for what was written to the terminal, `>` for a key that was read,
 and `=` for a finished line. The bytes are escaped, so the log can be read by
 eye.
 
-`example/transit/` highlights and completes code with [transit][transit],
+`_examples/transit/` highlights and completes code with [transit][transit],
 the pure Go port of tree-sitter. After each key it parses the text again from
 the old tree and marks it with the grammar's highlight query, and Tab offers
 what the parser can accept at the cursor. It is a module of its own, so
@@ -171,7 +165,7 @@ this one. Run it from its folder, with one of bash, c, go, javascript, json,
 python, ruby and rust:
 
 ```sh
-cd example/transit && go run . -lang python
+cd _examples/transit && go run . -lang python
 ```
 
 ## How the port was checked

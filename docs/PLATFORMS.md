@@ -210,7 +210,7 @@ redrawing and putting the cursor back a column; Enter opening a continuation
 row with the `...>` prompt rather than submitting; and each later redraw
 walking up the right number of rows to repaint a three row statement. The
 newlines survive into the line the caller is given, and the example's own
-summary flattens them to spaces, which is what `example/main.go` asks for.
+summary flattens them to spaces, which is what `_examples/sql/main.go` asks for.
 
 A second run added the password read. `\pass`, sixteen characters and Enter:
 between the prompt being drawn and the newline, seventeen keys were read and

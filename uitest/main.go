@@ -151,7 +151,7 @@ func buildDemo() (string, error) {
 	if isWindows {
 		bin += ".exe"
 	}
-	cmd := exec.Command("go", "build", "-o", bin, "./example")
+	cmd := exec.Command("go", "build", "-o", bin, "./_examples/sql")
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("building the demo: %w", err)

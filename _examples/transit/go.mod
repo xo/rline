@@ -1,4 +1,4 @@
-module github.com/xo/rline/example/transit
+module github.com/xo/rline/_examples/transit
 
 go 1.27.1
 

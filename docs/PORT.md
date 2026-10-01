@@ -176,7 +176,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     a plain line with no editing when there is no terminal to edit on, which
     is what a program reading a pipe or a script gets.
 
-    `example/` is the smallest program that uses the package, and
+    `_examples/sql/` is the smallest program that uses the package, and
     `TestExampleRunsUnderATerminal` drives it through a pseudo-terminal. That
     is the only test that runs the package as a program rather than checking
     one piece against a recording, and it is what caught the missing raw mode

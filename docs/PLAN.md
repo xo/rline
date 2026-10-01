@@ -70,6 +70,7 @@ that holds it.
 | [D34](#d34-the-test-suite-is-designed-as-seven-layers-proposed) | The test suite is designed as seven layers | Proposed |
 | [D35](#d35-usqls-readline-label-is-the-queue-that-rline-plans-against-proposed) | usql's readline label is the queue that rline plans against | Proposed |
 | [D36](#d36-rline-is-set-up-for-coding-agents-as-every-xo-repository-is-decided) | rline is set up for coding agents as every xo repository is | Decided |
+| [D37](#d37-each-example-program-is-a-folder-under-_examples-decided) | Each example program is a folder under _examples | Decided |
 
 ## Purpose
 
@@ -692,6 +693,20 @@ What changed here:
   Two more hold the references that the move could break:
   `TestEveryDecisionReferenceExists` and
   `TestEveryDocumentReferenceResolves`.
+
+### D37. Each example program is a folder under _examples. Decided.
+
+Ken decided on 2026-10-01 that the example programs move into a folder named
+`_examples`, one folder each, because that is the idiom in Go. The SQL prompt
+moved from `example/` to `_examples/sql/`, and the transit example moved from
+`example/transit/` to `_examples/transit/`.
+
+The go command leaves out a folder whose name starts with an underscore when
+it expands a pattern such as `./...`. So the root's build, `go vet`, the vet
+loop over every system (D31) and the linter no longer reach the SQL example.
+The tests still build it: 13 tests in `rline_test.go` and the harness in
+`uitest` run `go build ./_examples/sql`, so a change that breaks its build
+fails them. Nothing vets it or lints it.
 
 ## Open questions for Ken
 
