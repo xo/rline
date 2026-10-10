@@ -159,6 +159,40 @@ var sessions = []Session{
 		Quiet: 600 * time.Millisecond,
 	},
 	{
+		Name:  "readme",
+		About: "The README recording, which contrib/make-demo-gif.sh turns into a GIF: a word completed, the completion menu, highlighting as each word lands, and a statement continued over rows.",
+		Keys: []Step{
+			// One answer: Tab fills in the word.
+			Step{Text: "sel", Wait: 500 * time.Millisecond},
+			Step{Key: "Tab", Wait: 900 * time.Millisecond},
+			Step{Text: " name, ", Wait: 600 * time.Millisecond},
+			// Several answers: Tab opens the menu, which stays long enough to
+			// read. Typing on closes it and narrows the word to one answer,
+			// which the next Tab fills in. Picking from the menu by its
+			// number is left out, because this harness cannot time it.
+			Step{Text: "co", Wait: 500 * time.Millisecond},
+			Step{Key: "Tab", Wait: 2200 * time.Millisecond},
+			Step{Text: "u", Wait: 600 * time.Millisecond},
+			Step{Key: "Tab", Wait: 900 * time.Millisecond},
+			// The pair closes itself, so only the star is typed inside it.
+			Step{Text: "(*", Wait: 400 * time.Millisecond},
+			Step{Key: "End", Wait: 400 * time.Millisecond},
+			Step{Text: " as total", Wait: 800 * time.Millisecond},
+			Press("Return"),
+			Step{Text: "  from users", Wait: 800 * time.Millisecond},
+			Press("Return"),
+			Step{Text: " where active = true and age > 21 -- adults", Wait: 900 * time.Millisecond},
+			Press("Return"),
+			Step{Text: " group by name;", Wait: 900 * time.Millisecond},
+			Press("Return"),
+		},
+		Quiet: 600 * time.Millisecond,
+		// The recording is for a person to look at. The sessions above hold
+		// the byte logs that are compared, and this one would only repeat
+		// them with a menu whose timing the harness cannot pin down.
+		Watch: true,
+	},
+	{
 		Name:  "basic",
 		About: "A line is typed and submitted, and the prompt returns.",
 		Keys: []Step{

@@ -8,8 +8,8 @@
 // the word, and not from a list of words.
 //
 // The example is a module of its own, so that rline gets no new dependency
-// (rline D7). transit has no tag yet, so go.mod takes rline and transit from
-// the checkouts beside this one. Run it from this folder:
+// (rline D7). Its go.mod requires published versions of rline and transit,
+// and has no replace directive (rline D38). Run it from this folder:
 //
 //	go run . -lang python
 //

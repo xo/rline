@@ -93,8 +93,9 @@ The other folders:
     `go build ./_examples/sql`.
   - `_examples/transit/`: a prompt that highlights and completes code with
     transit. It is a module of its own, so that rline gets no new dependency
-    (D7), and its `go.mod` takes rline and transit from the checkouts
-    beside this one. Run `go test ./...` inside it.
+    (D7), and its `go.mod` requires published versions of rline and
+    transit, with no replace directive (D38). Run `go test ./...` inside
+    it.
 - `uitest/`: drives real terminal emulators. It does not run in CI.
 - `contrib/`: installers for what `uitest` drives, and the script that makes
   the demonstration GIF.

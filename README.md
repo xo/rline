@@ -35,7 +35,7 @@ against any C library.
 by Daan Leijen, under the MIT license.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/xo/rline/assets/rline.gif" alt="Editing a SQL statement with rline: syntax highlighting as each word is typed, moving within the line, continuing over several rows, and a completion menu" width="720">
+  <img src="https://raw.githubusercontent.com/xo/rline/assets/rline.gif" alt="Editing a SQL statement with rline: Tab completing a word, the completion menu, syntax highlighting as each word is typed, and a statement continued over several rows" width="720">
 </div>
 
 The recording is generated rather than taken by hand.
@@ -160,9 +160,9 @@ eye.
 the pure Go port of tree-sitter. After each key it parses the text again from
 the old tree and marks it with the grammar's highlight query, and Tab offers
 what the parser can accept at the cursor. It is a module of its own, so
-`rline` gets no new dependency, and it needs a checkout of transit beside
-this one. Run it from its folder, with one of bash, c, go, javascript, json,
-python, ruby and rust:
+`rline` gets no new dependency, and its `go.mod` requires published versions
+of `rline` and transit. Run it from its folder, with one of bash, c, go,
+javascript, json, python, ruby and rust:
 
 ```sh
 cd _examples/transit && go run . -lang python

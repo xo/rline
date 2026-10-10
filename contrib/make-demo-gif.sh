@@ -39,7 +39,7 @@ done
 # resampling smears every stem. At size 20 the same 80 by 24 is about 1284
 # pixels wide and every one of them is a pixel the terminal drew.
 echo "== recording"
-go run ./uitest -terminal foot -session demo -video -font-size 20
+go run ./uitest -terminal foot -session readme -video -font-size 20
 
 mp4=uitest/out/session.mp4
 gif=uitest/out/rline.gif
@@ -54,10 +54,12 @@ import struct,sys
 d=open(sys.argv[1],'rb').read()
 w,h=struct.unpack('>II', d[16:24]); print(w,h)" "$shot")
 
-# Only the rows that hold anything are kept: a terminal with two thirds of it
-# blank under the prompt makes a poor picture. Eight rows of the twenty-four.
+# Only the rows that hold anything are kept: a terminal with half of it blank
+# under the prompt makes a poor picture. Twelve rows of the twenty-four hold
+# the banner, the four rows of the statement, the completion menu below them
+# and the line the example prints when the statement runs.
 w=$ww
-h=$(( wh * 8 / 24 ))
+h=$(( wh * 12 / 24 ))
 x=$(( (1920 - ww) / 2 ))
 y=$(( (1080 - wh) / 2 ))
 echo "== window ${ww}x${wh}, keeping ${w}x${h}"

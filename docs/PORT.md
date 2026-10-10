@@ -21,7 +21,7 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    return, and `internal/text/testdata/common.txt` records 18576 of those calls.
 2. `wcwidth.c`. Not ported. `internal/text/text.go` calls `github.com/mattn/go-runewidth`
    instead. `internal/text/testdata/wcwidth.txt` records the width that the C code gives
-   every code point, and `internal/text/testdata/wcwidth-delta.txt` records the 150 ranges
+   every code point, and `internal/text/testdata/wcwidth-delta.txt` records the 144 ranges
    where go-runewidth answers differently. `TestWidthDelta` keeps that record
    current, so an upgrade of go-runewidth shows up as a change to a committed
    file.
@@ -370,8 +370,10 @@ produce a different corpus, and that case is untested.
 ## The width table
 
 go-runewidth is newer than the table in `wcwidth.c`, and the two disagree for
-3877 code points out of 1114112. Most of the disagreement is go-runewidth
+3870 code points out of 1114112. Most of the disagreement is go-runewidth
 being right about characters that Unicode added after the C table was written.
+They disagreed for 3877 until go-runewidth v0.0.31, which gives width 0 to
+more format characters, as the C table does.
 Three parts need a decision, and none is settled.
 
 U+1160 to U+11FF are Hangul Jamo vowels and final consonants. The C table
@@ -384,7 +386,7 @@ inside a flag emoji. The C table gives them width 0 and go-runewidth gives
 them width 1.
 
 U+D800 to U+DFFF are the UTF-16 surrogate halves, and they account for 2048 of
-the 3877. They cannot appear in text that the decoder accepts, so this part
+the 3870. They cannot appear in text that the decoder accepts, so this part
 does not matter in practice.
 
 ## Bugs found in the C code

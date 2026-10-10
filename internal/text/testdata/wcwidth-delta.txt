@@ -1,6 +1,5 @@
 delta 000001 00001f c=-1 go=0
 delta 00007f 00009f c=-1 go=0
-delta 00061c 00061c c=0 go=1
 delta 00070f 00070f c=1 go=0
 delta 0007fd 0007fd c=1 go=0
 delta 000897 00089f c=1 go=0
@@ -20,8 +19,6 @@ delta 001abf 001add c=1 go=0
 delta 001ae0 001aeb c=1 go=0
 delta 001dfa 001dfa c=1 go=0
 delta 002028 002029 c=1 go=0
-delta 002060 002064 c=0 go=1
-delta 002066 002069 c=0 go=1
 delta 002630 002637 c=1 go=2
 delta 00268a 00268f c=1 go=2
 delta 002e9a 002e9a c=2 go=1
@@ -87,7 +84,7 @@ delta 011f36 011f3a c=1 go=0
 delta 011f40 011f40 c=1 go=0
 delta 011f42 011f42 c=1 go=0
 delta 011f5a 011f5a c=1 go=0
-delta 013440 013440 c=1 go=0
+delta 013430 013440 c=1 go=0
 delta 013447 013455 c=1 go=0
 delta 01611e 016129 c=1 go=0
 delta 01612d 01612f c=1 go=0
@@ -107,12 +104,10 @@ delta 01b150 01b152 c=1 go=2
 delta 01b155 01b155 c=1 go=2
 delta 01b164 01b167 c=1 go=2
 delta 01b2fc 01b2ff c=2 go=1
-delta 01bca0 01bca3 c=0 go=1
 delta 01cf00 01cf2d c=1 go=0
 delta 01cf30 01cf46 c=1 go=0
 delta 01d165 01d166 c=1 go=0
 delta 01d16d 01d172 c=1 go=0
-delta 01d173 01d17a c=0 go=1
 delta 01d300 01d356 c=1 go=2
 delta 01d360 01d376 c=1 go=2
 delta 01e08f 01e08f c=1 go=0
@@ -146,5 +141,4 @@ delta 01fac8 01fac8 c=1 go=2
 delta 01facd 01fadc c=1 go=2
 delta 01fadf 01faea c=1 go=2
 delta 01faef 01faf8 c=1 go=2
-delta 0e0001 0e0001 c=0 go=1
 delta 0e0020 0e007f c=0 go=1

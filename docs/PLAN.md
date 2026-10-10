@@ -52,7 +52,7 @@ that holds it.
 | [D16](#d16-rline-never-adapts-to-usql-decided) | rline never adapts to usql | Decided |
 | [D17](#d17-an-error-is-a-constant-of-a-string-type-and-its-text-is-its-name-without-err-decided) | An error is a constant of a string type, and its text is its name without Err | Decided |
 | [D18](#d18-the-terminal-code-builds-for-every-unix-system-but-aix-and-three-systems-are-tested-proposed) | The terminal code builds for every Unix system but aix, and three systems are tested | Proposed |
-| [D19](#d19-the-library-needs-go-1250-and-the-linter-is-a-module-of-its-own-proposed) | The library needs Go 1.25.0, and the linter is a module of its own | Proposed |
+| [D19](#d19-the-library-needs-go-1250-and-the-linter-is-a-module-of-its-own-decided) | The library needs Go 1.25.0, and the linter is a module of its own | Decided |
 | [D20](#d20-continuous-integration-runs-every-check-on-four-hosted-runners-with-the-go-that-gomod-names-proposed) | Continuous integration runs every check on four hosted runners, with the Go that go.mod names | Proposed |
 | [D21](#d21-saving-the-history-never-makes-the-file-shorter-and-the-file-is-created-0600-proposed-amends-d10) | Saving the history never makes the file shorter, and the file is created 0600 | Proposed. Amends D10 |
 | [D22](#d22-the-completion-file-is-named-compgo-decided) | The completion file is named comp.go | Decided |
@@ -71,6 +71,7 @@ that holds it.
 | [D35](#d35-usqls-readline-label-is-the-queue-that-rline-plans-against-proposed) | usql's readline label is the queue that rline plans against | Proposed |
 | [D36](#d36-rline-is-set-up-for-coding-agents-as-every-xo-repository-is-decided) | rline is set up for coding agents as every xo repository is | Decided |
 | [D37](#d37-each-example-program-is-a-folder-under-_examples-decided) | Each example program is a folder under _examples | Decided |
+| [D38](#d38-the-first-release-is-v010-and-no-gomod-in-it-has-a-replace-directive-decided) | The first release is v0.1.0, and no go.mod in it has a replace directive | Decided |
 
 ## Purpose
 
@@ -236,7 +237,8 @@ reads and writes the terminal settings, because the standard `syscall` package
 does not name `TCSETSF` on Linux, so `termios` cannot be done there with the
 standard library alone.
 
-The two width tables disagree for 3877 code points. `TestWidthDelta` holds
+The two width tables disagreed for 3877 code points at `52a9718`, and for
+3870 since go-runewidth v0.0.31. `TestWidthDelta` holds
 the disagreement in a committed file, so an upgrade of go-runewidth shows as
 a changed file. Three parts of the disagreement are not settled. "The width
 table" in [PORT.md](PORT.md) names them, and they are an open question below.
@@ -447,7 +449,7 @@ widen the tag. "Which systems are supported" in
 [PLATFORMS.md](PLATFORMS.md) holds the measurements and DeepSeek's argument
 against the change.
 
-### D19. The library needs Go 1.25.0, and the linter is a module of its own. Proposed.
+### D19. The library needs Go 1.25.0, and the linter is a module of its own. Decided.
 
 Commits: `1763b1c` (2026-09-20).
 
@@ -458,6 +460,11 @@ consumer builds the linter. go-runewidth asks for 1.23 and x/sys for 1.25.0.
 
 Reason, from `1763b1c`: FreeBSD ships Go 1.25, and the tree could not build
 there before.
+
+Ken confirmed this on 2026-10-11. `golang.org/x/sys` v0.48.0 and later ask
+for Go 1.26, and Ken chose to stay on Go 1.25.0, so `x/sys` stays at v0.47.0,
+the last release that asks for Go 1.25. The status changed from Proposed to
+Decided then.
 
 ### D20. Continuous integration runs every check on four hosted runners, with the Go that go.mod names. Proposed.
 
@@ -708,6 +715,20 @@ The tests still build it: 13 tests in `rline_test.go` and the harness in
 `uitest` run `go build ./_examples/sql`, so a change that breaks its build
 fails them. Nothing vets it or lints it.
 
+### D38. The first release is v0.1.0, and no go.mod in it has a replace directive. Decided.
+
+Ken decided on 2026-10-11 to tag the first release of rline as v0.1.0, and
+to remove every replace directive before the tag. A version under v1 says
+that the API can still change, which fits a plan where 18 decisions are
+still Proposed.
+
+The only replace directives were in the `go.mod` of `_examples/transit`,
+which took rline and transit from the checkouts beside this one. It now
+requires published versions: transit and its grammar packages at their tag,
+and rline at the pseudo-version of a commit already on GitHub. The `go.mod`
+of an example cannot require the tag of the commit that holds it, so a later
+commit can move it to v0.1.0.
+
 ## Open questions for Ken
 
 The first eight came from the old plan, in its words. The rest were found
@@ -804,8 +825,9 @@ names are held for the review of how a caller accumulates lines, where the
 whole callback is likely to change shape anyway.
 
 Ninth, which proposed decisions stand? Each decision marked `Proposed` above
-was made without a record that Ken chose it: D6, D7, D8, D9, D11, D18, D19,
-D20, D21, D23, D26, D28, D29, D30, D31, D32, D33, D34 and D35. Each one that
+was made without a record that Ken chose it: D6, D7, D8, D9, D11, D18, D20,
+D21, D23, D26, D28, D29, D30, D31, D32, D33, D34 and D35. D19 was confirmed
+on 2026-10-11. Each one that
 Ken confirms changes to `Decided`. Each one that Ken rejects gets a new
 decision that amends it.
 
