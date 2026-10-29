@@ -64,10 +64,13 @@ What works:
 `Password` reads a line without showing it, without recording it, and without
 completion or highlighting.
 
-Completion is finished too. Tab fills in the longest start every answer shares,
-and offers a menu when several remain. The menu lays out in columns, and how
-many depends on how wide the entries are: in the example, `c` then Tab gives
-three columns and `co` then Tab gives two.
+Completion is finished too, and it works as readline's does. Tab fills in the
+longest start that every completion shares. A second Tab lists the
+completions below the line, in columns that run down and then across, and
+the list stops at each full screen with `--More--`. `WithCompletionMenu(true)`
+gives isocline's numbered menu in place of the list: Tab fills in what the
+completions share and opens the menu, the arrow keys and Tab move through
+it, and a digit or Enter takes an entry.
 
 Inside, the port keeps the C's behavior even where that behavior is wrong,
 because recorded output from the C build is the test corpus. The interface is
@@ -133,8 +136,9 @@ insert and command modes.
 
 `WithUserInputrc(true)` reads the user's inputrc file as readline finds it:
 the file that `$INPUTRC` names, and no other when it is set, or else
-`~/.inputrc`, or else `/etc/inputrc`. On Windows the file is `~/_inputrc`. Its bindings, macros and variables apply, and
-`set editing-mode vi` turns vi mode on. `WithAppName` sets the name that
+`~/.inputrc`, or else `/etc/inputrc`. On Windows the file is `~/_inputrc`.
+Its bindings, macros and variables apply, and `set editing-mode vi` turns vi
+mode on. `WithAppName` sets the name that
 `$if` tests. `Notices` lists what in the file rline does not support.
 
 ```go
@@ -157,6 +161,10 @@ A statement ends at a semicolon. Until then Enter starts another row inside the
 same line rather than handing it back, which is what `WithContinue` does. The
 rows are one buffer, and the whole statement comes back at once. The keys are
 GNU readline's, so Up brings back an earlier statement in place of this one.
+
+The example turns on `WithCompletionMenu`, so Tab opens isocline's numbered
+menu when several words fit. `-vi` edits with vi's keys, and Tab opens the
+menu in vi's insert mode too.
 
 `\pass` reads a password and then echoes it back, so that what was collected
 can be checked against what was typed. A real program does not echo it.

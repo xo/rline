@@ -162,6 +162,12 @@ something from rline before usql can fix them.
     `./...` leaves out a folder whose name starts with an underscore. The
     tests still build it. Naming the folder in the vet steps of CI and in
     `tools/lint.sh` would put it back under both. From: D37.
+66. The `go.mod` of `_examples/transit` replaces rline with `../..`, so
+    that the example can use `WithCompletionMenu` and `WithViMode` before a
+    release of rline has them. Once one does, the example requires that
+    version and the replace goes, as D38 did for v0.1.0. Whether the tag
+    of v0.2.0 may hold the replace is Ken's choice. From: Ken, on
+    2026-10-30, when the example moved to the menu.
 
 ## Found while answering usql
 
@@ -257,6 +263,12 @@ asked for the whole list of what readline support still needs.
     default. `AddCandidate` takes a `Suffix`, and file name completion puts
     a space after a file. Whether `Add` adds a space is Ken's choice, and it
     goes with item 31. From: backlog 46.
+65. The GIF in the README was made with v0.1.0. `_examples/sql` opens the
+    completion menu again (D51), so the `readme` session in
+    `uitest/session.go` should still match it, but nobody has run that
+    session since the keys moved to readline. `contrib/make-demo-gif.sh`
+    must make the GIF again in a real terminal, and the `completion`
+    session must be run again too. From: the release of v0.2.0.
 
 ## Found while search moved to readline
 

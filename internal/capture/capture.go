@@ -105,6 +105,9 @@ type Session struct {
 	// same directory for both.
 	Dir string
 
+	// Args are the arguments the program is started with.
+	Args []string
+
 	// Steps are the input chunks, sent in order. Record always collects the
 	// output of the program before the first step, so a session does not need
 	// an empty step to wait for a banner.

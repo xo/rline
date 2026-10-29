@@ -138,6 +138,11 @@ type feedOpts struct {
 	// Pauses are the places in the keys where typing pauses, which ends the
 	// wait of the decoder for the rest of an escape sequence.
 	Pauses map[int]bool
+
+	// CompletionMenu binds Tab to isocline's completion menu (D51), and
+	// AutoTab completes again after the menu completes.
+	CompletionMenu bool
+	AutoTab        bool
 }
 
 // feed runs the keys through a fresh editor and returns the line and where the
@@ -217,6 +222,8 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 	if opt.Continue != nil {
 		ev.isIncomplete = opt.Continue
 	}
+	ev.completionMenu = opt.CompletionMenu
+	ev.completeAutoTab = opt.AutoTab
 	return ev, sink
 }
 
@@ -589,6 +596,148 @@ func TestCompletionList(t *testing.T) {
 	// The line is drawn again below the list.
 	if i, j := strings.LastIndex(drawn, "x29"), strings.LastIndex(drawn, "> x"); j < i {
 		t.Errorf("the line was not drawn again below the list\ndrawn: %q", drawn)
+	}
+}
+
+// TestCompletionMenu checks isocline's completion menu, which
+// WithCompletionMenu binds to Tab (D51). The menu itself is checked against
+// the C in menu_test.go. This checks that the edit loop hands it the keys,
+// runs the key that closes it, and keeps what it put in the line.
+func TestCompletionMenu(t *testing.T) {
+	t.Parallel()
+	// The menu puts the shortest first, as isocline sorts them, so it reads
+	// 1 alpha, 2 alpine, 3 alphabet and 4 alphanumeric.
+	words := manyWords("alpha", "alphabet", "alphanumeric", "alpine")
+	menu := feedOpts{Completer: words, CompletionMenu: true}
+	for _, test := range []struct {
+		name string
+		keys string
+		opt  feedOpts
+		want string
+	}{
+		// Tab puts in "alp", which all four share, and opens the menu. With
+		// the preview on nothing is selected, so Enter closes the menu and
+		// the edit loop runs it, which finishes the line.
+		{"enter with nothing selected", "al" + kTab + kEnter, menu, "alp"},
+		{"tab selects the first", "al" + kTab + kTab + kEnter + kEnter, menu, "alpha"},
+		{"down selects the next", "al" + kTab + kDown + kDown + kEnter + kEnter, menu, "alpine"},
+		{"up selects the last", "al" + kTab + kUp + kEnter + kEnter, menu, "alphanumeric"},
+		{"a digit picks an entry", "al" + kTab + "3" + kEnter, menu, "alphabet"},
+		{"esc closes the menu", "al" + kTab + kEsc + kEnter, menu, "alp"},
+		{"typing takes the preview", "al" + kTab + kTab + "x" + kEnter, menu, "alphax"},
+		{"undo takes the pick back", "al" + kTab + "4" + kUndo + kEnter, menu, "alp"},
+		{"one answer goes in", "alpi" + kTab + kEnter, menu, "alpine"},
+		{"no answer leaves the line", "zz" + kTab + kEnter, menu, "zz"},
+		// With WithAutoTab, picking alpha leaves alphabet and alphanumeric,
+		// which share nothing more, so the menu opens again and 2 picks
+		// alphanumeric.
+		{"auto tab opens the menu again", "al" + kTab + "1" + "2" + kEnter,
+			feedOpts{Completer: words, CompletionMenu: true, AutoTab: true}, "alphanumeric"},
+		{"without auto tab the digit is typed", "al" + kTab + "1" + "2" + kEnter, menu, "alpha2"},
+		// Without the option, Tab is readline's complete, which puts in what
+		// the answers share and opens no menu.
+		{"without the option tab is readline's", "al" + kTab + "1" + kEnter,
+			feedOpts{Completer: words}, "alp1"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			line, _, _, _ := feedSession(t, test.keys, test.opt)
+			if line != test.want {
+				t.Errorf("the line is %q, want %q", line, test.want)
+			}
+		})
+	}
+
+	// The menu is numbered, and the number goes in front of each entry.
+	_, _, _, out := feedSession(t, "al"+kTab+kEsc+kEnter, menu)
+	if drawn := stripEscapes(out); !strings.Contains(drawn, "4 alphanumeric") {
+		t.Errorf("the menu was not drawn\ndrawn: %q", drawn)
+	}
+
+	// F1 shows the help, and the menu stays open, so 2 still picks alpine.
+	// Outside the menu F1 runs nothing, and the 2 would be typed.
+	_, _, _, out = feedSession(t, "al"+kTab+"\x1bOP2"+kEnter, menu)
+	if drawn := stripEscapes(out); !strings.Contains(drawn, "In the completion menu:") ||
+		!strings.HasSuffix(strings.TrimRight(drawn, "\r\n"), "> alpine") {
+		t.Errorf("F1 in the menu did not show the help and keep the menu\ndrawn: %q", drawn)
+	}
+
+	// Ctrl-C closes the menu, and the edit loop then gives the line up.
+	if _, _, c, _ := feedSession(t, "al"+kTab+"\x03", menu); c != key.CtrlC {
+		t.Errorf("Ctrl-C in the menu finished the line with %v, want Ctrl-C", c)
+	}
+
+	// vi's insert mode binds Tab to the menu as well.
+	ev, _ := feedEnv(t, "al"+kTab+"2"+kEnter, menu)
+	ev.viMode = true
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	ev.runEditLoop(e)
+	if got := e.Input.String(); got != "alpine" {
+		t.Errorf("in vi insert mode the line is %q, want %q", got, "alpine")
+	}
+}
+
+// TestCompletionMenuInInputrc checks that an inputrc file goes over
+// WithCompletionMenu, and can bind rline-menu-complete without it (D51).
+func TestCompletionMenuInInputrc(t *testing.T) {
+	t.Parallel()
+	words := manyWords("alpha", "alphabet", "alphanumeric", "alpine")
+	for _, test := range []struct {
+		name, inputrc string
+		menu          bool
+		want          string
+	}{
+		{"the file binds tab back", "TAB: complete\n", true, "alp2"},
+		{"a file that leaves tab alone keeps the menu", "set bell-style none\n", true, "alpine"},
+		{"the file binds the menu", "\"\\C-xm\": rline-menu-complete\n", false, "alpine"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			path := filepath.Join(t.TempDir(), "inputrc")
+			if err := os.WriteFile(path, []byte(test.inputrc), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			keys := "al" + kTab + "2" + kEnter
+			if !test.menu {
+				keys = "al\x18m2" + kEnter
+			}
+			ev, _ := feedEnv(t, keys, feedOpts{Completer: words, CompletionMenu: test.menu})
+			ev.readInputrc(&config{inputrcFile: path, appName: DefaultAppName})
+			if len(ev.notices) > 0 {
+				t.Errorf("notices: %q", ev.notices)
+			}
+			e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+			ev.runEditLoop(e)
+			if got := e.Input.String(); got != test.want {
+				t.Errorf("the line is %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+// TestInputrcModeAfterEditingMode checks that "set editing-mode vi" changes
+// the mode that a later "$if mode=vi" tests, as it does in readline, where
+// bash 5.3 binds d in vi-command from a file of this shape. In inputrc v0.7.0
+// the block was skipped.
+func TestInputrcModeAfterEditingMode(t *testing.T) {
+	t.Parallel()
+	const inputrc = "set editing-mode vi\n" +
+		"$if mode=vi\n" +
+		"  set keymap vi-command\n" +
+		"  \"d\": backward-char\n" +
+		"$endif\n"
+	path := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(path, []byte(inputrc), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// Esc leaves the cursor on c, d moves it back to b, and x deletes b.
+	// Without the binding, d waits for a motion and x cancels it.
+	ev, _ := feedEnv(t, "abc"+kEsc+"dx"+kEnter, feedOpts{})
+	ev.readInputrc(&config{inputrcFile: path, appName: DefaultAppName})
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	ev.runEditLoop(e)
+	if got := e.Input.String(); got != "ac" {
+		t.Errorf("the line is %q, want %q", got, "ac")
 	}
 }
 

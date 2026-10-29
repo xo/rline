@@ -60,6 +60,8 @@ files (D15):
 - `bind.go`: the keymaps, built from readline's defaults, the commands that
   rline runs itself, and the list of completions that readline shows.
 - `comp.go`: completion and file name completion.
+- `menu.go`: isocline's numbered completion menu, which
+  `WithCompletionMenu` binds to Tab (D51).
 - `history.go`: the history list and its file. Walking and searching it are
   readline's commands, in `internal/readline`.
 - `bbcode.go`: markup and the highlighting built on it.
@@ -106,9 +108,10 @@ The other folders:
     through `TestBashExampleTests` in `rline_test.go`.
   - `_examples/transit/`: a prompt that highlights and completes code with
     transit. It is a module of its own, so that rline gets no new dependency
-    (D7), and its `go.mod` requires published versions of rline and
-    transit, with no replace directive (D38). Run `go test ./...` inside
-    it.
+    (D7). Its `go.mod` requires a published transit, and replaces rline
+    with this checkout until a release of rline has `WithCompletionMenu`
+    (backlog 66). D38 removed the replace directive for v0.1.0. Run
+    `go test ./...` inside it.
 - `uitest/`: drives real terminal emulators. It does not run in CI.
 - `contrib/`: installers for what `uitest` drives, and the script that makes
   the demonstration GIF.

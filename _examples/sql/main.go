@@ -14,8 +14,13 @@
 // The folder starts with an underscore, so "./..." leaves it out, and a
 // command has to name the folder.
 //
-// Pass -log to record everything read and written, which is the way to see
-// what was drawn without watching it happen.
+// Tab completes the word before the cursor. When several words fit, it opens
+// a numbered menu of them below the line, which WithCompletionMenu turns on.
+// The arrow keys and Tab move through the menu, a digit or Enter takes a word,
+// and Esc closes it.
+//
+// Pass -vi to edit with vi's keys, and -log to record everything read and
+// written, which is the way to see what was drawn without watching it happen.
 package main
 
 import (
@@ -46,12 +51,15 @@ func main() {
 // run reads statements until the input ends.
 func run() error {
 	logPath := flag.String("log", "", "record the session to this file")
+	vi := flag.Bool("vi", false, "edit with vi keys, as set -o vi does in bash")
 	flag.Parse()
 
 	opts := []rline.Option{
 		rline.WithPrompt("sql> ", "...> "),
 		rline.WithHighlighter(rline.HighlighterFunc(highlight)),
 		rline.WithCompleter(rline.CompleterFunc(complete)),
+		rline.WithCompletionMenu(true),
+		rline.WithViMode(*vi),
 		rline.WithContinue(incomplete),
 		// In the working directory rather than the home directory, so that
 		// running the example leaves nothing outside the directory it was

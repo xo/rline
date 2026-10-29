@@ -86,6 +86,14 @@ type env struct {
 	// completeAutoTab keeps completing while there is only one answer.
 	completeAutoTab bool
 
+	// completionMenu binds Tab to rline-menu-complete, and menu is the menu
+	// while it is open (D51). menuAutoTab says that the EventAutoTab pushed
+	// back came from the menu's way of completing, which opens the menu again
+	// when there are several answers.
+	completionMenu bool
+	menu           *completionMenu
+	menuAutoTab    bool
+
 	// completePreview shows in the line what picking the selected entry would
 	// do, and takes it straight back out again. It is on by default. The C
 	// names its flag for what it turns off; this does not, so that every
@@ -478,12 +486,16 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 // the history being kept, so that a test can drive it over a fixed set of keys
 // and look at the line afterwards.
 func (ev *env) runEditLoop(e *editor.Editor) key.Code {
-	if ev.keymap == nil {
-		ev.keymap = emacsKeymap()
+	if ev.keymap == nil || ev.viInsert == nil {
+		km, vi, vc := ev.defaultKeymaps()
+		if ev.keymap == nil {
+			ev.keymap = km
+		}
+		if ev.viInsert == nil {
+			ev.viInsert, ev.viCommand = vi, vc
+		}
 	}
-	if ev.viInsert == nil {
-		ev.viInsert, ev.viCommand = viKeymaps()
-	}
+	ev.menu, ev.menuAutoTab = nil, false
 	l := readline.New(ev.keymap, ev.readlineHistory())
 	l.SetKeymaps(ev.keymap, ev.viInsert, ev.viCommand)
 	l.SetHandler(func(name string, c key.Code) bool { return ev.command(e, l, name, c) })
@@ -516,6 +528,13 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		// what changed is measured against the line before the key.
 		before, beforePoint := l.Text(), l.Point()
 		switch {
+		case ev.menu != nil:
+			// The open menu takes every key, as the C's menu reads every key
+			// itself, and pushes back a key that closes it without being
+			// used, so that it is read again here (D51).
+			ev.menuKey(e, c)
+			l.Edit(e.Input.String(), e.Pos)
+			continue
 		case c == key.CtrlC:
 			// Ctrl-C gives the line up (D13). In readline the terminal turns
 			// it into a signal, and it is no key. The line is emptied, as
@@ -531,7 +550,12 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 			ev.resize(e)
 			continue
 		case c == key.EventAutoTab:
-			ev.acceptHint(e)
+			if ev.menuAutoTab {
+				ev.menuAutoTab = false
+				ev.generateCompletions(e, true)
+			} else {
+				ev.acceptHint(e)
+			}
 			l.Edit(e.Input.String(), e.Pos)
 			continue
 		case c == key.Right && hadHint:

@@ -57,7 +57,7 @@ func Record(ctx context.Context, path string, s Session) (*Transcript, error) {
 		_ = follower.Close()
 		return nil, err
 	}
-	cmd := exec.CommandContext(ctx, path)
+	cmd := exec.CommandContext(ctx, path, s.Args...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = follower, follower, follower
 	// The demo writes its history file to the working directory, so the
 	// recording runs in the temporary home directory as well.

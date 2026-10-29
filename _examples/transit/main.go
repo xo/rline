@@ -5,18 +5,22 @@
 // told what changed and parsed again with the old tree, and the highlight
 // query of the grammar marks the result. Tab offers what the parser can
 // accept at the cursor. The offer comes from the parse state at the start of
-// the word, and not from a list of words.
+// the word, and not from a list of words. When several words fit, Tab opens a
+// numbered menu of them, which WithCompletionMenu turns on (rline D51).
 //
 // The example is a module of its own, so that rline gets no new dependency
-// (rline D7). Its go.mod requires published versions of rline and transit,
-// and has no replace directive (rline D38). Run it from this folder:
+// (rline D7). Its go.mod requires a published transit, and replaces rline
+// with the checkout that holds this folder, because it needs rline's
+// WithCompletionMenu before a release has it. Run it from this folder:
 //
 //	go run . -lang python
 //
 // The languages are bash, c, go, javascript, json, python, ruby and rust.
+// Pass -vi to edit with vi's keys. The keys are GNU readline's.
+//
 // Enter finishes the input when it parses with no error and no empty node,
-// or when the last row is empty. Ctrl-J starts a new row. Ctrl-C gives up the input, and
-// Ctrl-D on an empty row leaves.
+// or when the last row is empty. Ctrl-V and then Ctrl-J starts a new row, as
+// in bash. Ctrl-C gives up the input, and Ctrl-D on an empty row leaves.
 package main
 
 import (
@@ -126,6 +130,7 @@ func run() error {
 	})
 	lang := flag.String("lang", "python", "the language: "+strings.Join(names, ", "))
 	showTree := flag.Bool("tree", true, "print the tree of each input")
+	vi := flag.Bool("vi", false, "edit with vi keys, as set -o vi does in bash")
 	flag.Parse()
 	g, ok := grammars[*lang]
 	if !ok {
@@ -139,6 +144,8 @@ func run() error {
 		rline.WithPrompt("> ", "| "),
 		rline.WithHighlighter(s),
 		rline.WithCompleter(s),
+		rline.WithCompletionMenu(true),
+		rline.WithViMode(*vi),
 		rline.WithContinue(s.unfinished),
 	)
 	if err != nil {
@@ -150,8 +157,8 @@ func run() error {
 	}
 	out := p.Markup()
 	_, _ = fmt.Fprintf(out, "[b]rline[/b] with transit, highlighting and completing [b]%s[/b].\n", *lang)
-	_, _ = fmt.Fprintln(out, "[ic-info]Tab offers what the parser accepts at the cursor. Enter finishes input that parses, or an empty row.[/]")
-	_, _ = fmt.Fprintln(out, "[ic-info]Ctrl-J starts a new row, Ctrl-C gives the input up, and Ctrl-D on an empty row leaves.[/]")
+	_, _ = fmt.Fprintln(out, "[rline-info]Tab offers what the parser accepts at the cursor. Enter finishes input that parses, or an empty row.[/]")
+	_, _ = fmt.Fprintln(out, "[rline-info]Ctrl-V Ctrl-J starts a new row, Ctrl-C gives the input up, and Ctrl-D on an empty row leaves.[/]")
 	// When there is no terminal to edit on, ReadLine hands back one row at a
 	// time and never asks WithContinue, so the rows are joined here with the
 	// same rule.
@@ -188,7 +195,7 @@ func run() error {
 		if *showTree {
 			_, _ = fmt.Fprintln(p, tree)
 		}
-		_, _ = fmt.Fprintf(out, "[ic-info]%s[/]\n", stats)
+		_, _ = fmt.Fprintf(out, "[rline-info]%s[/]\n", stats)
 	}
 }
 

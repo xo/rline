@@ -266,6 +266,7 @@ type config struct {
 	inlineHelp      bool
 	multiline       bool
 	autoTab         bool
+	completionMenu  bool
 
 	hintDelay time.Duration
 
@@ -493,6 +494,16 @@ func WithMultilineIndent(multilineIndent bool) Option {
 	return func(c *config) { c.multilineIndent = multilineIndent }
 }
 
+// WithCompletionMenu binds Tab to rline-menu-complete, which completes as
+// isocline does: Tab fills in what the completions share, and then opens a
+// numbered menu of them below the line. The arrow keys, Tab and Shift-Tab
+// move through the menu, a digit or Enter takes an entry, and Esc closes it.
+// Without it, Tab completes as GNU readline's does. The user's inputrc, read
+// with WithUserInputrc, can bind Tab to something else (D51).
+func WithCompletionMenu(completionMenu bool) Option {
+	return func(c *config) { c.completionMenu = completionMenu }
+}
+
 // WithAutoTab keeps completing while there is only one answer.
 func WithAutoTab(autoTab bool) Option {
 	return func(c *config) { c.autoTab = autoTab }
@@ -639,6 +650,7 @@ func New(opts ...Option) (*Prompt, error) {
 		inlineHelp:      c.inlineHelp,
 		multiline:       c.multiline,
 		completeAutoTab: c.autoTab,
+		completionMenu:  c.completionMenu,
 		completePreview: true,
 		hintDelay:       c.hintDelay,
 	}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/xo/rline/internal/editor"
 	"github.com/xo/rline/internal/text"
+	"github.com/xo/rline/key"
 )
 
 // --------------------------------------------------------------------------
@@ -1038,10 +1039,11 @@ func completeFilename(cenv *Completion, prefix string, color bool,
 // --------------------------------------------------------------------------
 // editlinecompletion.go
 
-// Offering completions from inside the edit loop: asking the completer, and
+// Offering completions from inside the edit loop: asking the completer,
 // applying the only answer when there is only one, which is how a hint is
-// taken. The readline commands that complete are in internal/readline, and
-// bind.go draws the list they ask for.
+// taken, and opening the menu when there are more (D51). The readline
+// commands that complete are in internal/readline, and bind.go draws the list
+// they ask for.
 //
 // Ported from isocline/src/editline_completion.c.
 
@@ -1075,4 +1077,49 @@ func (ev *env) complete(e *editor.Editor, index int) bool {
 		ev.refresh(e)
 	}
 	return changed
+}
+
+// completeLongestPrefix puts in as much as every completion agrees on.
+func (ev *env) completeLongestPrefix(e *editor.Editor) {
+	e.StartModify()
+	completionCommit(e, ev.completions.applyLongestPrefix(&e.Input, e.Pos))
+}
+
+// generateCompletions offers completions for the word at the cursor, as
+// isocline's Tab does, and is the command rline-menu-complete (D51). When
+// autoTab is set the caller asked for this rather than the user, so nothing
+// to complete passes quietly instead of beeping.
+func (ev *env) generateCompletions(e *editor.Editor, autoTab bool) {
+	if e.Pos < 0 {
+		return
+	}
+	count := ev.completions.generate(e.Input.String(), e.Pos, maxCompletionsToTry)
+	// The completer was asked to stop once it had this many, so reaching the
+	// limit means there are probably others it never offered.
+	moreAvailable := count >= maxCompletionsToTry
+	switch {
+	case count <= 0:
+		if !autoTab {
+			ev.term.bell()
+		}
+	case count == 1:
+		if ev.complete(e, 0) && ev.completeAutoTab {
+			ev.pushAutoTab()
+		}
+	default:
+		if !moreAvailable {
+			// Every completion is known, so as much of them as agrees can go
+			// in before the menu is drawn.
+			ev.completeLongestPrefix(e)
+		}
+		ev.completions.sort()
+		ev.openMenu(e, moreAvailable)
+	}
+}
+
+// pushAutoTab asks the edit loop to complete again, as the menu does after a
+// completion, which can open the menu again.
+func (ev *env) pushAutoTab() {
+	ev.menuAutoTab = true
+	ev.keys.pushCode(key.EventAutoTab)
 }

@@ -78,12 +78,13 @@ that holds it.
 | [D42](#d42-the-decoder-keeps-ctrl-h-and-the-backspace-key-apart-decided) | The decoder keeps Ctrl-H and the Backspace key apart | Decided |
 | [D43](#d43-key-bindings-arrive-in-seven-phases-from-a-command-table-to-vi-modes-decided-amended-by-d44-and-d46) | Key bindings arrive in seven phases, from a command table to vi modes | Decided. Amended by D44 and D46 |
 | [D44](#d44-key-handling-follows-gnu-readline-only-and-isoclines-key-behaviour-waits-decided-amends-d43-amended-by-d45) | Key handling follows GNU readline only, and isocline's key behaviour waits | Decided. Amends D43, amended by D45 |
-| [D45](#d45-readlines-keys-commands-completion-and-search-are-checked-against-gnu-readline-and-rlines-renderer-and-features-stay-decided-amends-d13-and-d44) | readline's keys, commands, completion and search are checked against GNU readline, and rline's renderer and features stay | Decided. Amends D13 and D44 |
+| [D45](#d45-readlines-keys-commands-completion-and-search-are-checked-against-gnu-readline-and-rlines-renderer-and-features-stay-decided-amends-d13-and-d44-amended-by-d51) | readline's keys, commands, completion and search are checked against GNU readline, and rline's renderer and features stay | Decided. Amends D13 and D44, amended by D51 |
 | [D46](#d46-the-readline-work-records-against-readline-83-treats-esc-as-a-prefix-and-starts-with-the-whole-emacs-command-set-decided-amends-d43) | The readline work records against readline 8.3, treats Esc as a prefix, and starts with the whole emacs command set | Decided. Amends D43 |
 | [D47](#d47-the-readline-commands-are-written-from-readlines-manual-and-recordings-never-from-its-c-decided) | The readline commands are written from readline's manual and recordings, never from its C | Decided |
 | [D48](#d48-a-session-gives-the-terminal-to-another-program-with-release-and-watches-the-stop-signals-only-in-raw-mode-proposed) | A Session gives the terminal to another program with Release, and watches the stop signals only in raw mode | Proposed |
 | [D49](#d49-the-style-names-start-with-rline--and-not-with-ic--decided) | The style names start with rline- and not with ic- | Decided |
 | [D50](#d50-a-program-asks-for-the-users-inputrc-with-withuserinputrc-and-notices-lists-what-rline-does-not-support-decided) | A program asks for the user's inputrc with WithUserInputrc, and Notices lists what rline does not support | Decided |
+| [D51](#d51-isoclines-completion-menu-comes-back-as-the-command-rline-menu-complete-and-withcompletionmenu-binds-tab-to-it-proposed-amends-d45) | isocline's completion menu comes back as the command rline-menu-complete, and WithCompletionMenu binds Tab to it | Proposed. Amends D45 |
 
 ## Purpose
 
@@ -858,7 +859,7 @@ statement.
 This changes the first phase of D43. It does not keep the behaviour of the
 `switch` in `prompt.go`. It builds the command table from readline's commands.
 
-### D45. readline's keys, commands, completion and search are checked against GNU readline, and rline's renderer and features stay. Decided. Amends D13 and D44.
+### D45. readline's keys, commands, completion and search are checked against GNU readline, and rline's renderer and features stay. Decided. Amends D13 and D44, amended by D51.
 
 Ken settled on 2026-10-14 how far D44 reaches:
 
@@ -1022,6 +1023,34 @@ also puts in this phase, are not here. Their shape needs a design, and
 backlog 48 holds it.
 
 Ken accepted the decision as proposed on 2026-10-29.
+
+### D51. isocline's completion menu comes back as the command rline-menu-complete, and WithCompletionMenu binds Tab to it. Proposed. Amends D45.
+
+Point 2 of D45 removed isocline's numbered completion menu, so that Tab
+completes as readline's Tab does. D44 said that isocline's behaviour can
+come back once readline's emacs and vi modes work, and they do now. Ken
+asked on 2026-10-30 for the menu to come back:
+
+1. The menu is the command `rline-menu-complete`. It fills in what the
+   completions share, as isocline's Tab did, and opens the menu when more
+   than one is left. No key runs it by default, so Tab is still readline's
+   `complete` and the recordings of readline 8.3 still hold.
+2. `WithCompletionMenu(true)` binds Tab to `rline-menu-complete` in the
+   emacs keymap and in vi insert mode. It is off by default (D26). The
+   user's inputrc goes over it, so a user can bind Tab back to `complete`,
+   or bind `rline-menu-complete` to a key of their own without the option.
+3. The menu reads no keys of its own, as step 3 of D43 asks. The edit loop
+   reads every key, and while the menu is open it hands each key to the
+   menu, through a keymap of the menu's own: Tab and Down select the next
+   entry, Shift-Tab and Up the one before, a digit picks an entry, Enter,
+   Right and End take the selected entry, Esc closes the menu, Page-down
+   and Ctrl-J list every completion, and F1 shows the help. A key that the
+   menu does not take closes it, and the edit loop then runs that key.
+4. The menu draws, previews and takes an entry as isocline does. The C
+   probe of the menu and its 3360 recorded cases come back, and the test
+   replays them through the edit loop's way of handing keys to the menu.
+5. With `WithAutoTab`, a pick that leaves one completion completes again,
+   and opens the menu again when there are several, as isocline does.
 
 ## Open questions for Ken
 

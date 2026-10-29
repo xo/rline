@@ -96,6 +96,19 @@ func viKeymaps() (*readline.Keymap, *readline.Keymap) {
 	return newKeymap(binds["vi-insert"]), newKeymap(binds["vi-command"])
 }
 
+// defaultKeymaps returns readline's default keymaps of emacs, vi's insert
+// mode and vi's command mode. With the completion menu on, Tab runs
+// rline-menu-complete in emacs and in vi's insert mode (D51).
+func (ev *env) defaultKeymaps() (emacs, viInsert, viCommand *readline.Keymap) {
+	emacs = emacsKeymap()
+	viInsert, viCommand = viKeymaps()
+	if ev.completionMenu {
+		emacs.Bind([]key.Code{key.Tab}, "rline-menu-complete")
+		viInsert.Bind([]key.Code{key.Tab}, "rline-menu-complete")
+	}
+	return emacs, viInsert, viCommand
+}
+
 // readlineHistory returns the history for a line about to be read, oldest
 // first. editLine pushes an empty entry that stands for the line itself, and
 // that one is left out. No other entry is empty, because editLine keeps no
@@ -178,6 +191,10 @@ func (ev *env) command(e *editor.Editor, l *readline.Line, name string, c key.Co
 		return true
 	case "rline-help":
 		ev.showHelp(e)
+		return true
+	case "rline-menu-complete":
+		ev.generateCompletions(e, false)
+		l.Edit(e.Input.String(), e.Pos)
 		return true
 	}
 	return false
@@ -292,7 +309,7 @@ func (ev *env) more(page *int) bool {
 var rlineCommands = map[string]bool{
 	"accept-line": true, "self-insert": true, "rline-accept-hint": true,
 	"clear-screen": true, "clear-display": true, "redraw-current-line": true,
-	"rline-help": true,
+	"rline-help": true, "rline-menu-complete": true,
 }
 
 // rlineVars are the variables of readline that rline reads itself, rather
@@ -356,8 +373,7 @@ func (ev *env) readInputrc(c *config) {
 			binds[name][prefix+seq] = b
 		}
 	}
-	ev.keymap = emacsKeymap()
-	ev.viInsert, ev.viCommand = viKeymaps()
+	ev.keymap, ev.viInsert, ev.viCommand = ev.defaultKeymaps()
 	bindAll(ev.keymap, binds["emacs"])
 	bindAll(ev.viInsert, binds["vi-insert"])
 	bindAll(ev.viCommand, binds["vi-command"])

@@ -155,7 +155,9 @@ The C headers give an acyclic order. Port the modules from the leaves up:
 
     isocline's completion menu was ported and checked against 3360
     recorded cases. It was removed when the completion display moved to
-    readline's (D45), with its probe and its corpus.
+    readline's (D45), with its probe and its corpus. D51 brought all three
+    back in `menu.go`, as the command `rline-menu-complete`, which
+    `WithCompletionMenu` binds to Tab.
 
     That is the whole of `editline.c` and its includes.
 12. `isocline.c`. Done in shape, and it is the one part that is not a
@@ -298,7 +300,8 @@ redo, F1 no longer shows the help screen, Alt-m no longer jumps to the
 matching brace, Up and Down no longer move between rows, End no longer takes
 a hint, and Ctrl-G no longer gives the line up. Ctrl-J ends the line, as
 Enter does. Completion is shown as readline shows it, with the list below the
-line in place of isocline's numbered menu. Ctrl-R is readline's incremental
+line in place of isocline's numbered menu, unless the program turns on
+`WithCompletionMenu`, which binds Tab to isocline's menu again (D51). Ctrl-R is readline's incremental
 search, with its prompt in place of the program's, in place of isocline's
 search below the line (D45). The help screen is the command `rline-help`, which no key is
 bound to.
@@ -555,6 +558,13 @@ recorded sessions are kept per system and each holds the glyph its own C build
 produced.
 
 ### editline_completion.c
+
+`edit_completion_menu` reads its own keys until the menu closes, so no key
+binding reaches them. The port reads no keys in the menu (D51). The edit loop
+reads each key and hands it to `menuKey` while the menu is open. A key that
+the menu does not take is pushed back, as the C pushes it back, and the edit
+loop reads it next. What the menu draws and does is the same, and the 3360
+recorded cases hold that.
 
 `edit_completion_menu` tests the selected entry with
 `selected <= count_displayed`, one past the last entry it drew. Every path

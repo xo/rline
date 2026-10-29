@@ -734,10 +734,10 @@ func TestExampleSearchesTheHistory(t *testing.T) {
 	}
 }
 
-// TestExampleListsCompletions checks the list that a second Tab draws in the
-// example, as readline draws it: the words sorted, in columns that run down
-// and then across, each column two wider than the widest word (D45).
-func TestExampleListsCompletions(t *testing.T) {
+// TestExampleOpensTheCompletionMenu checks the menu that Tab opens in the
+// example, which turns on WithCompletionMenu (D51), and that a digit picks a
+// word from it.
+func TestExampleOpensTheCompletionMenu(t *testing.T) {
 	if testing.Short() {
 		t.Skip("building the example takes a moment")
 	}
@@ -746,14 +746,14 @@ func TestExampleListsCompletions(t *testing.T) {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
-		Name:  "list",
-		About: "two tabs list the words that start with c",
+		Name:  "menu",
+		About: "tab opens the menu of the words that start with c, and 4 picks count",
 		Cols:  80,
 		Rows:  24,
 		Steps: []capture.Step{
 			{Send: "c"},
-			{Send: capture.KeyTab},
 			{Send: capture.KeyTab, Wait: 600 * time.Millisecond},
+			{Send: "4", Wait: 300 * time.Millisecond},
 			{Send: capture.CtrlU},
 			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
 		},
@@ -761,13 +761,48 @@ func TestExampleListsCompletions(t *testing.T) {
 	if err != nil {
 		t.Skipf("cannot record on this system: %v", err)
 	}
-	// Fifteen words start with c, and current_timestamp is the widest at
-	// 17, so a column is 19 wide and four fit in 79. Fifteen in four columns
-	// are four rows, and the first row holds the 1st, 5th, 9th and 13th.
+	// Fifteen words start with c. The menu shows the shortest nine, in
+	// three columns that run down: case, cast and check, then count, cross
+	// and column. So 4 is count.
 	plain := stripEscapes(string(tr.Bytes()))
-	want := "cascade            coalesce           constraint         current_date"
-	if !strings.Contains(plain, want) {
-		t.Errorf("the list never drew %q.\nWhat it wrote:\n%s", want, plain)
+	for _, want := range []string{
+		" 1 case",
+		" 4 count",
+		"(press page-down (or ctrl-j) to see all 15 completions)",
+		"sql> count",
+	} {
+		if !strings.Contains(plain, want) {
+			t.Errorf("the session never drew %q.\nWhat it wrote:\n%s", want, plain)
+		}
+	}
+
+	// With -vi the line starts in vi's insert mode, where Tab opens the menu
+	// as well. Esc goes to command mode, and 0 then x deletes the first
+	// character, so "count" becomes "ount", which emacs keys would not do.
+	tr, err = capture.Record(context.Background(), bin, capture.Session{
+		Name:  "menu-vi",
+		About: "with -vi, tab opens the menu in insert mode, and Esc then 0x edits in command mode",
+		Cols:  80,
+		Rows:  24,
+		Args:  []string{"-vi"},
+		Steps: []capture.Step{
+			{Send: "c"},
+			{Send: capture.KeyTab, Wait: 600 * time.Millisecond},
+			{Send: "4", Wait: 300 * time.Millisecond},
+			{Send: capture.KeyEscape, Wait: 300 * time.Millisecond},
+			{Send: "0x", Wait: 300 * time.Millisecond},
+			{Send: "A;" + capture.KeyEnter, Wait: 300 * time.Millisecond},
+			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system, so -vi was not checked: %v", err)
+	}
+	plain = stripEscapes(string(tr.Bytes()))
+	for _, want := range []string{"4 count", "ran 1 line(s): ount;"} {
+		if !strings.Contains(plain, want) {
+			t.Errorf("with -vi the session never drew %q.\nWhat it wrote:\n%s", want, plain)
+		}
 	}
 }
 
