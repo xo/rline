@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -948,5 +949,47 @@ func TestEscapeIsAKeyOfItsOwn(t *testing.T) {
 		if got := decodeKeys([]byte(tc.in), true); !slices.Equal(got, tc.want) {
 			t.Errorf("%q decodes to %s, want %s", tc.in, showCodes(got), showCodes(tc.want))
 		}
+	}
+}
+
+// endedReader is a byteReader whose input ended, as a terminal that was
+// closed reports it.
+type endedReader struct{}
+
+func (endedReader) readByte(time.Duration) (byte, bool) { return 0, false }
+func (endedReader) inputEnded() bool                    { return true }
+
+// TestReadsStopWhenTheInputEnds checks that a read of a key gives
+// key.EventStop when the input ended, and key.None when nothing arrived for
+// another reason, so that a loop that reads keys stops on the first and not
+// on the second. The hidden password reader is one such loop: it appended a
+// zero byte for each read that found nothing.
+func TestReadsStopWhenTheInputEnds(t *testing.T) {
+	t.Parallel()
+	if c := newDecoder(endedReader{}).read(); c != key.EventStop {
+		t.Errorf("a read of ended input gave %08x, want key.EventStop", c)
+	}
+	if c := newDecoder(&idleReader{}).read(); c != key.None {
+		t.Errorf("a read that found nothing gave %08x, want key.None", c)
+	}
+	// The session log wraps the reader, and must not hide that it ended.
+	logged := newDecoder(logReader{src: endedReader{}, logger: &sessionLog{w: io.Discard}})
+	if c := logged.read(); c != key.EventStop {
+		t.Errorf("a read of ended input through the log gave %08x, want key.EventStop", c)
+	}
+
+	s := &Session{env: &env{keys: newDecoder(endedReader{})}}
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.readHidden()
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, io.EOF) {
+			t.Errorf("readHidden of ended input answered %v, want io.EOF", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("readHidden did not return when the input ended")
 	}
 }

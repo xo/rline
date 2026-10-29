@@ -5,6 +5,7 @@ package rline
 import (
 	"bytes"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -396,5 +397,43 @@ func TestReleaseReadsTheSizeAgain(t *testing.T) {
 	}
 	if got := s.env.term.width; got != 90 {
 		t.Errorf("after Release the editor takes the terminal to be %d wide, want 90", got)
+	}
+}
+
+// TestReadLineEndsWhenTheTerminalCloses checks that a read ends with io.EOF
+// when the other side of the terminal closes, as it does when the window is
+// closed. A program that ignores SIGHUP, as one under nohup does, then still
+// stops. The read used to report nothing and the edit loop read again at once,
+// on a full core, for ever. Backlog 54, from isocline's pull request 47.
+func TestReadLineEndsWhenTheTerminalCloses(t *testing.T) {
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available, so a closed terminal was not checked: %v", err)
+	}
+	t.Cleanup(func() { _ = follower.Close() })
+	s, err := New(WithStdin(follower), WithStdout(follower))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	// Take what the read draws, so that writing to the terminal never waits.
+	go func() { _, _ = io.Copy(io.Discard, leader) }()
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.ReadLine("")
+		done <- err
+	}()
+	time.Sleep(200 * time.Millisecond)
+	if err := leader.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if !errors.Is(err, io.EOF) {
+			t.Errorf("ReadLine on a closed terminal answered %v, want io.EOF", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("ReadLine did not return after the terminal closed")
 	}
 }

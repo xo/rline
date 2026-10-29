@@ -1257,6 +1257,12 @@ type logReader struct {
 	logger *sessionLog
 }
 
+// inputEnded satisfies ender, for the reader that the log wraps.
+func (t logReader) inputEnded() bool {
+	e, ok := t.src.(ender)
+	return ok && e.inputEnded()
+}
+
 // readByte satisfies byteReader.
 func (t logReader) readByte(timeout time.Duration) (byte, bool) {
 	c, ok := t.src.readByte(timeout)

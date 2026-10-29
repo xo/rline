@@ -770,6 +770,14 @@ regression seed in `testdata/fuzz`.
 `bool`. The pointer is never null, so it always means true, which is the
 answer it wants. The port returns a second value instead.
 
+`tty_readc` treats a read that fails the same as a read that found nothing,
+so the edit loop reads again at once. When the terminal closes and the
+program ignores `SIGHUP`, as one under `nohup` does, the loop spins on a full
+core and never returns. isocline's pull request 47 found it. The port records
+that the input ended, and the read then answers `io.EOF`. Measured with
+`_examples/sql` under a pseudo-terminal: before the fix, 218 ticks of CPU in
+two seconds after the terminal closed. After it, the program exits at once.
+
 ### history.c
 
 `history_search` hands the entry at each index straight to `strstr` without

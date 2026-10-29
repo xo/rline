@@ -293,13 +293,6 @@ asked for the whole list of what readline support still needs.
 These come from a review on 2026-10-29 of the pull requests that are open on
 isocline. Its `main` has no commit after the one that rline was ported from.
 
-54. When the terminal closes and the program ignores `SIGHUP`, as under
-    `nohup`, the edit loop spins on a full core and never returns. `readNow`
-    in `tty_posix.go` reports a failed read as a timeout, so
-    `keyDecoder.read` answers `key.None`, which the loop reads past. A failed
-    blocking read should end the input with `io.EOF`. Reproduced with
-    `_examples/sql` under a pseudo-terminal by the review. From: isocline
-    pull request 47.
 55. A CSI u sequence for ctrl and a letter, such as `ESC[97;5u` from kitty,
     decodes as `'a'|ModCtrl` and not as Ctrl-A, so it runs nothing. And
     `readCSI` drops every modifier when Caps Lock or Num Lock adds 64 or 128

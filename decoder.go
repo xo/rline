@@ -254,14 +254,30 @@ func (t *keyDecoder) readTimeout(timeout time.Duration) (key.Code, bool) {
 	return modifyCode(code), true
 }
 
-// read waits for one key and returns it. It returns key.None when the input
-// ends.
+// read waits for one key and returns it. It returns key.EventStop when the
+// input ended, as it does when the terminal is closed, and key.None when
+// nothing arrived for some other reason.
 func (t *keyDecoder) read() key.Code {
 	code, ok := t.readTimeout(-1)
 	if !ok {
+		if t.ended() {
+			return key.EventStop
+		}
 		return key.None
 	}
 	return code
+}
+
+// ender is a byteReader that can tell that its input ended from a wait that
+// ran out, as a terminal can.
+type ender interface {
+	inputEnded() bool
+}
+
+// ended reports whether the input ended.
+func (t *keyDecoder) ended() bool {
+	e, ok := t.src.(ender)
+	return ok && e.inputEnded()
 }
 
 // modifyCode rewrites the keys that terminals disagree about, so that the

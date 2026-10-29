@@ -3,6 +3,7 @@
 package rline
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -45,6 +46,10 @@ type tty struct {
 	// are, a resize cannot be detected and every check has to assume one
 	// happened.
 	watching atomic.Bool
+
+	// ended is set when a read finds that the input ended, as it does when
+	// the terminal is closed. A wait that runs out does not set it.
+	ended atomic.Bool
 
 	resizeCh chan os.Signal
 	stopCh   chan os.Signal
@@ -241,14 +246,27 @@ func (d *tty) readByte(timeout time.Duration) (byte, bool) {
 }
 
 // readNow reads one byte, waiting for it if the terminal is set to wait.
+//
+// A read that returns nothing, or fails with anything but an interruption,
+// means that the input ended: a terminal whose other side was closed answers
+// EIO, or end of file. That is recorded, so that the edit loop can stop
+// rather than read again at once, which spun on a full core when a program
+// that ignores SIGHUP lost its terminal. isocline has the same fault, and its
+// pull request 47 is where it was found.
 func (d *tty) readNow() (byte, bool) {
 	var buf [1]byte
 	n, err := unix.Read(d.fd, buf[:])
-	if err != nil || n != 1 {
-		return 0, false
+	if err == nil && n == 1 {
+		return buf[0], true
 	}
-	return buf[0], true
+	if !errors.Is(err, unix.EINTR) && !errors.Is(err, unix.EAGAIN) {
+		d.ended.Store(true)
+	}
+	return 0, false
 }
+
+// inputEnded reports whether a read found that the input ended.
+func (d *tty) inputEnded() bool { return d.ended.Load() }
 
 // resizeEvent reports whether the window changed size since the last call.
 //
