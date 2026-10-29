@@ -40,19 +40,19 @@ that holds it.
 | [D4](#d4-output-recorded-from-the-c-build-is-the-test-corpus-decided) | Output recorded from the C build is the test corpus | Decided |
 | [D5](#d5-each-file-derived-from-the-c-carries-isoclines-mit-notice-decided) | Each file derived from the C carries isocline's MIT notice | Decided |
 | [D6](#d6-rline-runs-on-linux-macos-and-windows-and-on-windows-in-cmdexe-and-powershell-proposed) | rline runs on Linux, macOS and Windows, and on Windows in cmd.exe and PowerShell | Proposed |
-| [D7](#d7-character-width-comes-from-go-runewidth-and-the-terminal-settings-from-xsysunix-proposed) | Character width comes from go-runewidth, and the terminal settings from x/sys/unix | Proposed |
+| [D7](#d7-character-width-comes-from-go-runewidth-and-the-terminal-settings-from-xsysunix-proposed-amended-by-d39) | Character width comes from go-runewidth, and the terminal settings from x/sys/unix | Proposed. Amended by D39 |
 | [D8](#d8-the-key-codes-are-exported-from-their-own-package-key-proposed-amends-d1) | The key codes are exported from their own package, key | Proposed. Amends D1 |
 | [D9](#d9-the-port-writes-escape-sequences-to-the-windows-console-and-carries-none-of-the-console-emulation-in-termc-proposed) | The port writes escape sequences to the Windows console and carries none of the console emulation in term.c | Proposed |
 | [D10](#d10-the-history-file-mode-is-left-to-the-umask-decided-amended-by-d21) | The history file mode is left to the umask | Decided. Amended by D21 |
 | [D11](#d11-a-program-makes-its-own-session-and-sets-it-up-with-options-proposed) | A program makes its own Session, and sets it up with options | Proposed |
 | [D12](#d12-password-turns-echo-off-and-leaves-line-editing-to-the-terminal-decided) | Password turns echo off and leaves line editing to the terminal | Decided |
-| [D13](#d13-ctrl-c-answers-errinterrupted-and-setcompleter-replaces-the-completer-decided) | Ctrl-C answers ErrInterrupted, and SetCompleter replaces the completer | Decided |
+| [D13](#d13-ctrl-c-answers-errinterrupted-and-setcompleter-replaces-the-completer-decided-amended-by-d45) | Ctrl-C answers ErrInterrupted, and SetCompleter replaces the completer | Decided. Amended by D45 |
 | [D14](#d14-a-session-reads-lines-a-markupwriter-writes-markup-and-a-prompt-holds-both-decided) | A Session reads lines, a MarkupWriter writes markup, and a Prompt holds both | Decided |
 | [D15](#d15-files-are-grouped-by-what-a-reader-looks-for-and-there-are-fewer-of-them-decided) | Files are grouped by what a reader looks for, and there are fewer of them | Decided |
 | [D16](#d16-rline-never-adapts-to-usql-decided) | rline never adapts to usql | Decided |
 | [D17](#d17-an-error-is-a-constant-of-a-string-type-and-its-text-is-its-name-without-err-decided) | An error is a constant of a string type, and its text is its name without Err | Decided |
 | [D18](#d18-the-terminal-code-builds-for-every-unix-system-but-aix-and-three-systems-are-tested-proposed) | The terminal code builds for every Unix system but aix, and three systems are tested | Proposed |
-| [D19](#d19-the-library-needs-go-1250-and-the-linter-is-a-module-of-its-own-decided) | The library needs Go 1.25.0, and the linter is a module of its own | Decided |
+| [D19](#d19-the-library-needs-go-1250-and-the-linter-is-a-module-of-its-own-decided-amended-by-d40) | The library needs Go 1.25.0, and the linter is a module of its own | Decided. Amended by D40 |
 | [D20](#d20-continuous-integration-runs-every-check-on-four-hosted-runners-with-the-go-that-gomod-names-proposed) | Continuous integration runs every check on four hosted runners, with the Go that go.mod names | Proposed |
 | [D21](#d21-saving-the-history-never-makes-the-file-shorter-and-the-file-is-created-0600-proposed-amends-d10) | Saving the history never makes the file shorter, and the file is created 0600 | Proposed. Amends D10 |
 | [D22](#d22-the-completion-file-is-named-compgo-decided) | The completion file is named comp.go | Decided |
@@ -72,6 +72,18 @@ that holds it.
 | [D36](#d36-rline-is-set-up-for-coding-agents-as-every-xo-repository-is-decided) | rline is set up for coding agents as every xo repository is | Decided |
 | [D37](#d37-each-example-program-is-a-folder-under-_examples-decided) | Each example program is a folder under _examples | Decided |
 | [D38](#d38-the-first-release-is-v010-and-no-gomod-in-it-has-a-replace-directive-decided) | The first release is v0.1.0, and no go.mod in it has a replace directive | Decided |
+| [D39](#d39-rline-reads-inputrc-files-with-githubcomxoinputrc-its-third-dependency-decided-amends-d7) | rline reads inputrc files with github.com/xo/inputrc, its third dependency | Decided. Amends D7 |
+| [D40](#d40-go-1250-stays-the-minimum-until-rline-needs-a-feature-of-a-later-go-decided-amends-d19) | Go 1.25.0 stays the minimum until rline needs a feature of a later Go | Decided. Amends D19 |
+| [D41](#d41-the-default-key-bindings-are-gnu-readlines-as-githubcomxoinputrc-gives-them-decided) | The default key bindings are GNU readline's, as github.com/xo/inputrc gives them | Decided |
+| [D42](#d42-the-decoder-keeps-ctrl-h-and-the-backspace-key-apart-decided) | The decoder keeps Ctrl-H and the Backspace key apart | Decided |
+| [D43](#d43-key-bindings-arrive-in-seven-phases-from-a-command-table-to-vi-modes-decided-amended-by-d44-and-d46) | Key bindings arrive in seven phases, from a command table to vi modes | Decided. Amended by D44 and D46 |
+| [D44](#d44-key-handling-follows-gnu-readline-only-and-isoclines-key-behaviour-waits-decided-amends-d43-amended-by-d45) | Key handling follows GNU readline only, and isocline's key behaviour waits | Decided. Amends D43, amended by D45 |
+| [D45](#d45-readlines-keys-commands-completion-and-search-are-checked-against-gnu-readline-and-rlines-renderer-and-features-stay-decided-amends-d13-and-d44) | readline's keys, commands, completion and search are checked against GNU readline, and rline's renderer and features stay | Decided. Amends D13 and D44 |
+| [D46](#d46-the-readline-work-records-against-readline-83-treats-esc-as-a-prefix-and-starts-with-the-whole-emacs-command-set-decided-amends-d43) | The readline work records against readline 8.3, treats Esc as a prefix, and starts with the whole emacs command set | Decided. Amends D43 |
+| [D47](#d47-the-readline-commands-are-written-from-readlines-manual-and-recordings-never-from-its-c-decided) | The readline commands are written from readline's manual and recordings, never from its C | Decided |
+| [D48](#d48-a-session-gives-the-terminal-to-another-program-with-release-and-watches-the-stop-signals-only-in-raw-mode-proposed) | A Session gives the terminal to another program with Release, and watches the stop signals only in raw mode | Proposed |
+| [D49](#d49-the-style-names-start-with-rline--and-not-with-ic--decided) | The style names start with rline- and not with ic- | Decided |
+| [D50](#d50-a-program-asks-for-the-users-inputrc-with-withuserinputrc-and-notices-lists-what-rline-does-not-support-decided) | A program asks for the user's inputrc with WithUserInputrc, and Notices lists what rline does not support | Decided |
 
 ## Purpose
 
@@ -221,7 +233,7 @@ supported" and "Platforms" in [PLATFORMS.md](PLATFORMS.md) hold the detail.
 
 Reason not recorded.
 
-### D7. Character width comes from go-runewidth, and the terminal settings from x/sys/unix. Proposed.
+### D7. Character width comes from go-runewidth, and the terminal settings from x/sys/unix. Proposed. Amended by D39.
 
 Commits: `51a1ffa` (2026-09-19), `52a9718` (2026-09-19), `b885bf8`
 (2026-09-19).
@@ -323,7 +335,7 @@ such mode, `Password` reads in raw mode, and that path writes the password
 into the session log. "A password reaches the session log on the systems
 without no-echo" in [USQL.md](USQL.md) holds that fault.
 
-### D13. Ctrl-C answers ErrInterrupted, and SetCompleter replaces the completer. Decided.
+### D13. Ctrl-C answers ErrInterrupted, and SetCompleter replaces the completer. Decided. Amended by D45.
 
 Commits: `cfa18e7` (2026-09-19), `0af184b` (2026-09-19), `dc94e67`
 (2026-09-20).
@@ -449,7 +461,7 @@ widen the tag. "Which systems are supported" in
 [PLATFORMS.md](PLATFORMS.md) holds the measurements and DeepSeek's argument
 against the change.
 
-### D19. The library needs Go 1.25.0, and the linter is a module of its own. Decided.
+### D19. The library needs Go 1.25.0, and the linter is a module of its own. Decided. Amended by D40.
 
 Commits: `1763b1c` (2026-09-20).
 
@@ -729,6 +741,288 @@ and rline at the pseudo-version of a commit already on GitHub. The `go.mod`
 of an example cannot require the tag of the commit that holds it, so a later
 commit can move it to v0.1.0.
 
+### D39. rline reads inputrc files with github.com/xo/inputrc, its third dependency. Decided. Amends D7.
+
+Ken decided on 2026-10-14 that rline adds `github.com/xo/inputrc` as a
+dependency, beside go-runewidth and `golang.org/x/sys`, so that a user can set
+key bindings and settings in a GNU readline inputrc file. The package parses
+inputrc files, including `$if`, `$include`, variables, key bindings and
+macros, and it gives the default bindings of GNU readline for each keymap.
+
+It needs nothing outside the standard library, and v0.5.1 asks for Go 1.23,
+so rline still needs Go 1.25.0 (D19). It enters `go.mod` with the first code
+that reads an inputrc file, because `go mod tidy` removes a requirement that
+nothing imports.
+
+The design of the bindings is not decided yet. Gemini Pro and DeepSeek Pro
+reviewed a draft on 2026-10-14. The draft gives each key behaviour a GNU
+readline name, keeps keymaps over decoded key codes, and lets an application
+register its own commands.
+
+### D40. Go 1.25.0 stays the minimum until rline needs a feature of a later Go. Decided. Amends D19.
+
+Ken decided on 2026-10-14 that Go 1.25.0 stays the minimum for now, and
+that rline does not hold itself to it. When rline needs a feature or a fix
+that only a later Go has, such as one in Go 1.27, the minimum goes up. D19
+kept Go 1.25.0 so that FreeBSD 15.1, which ships Go 1.25, can build rline.
+That stays the reason to keep it, and it no longer outweighs a feature that
+rline needs.
+
+### D41. The default key bindings are GNU readline's, as github.com/xo/inputrc gives them. Decided.
+
+Ken decided on 2026-10-14 that the base keymap is the default of GNU
+readline, which `inputrc.DefaultBinds` gives for each keymap, and not the
+bindings of isocline. rline builds its keymaps in the order that GNU readline
+8.1 does in `readline_initialize_everything`:
+
+1. The default keymaps: emacs, with its meta and Ctrl-X maps, and vi.
+2. The bindings that the application makes before the first read, as
+   `rl_add_defun` and `rl_bind_key` do.
+3. The user's inputrc: the file that `$INPUTRC` names, or else
+   `~/.inputrc`, or else `/etc/inputrc`, which `inputrc.UserDefault` reads.
+4. The keymap that `editing-mode` names.
+5. Keys bound only where nothing else bound them, as GNU readline binds its
+   arrow keys and the bracketed paste prefix.
+
+So the user's inputrc overrides the application, and the application
+overrides the defaults.
+
+The recorded corpora drive the editing operations directly and never go
+through a key binding, so this changes none of them. The tests that type
+keys change: `driven_test.go` and the tests of `_examples/sql` use the
+isocline bindings, such as Ctrl-Z for undo, Ctrl-Y for redo and Esc to clear
+the line, and they move to the bindings of GNU readline.
+
+`inputrc.DefaultBinds` comes from `bind -pm` in bash. So it also binds 29
+commands that only bash has, such as `shell-expand-line`, `glob-complete-word`
+and `edit-and-execute-command`. Such a key does nothing unless the application
+gives rline a command of that name.
+
+### D42. The decoder keeps Ctrl-H and the Backspace key apart. Decided.
+
+Ken decided on 2026-10-14 that Ctrl-H (0x08) and the Backspace key, which
+most terminals send as DEL (0x7f), are two keys. isocline's `modifyCode`
+turns 0x7f into Backspace, so today both give `key.Backspace`, and an inputrc
+cannot bind `\C-h` and `\C-?` to different commands. GNU readline keeps them
+apart, and binds both to `backward-delete-char` by default, so the default
+behaviour does not change.
+
+This departs from the C. `testdata/tty.txt` records 0x7f becoming Backspace
+in about 26 lines. Those cases move to a delta file beside the corpus, as
+`attr-delta.txt` does for the deletion fault in `attr.c`, and the test allows
+a difference only on the lines that file lists. The departure is listed in
+"Known departures from the C code" in [PORT.md](PORT.md) when the decoder
+changes, and the comment on `key.Rubout`, which says that it always becomes
+Backspace, changes with it.
+
+### D43. Key bindings arrive in seven phases, from a command table to vi modes. Decided. Amended by D44 and D46.
+
+Ken decided on 2026-10-14 that the work on key bindings and inputrc comes in
+this order:
+
+1. A command table. Each behaviour of the `switch` in `prompt.go` becomes a
+   command with its GNU readline name, or an `rline-` name where readline has
+   none. The behaviour of each command does not change.
+2. Keymaps. A keymap maps a sequence of key codes to a command, with a prefix
+   that waits `keyseq-timeout` when it is also bound. The defaults are
+   GNU readline's (D41).
+3. The completion menu. It stops reading its own keys, and takes a keymap of
+   its own behind the same dispatch.
+4. Incremental search, in the same way.
+5. inputrc: reading the user's file, `$if`, the variables, macros, notices of
+   what rline does not support, and the API for application commands.
+6. Emacs parity: the kill ring, yank, numeric arguments, the word case
+   commands, `quoted-insert`, bracketed paste, history search by prefix, and
+   mark and region.
+7. vi modes, after the rest.
+
+Gemini Pro and DeepSeek Pro both put the menu and search before inputrc,
+because an inputrc cannot bind keys in a state that reads its own keys.
+
+### D44. Key handling follows GNU readline only, and isocline's key behaviour waits. Decided. Amends D43, amended by D45.
+
+Ken decided on 2026-10-14 that rline adopts only the conventions of GNU
+readline for keys and commands, so that it works with inputrc files and
+behaves as standard Unix programs do. isocline's key behaviour is set aside,
+and it can come back after a clean implementation of readline's emacs and vi
+modes works.
+
+So each command has readline's name and does what readline's command does.
+`beginning-of-line` goes to the start of the whole buffer, the Up key runs
+`previous-history`, and Ctrl-D ends the input by readline's rule. The
+behaviours of isocline that readline does not have are gone until then:
+Esc clearing the line, redo, the help screen on F1, Alt-m jumping to the
+matching brace, Right accepting the hint, and moving between the rows of a
+statement.
+
+This changes the first phase of D43. It does not keep the behaviour of the
+`switch` in `prompt.go`. It builds the command table from readline's commands.
+
+### D45. readline's keys, commands, completion and search are checked against GNU readline, and rline's renderer and features stay. Decided. Amends D13 and D44.
+
+Ken settled on 2026-10-14 how far D44 reaches:
+
+1. Ctrl-C still answers `ErrInterrupted`, as D13 says. Ctrl-G is readline's
+   `abort`, and no longer answers `ErrInterrupted`. That changes D13.
+2. Completion is shown as readline shows it: `complete` fills in what the
+   answers share, a second Tab lists them, a long list asks first, and
+   `menu-complete` cycles through them. rline's numbered menu goes.
+3. Incremental search is shown as readline shows it, with the prompt
+   `(reverse-i-search)` in place of rline's search below the line.
+4. `WithContinue` stays. Keeping a statement over several rows is a feature
+   of the application, which readline does not have.
+5. Syntax highlighting, hints, brace matching and rline's other features
+   stay. That changes D44, which set isocline's behaviour aside. The goal is
+   readline's inputrc, emacs and vi behaviour, not to remove what rline has.
+6. The behaviour is checked against real GNU readline. Test harnesses record
+   what readline does and the Go tests compare, as the isocline port was
+   checked against the C. rline runs those tests in a readline configuration,
+   with highlighting, brace matching, multiple rows and every other feature
+   that readline does not have turned off, so that the recordings are clean.
+7. readline's conventions cover keys, commands, completion and search. rline's
+   renderer stays.
+
+### D46. The readline work records against readline 8.3, treats Esc as a prefix, and starts with the whole emacs command set. Decided. Amends D43.
+
+Ken accepted these points on 2026-10-14, before the implementation began:
+
+1. Esc is a prefix in the keymap, as in readline. In emacs mode it waits for
+   the next key for as long as it takes, and in vi insert mode a lone Esc
+   acts after `keyseq-timeout`. The decoder still turns terminal sequences
+   such as `\e[A` into keys, and no longer decides by itself that Esc and a
+   key are Alt and that key. `testdata/tty.txt` records that rule from the
+   C, so this is a departure like D42, with a delta file.
+2. The harnesses record what each key does to the line, not the bytes on the
+   terminal: the text, the cursor, the mark, and the text of a completion
+   list or a search prompt. The renderers differ (D45), so the text is
+   compared and not where it is drawn.
+3. The recordings are made against GNU readline 8.3, the version installed
+   here with bash 5.3, and each corpus file names it. They are made on Linux,
+   because macOS ships libedit and not GNU readline. The tests replay the
+   committed files on every system.
+4. The default keymap is the one plain readline has, which the probe can
+   dump. Where `inputrc.DefaultBinds`, which comes from bash, differs from it,
+   the inputrc package changes. Ken maintains it, and its defaults are not
+   fixed.
+5. The first phase is the emacs commands in full: readline's kill ring, its
+   undo list with groups, and numeric arguments, because a faithful
+   `kill-line` needs all three. So the order of D43 becomes: the emacs
+   commands, the keymaps and Esc, the completion display, incremental search,
+   inputrc, and vi modes. isocline's editing functions stay as they are, and
+   the corpus of the C keeps testing them.
+6. A hint is accepted by `rline-accept-hint`, which Right runs only while a
+   hint is shown. That is one isocline behaviour kept on purpose.
+7. Brace insertion is off in the readline configuration and stays on by
+   default.
+8. In a statement over several rows, `beginning-of-line` goes to the start of
+   the whole statement and Up replaces the statement from the history, as in
+   readline. Moving between rows comes back with isocline's behaviour later.
+9. The completion API gains a suffix that is added when only one candidate is
+   left, as readline adds a space or a slash. That comes with the completion
+   display.
+
+### D47. The readline commands are written from readline's manual and recordings, never from its C. Decided.
+
+GNU readline is under the GPL, and rline derives from isocline, which is
+under the MIT license. A Go translation of readline's C would make rline a
+derived work of GPL code. So `internal/readline` is written from readline's
+manual and from what the probe records readline 8.3 doing, and treats
+readline as a black box. readline's source is read only to understand a
+recording, never copied or translated, and the probe uses only readline's
+public API.
+
+The rule came up while the first phase was written, on 2026-10-14, and Ken
+confirmed it the same day: readline's code is only read, never copied or
+translated here. The status changed from Proposed to Decided then.
+
+### D48. A Session gives the terminal to another program with Release, and watches the stop signals only in raw mode. Proposed.
+
+usql moves its pager into a package of its own, usql/pager. The pager holds
+the output of a command until it is taller or wider than the terminal. Then
+it starts the program that `PAGER` names, with the terminal as its output.
+usql asked rline for three things on 2026-10-29, and Ken asked for them to
+be done the same day.
+
+1. `Session.Release(fn func(tty *os.File) error) error` gives the terminal
+   to another program. It writes out what the Session holds, and calls fn
+   with the file that the Session writes to. It returns `ErrNotAFile`
+   without calling fn when the output is not a file, such as a buffer.
+2. While fn runs, Ctrl-C and Ctrl-\ belong to the other program. The
+   terminal sends their signals to every process in the foreground, so usql
+   gets them as well as `less`. Release keeps them from ending the program.
+   A handler of the program's own still gets them. Ctrl-Z still stops both
+   programs, because the shell cannot take the terminal back otherwise.
+3. `Session.Size() (cols, rows int)` gives the size of the terminal that the
+   Session writes to, and zero for both when the output is not a terminal.
+
+usql's request also brought a fault to light. rline caught `SIGTERM`,
+`SIGINT`, `SIGQUIT`, `SIGHUP`, `SIGTSTP`, `SIGTTIN` and `SIGTTOU` for the
+whole life of a Session, as isocline does. On each one, it put the terminal
+back, called `signal.Reset` and sent the signal again. `signal.Reset` also
+removes the handlers of the program itself. So a Ctrl-C between two reads
+ended the program, even when it had a handler. usql has one, to cancel a
+query. Measured on 2026-10-29 with usql on a pseudo-terminal: Ctrl-C during
+a long query printed "context canceled", and then usql died of `SIGINT`.
+
+Now rline catches these signals only while the terminal is in raw mode.
+That is the only time it has to put the terminal back. It sends the signal
+again without `signal.Reset`. So the signal reaches the handler of the
+program, or takes the default action when there is none. A program with a
+handler gets a signal twice when it comes in raw mode. In raw mode a key
+cannot raise one, so it comes only from outside, such as from `kill`.
+
+Windows has no watcher. The console goes back to its own mode at the end of
+each read, so only the second point applies there, through `os.Interrupt`.
+
+The status is Proposed, because the names and the rules for the signals are
+not yet confirmed by Ken. Item 2 of [BACKLOG.md](BACKLOG.md) asked for the
+first point.
+
+### D49. The style names start with rline- and not with ic-. Decided.
+
+Ken decided on 2026-10-29 that the names of rline's own styles start with
+`rline-`, because `ic` stands for isocline, which a user of rline does not
+need to know about. `ic-prompt`, `ic-info`, `ic-diminish`, `ic-emphasis`,
+`ic-hint`, `ic-error`, `ic-bracematch` and `ic-dim` are now `rline-prompt`,
+`rline-info` and so on. The old names are gone and have no alias, because
+the release is under v1.
+
+A command that readline does not have also gets an `rline-` name, such as
+`rline-accept-hint` (D46). Styles and commands are looked up in different
+places, so the two cannot clash.
+
+The C still writes `ic-` names, so the test of the help screen renames them
+in what the C recorded before it compares. `_examples/transit` keeps the old
+names until its `go.mod` requires a release of rline with the new ones (D38).
+
+### D50. A program asks for the user's inputrc with WithUserInputrc, and Notices lists what rline does not support. Decided.
+
+D41 says that rline reads the user's inputrc, and D43 puts the reading in
+its fifth phase. These are the options that the reading needs:
+
+1. `WithUserInputrc(true)` reads the user's file as readline finds it: the
+   file that `$INPUTRC` names, or else `~/.inputrc`, or else
+   `/etc/inputrc`. It is off by default, because D26 names a switch for
+   what it turns on, so a program asks for it.
+2. `WithInputrcFile(name)` reads the named file in place of the user's.
+3. `WithAppName(name)` sets the name that `$if` tests, as
+   `rl_readline_name` does. It is `DefaultAppName`, "rline", unless the
+   program sets it.
+4. `Session.Notices()` lists what rline does not support in the file that
+   it read: a variable, a command or a keymap. A file that cannot be read
+   is one notice. rline goes on with what it could read, as readline does.
+5. `WithViMode(true)` edits as vi does, as `set editing-mode vi` does, for
+   a program that offers vi without an inputrc file. The user's inputrc
+   can set the mode back. A line that switches the mode with Ctrl-E or
+   M-C-j leaves the next line in that mode, as readline does.
+
+The bindings of the file go over readline's defaults, and a macro runs its
+keys as though they were typed. The commands of an application, which D43
+also puts in this phase, are not here. Their shape needs a design, and
+backlog 48 holds it.
+
+Ken accepted the decision as proposed on 2026-10-29.
+
 ## Open questions for Ken
 
 The first eight came from the old plan, in its words. The rest were found
@@ -741,6 +1035,7 @@ palette. terminfo is therefore new work, not saved work.
 
 Second, does `rline` adopt `github.com/xo/inputrc`? isocline never reads an
 inputrc file, because it carries fixed key bindings. inputrc is a new feature.
+D39 answers this one: yes.
 
 Third, how does `isocline/` reach another host? It is a separate git
 repository, so this repository ignores it for now.

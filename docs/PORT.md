@@ -151,18 +151,11 @@ The C headers give an acyclic order. Port the modules from the leaves up:
     are done as well. `history.go` holds walking through the history
     and the incremental search that Ctrl-R opens, which draws its own prompt
     below the line and reads its own keys. `comp.go` holds offering
-    completions, and `menu.go` the menu, which draws itself the same way.
+    completions.
 
-    The completion menu cannot be driven from outside, because it reads its
-    own keys: each recorded case loads the keys it types into the tty, calls
-    the menu once, and compares what was drawn against what the C drew for
-    the same keys. `tools/build-probe-completion-menu.sh` builds the probe
-    and `testdata/<variant>/completion-menu.txt` records 3360 cases over
-    fifteen sets of completions, fourteen key sequences, and both settings of
-    the preview, the auto tab and whether the completer had more to offer.
-    The recording is split by branch for the reason the redraw is: the menu
-    draws through the same redraw, and 152 of these carry the wrapped row
-    mark.
+    isocline's completion menu was ported and checked against 3360
+    recorded cases. It was removed when the completion display moved to
+    readline's (D45), with its probe and its corpus.
 
     That is the whole of `editline.c` and its includes.
 12. `isocline.c`. Done in shape, and it is the one part that is not a
@@ -290,6 +283,47 @@ runtime owns those signals, needs them to print a stack trace, and taking them
 over would break more than a tidy terminal is worth. The signals that a
 program can be expected to survive, from `SIGTERM` to `SIGTTOU`, are caught,
 and the terminal is restored before the signal is passed on.
+
+isocline catches those signals for as long as it runs. The port catches them
+only while the terminal is in raw mode, and passes them on without
+`signal.Reset`, so that the handler of the program still gets them (D48).
+Before that, a Ctrl-C between two reads ended usql while it cancelled a
+query.
+
+The keys are GNU readline's, and isocline's `switch` over key codes is gone
+(D41, D44). A key goes through a keymap built from readline's defaults to a
+command that `internal/readline` runs. So isocline's key behaviours are gone
+with it: Esc no longer clears the line, Ctrl-Z and Ctrl-Y no longer undo and
+redo, F1 no longer shows the help screen, Alt-m no longer jumps to the
+matching brace, Up and Down no longer move between rows, End no longer takes
+a hint, and Ctrl-G no longer gives the line up. Ctrl-J ends the line, as
+Enter does. Completion is shown as readline shows it, with the list below the
+line in place of isocline's numbered menu. Ctrl-R is readline's incremental
+search, with its prompt in place of the program's, in place of isocline's
+search below the line (D45). The help screen is the command `rline-help`, which no key is
+bound to.
+
+The decoder departs from `tty.c` in three places, and
+`testdata/tty-delta.txt` lists each line of `testdata/tty.txt` that changes:
+
+1. An escape before a byte that starts no sequence is the Escape key, and
+   the byte is read again as a key of its own. isocline reads the two as alt
+   and that byte. The keymap treats Esc as a prefix instead, as readline
+   does (D46). A character of several bytes after an escape is now read
+   whole, where the C took its first byte only.
+2. DEL, 0x7f, stays a key of its own. isocline turns it into Backspace, which
+   is Ctrl-H (D42).
+3. The zero byte is ctrl+space. isocline decodes it as key code 0, which is
+   also `key.None`, the code for no key, so a terminal could never reach
+   `set-mark` on `\C-@`.
+
+`FuzzEscapeDecoder` joins rline's keys back by isocline's rule before it
+compares them with the C, and leaves out three shapes that the rule cannot
+join back. The test says which.
+
+isocline names its styles `ic-info`, `ic-hint` and so on. rline names them
+`rline-info`, `rline-hint` and so on (D49). The help screen is compared with
+the C after the names in the recording are changed in the same way.
 
 `tty_read_esc_response` returns nothing when it fails. The C code fills its
 buffer as it goes and writes the terminating zero only once it succeeds, so a

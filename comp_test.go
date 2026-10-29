@@ -95,7 +95,7 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		in := p.list()
 		c := &completions{completerMax: maxOffers}
 		for i, entry := range in {
-			if got, want := c.add(entry, "", "", 0, 0), p.flag(); got != want {
+			if got, want := c.add(Candidate{Replacement: entry}), p.flag(); got != want {
 				return f[0], fmt.Sprintf("add %d of %q reported %v, want %v", i, entry, got, want)
 			}
 		}
@@ -104,7 +104,7 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		repl, display, help := p.nullableStr(), p.nullableStr(), p.nullableStr()
 		wantShown, wantHelp := p.nullableStr(), p.nullableStr()
 		c := &completions{completerMax: 10}
-		c.add(repl, display, help, 0, 0)
+		c.add(Candidate{Replacement: repl, Display: display, Help: help})
 		gotShown, gotHelp, ok := c.displayAt(0)
 		if !ok {
 			return f[0], "there is no completion to show"
@@ -124,7 +124,7 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		repl, before := p.str(), p.num()
 		wantHint, wantHelp := p.next(), p.next()
 		c := &completions{completerMax: 10}
-		c.add(repl, "", "help", before, 0)
+		c.add(Candidate{Replacement: repl, Help: "help", DeleteBefore: before})
 		hint, help, ok := c.hintAt(0)
 		if !ok {
 			if wantHint != "!" {
@@ -142,7 +142,7 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		line, pos, repl := p.str(), p.num(), p.str()
 		before, after, wantRes, wantBuf := p.num(), p.num(), p.num(), p.next()
 		c := &completions{completerMax: 10}
-		c.add(repl, "", "", before, after)
+		c.add(Candidate{Replacement: repl, DeleteBefore: before, DeleteAfter: after})
 		buf := &text.Buffer{}
 		buf.AppendString(line)
 		if got := c.apply(0, buf, pos); got != wantRes {
@@ -166,7 +166,7 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		in := p.list()
 		c := &completions{completerMax: 100}
 		for _, entry := range in {
-			c.add(entry, "", "", 0, 0)
+			c.add(Candidate{Replacement: entry})
 		}
 		c.sort()
 		want := p.list()
@@ -185,7 +185,7 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		wantRes, wantBuf := p.num(), p.next()
 		c := &completions{completerMax: 100}
 		for _, entry := range in {
-			c.add(entry, "", "", before, 0)
+			c.add(Candidate{Replacement: entry, DeleteBefore: before})
 		}
 		buf := &text.Buffer{}
 		buf.AppendString(line)
@@ -219,7 +219,7 @@ func checkCompletionLine(t *testing.T, line string) (string, string) {
 		wantRes, wantBuf := p.num(), p.next()
 		c := &completions{completerMax: 100}
 		for i, entry := range in {
-			c.add(entry, "", "", befores[i], 0)
+			c.add(Candidate{Replacement: entry, DeleteBefore: befores[i]})
 		}
 		buf := &text.Buffer{}
 		buf.AppendString(line)
@@ -268,7 +268,7 @@ func checkWordCase(t *testing.T, quoted bool, p *fieldReader) string {
 	inner := CompleterFunc(func(cenv *Completion, prefix string) {
 		captured = prefix
 		for _, a := range adds {
-			cenv.add(a, "", "", 0, 0)
+			cenv.add(Candidate{Replacement: a})
 		}
 	})
 	c := &completions{}
@@ -371,7 +371,7 @@ func TestCompleteQWordUsesTheUsualQuoting(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			inner := CompleterFunc(func(cenv *Completion, _ string) {
-				cenv.add("my file.txt", "", "", 0, 0)
+				cenv.add(Candidate{Replacement: "my file.txt"})
 			})
 			short := &completions{}
 			short.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
@@ -473,11 +473,11 @@ func TestHasCompletionsAndStopCompleting(t *testing.T) {
 	if c.stopCompleting() {
 		t.Error("a list with room said to stop")
 	}
-	c.add("one", "", "", 0, 0)
+	c.add(Candidate{Replacement: "one"})
 	if !c.hasCompletions() {
 		t.Error("a list with an entry said it has none")
 	}
-	c.add("two", "", "", 0, 0)
+	c.add(Candidate{Replacement: "two"})
 	if !c.stopCompleting() {
 		t.Error("a full list said to keep going")
 	}
@@ -506,7 +506,7 @@ func TestGenerateRefusesACursorPastTheEnd(t *testing.T) {
 	c := &completions{}
 	c.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
 		called = true
-		cenv.add("x", "", "", 0, 0)
+		cenv.add(Candidate{Replacement: "x"})
 	}), nil)
 	for _, cursor := range []int{-1, 4, 100} {
 		called = false
@@ -713,9 +713,7 @@ func checkFilesCase(t *testing.T, p *fieldReader) string {
 	}), nil)
 	c.completerMax = 200
 	cenv := &Completion{input: prefix, cursor: len(prefix)}
-	cenv.add = func(replacement, display, help string, before, after int) bool {
-		return c.add(replacement, display, help, before, after)
-	}
+	cenv.add = c.add
 	c.completer.Complete(cenv, prefix)
 
 	got := make([]string, 0, c.count())

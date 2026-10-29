@@ -100,8 +100,36 @@ func openTTY(fd int) (*tty, error) {
 	return d, nil
 }
 
-// watchSignals starts listening for a window resize and for the signals that
-// end the program.
+// stopSignals are the signals that mean the program is stopping. While the
+// terminal is in raw mode, the terminal has to go back to how it was before
+// the program stops, or the shell that started it is left with no echo and no
+// line editing.
+//
+// isocline also catches SIGSEGV, SIGTRAP and SIGBUS. This port does not. The
+// Go runtime owns those, it needs them to print a stack trace and to run its
+// own checks, and taking them over would break more than a tidy terminal is
+// worth.
+//
+// isocline catches these signals for as long as it runs, and the port did the
+// same until D48. That ended the program on a Ctrl-C between two reads, even
+// when the program had a handler of its own for it. usql has one to cancel a
+// query, and died of the signal after the query was cancelled.
+var stopSignals = []os.Signal{
+	unix.SIGTERM, unix.SIGINT, unix.SIGQUIT, unix.SIGHUP,
+	unix.SIGTSTP, unix.SIGTTIN, unix.SIGTTOU,
+}
+
+// childSignals are the signals that a key raises at the terminal: Ctrl-C and
+// Ctrl-\. The terminal sends them to every process in the foreground, so a
+// program that runs a pager gets them as well as the pager. Session.Release
+// keeps them from ending the program while it has given the terminal away.
+//
+// Ctrl-Z is left out on purpose. It has to stop the program as well as the
+// child, or the shell cannot take the terminal back.
+var childSignals = []os.Signal{unix.SIGINT, unix.SIGQUIT}
+
+// watchSignals starts listening for a window resize, and gets ready to listen
+// for the signals that end the program.
 func (d *tty) watchSignals() {
 	d.resizeCh = make(chan os.Signal, 1)
 	signal.Notify(d.resizeCh, unix.SIGWINCH)
@@ -116,33 +144,28 @@ func (d *tty) watchSignals() {
 		}
 	}()
 
+	// The signals that mean the program is stopping are watched only while
+	// the terminal is in raw mode, which is the only time it has to be put
+	// back before the program goes. startRaw starts the watch and endRaw
+	// stops it. See stopSignals.
 	d.stopCh = make(chan os.Signal, 1)
-	// These are the signals that mean the program is stopping. The terminal
-	// has to go back to how it was before it dies, or the shell that started
-	// it is left with no echo and no line editing.
-	//
-	// isocline also catches SIGSEGV, SIGTRAP and SIGBUS. This port does not.
-	// The Go runtime owns those, it needs them to print a stack trace and to
-	// run its own checks, and taking them over would break more than a tidy
-	// terminal is worth.
-	signal.Notify(d.stopCh,
-		unix.SIGTERM, unix.SIGINT, unix.SIGQUIT, unix.SIGHUP,
-		unix.SIGTSTP, unix.SIGTTIN, unix.SIGTTOU)
 	go func() {
-		var sig os.Signal
-		select {
-		case sig = <-d.stopCh:
-		case <-d.done:
-			return
-		}
-		// Put the terminal back before the program goes away, then let the
-		// signal do what it would have done. Stopping the watch first means
-		// the second delivery reaches the default handler.
-		d.endRaw()
-		signal.Stop(d.stopCh)
-		if s, ok := sig.(syscall.Signal); ok {
-			signal.Reset(s)
-			_ = unix.Kill(unix.Getpid(), s)
+		for {
+			var sig os.Signal
+			select {
+			case sig = <-d.stopCh:
+			case <-d.done:
+				return
+			}
+			// Put the terminal back, then send the signal again. endRaw
+			// stops the watch first, so the second signal does what it would
+			// have done without rline: it reaches the handler the program
+			// set up for it, or takes the default action when there is none.
+			// A program with a handler gets the signal twice.
+			d.endRaw()
+			if s, ok := sig.(syscall.Signal); ok {
+				_ = unix.Kill(unix.Getpid(), s)
+			}
 		}
 	}()
 
@@ -173,6 +196,9 @@ func (d *tty) startRaw() error {
 		return fmt.Errorf("putting the terminal into raw mode: %w", err)
 	}
 	d.rawEnabled = true
+	if d.watching.Load() {
+		signal.Notify(d.stopCh, stopSignals...)
+	}
 	return nil
 }
 
@@ -183,6 +209,9 @@ func (d *tty) endRaw() {
 	if !d.rawEnabled {
 		return
 	}
+	// The watch stops even when the terminal cannot be put back, because
+	// the signals belong to the program again once raw mode is given up.
+	signal.Stop(d.stopCh)
 	if err := unix.IoctlSetTermios(d.fd, termiosSetFlush, &d.origMode); err != nil {
 		return
 	}

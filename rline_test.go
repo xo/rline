@@ -155,8 +155,8 @@ func TestDefaultStylesAreDefined(t *testing.T) {
 		bb.styleDef(s[0], s[1])
 	}
 	for _, name := range []string{
-		"ic-prompt", "ic-info", "ic-diminish", "ic-emphasis",
-		"ic-hint", "ic-error", "ic-bracematch",
+		"rline-prompt", "rline-info", "rline-diminish", "rline-emphasis",
+		"rline-hint", "rline-error", "rline-bracematch",
 	} {
 		if bb.style(name) == (ansi.Attr{}) {
 			t.Errorf("the style %q sets nothing", name)
@@ -252,7 +252,7 @@ func TestExampleRunsUnderATerminal(t *testing.T) {
 		}
 	}
 	// The markup itself must not reach the terminal.
-	for _, unwanted := range []string{"[b]", "[/b]", "[ic-emphasis]"} {
+	for _, unwanted := range []string{"[b]", "[/b]", "[rline-emphasis]"} {
 		if strings.Contains(got, unwanted) {
 			t.Errorf("the markup %q reached the terminal", unwanted)
 		}
@@ -554,13 +554,11 @@ func TestExampleQuitsOnALine(t *testing.T) {
 	}
 }
 
-// TestExampleArrowsMoveBetweenRows checks that up and down move the cursor
-// between the rows of one statement.
-//
-// This is what the caller buys by saying a line is unfinished rather than
-// reading each row separately: the rows are one buffer, so the cursor can go
-// between them and the whole thing comes back at once.
-func TestExampleArrowsMoveBetweenRows(t *testing.T) {
+// TestExampleUpBringsBackAStatement checks that Up in a statement of several
+// rows puts an earlier statement in its place, as previous-history does in
+// readline (D46). isocline moved the cursor between the rows instead, and that
+// waits until rline has its own commands for it.
+func TestExampleUpBringsBackAStatement(t *testing.T) {
 	if testing.Short() {
 		t.Skip("building the example takes a moment")
 	}
@@ -570,14 +568,12 @@ func TestExampleArrowsMoveBetweenRows(t *testing.T) {
 	}
 	tr, err := capture.Record(context.Background(), bin, capture.Session{
 		Name:  "arrows",
-		About: "up and down between the rows of one statement",
+		About: "up in an unfinished statement brings back the one before",
 		Steps: []capture.Step{
-			{Send: "select 1" + capture.KeyEnter},
-			{Send: "from t" + capture.KeyEnter},
-			{Send: capture.KeyUp},   // onto the second row
-			{Send: "X"},             // marks which row the cursor was on
-			{Send: capture.KeyDown}, // back to the third
-			{Send: ";" + capture.KeyEnter, Wait: 500 * time.Millisecond},
+			{Send: "select 1;" + capture.KeyEnter},
+			{Send: "select 2" + capture.KeyEnter},
+			{Send: "from t" + capture.KeyUp},
+			{Send: capture.KeyEnter, Wait: 500 * time.Millisecond},
 			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
 		},
 	})
@@ -585,12 +581,11 @@ func TestExampleArrowsMoveBetweenRows(t *testing.T) {
 		t.Skipf("cannot record on this system: %v", err)
 	}
 	plain := stripEscapes(string(tr.Bytes()))
-	// Up put the cursor at the start of the second row, so the mark landed in
-	// front of "from". Down then put it back on the third, where the semicolon
-	// went.
-	want := "ran 3 line(s): select 1 Xfrom t ;"
-	if !strings.Contains(plain, want) {
-		t.Errorf("the run never showed %q.\nWhat it wrote:\n%s", want, plain)
+	if n := strings.Count(plain, "ran 1 line(s): select 1;"); n != 2 {
+		t.Errorf("the first statement ran %d times, want twice.\nWhat it wrote:\n%s", n, plain)
+	}
+	if strings.Contains(plain, "ran 2 line(s)") {
+		t.Errorf("the unfinished statement ran.\nWhat it wrote:\n%s", plain)
 	}
 }
 
@@ -712,20 +707,20 @@ func TestExampleSearchesTheHistory(t *testing.T) {
 			// "alp" appears only in the older entry, so the search has to walk
 			// past the newer one to find it.
 			{Send: "alp", Wait: 400 * time.Millisecond},
-			{Send: capture.KeyEnter, Wait: 400 * time.Millisecond}, // take it
-			{Send: capture.KeyEnter, Wait: 400 * time.Millisecond}, // run it
+			// Enter takes the line that was found and runs it, as in
+			// readline.
+			{Send: capture.KeyEnter, Wait: 400 * time.Millisecond},
 			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
 		},
 	})
 	if err != nil {
 		t.Skipf("cannot record on this system: %v", err)
 	}
+	// readline draws its prompt in place of the program's, with the text
+	// searched for and then the line it found (D45).
 	plain := stripEscapes(string(tr.Bytes()))
-	if !strings.Contains(plain, "history search") {
-		t.Error("the search prompt was never drawn")
-	}
-	if !strings.Contains(plain, "use tab for the next match") {
-		t.Error("the reminder below the line was never drawn")
+	if want := "(reverse-i-search)`alp': select alpha;"; !strings.Contains(plain, want) {
+		t.Errorf("the search never drew %q.\nWhat it wrote:\n%s", want, plain)
 	}
 	// The entry the search found is the one that ran, not the newer one.
 	last := ""
@@ -739,14 +734,10 @@ func TestExampleSearchesTheHistory(t *testing.T) {
 	}
 }
 
-// TestExampleCompletionMenuColumns checks the two column layouts the menu
-// chooses between, which depend on how wide the entries are rather than on how
-// many there are.
-//
-// Tab completes the longest start every answer shares before it offers a menu,
-// so the prefix here is chosen for what is left afterwards: "c" leaves fifteen
-// short words, and "co" leaves six longer ones.
-func TestExampleCompletionMenuColumns(t *testing.T) {
+// TestExampleListsCompletions checks the list that a second Tab draws in the
+// example, as readline draws it: the words sorted, in columns that run down
+// and then across, each column two wider than the widest word (D45).
+func TestExampleListsCompletions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("building the example takes a moment")
 	}
@@ -754,50 +745,29 @@ func TestExampleCompletionMenuColumns(t *testing.T) {
 	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/sql").CombinedOutput(); err != nil {
 		t.Fatalf("building the example: %v\n%s", err, out)
 	}
-	for _, test := range []struct {
-		name    string
-		prefix  string
-		wantRow string
-		wantAll string
-	}{
-		{
-			name:    "three columns",
-			prefix:  "c",
-			wantRow: " 1 case      4 count     7 commit ",
-			wantAll: "page-down",
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name:  "list",
+		About: "two tabs list the words that start with c",
+		Cols:  80,
+		Rows:  24,
+		Steps: []capture.Step{
+			{Send: "c"},
+			{Send: capture.KeyTab},
+			{Send: capture.KeyTab, Wait: 600 * time.Millisecond},
+			{Send: capture.CtrlU},
+			{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
 		},
-		{
-			name:   "two columns",
-			prefix: "co",
-			// Longer words leave room for two columns rather than three.
-			wantRow: " 1 count        4 collate",
-		},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			tr, err := capture.Record(context.Background(), bin, capture.Session{
-				Name:  test.name,
-				About: test.name,
-				Cols:  80,
-				Rows:  24,
-				Steps: []capture.Step{
-					{Send: test.prefix},
-					{Send: capture.KeyTab, Wait: 600 * time.Millisecond},
-					{Send: capture.KeyEscape, Wait: 200 * time.Millisecond},
-					{Send: capture.CtrlU},
-					{Send: `\q` + capture.KeyEnter, Wait: 300 * time.Millisecond},
-				},
-			})
-			if err != nil {
-				t.Skipf("cannot record on this system: %v", err)
-			}
-			plain := stripEscapes(string(tr.Bytes()))
-			if !strings.Contains(plain, test.wantRow) {
-				t.Errorf("the menu never drew %q.\nWhat it wrote:\n%s", test.wantRow, plain)
-			}
-			if test.wantAll != "" && !strings.Contains(plain, test.wantAll) {
-				t.Errorf("the menu never offered %q", test.wantAll)
-			}
-		})
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system: %v", err)
+	}
+	// Fifteen words start with c, and current_timestamp is the widest at
+	// 17, so a column is 19 wide and four fit in 79. Fifteen in four columns
+	// are four rows, and the first row holds the 1st, 5th, 9th and 13th.
+	plain := stripEscapes(string(tr.Bytes()))
+	want := "cascade            coalesce           constraint         current_date"
+	if !strings.Contains(plain, want) {
+		t.Errorf("the list never drew %q.\nWhat it wrote:\n%s", want, plain)
 	}
 }
 
@@ -898,14 +868,14 @@ func TestMarkupWriterKeepsANewlineOutOfTheColour(t *testing.T) {
 		{
 			// Closed markup resets before the newline either way.
 			name: "markup that closes itself",
-			in:   "[ic-info]closed[/]",
+			in:   "[rline-info]closed[/]",
 			want: "\x1b[m" + "\x1b[90m" + "closed" + "\x1b[39m" + "\n",
 		},
 		{
 			// The reset has to come first. With the newline inside the run
 			// this reads "...open\n\x1b[39m".
 			name: "a colour left open",
-			in:   "[ic-info]left open",
+			in:   "[rline-info]left open",
 			want: "\x1b[m" + "\x1b[90m" + "left open" + "\x1b[39m" + "\n",
 		},
 		{
@@ -950,11 +920,11 @@ func TestMarkupWriterKeepsANewlineOutOfTheColour(t *testing.T) {
 func TestMarkupWriterWithNowhereToWrite(t *testing.T) {
 	t.Parallel()
 	for _, w := range []*MarkupWriter{nil, {}, {env: nil}} {
-		n, err := fmt.Fprintf(w, "[ic-error]%s[/]\n", "message")
+		n, err := fmt.Fprintf(w, "[rline-error]%s[/]\n", "message")
 		if err != nil {
 			t.Errorf("writing to a writer with nowhere to write gave %v", err)
 		}
-		if want := len("[ic-error]message[/]\n"); n != want {
+		if want := len("[rline-error]message[/]\n"); n != want {
 			t.Errorf("reported %d bytes written, want %d", n, want)
 		}
 		if _, err := w.WriteString("more\n"); err != nil {
@@ -1400,6 +1370,7 @@ func TestErrorsAreConstants(t *testing.T) {
 	all := map[string]Error{
 		"ErrClosed":       ErrClosed,
 		"ErrInterrupted":  ErrInterrupted,
+		"ErrNotAFile":     ErrNotAFile,
 		"errNotATerminal": errNotATerminal,
 	}
 
@@ -1774,5 +1745,258 @@ func TestExampleCarriesOnAfterAnInterrupt(t *testing.T) {
 	// And the abandoned half must not be carried into it.
 	if strings.Contains(drawn, "half_typed select after;") {
 		t.Errorf("the abandoned statement was kept\ndrawn: %s", drawn)
+	}
+}
+
+// TestReleaseNeedsAFile checks the two cases where Release does not call fn:
+// an output that is not a file, which leaves nothing to give to another
+// program, and a closed Session.
+func TestReleaseNeedsAFile(t *testing.T) {
+	t.Parallel()
+	called := false
+	fn := func(*os.File) error {
+		called = true
+		return nil
+	}
+
+	s, err := New(WithStdin(strings.NewReader("")), WithStdout(&bytes.Buffer{}), WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Release(fn); !errors.Is(err, ErrNotAFile) {
+		t.Errorf("Release with a buffer for the output returned %v, want ErrNotAFile", err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = r.Close()
+		_ = w.Close()
+	})
+	s, err = New(WithStdin(strings.NewReader("")), WithStdout(w), WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Release(fn); !errors.Is(err, ErrClosed) {
+		t.Errorf("Release on a closed Session returned %v, want ErrClosed", err)
+	}
+	if called {
+		t.Error("Release called fn when it had no terminal to give")
+	}
+}
+
+// TestReleaseGivesTheOutputFile checks that fn gets the file the Session
+// writes to, that it gets it after what the Session wrote, and that Release
+// returns what fn returned.
+func TestReleaseGivesTheOutputFile(t *testing.T) {
+	t.Parallel()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = r.Close() })
+	s, err := New(WithStdin(strings.NewReader("")), WithStdout(w), WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(s, "before|"); err != nil {
+		t.Fatal(err)
+	}
+	failed := errors.New("the pager failed")
+	var got *os.File
+	err = s.Release(func(tty *os.File) error {
+		got = tty
+		_, _ = tty.WriteString("child|")
+		return fmt.Errorf("running the pager: %w", failed)
+	})
+	if !errors.Is(err, failed) {
+		t.Errorf("Release returned %v, want the error fn returned", err)
+	}
+	if got != w {
+		t.Errorf("fn was given %v, want the file given to WithStdout", got)
+	}
+	if _, err := io.WriteString(s, "after"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "before|child|after"; string(out) != want {
+		t.Errorf("the output was %q, want %q", out, want)
+	}
+}
+
+// TestSizeWithoutATerminal checks that Size gives zero when the output is not
+// a terminal, rather than the 80 by 25 that the editor assumes for itself.
+func TestSizeWithoutATerminal(t *testing.T) {
+	t.Parallel()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = r.Close()
+		_ = w.Close()
+	})
+	for name, out := range map[string]io.Writer{"a buffer": &bytes.Buffer{}, "a pipe": w} {
+		s, err := New(WithStdin(strings.NewReader("")), WithStdout(out), WithStderr(io.Discard))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cols, rows := s.Size(); cols != 0 || rows != 0 {
+			t.Errorf("Size with %s for the output gave %d by %d, want 0 by 0", name, cols, rows)
+		}
+	}
+}
+
+// TestBashExampleEchoesAndRemembers drives the bash example under a terminal.
+// Each line comes back as it was typed and goes into the history file. A
+// quote left open carries the line on to a second row, as in bash. The words
+// are drawn in color.
+func TestBashExampleEchoesAndRemembers(t *testing.T) {
+	t.Parallel()
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/bash").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	dir := t.TempDir()
+	// An empty inputrc in the home of the recording, so that the user's file
+	// search stops there and never reaches /etc/inputrc.
+	if err := os.WriteFile(filepath.Join(dir, ".inputrc"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tr, err := capture.Record(context.Background(), bin, capture.Session{
+		Name: "bash",
+		Term: "xterm-256color",
+		Dir:  dir,
+		Steps: []capture.Step{
+			{Send: "ls -l | grep go" + capture.KeyEnter},
+			{Send: `echo "two` + capture.KeyEnter},
+			{Send: `rows"` + capture.KeyEnter},
+			{Send: "exit" + capture.KeyEnter, Wait: 400 * time.Millisecond},
+			// Nothing reads this once the example has left.
+			{Send: "not reached" + capture.KeyEnter, Wait: 200 * time.Millisecond},
+		},
+	})
+	if err != nil {
+		t.Skipf("cannot record on this system, so nothing was checked about the "+
+			"bash example: %v", err)
+	}
+	raw := string(tr.Bytes())
+	plain := strings.ReplaceAll(stripEscapes(raw), "\r\n", "\n")
+
+	// Once as it was typed, and once as the example printed it back.
+	if n := strings.Count(plain, "ls -l | grep go"); n < 2 {
+		t.Errorf("the line shows %d times, want it typed and printed back.\nWhat it wrote:\n%s", n, plain)
+	}
+	// The terminal can echo a line that nobody reads, so it can show once.
+	// The example would have drawn it and printed it back.
+	if n := strings.Count(plain, "not reached"); n > 1 {
+		t.Errorf("the example read a line after exit.\nWhat it wrote:\n%s", plain)
+	}
+	// The second row was drawn after the continuation marker, and printed
+	// back without it.
+	if !strings.Contains(plain, `> rows"`) {
+		t.Errorf("the second row was never drawn after the continuation marker.\nWhat it wrote:\n%s", plain)
+	}
+	if !strings.Contains(plain, "\necho \"two\nrows\"\n") {
+		t.Errorf("the two rows were never printed back as one line.\nWhat it wrote:\n%s", plain)
+	}
+	// A word drawn in color has a color sequence just in front of it.
+	for _, word := range []string{"ls", "grep", "echo", `"two`} {
+		if !strings.Contains(raw, "m"+word) {
+			t.Errorf("%q was never drawn with a color in front of it", word)
+		}
+	}
+
+	saved, err := os.ReadFile(filepath.Join(dir, "rline_example_bash_history"))
+	if err != nil {
+		t.Fatalf("the example wrote no history file: %v", err)
+	}
+	for _, want := range []string{"ls -l | grep go", `echo "two`, `rows"`, "exit"} {
+		if !strings.Contains(string(saved), want) {
+			t.Errorf("the history file holds %q, want %q in it", string(saved), want)
+		}
+	}
+}
+
+// TestBashExampleKeys drives the bash example with readline's keys: emacs
+// keys by default, vi keys when the user's inputrc sets editing-mode vi, and
+// a macro from the inputrc in a $if Bash section, as bash would read it. What
+// the inputrc holds that rline does not support is printed (D50).
+func TestBashExampleKeys(t *testing.T) {
+	t.Parallel()
+	bin := exampleBinary(t)
+	if out, err := exec.Command("go", "build", "-o", bin, "./_examples/bash").CombinedOutput(); err != nil {
+		t.Fatalf("building the example: %v\n%s", err, out)
+	}
+	for _, test := range []struct {
+		name, inputrc, keys, want, notice string
+	}{
+		{"emacs", "", "bc" + capture.CtrlA + "a", "abc", ""},
+		{"vi", "set editing-mode vi\n", "one two" + capture.KeyEscape + "0dw", "two", ""},
+		{
+			"inputrc",
+			"$if Bash\n\"\\C-xa\": \"echo from inputrc\"\n$endif\nset no-such-thing on\n",
+			"\x18a", "echo from inputrc",
+			"inputrc: the variable no-such-thing is not supported",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, ".inputrc"), []byte(test.inputrc), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			tr, err := capture.Record(context.Background(), bin, capture.Session{
+				Name: "bash-" + test.name,
+				Term: "xterm-256color",
+				Dir:  dir,
+				Steps: []capture.Step{
+					{Send: test.keys},
+					{Send: capture.KeyEnter, Wait: 300 * time.Millisecond},
+					{Send: "exit" + capture.KeyEnter, Wait: 300 * time.Millisecond},
+				},
+			})
+			if err != nil {
+				t.Skipf("cannot record on this system, so the keys of the bash "+
+					"example were not checked: %v", err)
+			}
+			plain := strings.ReplaceAll(stripEscapes(string(tr.Bytes())), "\r\n", "\n")
+			if !strings.Contains(plain, "\n"+test.want+"\n") {
+				t.Errorf("the example never printed back %q.\nWhat it wrote:\n%s", test.want, plain)
+			}
+			if test.notice != "" && !strings.Contains(plain, test.notice) {
+				t.Errorf("the example never said %q.\nWhat it wrote:\n%s", test.notice, plain)
+			}
+			if test.notice == "" && strings.Contains(plain, "inputrc:") {
+				t.Errorf("the example printed a notice for an inputrc with nothing to say.\nWhat it wrote:\n%s", plain)
+			}
+		})
+	}
+}
+
+// TestBashExampleTests runs the tests of the bash example's highlighter.
+// "./..." leaves out the folders under _examples, so this is what runs them
+// in CI.
+func TestBashExampleTests(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("the tests of the bash example were not run, because -short was given")
+	}
+	if out, err := exec.Command("go", "test", "-count=1", "./_examples/bash").CombinedOutput(); err != nil {
+		t.Fatalf("the tests of the bash example failed: %v\n%s", err, out)
 	}
 }

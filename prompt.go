@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/readline"
 	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 
@@ -47,6 +48,25 @@ type env struct {
 
 	// highlighter marks up the line, and may be nil.
 	highlighter Highlighter
+
+	// keymap turns keys into commands. A nil keymap is readline's default
+	// emacs keymap.
+	keymap *readline.Keymap
+
+	// lastSearch is what the last incremental search looked for, which a
+	// search that starts with nothing looks for again.
+	lastSearch string
+
+	// vars are the variables of readline that an inputrc file set, and
+	// notices what in the file rline does not support.
+	vars    map[string]any
+	notices []string
+
+	// The keymaps of vi's insert and command modes, nil for readline's
+	// defaults, and whether the next line is read in vi mode. A line that
+	// switches mode leaves the next one in that mode, as readline does.
+	viInsert, viCommand *readline.Keymap
+	viMode              bool
 
 	// isIncomplete reports whether a line is unfinished, so that Enter starts
 	// another row rather than handing the line back. It may be nil, which
@@ -103,17 +123,6 @@ func (ev *env) rowCol(e *editor.Editor) (int, text.RowCol) {
 	return e.Input.RowColAtPos(e.TermW, promptw, cpromptw, e.Pos)
 }
 
-// setPosAtRowCol moves the cursor to a row and column on screen.
-func (ev *env) setPosAtRowCol(e *editor.Editor, row, col int) bool {
-	promptw, cpromptw := ev.promptWidth(e, false)
-	pos := e.Input.PosAtRowCol(e.TermW, promptw, cpromptw, row, col)
-	if pos < 0 {
-		return false
-	}
-	e.Pos = pos
-	return true
-}
-
 // posIsAtRowEnd reports whether the cursor is at the end of a screen row.
 func (ev *env) posIsAtRowEnd(e *editor.Editor) bool {
 	_, rc := ev.rowCol(e)
@@ -125,7 +134,7 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	if inExtra {
 		return
 	}
-	ev.bb.styleOpen("ic-prompt")
+	ev.bb.styleOpen("rline-prompt")
 	switch {
 	case row == 0:
 		ev.bb.print(e.PromptText)
@@ -195,13 +204,13 @@ func (ev *env) refresh(e *editor.Editor) {
 	runHighlight(ev.bb, e.Input.String(), &e.Attrs, ev.highlighter)
 	if ev.braceMatching {
 		highlightMatchBraces(e.Input.String(), &e.Attrs, e.Pos, ev.opts.MatchPairs,
-			ev.bb.style("ic-bracematch"), ev.bb.style("ic-error"))
+			ev.bb.style("rline-bracematch"), ev.bb.style("rline-error"))
 	}
 
 	// The hint goes into the line itself while it is drawn, and comes back out
 	// at the end, so that everything below measures it as part of the text.
 	if e.Hint.Len() > 0 {
-		e.Attrs.InsertAt(e.Pos, e.Hint.Len(), ev.bb.style("ic-hint"))
+		e.Attrs.InsertAt(e.Pos, e.Hint.Len(), ev.bb.style("rline-hint"))
 		e.Input.InsertAt(e.Hint.String(), e.Pos)
 	}
 
@@ -310,29 +319,9 @@ func appendHintHelp(e *editor.Editor, help string) {
 	if help == "" {
 		return
 	}
-	e.HintHelp.WriteString("[ic-info]")
+	e.HintHelp.WriteString("[rline-info]")
 	e.HintHelp.WriteString(help)
-	e.HintHelp.WriteString("[/ic-info]\n")
-}
-
-// showSearchMatch fills the area below the line with the entry that was found,
-// underlining the part that matched.
-func (ev *env) showSearchMatch(e *editor.Editor, hidx int, entry string, matchPos, matchLen int) {
-	// The entry is written between [!pre] tags, so that a bracket in it is
-	// text rather than markup.
-	lo := min(max(matchPos, 0), len(entry))
-	hi := min(max(lo+matchLen, lo), len(entry))
-	e.Extra.Appendf("[ic-info]%d. [/][ic-diminish][!pre]", hidx)
-	e.Extra.AppendString(entry[:lo])
-	e.Extra.AppendString("[/pre][u ic-emphasis][!pre]")
-	e.Extra.AppendString(entry[lo:hi])
-	e.Extra.AppendString("[/pre][/u][!pre]")
-	e.Extra.AppendString(entry[hi:])
-	e.Extra.AppendString("[/pre][/ic-diminish]")
-	if ev.inlineHelp {
-		e.Extra.AppendString("\n[ic-info](use tab for the next match)[/]")
-	}
-	e.Extra.AppendString("\n")
+	e.HintHelp.WriteString("[/rline-info]\n")
 }
 
 // refreshHint draws the line and works out the hint to show inside it.
@@ -449,184 +438,6 @@ func (ev *env) readKey(e *editor.Editor) key.Code {
 	return ev.keys.read()
 }
 
-// act redraws when an operation changed something. The C redraws inside each
-// operation, after the early return that leaves when there is nothing to do,
-// so an operation that finds nothing writes no bytes at all.
-func (ev *env) act(e *editor.Editor, changed bool) {
-	if changed {
-		ev.refresh(e)
-	}
-}
-
-// handleKey acts on one key and reports whether the line is finished.
-func (ev *env) handleKey(e *editor.Editor, c key.Code) bool {
-	switch c {
-	case key.Enter:
-		// A line continuation character at the end of a row turns into a real
-		// line break rather than finishing the line.
-		if ev.multiline && e.Pos > 0 &&
-			e.Input.CharAt(e.Pos-1) == ev.opts.MultilineEOL && ev.posIsAtRowEnd(e) {
-			ev.act(e, e.MultilineEOL())
-			return false
-		}
-		// The caller may say the line is not finished, which starts another
-		// row instead of handing it back. That is how a prompt keeps reading
-		// until a statement is closed.
-		if ev.multiline && ev.isIncomplete != nil && ev.isIncomplete(e.Input.String()) {
-			e.InsertChar('\n')
-			ev.refreshHint(e)
-			return false
-		}
-		return true
-	case key.CtrlD:
-		// On an empty line this ends the input. Anywhere else it deletes.
-		if e.Pos == 0 && e.PosIsAtEnd() {
-			return true
-		}
-		ev.act(e, e.DeleteChar())
-		return false
-	case key.EventStop:
-		return true
-	case key.Esc:
-		if e.Pos == 0 && e.PosIsAtEnd() {
-			return true
-		}
-		ev.act(e, e.DeleteAll())
-		return false
-	case key.Bell, key.CtrlC:
-		ev.act(e, e.DeleteAll())
-		return true
-	}
-	ev.editKey(e, c)
-	return false
-}
-
-// editKey acts on a key that does not finish the line.
-func (ev *env) editKey(e *editor.Editor, c key.Code) {
-	switch c {
-	case key.EventResize:
-		ev.resize(e)
-	case key.EventAutoTab:
-		ev.generateCompletions(e, true)
-
-	// Completion, history, help, undo.
-	case key.Tab, '?' | key.ModAlt:
-		ev.generateCompletions(e, false)
-	case key.CtrlR, key.CtrlS:
-		ev.historySearchWithCurrentWord(e)
-	case key.CtrlP:
-		ev.historyPrev(e)
-	case key.CtrlN:
-		ev.historyNext(e)
-	case key.CtrlL:
-		ev.clearScreen(e)
-	case key.CtrlZ, '_' | key.ModCtrl:
-		e.UndoRestore(true)
-		ev.refresh(e)
-	case key.CtrlY:
-		e.RedoRestore()
-		ev.refresh(e)
-	case key.F1:
-		ev.showHelp(e)
-
-	// Moving about.
-	case key.Left, key.CtrlB:
-		ev.act(e, e.CursorLeft())
-	case key.Right, key.CtrlF:
-		// At the end of the line there is nothing to move over, so this asks
-		// for a completion instead.
-		if e.Pos == e.Input.Length() {
-			ev.generateCompletions(e, false)
-			return
-		}
-		ev.act(e, e.CursorRight())
-	case key.Up:
-		ev.cursorRowUp(e)
-	case key.Down:
-		ev.cursorRowDown(e)
-	case key.Home, key.CtrlA:
-		ev.act(e, e.CursorLineStart())
-	case key.End, key.CtrlE:
-		ev.act(e, e.CursorLineEnd())
-	case key.Left | key.ModCtrl, key.Left | key.ModShift, 'b' | key.ModAlt:
-		ev.act(e, e.CursorPrevWord())
-	case key.Right | key.ModCtrl, key.Right | key.ModShift, 'f' | key.ModAlt:
-		if e.Pos == e.Input.Length() {
-			ev.generateCompletions(e, false)
-			return
-		}
-		ev.act(e, e.CursorNextWord())
-	case key.Home | key.ModCtrl, key.Home | key.ModShift, key.PageUp, '<' | key.ModAlt:
-		ev.act(e, e.CursorToStart())
-	case key.End | key.ModCtrl, key.End | key.ModShift, key.PageDown, '>' | key.ModAlt:
-		ev.act(e, e.CursorToEnd())
-	case 'm' | key.ModAlt:
-		ev.act(e, e.CursorMatchPair())
-
-	// Deleting.
-	case key.Backspace:
-		ev.act(e, e.Backspace())
-	case key.Del:
-		ev.act(e, e.DeleteChar())
-	case 'd' | key.ModAlt:
-		ev.act(e, e.DeleteToWordEnd())
-	case key.CtrlW:
-		ev.act(e, e.DeleteToWSWordStart())
-	case key.Del | key.ModAlt, key.Backspace | key.ModAlt:
-		ev.act(e, e.DeleteToWordStart())
-	case key.CtrlU:
-		ev.act(e, e.DeleteToLineStart())
-	case key.CtrlK:
-		ev.act(e, e.DeleteToLineEnd())
-	case key.CtrlT:
-		ev.act(e, e.SwapChar())
-
-	// Typing.
-	case key.ShiftTab, key.Linefeed:
-		if ev.multiline {
-			e.InsertChar('\n')
-			ev.refreshHint(e)
-		}
-	default:
-		if chr, ok := c.ASCIIChar(); ok {
-			e.InsertChar(chr)
-			ev.refreshHint(e)
-			return
-		}
-		if r, ok := c.Unicode(); ok {
-			e.InsertRune(r)
-			ev.refreshHint(e)
-		}
-		// Anything else is a key this editor has no use for.
-	}
-}
-
-// cursorRowUp moves the cursor one screen row up, or walks back through the
-// history when it is already on the first row.
-func (ev *env) cursorRowUp(e *editor.Editor) {
-	_, rc := ev.rowCol(e)
-	if rc.Row == 0 {
-		ev.historyPrev(e)
-		return
-	}
-	if ev.setPosAtRowCol(e, rc.Row-1, rc.Col) {
-		ev.refresh(e)
-	}
-}
-
-// cursorRowDown moves the cursor one screen row down, or walks forward
-// through the history when it is already on the last row.
-func (ev *env) cursorRowDown(e *editor.Editor) {
-	rows, rc := ev.rowCol(e)
-	if rc.Row+1 >= rows {
-		ev.historyNext(e)
-		return
-	}
-	if ev.setPosAtRowCol(e, rc.Row+1, rc.Col) {
-		ev.refresh(e)
-	}
-}
-
 // readLine puts the terminal into raw mode, reads one line, and puts the
 // terminal back.
 //
@@ -645,22 +456,51 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 	// The finished line stays on screen and the cursor moves below it.
 	ev.term.writeln("")
 	ev.term.flush()
-	if c == key.CtrlC || c == key.Bell {
+	if c == key.CtrlC {
 		// The user abandoned the line rather than finishing it. See
-		// ErrInterrupted for why this is not what the C answers.
+		// ErrInterrupted for why this is not what the C answers. Ctrl-G is
+		// readline's abort, and no longer gives the line up (D45).
 		return "", false, ErrInterrupted
 	}
 	return line, ok, nil
 }
 
 // runEditLoop reads keys until the line is finished, and returns the key that
-// finished it.
+// finished it: Enter for a line, Ctrl-D for the end of the input, Ctrl-C for
+// a line given up, and EventStop for a read that was stopped.
+//
+// Each key goes through the keymap to a command of GNU readline, which a
+// readline.Line runs (D44). The commands that draw, complete or search are
+// rline's, and ev.command runs them. The line is copied into the editor after
+// each key, and the editor draws it.
 //
 // This is the loop itself, apart from the terminal being put into raw mode and
 // the history being kept, so that a test can drive it over a fixed set of keys
-// and look at the line afterwards. Reading the C, this is the body of the
-// while inside edit_line.
+// and look at the line afterwards.
 func (ev *env) runEditLoop(e *editor.Editor) key.Code {
+	if ev.keymap == nil {
+		ev.keymap = emacsKeymap()
+	}
+	if ev.viInsert == nil {
+		ev.viInsert, ev.viCommand = viKeymaps()
+	}
+	l := readline.New(ev.keymap, ev.readlineHistory())
+	l.SetKeymaps(ev.keymap, ev.viInsert, ev.viCommand)
+	l.SetHandler(func(name string, c key.Code) bool { return ev.command(e, l, name, c) })
+	l.SetCompleter(ev.candidates)
+	l.Configure(ev.vars)
+	l.SetEditingMode(ev.viMode)
+	l.SetSearchString(ev.lastSearch)
+	defer func() {
+		ev.lastSearch = l.SearchString()
+		ev.viMode = l.Mode() != "emacs"
+	}()
+	bells := 0
+	asked := false
+	// A prompt of the line's own, such as that of incremental search, is
+	// drawn in place of the program's (D45).
+	promptText, marker, shownPrompt := e.PromptText, ev.promptMarker, ""
+	defer func() { e.PromptText, ev.promptMarker = promptText, marker }()
 	for {
 		ev.term.flush()
 		c := ev.readKey(e)
@@ -672,13 +512,73 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		hadHint := e.Hint.Len() > 0
 		e.Hint.Reset()
 		e.HintHelp.Reset()
-		// Moving into a hint accepts it rather than stepping over nothing.
-		if (c == key.Right || c == key.End) && hadHint {
-			ev.generateCompletions(e, true)
-			c = key.None
-		}
-		if ev.handleKey(e, c) {
+		// A command of rline's copies the line into the editor itself, so
+		// what changed is measured against the line before the key.
+		before, beforePoint := l.Text(), l.Point()
+		switch {
+		case c == key.CtrlC:
+			// Ctrl-C gives the line up (D13). In readline the terminal turns
+			// it into a signal, and it is no key. The line is emptied, as
+			// isocline empties it, so that the history does not keep it.
+			e.Input.Clear()
+			e.Pos = 0
 			return c
+		case c == key.EventStop:
+			return c
+		case c == key.None:
+			continue
+		case c == key.EventResize:
+			ev.resize(e)
+			continue
+		case c == key.EventAutoTab:
+			ev.acceptHint(e)
+			l.Edit(e.Input.String(), e.Pos)
+			continue
+		case c == key.Right && hadHint:
+			// Right takes a hint that is shown, and moves the cursor when
+			// none is (D46).
+			l.Run("rline-accept-hint", c)
+		default:
+			l.Key(c)
+		}
+		showLine(e, l)
+		changed := l.Text() != before || l.Point() != beforePoint
+		// A question, such as whether to list many completions, is shown
+		// below the line while the line waits for the answer.
+		if q := l.Asking(); q != "" || asked {
+			e.Extra.Clear()
+			if q != "" {
+				e.Extra.AppendString("[rline-info][!pre]" + q + "[/pre][/]")
+			}
+			asked = q != ""
+			changed = true
+		}
+		if list := l.Listing(); len(list) > 0 {
+			ev.showListing(e, list)
+		}
+		if p := l.Prompt(); p != shownPrompt {
+			shownPrompt = p
+			e.PromptText, ev.promptMarker = promptText, marker
+			if p != "" {
+				e.PromptText, ev.promptMarker = "[!pre]"+p+"[/pre]", ""
+			}
+			changed = true
+		}
+		switch {
+		case l.Last() == "self-insert" && changed:
+			ev.refreshHint(e)
+		case changed, hadHint:
+			ev.refresh(e)
+		}
+		if n := l.Bells(); n > bells {
+			bells = n
+			ev.term.bell()
+		}
+		if l.Done() {
+			if l.EOF() {
+				return key.CtrlD
+			}
+			return key.Enter
 		}
 	}
 }
@@ -817,7 +717,7 @@ func helpRows() []helpRow {
 // helpBanner is what is printed above the table: what this is, and a drawing
 // of which key reaches which part of the line.
 func helpBanner() string {
-	return "[ic-info]" +
+	return "[rline-info]" +
 		"Isocline v1.1, copyright (c) 2021-2026 Daan Leijen.\n" +
 		"This is free software; you can redistribute it and/or\n" +
 		"modify it under the terms of the MIT License.\n" +
@@ -837,7 +737,7 @@ func helpBanner() string {
 		"         │   alt-backsp        alt-d      │\n" +
 		"         └────────────────────────────────┘    (delete)\n" +
 		"       ctrl-u                          ctrl-k\n" +
-		"[/ansi-lightgray][/ic-info]\n"
+		"[/ansi-lightgray][/rline-info]\n"
 }
 
 // helpLines returns the table as the lines it is printed as, with the markup
@@ -848,14 +748,14 @@ func helpLines() []string {
 	lines := make([]string, 0, len(rows))
 	for _, row := range rows {
 		if row.keys == "" {
-			lines = append(lines, fmt.Sprintf("[ic-info]%s[/]\n", row.text))
+			lines = append(lines, fmt.Sprintf("[rline-info]%s[/]\n", row.text))
 			continue
 		}
 		separator := ": "
 		if row.text == "" {
 			separator = ""
 		}
-		lines = append(lines, fmt.Sprintf("  [ic-emphasis]%-*s[/][ansi-lightgray]%s%s[/]\n",
+		lines = append(lines, fmt.Sprintf("  [rline-emphasis]%-*s[/][ansi-lightgray]%s%s[/]\n",
 			helpKeyWidth, row.keys, separator, row.text))
 	}
 	return lines

@@ -268,30 +268,58 @@ func TestTheDecisionIndexIsComplete(t *testing.T) {
 // thing anyone reads.
 func TestAnAmendmentPointsBothWays(t *testing.T) {
 	t.Parallel()
-	status := make(map[int]string)
+	// links holds, for each decision, the decisions that it amends and the
+	// decisions that amend it, as its heading lists them.
+	type links struct{ amends, amendedBy []int }
+	all := make(map[int]links)
 	for _, d := range planDecisions(t) {
-		status[d.num] = d.status
+		all[d.num] = links{
+			amends:    amendList(d.status, "amends"),
+			amendedBy: amendList(d.status, "amended by"),
+		}
 	}
-	amends := regexp.MustCompile(`\bAmends D([0-9]+)`)
-	amendedBy := regexp.MustCompile(`\bAmended by D([0-9]+)`)
-	for _, num := range slices.Sorted(maps.Keys(status)) {
+	for _, num := range slices.Sorted(maps.Keys(all)) {
+		l := all[num]
 		for _, c := range []struct {
-			re   *regexp.Regexp
-			back string
-		}{{amends, "Amended by"}, {amendedBy, "Amends"}} {
-			for _, m := range c.re.FindAllStringSubmatch(status[num], -1) {
-				other, _ := strconv.Atoi(m[1])
-				want := fmt.Sprintf("%s D%d", c.back, num)
-				switch s, ok := status[other]; {
+			says, back string
+			others     []int
+			backOf     func(links) []int
+		}{
+			{"Amends", "Amended by", l.amends, func(o links) []int { return o.amendedBy }},
+			{"Amended by", "Amends", l.amendedBy, func(o links) []int { return o.amends }},
+		} {
+			for _, other := range c.others {
+				o, ok := all[other]
+				switch {
 				case !ok:
-					t.Errorf("D%d says %q, and D%d is not a decision", num, m[0], other)
-				case !regexp.MustCompile(`\b` + want + `\b`).MatchString(s):
-					t.Errorf("D%d says %q, and the heading of D%d does not say %q. "+
-						"An amendment has to be visible from both decisions", num, m[0], other, want)
+					t.Errorf("D%d says %q D%d, and D%d is not a decision", num, c.says, other, other)
+				case !slices.Contains(c.backOf(o), num):
+					t.Errorf("D%d says %q D%d, and the heading of D%d does not say %q D%d. "+
+						"An amendment has to be visible from both decisions", num, c.says, other, other, c.back, num)
 				}
 			}
 		}
 	}
+}
+
+// amendClause matches a clause of a status that names decisions, such as
+// "Amends D13 and D44" or "amended by D45", with every number in its list.
+var amendClause = regexp.MustCompile(`(?i)\b(amends|amended by) (D[0-9]+(?:(?:, | and )D[0-9]+)*)`)
+
+// amendList returns the numbers that the clauses of kind, "amends" or
+// "amended by", name in a status.
+func amendList(status, kind string) []int {
+	var out []int
+	for _, m := range amendClause.FindAllStringSubmatch(status, -1) {
+		if !strings.EqualFold(m[1], kind) {
+			continue
+		}
+		for _, d := range regexp.MustCompile(`D([0-9]+)`).FindAllStringSubmatch(m[2], -1) {
+			n, _ := strconv.Atoi(d[1])
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 // decisionRef matches a decision named by number, with the word before it,

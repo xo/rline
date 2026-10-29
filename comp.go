@@ -16,7 +16,6 @@ import (
 
 	"github.com/xo/rline/internal/editor"
 	"github.com/xo/rline/internal/text"
-	"github.com/xo/rline/key"
 )
 
 // --------------------------------------------------------------------------
@@ -69,11 +68,14 @@ type completion struct {
 	// each side of the cursor before the replacement goes in.
 	deleteBefore int
 	deleteAfter  int
+
+	// suffix goes after a completion that is the only one.
+	suffix string
 }
 
 // addFunc adds one completion. Word completion wraps this to adjust how much
 // of the line the completion takes away.
-type addFunc func(replacement, display, help string, deleteBefore, deleteAfter int) bool
+type addFunc func(cand Candidate) bool
 
 // Completer offers completions for the word at the cursor.
 //
@@ -113,6 +115,11 @@ type Candidate struct {
 	// cursor this completion takes away.
 	DeleteBefore int
 	DeleteAfter  int
+
+	// Suffix goes after the Replacement when it is the only completion and
+	// the cursor is at the end of the line, as readline adds a space after a
+	// word and a slash after a directory (D46). An empty Suffix adds nothing.
+	Suffix string
 }
 
 // Completion is what a completer is given: the whole line, where the cursor
@@ -144,7 +151,7 @@ func (c *Completion) AddCandidate(cand Candidate) bool {
 	if c == nil || c.add == nil {
 		return false
 	}
-	return c.add(cand.Replacement, cand.Display, cand.Help, cand.DeleteBefore, cand.DeleteAfter)
+	return c.add(cand)
 }
 
 // Text returns the whole line the completer was called on, not only the part
@@ -214,18 +221,19 @@ func (c *completions) contains(replacement string) bool {
 // which is how a completer is told to stop.
 //
 // A replacement that is already held is counted but not kept.
-func (c *completions) add(replacement, display, help string, deleteBefore, deleteAfter int) bool {
+func (c *completions) add(cand Candidate) bool {
 	if c.completerMax <= 0 {
 		return false
 	}
 	c.completerMax--
-	if !c.contains(replacement) {
+	if !c.contains(cand.Replacement) {
 		c.items = append(c.items, completion{
-			replacement:  replacement,
-			display:      display,
-			help:         help,
-			deleteBefore: deleteBefore,
-			deleteAfter:  deleteAfter,
+			replacement:  cand.Replacement,
+			display:      cand.Display,
+			help:         cand.Help,
+			deleteBefore: cand.DeleteBefore,
+			deleteAfter:  cand.DeleteAfter,
+			suffix:       cand.Suffix,
 		})
 	}
 	return true
@@ -383,9 +391,7 @@ func (c *completions) generate(input string, pos, maxOffers int) int {
 		return 0
 	}
 	cenv := &Completion{input: input, cursor: pos, arg: c.completerArg}
-	cenv.add = func(replacement, display, help string, deleteBefore, deleteAfter int) bool {
-		return c.add(replacement, display, help, deleteBefore, deleteAfter)
-	}
+	cenv.add = c.add
 	c.completerMax = maxOffers
 	c.completer.Complete(cenv, input[:pos])
 	return c.count()
@@ -396,7 +402,7 @@ func (c *completions) generate(input string, pos, maxOffers int) int {
 func addCompletions(cenv *Completion, prefix string, completions []string) bool {
 	for _, completion := range completions {
 		if text.HasPrefixFold(completion, prefix) {
-			if !cenv.add(completion, "", "", 0, 0) {
+			if !cenv.add(Candidate{Replacement: completion}) {
 				return false
 			}
 		}
@@ -481,11 +487,11 @@ func withWordPrefix(cenv *Completion, deleteBeforeAdjust int,
 		postfix = cenv.input[cenv.cursor:]
 	}
 	prev := cenv.add
-	cenv.add = func(replacement, display, help string, deleteBefore, deleteAfter int) bool {
-		replacement = fix(replacement)
-		return prev(replacement, display, help,
-			deleteBeforeAdjust+deleteBefore,
-			text.CountEndOverlap(replacement, postfix)+deleteAfter)
+	cenv.add = func(cand Candidate) bool {
+		cand.Replacement = fix(cand.Replacement)
+		cand.DeleteBefore += deleteBeforeAdjust
+		cand.DeleteAfter += text.CountEndOverlap(cand.Replacement, postfix)
+		return prev(cand)
 	}
 	fun.Complete(cenv, word)
 	cenv.add = prev
@@ -931,7 +937,7 @@ func completeInDir(cenv *Completion, color bool, dir, dirPrefix, base string,
 	}
 	defer f.Close()
 	// Read in directory order rather than sorted, which is what the C sees.
-	// Nothing depends on the order, because the menu sorts before it shows.
+	// Nothing depends on the order, because the completion commands sort.
 	entries, err := f.ReadDir(-1)
 	if err != nil {
 		return true
@@ -960,7 +966,13 @@ func completeInDir(cenv *Completion, color bool, dir, dirPrefix, base string,
 		// extension colours of the GNU setting are never reached from here.
 		// The C code is the same.
 		display := colorizeEntry(color, ft, name, "", false, shown)
-		if !cenv.add(replacement, display, "", 0, 0) {
+		cand := Candidate{Replacement: replacement, Display: display}
+		if !directory {
+			// A file is a whole word, so readline puts a space after it. A
+			// directory already ends in the separator.
+			cand.Suffix = " "
+		}
+		if !cenv.add(cand) {
 			return false
 		}
 	}
@@ -1027,11 +1039,9 @@ func completeFilename(cenv *Completion, prefix string, color bool,
 // editlinecompletion.go
 
 // Offering completions from inside the edit loop: asking the completer, and
-// applying the only answer when there is only one.
-//
-// When there are several the menu draws them, which is in menu.go, because
-// drawing below the line and reading its own keys is a different job from
-// working out what the answers are.
+// applying the only answer when there is only one, which is how a hint is
+// taken. The readline commands that complete are in internal/readline, and
+// bind.go draws the list they ask for.
 //
 // Ported from isocline/src/editline_completion.c.
 
@@ -1065,41 +1075,4 @@ func (ev *env) complete(e *editor.Editor, index int) bool {
 		ev.refresh(e)
 	}
 	return changed
-}
-
-// completeLongestPrefix puts in as much as every completion agrees on.
-func (ev *env) completeLongestPrefix(e *editor.Editor) {
-	e.StartModify()
-	completionCommit(e, ev.completions.applyLongestPrefix(&e.Input, e.Pos))
-}
-
-// generateCompletions offers completions for the word at the cursor. When
-// autoTab is set the caller asked for this rather than the user, so nothing
-// to complete passes quietly instead of beeping.
-func (ev *env) generateCompletions(e *editor.Editor, autoTab bool) {
-	if e.Pos < 0 {
-		return
-	}
-	count := ev.completions.generate(e.Input.String(), e.Pos, maxCompletionsToTry)
-	// The completer was asked to stop once it had this many, so reaching the
-	// limit means there are probably others it never offered.
-	moreAvailable := count >= maxCompletionsToTry
-	switch {
-	case count <= 0:
-		if !autoTab {
-			ev.term.bell()
-		}
-	case count == 1:
-		if ev.complete(e, 0) && ev.completeAutoTab {
-			ev.keys.pushCode(key.EventAutoTab)
-		}
-	default:
-		if !moreAvailable {
-			// Every completion is known, so as much of them as agrees can go
-			// in before the menu is drawn.
-			ev.completeLongestPrefix(e)
-		}
-		ev.completions.sort()
-		ev.completionMenu(e, moreAvailable)
-	}
 }

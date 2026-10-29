@@ -2,6 +2,7 @@ package rline
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -14,7 +15,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
+	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
 
@@ -78,27 +81,60 @@ func TestDecoderPort(t *testing.T) {
 			len(lines), 7175)
 	}
 	counts := make(map[string]int, 8)
-	bad := 0
+	var delta strings.Builder
 	for i, line := range lines {
 		kind, diff := checkTTYLine(t, line)
 		counts[kind]++
-		if diff == "" {
-			continue
-		}
-		bad++
-		if bad <= maxReported {
-			t.Errorf("%s:%d: %s\n  %s", ttyCorpusPath, i+1, diff, line)
+		if diff != "" {
+			fmt.Fprintf(&delta, "%d: %s\n", i+1, diff)
 		}
 	}
-	if bad > maxReported {
-		t.Errorf("%d differences in total, %d shown", bad, maxReported)
-	}
+	ttyCompareDelta(t, delta.String())
 	for _, kind := range []string{"vt", "xterm", "ss3", "code", "keys", "escresp"} {
 		if counts[kind] == 0 {
 			t.Errorf("the corpus holds no %s cases", kind)
 		}
 	}
 	t.Logf("checked %d decodes: %v", len(lines), counts)
+}
+
+// ttyDeltaPath holds the cases where the port decodes differently from the C
+// on purpose: DEL stays a key of its own (D42), and an escape before a byte
+// that starts no sequence is the Escape key, followed by that byte (D46).
+// Each line is the line of the corpus and what differs.
+const ttyDeltaPath = "testdata/tty-delta.txt"
+
+// ttyCompareDelta checks that the decodes that differ from the C are the ones
+// that ttyDeltaPath lists, no more and no fewer. With -update it writes them,
+// and the change to the file is then read before it is kept.
+func ttyCompareDelta(t *testing.T, got string) {
+	t.Helper()
+	if *update {
+		if err := os.WriteFile(ttyDeltaPath, []byte(got), 0o644); err != nil {
+			t.Fatalf("writing %s: %v", ttyDeltaPath, err)
+		}
+		return
+	}
+	want, err := os.ReadFile(ttyDeltaPath)
+	if err != nil {
+		t.Fatalf("reading %s: %v (run go test -run TestDecoderPort -update)", ttyDeltaPath, err)
+	}
+	gotLines := strings.SplitAfter(got, "\n")
+	wantLines := strings.SplitAfter(string(want), "\n")
+	shown := 0
+	for i := 0; i < max(len(gotLines), len(wantLines)) && shown < maxReported; i++ {
+		var g, w string
+		if i < len(gotLines) {
+			g = gotLines[i]
+		}
+		if i < len(wantLines) {
+			w = wantLines[i]
+		}
+		if g != w {
+			t.Errorf("the decodes that differ from the C changed. See %s.\n got %q\nwant %q", ttyDeltaPath, g, w)
+			shown++
+		}
+	}
 }
 
 // checkTTYLine checks one recorded case. It returns the kind of case, and a
@@ -527,7 +563,12 @@ func checkWinKeyLine(t *testing.T, line string) (string, string) {
 	}
 	want := make([]key.Code, 0, len(f)-4)
 	for _, field := range f[4:] {
-		want = append(want, mustCode(t, field))
+		c := mustCode(t, field)
+		// The C turns DEL into backspace, and rline keeps it DEL (D42).
+		if f[0] == "pushuni" && f[2] == "7f" && c.NoMods() == key.Backspace {
+			c = key.Rubout | c.Mods()
+		}
+		want = append(want, c)
 	}
 	if len(got) != len(want) {
 		return f[0], fmt.Sprintf("%s decoded to %s, want %s", what, showCodes(got), showCodes(want))
@@ -708,8 +749,25 @@ func FuzzEscapeDecoder(f *testing.F) {
 			// compare rather than something to disagree about.
 			t.Skip()
 		}
+		if bytes.Contains(in, []byte("\x1b\x1b\x1b")) || escAndBroken(utf8, in) {
+			// isoclineKeys cannot turn rline's answer into the C's for these.
+			// Three escapes and a sequence are an Escape key and alt with
+			// the sequence here, and alt with Escape and loose bytes in the
+			// C. escAndBroken says why for the other.
+			t.Skip()
+		}
 		want := d.decode(t, utf8, in)
-		got := goDecode(utf8, in)
+		if slices.Contains(want, key.Esc) || slices.Contains(want, key.None) {
+			// The C answers the Escape key only for a lone escape at the end
+			// or for a sequence that names it, such as ESC [ 27 u. rline
+			// gives the same key for both, and isoclineKeys would join the
+			// second with the key after it. The C answers 0 for the zero
+			// byte, which is ctrl+space here, and also for a sequence that it
+			// throws away, which is 0 here too, so the two cannot be told
+			// apart.
+			t.Skip()
+		}
+		got := isoclineKeys(goDecode(utf8, in))
 		if len(got) != len(want) {
 			t.Fatalf("input %x utf8=%v decoded to %d keys, want %d\n got  %s\n want %s",
 				in, utf8, len(got), len(want), showCodes(got), showCodes(want))
@@ -721,6 +779,83 @@ func FuzzEscapeDecoder(f *testing.F) {
 			}
 		}
 	})
+}
+
+// escAndBroken reports whether UTF-8 input holds an escape and also a byte
+// above 0x7f or a zero byte. The C takes one byte after an escape. rline
+// decodes what follows an escape as a key of its own, so a character of
+// several bytes, or a broken one, is read whole, and a broken one drops a zero
+// byte. Bytes that a broken character put back can come between the escape
+// and what follows it, so the input as a whole is left out. isoclineKeys
+// cannot map these answers onto the C's.
+func escAndBroken(isUTF8 bool, in []byte) bool {
+	if !isUTF8 || !bytes.Contains(in, []byte{0x1b}) {
+		return false
+	}
+	for _, b := range in {
+		if b == 0 || b >= utf8.RuneSelf {
+			return true
+		}
+	}
+	return false
+}
+
+// isoclineKeys joins keys back together as the C decodes them, so that the
+// two can be compared. The C reads an escape before a byte that starts no
+// sequence as alt and that byte, where rline reads the Escape key and then
+// the byte (D46). The C turns DEL into backspace, where rline keeps DEL
+// (D42).
+func isoclineKeys(keys []key.Code) []key.Code {
+	var out []key.Code
+	for i := 0; i < len(keys); i++ {
+		c := keys[i]
+		switch {
+		case c == key.Esc && i+2 < len(keys) && keys[i+1] == key.Esc:
+			// Two escapes and a key are alt and that key in the C.
+			out = append(out, isoclineAlt(keys[i+2])...)
+			i += 2
+		case c == key.Esc && i+1 < len(keys) && keys[i+1] == key.Esc:
+			out = append(out, key.Esc|key.ModAlt)
+			i++
+		case c == key.Esc && i+1 < len(keys):
+			out = append(out, isoclineAlt(keys[i+1])...)
+			i++
+		case c.NoMods() == key.Rubout:
+			out = append(out, key.Backspace|c.Mods())
+		default:
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// isoclineAlt returns what the C decodes for an escape and the bytes that k
+// came from. The C takes one byte after the escape, so the rest of a
+// character of several bytes comes out as raw bytes.
+func isoclineAlt(k key.Code) []key.Code {
+	raw, isRaw := text.RawByte(rune(k))
+	switch r := rune(k); {
+	case k == key.Space|key.ModCtrl:
+		// The zero byte is ctrl+space alone, and stays 0 after an escape.
+		k = 0
+	case k == '_'|key.ModCtrl:
+		// 0x1f becomes ctrl+_ alone, and stays 0x1f after an escape.
+		k = 0x1f
+	case isRaw:
+		k = key.Code(raw)
+	case k.Mods() == 0 && r >= utf8.RuneSelf:
+		b := utf8.AppendRune(nil, r)
+		out := make([]key.Code, 0, len(b))
+		out = append(out, modifyCode(key.Code(b[0])|key.ModAlt))
+		for _, c := range b[1:] {
+			out = append(out, key.Code(text.RawRune(c)))
+		}
+		return out
+	}
+	if k.NoMods() == key.Rubout {
+		k = key.Backspace | k.Mods()
+	}
+	return []key.Code{modifyCode(k | key.ModAlt)}
 }
 
 // escapeSeed is one starting point for the fuzzer.
@@ -780,4 +915,38 @@ func mustHexTB(tb testing.TB, s string) []byte {
 		tb.Fatalf("reading hex %q: %v", s, err)
 	}
 	return b
+}
+
+// TestEscapeIsAKeyOfItsOwn checks the two places where the decoder departs
+// from the C. An escape before a byte that starts no sequence is the Escape
+// key, and the byte is read again as a key, so that the keymap can treat Esc
+// as a prefix, as readline does (D46). DEL and Ctrl-H stay two keys (D42).
+func TestEscapeIsAKeyOfItsOwn(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		in   string
+		want []key.Code
+	}{
+		{"\x1b", []key.Code{key.Esc}},
+		{"\x1bf", []key.Code{key.Esc, 'f'}},
+		{"\x1bF", []key.Code{key.Esc, 'F'}},
+		{"\x1b\x1b", []key.Code{key.Esc, key.Esc}},
+		{"\x1b\x1bf", []key.Code{key.Esc, key.Esc, 'f'}},
+		{"\x1b\x7f", []key.Code{key.Esc, key.Rubout}},
+		{"\x1b\x02", []key.Code{key.Esc, key.CtrlB}},
+		{"\x1bé", []key.Code{key.Esc, 'é'}},
+		{"\x1b[", []key.Code{key.Esc, '['}},
+		{"\x1bO", []key.Code{key.Esc, 'O'}},
+		{"\x1b[A", []key.Code{key.Up}},
+		{"\x1bOA", []key.Code{key.Up}},
+		{"\x1b\x1b[C", []key.Code{key.Right | key.ModAlt}},
+		{"\x1b[1;3C", []key.Code{key.Right | key.ModAlt}},
+		{"\x7f", []key.Code{key.Rubout}},
+		{"\x08", []key.Code{key.Backspace}},
+		{"a\x1bb", []key.Code{'a', key.Esc, 'b'}},
+	} {
+		if got := decodeKeys([]byte(tc.in), true); !slices.Equal(got, tc.want) {
+			t.Errorf("%q decodes to %s, want %s", tc.in, showCodes(got), showCodes(tc.want))
+		}
+	}
 }

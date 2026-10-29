@@ -285,7 +285,37 @@ The test that would catch the family is one that drives a session, injects a
 focus sequence mid-line, and asserts what the next ordinary key does. That is
 L3, and it does not need a database, a terminal emulator, or usql.
 
-## Organisation
+## The readline corpora
+
+The commands of GNU readline are checked the way the port of isocline was:
+against recordings of the real thing (D45, D46). `tools/probe-readline.c`
+drives readline 8.3 through its callback interface, one key at a time, and
+records the line, the cursor, the mark, and whether the line was handed back.
+`testdata/readline-emacs.txt` holds the cases, and
+`testdata/readline-binds.txt` holds readline's default keymaps and the names
+of all of its commands. `internal/readline` replays them.
+
+`TestSessionMatchesReadline` in `driven_test.go` replays the same cases
+through the whole edit loop: the decoder, the keymap that rline builds from
+the inputrc defaults, the line and the editor. It runs in the readline
+configuration of D45, with no rows, hints, brace insertion or highlighting,
+and compares the line and the cursor at the end of each case. It found that
+the zero byte, which a terminal sends for ctrl+space and which readline binds
+to `set-mark`, decoded as no key at all.
+
+Three limits of the recordings, stated so that nobody reads more into them:
+
+- The kill ring is not exported by the shared library, so the probe cannot
+  print it. A case yanks to show what the ring holds.
+- The bell is not recorded. A command that rings it and changes nothing
+  cannot be told from one that does nothing.
+- Once readline hands a line back, its cursor is already reset for the next
+  line, so only the hand back is compared on that step.
+
+Every rule that the recordings hold was broken on purpose with
+`tools/mutate.sh`, and each break failed the replay, apart from one that
+only rings the bell.
+
 
 Assertions for anything that can be stated: a cursor column, a history entry,
 an error being `context.Canceled`. Goldens only for byte protocols and for

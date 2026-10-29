@@ -57,6 +57,8 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/signal"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -109,6 +111,11 @@ const (
 	// behaviour rather than a fault.
 	ErrInterrupted Error = "interrupted"
 
+	// ErrNotAFile is returned by Release when the Session writes to
+	// something that is not a file, such as a buffer, so there is no file to
+	// give to another program.
+	ErrNotAFile Error = "not a file"
+
 	// errNotATerminal is returned when the file descriptor a Session was
 	// given is not a terminal, which is how a program reading a pipe or a
 	// file ends up reading plain lines with no editing.
@@ -146,6 +153,10 @@ const (
 	// DefaultMultilineEOL ends a line that carries on below.
 	DefaultMultilineEOL = '\\'
 
+	// DefaultAppName is the name of the program that $if tests in an inputrc
+	// file, unless WithAppName sets another.
+	DefaultAppName = "rline"
+
 	// DefaultHistoryEntries is how many lines are remembered.
 	DefaultHistoryEntries = 200
 
@@ -169,13 +180,13 @@ const (
 // defaultStyles are the styles that markup can use without defining them. The
 // names starting with "ic-" are the editor's own.
 var defaultStyles = [][2]string{
-	{"ic-prompt", "ansi-green"},
-	{"ic-info", "ansi-darkgray"},
-	{"ic-diminish", "ansi-lightgray"},
-	{"ic-emphasis", "#ffffd7"},
-	{"ic-hint", "ansi-darkgray"},
-	{"ic-error", "#d70000"},
-	{"ic-bracematch", "ansi-white"},
+	{"rline-prompt", "ansi-green"},
+	{"rline-info", "ansi-darkgray"},
+	{"rline-diminish", "ansi-lightgray"},
+	{"rline-emphasis", "#ffffd7"},
+	{"rline-hint", "ansi-darkgray"},
+	{"rline-error", "#d70000"},
+	{"rline-bracematch", "ansi-white"},
 	{"keyword", "#569cd6"},
 	{"control", "#c586c0"},
 	{"number", "#b5cea8"},
@@ -209,6 +220,10 @@ type Session struct {
 	// stderr is where the program's errors go, which need not be where its
 	// output goes. It is never nil once New has built the Session.
 	stderr io.Writer
+
+	// out is the file the Session writes to, which Release gives to another
+	// program. It is nil when the output is not a file.
+	out *os.File
 }
 
 // config carries what New needs before it builds a Session.
@@ -253,6 +268,13 @@ type config struct {
 	autoTab         bool
 
 	hintDelay time.Duration
+
+	// The inputrc file to read: the user's, or the one named, and the name
+	// of the program that $if tests in it.
+	userInputrc bool
+	inputrcFile string
+	appName     string
+	viMode      bool
 
 	// logger records everything read and written, and may be nil.
 	logger io.Writer
@@ -385,13 +407,12 @@ func WithCompleter(completer Completer) Option {
 // The function is handed everything typed so far, across every row, not the
 // row that was just typed, and answers true when it is not finished. That is
 // how a prompt keeps reading until a statement is closed, and it keeps the
-// whole statement in one buffer, so the cursor can be moved between its rows
-// and the whole thing is handed back at once.
+// whole statement in one buffer, which is handed back at once. readline's
+// commands treat the rows as one line: Ctrl-A goes to the start of the
+// statement, and Up puts an earlier statement in its place (D46).
 //
-// Enter finishes the line wherever the cursor is, including on a row above
-// the last one, which is what the C does. Ctrl-J breaks a row without
-// finishing. pyrepl instead makes Enter above the last row always break,
-// because it has no separate key for that; this has one.
+// Enter and Ctrl-J both run readline's accept-line. When fn answers true, the
+// line breaks at the cursor, wherever the cursor is.
 //
 // Without this, Enter always finishes the line.
 func WithContinue(fn func(text string) bool) Option {
@@ -423,6 +444,35 @@ func WithBraceMatching(braceMatching bool) Option {
 // WithBraceInsertion closes a brace automatically when one is typed.
 func WithBraceInsertion(autoPair bool) Option {
 	return func(c *config) { c.opts.AutoPair = autoPair }
+}
+
+// WithUserInputrc reads the user's inputrc file, as GNU readline does. When
+// $INPUTRC is set, it reads that file and no other, and reads nothing when
+// the file is missing. Otherwise it reads ~/.inputrc, or else /etc/inputrc
+// when that is missing. The key bindings, macros and variables of the file
+// change how the keys edit the line, and they override the program's own
+// (D41). Notices lists what in the file rline does not support.
+func WithUserInputrc(userInputrc bool) Option {
+	return func(c *config) { c.userInputrc = userInputrc }
+}
+
+// WithInputrcFile reads the named inputrc file in place of the user's.
+func WithInputrcFile(inputrcFile string) Option {
+	return func(c *config) { c.inputrcFile = inputrcFile }
+}
+
+// WithViMode edits as vi does, starting each line in insert mode, as
+// "set editing-mode vi" does in an inputrc file. The user's inputrc, read
+// with WithUserInputrc, can set the mode back (D41).
+func WithViMode(viMode bool) Option {
+	return func(c *config) { c.viMode = viMode }
+}
+
+// WithAppName sets the name of the program that $if tests in an inputrc
+// file, as readline's rl_readline_name does. It is DefaultAppName unless the
+// program sets it.
+func WithAppName(appName string) Option {
+	return func(c *config) { c.appName = appName }
 }
 
 // WithHints shows the rest of the only completion that fits, in grey after
@@ -500,6 +550,7 @@ func New(opts ...Option) (*Prompt, error) {
 		braceMatching:   true,
 		hints:           true,
 		inlineHelp:      true,
+		appName:         DefaultAppName,
 		opts: editor.EditOptions{
 			MatchPairs:   DefaultMatchPairs,
 			AutoPairs:    DefaultAutoPairs,
@@ -520,6 +571,9 @@ func New(opts ...Option) (*Prompt, error) {
 		errOut = os.Stderr
 	}
 	r := &Session{plain: bufio.NewReader(in), stderr: errOut}
+	if f, ok := c.stdout.(*os.File); ok {
+		r.out = f
+	}
 
 	// A missing keyboard is a mode rather than a failure: a program whose
 	// input is a pipe or a file still wants its lines, and gets them without
@@ -586,6 +640,10 @@ func New(opts ...Option) (*Prompt, error) {
 		completeAutoTab: c.autoTab,
 		completePreview: true,
 		hintDelay:       c.hintDelay,
+	}
+	r.env.viMode = c.viMode
+	if c.userInputrc || c.inputrcFile != "" {
+		r.env.readInputrc(c)
 	}
 	r.logger = slog
 	r.canEdit = ttyErr == nil && isInteractive()
@@ -829,7 +887,7 @@ type MarkupWriter struct {
 //
 // Use fmt to do the formatting:
 //
-//	fmt.Fprintf(p.Markup(), "[ic-error]%s[/]\n", msg)
+//	fmt.Fprintf(p.Markup(), "[rline-error]%s[/]\n", msg)
 func (w *MarkupWriter) Write(p []byte) (int, error) {
 	if w == nil || w.env == nil {
 		return len(p), nil
@@ -1012,10 +1070,85 @@ func (s *Session) SaveHistory() error {
 	return nil
 }
 
+// Notices returns what rline does not support in the inputrc file that the
+// Session read: a variable it does not know, a command it does not have, or a
+// keymap it does not have yet. Each one says which.
+func (s *Session) Notices() []string {
+	if s.env == nil {
+		return nil
+	}
+	return slices.Clone(s.env.notices)
+}
+
 // Interactive reports whether there is a terminal to edit on. When there is
 // not, ReadLine reads a plain line.
 func (s *Session) Interactive() bool {
 	return s.canEdit
+}
+
+// Release gives the terminal to fn, and takes it back when fn returns. It is
+// for a program that runs another program on the terminal between two
+// reads, such as a pager, an editor or a shell.
+//
+// Release writes out what the Session still holds, and then calls fn with the
+// file that the Session writes to: os.Stdout, or the file given to
+// WithStdout. fn hands that file to the other program as its output. The
+// terminal is in its own mode between reads, so the other program gets it as
+// the shell would give it. A file that is not a terminal is handed over all
+// the same, and the program that called Release decides what to do with it.
+// What the other program writes does not reach the log of WithLogger.
+//
+// While fn runs, the keys that raise a signal belong to the other program.
+// The terminal sends Ctrl-C to every process in the foreground, the program
+// that called Release among them, and Release keeps the signal from ending
+// that program. A handler that the program set up for the signal still gets
+// it. Ctrl-Z still stops both programs, so that the shell can take the
+// terminal back.
+//
+// After fn returns, the Session reads the size of the terminal again, because
+// the other program can have changed the screen.
+//
+// Release returns what fn returns. It returns ErrNotAFile without calling fn
+// when the Session writes to something that is not a file, and ErrClosed when
+// the Session is closed. Do not call it while a line is being read, such as
+// from a Completer.
+func (s *Session) Release(fn func(tty *os.File) error) error {
+	switch {
+	case s.closed:
+		return ErrClosed
+	case s.out == nil:
+		return ErrNotAFile
+	}
+	// Every public write flushes already, so between reads nothing is
+	// waiting. The flush makes that hold here by construction, as it does
+	// for Stderr.
+	s.env.term.flush()
+	// A channel that nothing reads, so that a signal sent to it is dropped.
+	// Being notified at all is what keeps the default action, which ends
+	// the program, from happening.
+	ignore := make(chan os.Signal, 1)
+	signal.Notify(ignore, childSignals...)
+	defer signal.Stop(ignore)
+	err := fn(s.out)
+	s.env.term.updateDim()
+	return err
+}
+
+// Size returns the width and the height of the terminal that the Session
+// writes to, in characters. It reads them again on each call, so it gives the
+// size after the window was last changed.
+//
+// Size returns zero for both when the output is not a terminal, such as when
+// it goes to a pipe, a file or a buffer.
+func (s *Session) Size() (cols, rows int) {
+	if s.closed || s.env == nil || s.env.term.sz == nil {
+		return 0, 0
+	}
+	cols, rows, ok := s.env.term.sz.size()
+	if !ok || cols <= 0 || rows <= 0 {
+		return 0, 0
+	}
+	return cols, rows
 }
 
 // --------------------------------------------------------------------------

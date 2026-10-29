@@ -3,6 +3,12 @@
 package rline
 
 import (
+	"bytes"
+	"errors"
+	"os"
+	"os/exec"
+	"os/signal"
+	"syscall"
 	"testing"
 	"time"
 
@@ -168,5 +174,227 @@ func TestRawModeDiscardsWhatWasTypedBeforeIt(t *testing.T) {
 	}
 	if got != key.Code('z') {
 		t.Errorf("read %08x after raw mode started, want %08x", got, key.Code('z'))
+	}
+}
+
+// TestSizeReadsTheTerminal checks that Size gives the size of the terminal
+// that the Session writes to, and gives the new size after a change.
+func TestSizeReadsTheTerminal(t *testing.T) {
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = leader.Close()
+		_ = follower.Close()
+	})
+	s, err := New(WithStdin(follower), WithStdout(follower))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	for _, want := range []unix.Winsize{{Col: 100, Row: 30}, {Col: 123, Row: 41}} {
+		if err := unix.IoctlSetWinsize(int(leader.Fd()), unix.TIOCSWINSZ, &want); err != nil {
+			t.Fatalf("setting the size of the terminal: %v", err)
+		}
+		if cols, rows := s.Size(); cols != int(want.Col) || rows != int(want.Row) {
+			t.Errorf("Size gave %d by %d, want %d by %d", cols, rows, want.Col, want.Row)
+		}
+	}
+}
+
+// signalChildEnv names the case that TestSignalChild runs, in a process of
+// its own. A signal that ends the program would end the tests too, so each
+// case runs in a child process and the parent reads how it ended.
+const signalChildEnv = "RLINE_SIGNAL_CHILD"
+
+// TestSignalsReachTheProgram checks what happens to a program that holds a
+// Session when it gets a signal. Each case runs in a child process that has a
+// pseudo-terminal for its keyboard and its output. The parent reads how the
+// child ended, and how the child left the terminal.
+func TestSignalsReachTheProgram(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		// sig is the signal that is to end the child, or 0 when the child is
+		// to exit by itself.
+		sig syscall.Signal
+	}{
+		// Between reads a signal is the program's. Its own handler gets the
+		// signal, and the program goes on. Until D48, rline sent the signal
+		// again with the program's handler taken away, so the program died.
+		{name: "between reads with a handler"},
+		// With no handler, the signal does what it always does.
+		{name: "between reads without a handler", sig: unix.SIGINT},
+		// In raw mode rline puts the terminal back, and then the signal
+		// ends the program.
+		{name: "in raw mode", sig: unix.SIGTERM},
+		// Or reaches the program's handler, when it has one.
+		{name: "in raw mode with a handler"},
+		// While another program has the terminal, the keys that raise a
+		// signal are that program's.
+		{name: "during release"},
+		// After Release, the signal is the program's again.
+		{name: "after release", sig: unix.SIGINT},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			leader, follower, err := capture.OpenPTY()
+			if err != nil {
+				t.Skipf("no pseudo-terminal available: %v", err)
+			}
+			t.Cleanup(func() {
+				_ = leader.Close()
+				_ = follower.Close()
+			})
+			before, err := unix.IoctlGetTermios(int(follower.Fd()), termiosGet)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cmd := exec.Command(os.Args[0], "-test.run=^TestSignalChild$")
+			cmd.Env = append(os.Environ(), signalChildEnv+"="+tc.name)
+			cmd.ExtraFiles = []*os.File{follower}
+			var out bytes.Buffer
+			cmd.Stdout, cmd.Stderr = &out, &out
+			err = cmd.Run()
+			var exit *exec.ExitError
+			switch {
+			case err == nil && tc.sig != 0:
+				t.Errorf("the child exited by itself, want it ended by %v\n%s", tc.sig, out.String())
+			case err == nil:
+			case !errors.As(err, &exit):
+				t.Fatalf("running the child: %v", err)
+			default:
+				ws, ok := exit.Sys().(syscall.WaitStatus)
+				switch {
+				case !ok:
+					t.Fatalf("no wait status for the child: %v", err)
+				case !ws.Signaled():
+					t.Errorf("the child exited with status %d, want it ended by %v\n%s", ws.ExitStatus(), tc.sig, out.String())
+				case ws.Signal() != tc.sig:
+					t.Errorf("the child was ended by %v, want %v\n%s", ws.Signal(), tc.sig, out.String())
+				}
+			}
+			after, err := unix.IoctlGetTermios(int(follower.Fd()), termiosGet)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if after.Lflag != before.Lflag || after.Iflag != before.Iflag {
+				t.Error("the child left the terminal changed")
+			}
+		})
+	}
+}
+
+// TestSignalChild is the child process of TestSignalsReachTheProgram. It
+// does nothing unless that test started it.
+func TestSignalChild(t *testing.T) {
+	name := os.Getenv(signalChildEnv)
+	if name == "" {
+		t.Skip("run only as the child process of TestSignalsReachTheProgram")
+	}
+	tty := os.NewFile(3, "terminal")
+	s, err := New(WithStdin(tty), WithStdout(tty))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.Interactive() {
+		t.Fatal("the Session did not open the terminal, so no signal was watched")
+	}
+	// The cases between reads start with a read that ended, because the end
+	// of a read is where rline gives the signals back.
+	read := func() {
+		if err := s.env.keys.startRaw(); err != nil {
+			t.Fatal(err)
+		}
+		s.env.keys.endRaw()
+	}
+	handle := func() chan os.Signal {
+		ch := make(chan os.Signal, 2)
+		signal.Notify(ch, unix.SIGINT)
+		return ch
+	}
+	handled := func(ch chan os.Signal) {
+		select {
+		case <-ch:
+		default:
+			t.Fatal("the program's handler did not get the signal")
+		}
+	}
+	raise := func(sig syscall.Signal) {
+		if err := unix.Kill(unix.Getpid(), sig); err != nil {
+			t.Fatal(err)
+		}
+		// Long enough for rline's watcher to act, if it is going to.
+		time.Sleep(300 * time.Millisecond)
+	}
+	switch name {
+	case "between reads with a handler":
+		read()
+		ch := handle()
+		raise(unix.SIGINT)
+		handled(ch)
+	case "between reads without a handler":
+		read()
+		raise(unix.SIGINT)
+	case "after release":
+		if err := s.Release(func(*os.File) error { return nil }); err != nil {
+			t.Fatal(err)
+		}
+		raise(unix.SIGINT)
+	case "in raw mode":
+		if err := s.env.keys.startRaw(); err != nil {
+			t.Fatal(err)
+		}
+		raise(unix.SIGTERM)
+	case "in raw mode with a handler":
+		ch := handle()
+		if err := s.env.keys.startRaw(); err != nil {
+			t.Fatal(err)
+		}
+		raise(unix.SIGINT)
+		handled(ch)
+		// The terminal is checked by the parent, after the exit.
+	case "during release":
+		err := s.Release(func(*os.File) error {
+			raise(unix.SIGINT)
+			raise(unix.SIGQUIT)
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	default:
+		t.Fatalf("no case called %q", name)
+	}
+	os.Exit(0)
+}
+
+// TestReleaseReadsTheSizeAgain checks that a Session knows the size of the
+// terminal after Release, without a resize signal, because the program that
+// had the terminal can have changed it.
+func TestReleaseReadsTheSizeAgain(t *testing.T) {
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = leader.Close()
+		_ = follower.Close()
+	})
+	resize := func(cols, rows uint16) error {
+		return unix.IoctlSetWinsize(int(leader.Fd()), unix.TIOCSWINSZ, &unix.Winsize{Col: cols, Row: rows})
+	}
+	if err := resize(100, 30); err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(WithStdin(follower), WithStdout(follower))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	if err := s.Release(func(*os.File) error { return resize(90, 20) }); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.env.term.width; got != 90 {
+		t.Errorf("after Release the editor takes the terminal to be %d wide, want 90", got)
 	}
 }

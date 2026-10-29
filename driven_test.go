@@ -5,10 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/xo/inputrc"
 
 	"github.com/xo/rline/internal/editor"
 	"github.com/xo/rline/internal/text"
@@ -34,7 +38,7 @@ import (
 // turns them back into the keys they name.
 const (
 	kEnter     = "\r"
-	kLinefeed  = "\n" // ctrl+J, which starts another row
+	kLinefeed  = "\n" // ctrl+J, which readline treats as Enter
 	kTab       = "\t"
 	kEsc       = "\x1b"
 	kBackspace = "\x7f"
@@ -55,17 +59,13 @@ const (
 	kCtrlT     = "\x14"
 	kCtrlU     = "\x15"
 	kCtrlW     = "\x17"
-	kCtrlY     = "\x19"
-	kCtrlZ     = "\x1a"
+	kUndo      = "\x1f" // ctrl+_, which is undo
 	kAltB      = "\x1bb"
 	kAltD      = "\x1bd"
 	kAltF      = "\x1bf"
-	kAltM      = "\x1bm"
 
 	// kPause makes the reader answer nothing once, which is how a terminal
-	// looks when the user stops typing. An escape needs it: the decoder waits
-	// to see whether more follows, so Escape then "z" sent together is alt+z
-	// rather than two keys.
+	// looks when the user stops typing.
 	kPause = "\x00"
 )
 
@@ -74,6 +74,14 @@ type feedKeys struct {
 	keys  string
 	pos   int
 	spent bool
+
+	// zeroIsKey sends a zero byte as the key ctrl+space, rather than as a
+	// pause.
+	zeroIsKey bool
+
+	// pauses are the places in keys where the reader answers nothing once
+	// before it goes on, as a pause in typing does.
+	pauses map[int]bool
 }
 
 // readByte satisfies byteReader.
@@ -82,10 +90,14 @@ type feedKeys struct {
 // a sequence that never finishes the line would hang the whole suite rather
 // than failing, and the empty answer it produces instead is easy to read.
 func (f *feedKeys) readByte(_ time.Duration) (byte, bool) {
+	if f.pauses[f.pos] {
+		delete(f.pauses, f.pos)
+		return 0, false
+	}
 	if f.pos < len(f.keys) {
 		c := f.keys[f.pos]
 		f.pos++
-		if c == 0 {
+		if c == 0 && !f.zeroIsKey {
 			// A pause. Nothing arrives, which is what the decoder waits for.
 			return 0, false
 		}
@@ -117,6 +129,14 @@ type feedOpts struct {
 	// Continue decides whether Enter finishes the line or starts another row
 	// inside it, which is how a statement spans rows.
 	Continue func(string) bool
+
+	// ZeroIsKey sends a zero byte in the keys as ctrl+space, which readline
+	// calls \C-@, rather than as a pause.
+	ZeroIsKey bool
+
+	// Pauses are the places in the keys where typing pauses, which ends the
+	// wait of the decoder for the rest of an escape sequence.
+	Pauses map[int]bool
 }
 
 // feed runs the keys through a fresh editor and returns the line and where the
@@ -161,7 +181,7 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 	_ = h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
 		term:          tm,
-		keys:          newDecoder(&feedKeys{keys: keys}),
+		keys:          newDecoder(&feedKeys{keys: keys, zeroIsKey: opt.ZeroIsKey, pauses: opt.Pauses}),
 		bb:            newBBCode(tm),
 		history:       h,
 		completions:   &completions{},
@@ -226,14 +246,17 @@ func TestFeedEditing(t *testing.T) {
 		{"ctrl-b and ctrl-f", "abc" + kCtrlB + kCtrlB + kCtrlF + kEnter, "abc", 2},
 		{"typing in the middle", "abc" + kCtrlA + "X" + kEnter, "Xabc", 1},
 
-		// Words. A word motion takes the space beside the word with it, which
-		// is isocline's rule: from the end of "one two", going back lands at
-		// 3 rather than at 4.
-		{"back a word", "one two" + kAltB + kEnter, "one two", 3},
+		// Words, as readline moves over them: back to the start of a word,
+		// and forward to its end.
+		{"back a word", "one two" + kAltB + kEnter, "one two", 4},
 		{"back two words", "one two" + kAltB + kAltB + kEnter, "one two", 0},
-		{"forward a word", "one two" + kCtrlA + kAltF + kEnter, "one two", 4},
+		{"forward a word", "one two" + kCtrlA + kAltF + kEnter, "one two", 3},
 		{"delete the word before", "one two" + kCtrlW + kEnter, "one ", 4},
-		{"delete the word after", "one two" + kCtrlA + kAltD + kEnter, "two", 0},
+		{"delete the word after", "one two" + kCtrlA + kAltD + kEnter, " two", 0},
+
+		// Esc is a prefix, as in readline: Esc and f is forward-word however
+		// long the wait between them (D46).
+		{"escape waits for the next key", "one two" + kCtrlA + kEsc + kPause + "f" + kEnter, "one two", 3},
 
 		// Killing.
 		{"kill to the end", "hello" + kCtrlA + kCtrlK + kEnter, "", 0},
@@ -241,30 +264,19 @@ func TestFeedEditing(t *testing.T) {
 		{"kill to the start from the middle", "hello" + kLeft + kLeft + kCtrlU + kEnter, "lo", 0},
 		{"kill to the end from the middle", "hello" + kLeft + kLeft + kCtrlK + kEnter, "hel", 3},
 
-		// Swapping. The cursor lands in front of the pair rather than after
-		// it, which is what isocline does and not what readline does.
-		{"swap two characters", "ab" + kLeft + kCtrlT + kEnter, "ba", 0},
+		// Swapping. The cursor lands after the pair, as in readline.
+		{"swap two characters", "ab" + kLeft + kCtrlT + kEnter, "ba", 2},
 		{"swap at the start does nothing", "ab" + kCtrlA + kCtrlT + kEnter, "ab", 0},
 
-		// Undo and redo.
-		{"undo the last typing", "abc" + kCtrlZ + kEnter, "ab", 2},
-		{"undo twice", "abc" + kCtrlZ + kCtrlZ + kEnter, "a", 1},
-		{"redo what was undone", "abc" + kCtrlZ + kCtrlY + kEnter, "abc", 3},
-
-		// More than one row.
-		{"ctrl-j starts another row", "a" + kLinefeed + "b" + kEnter, "a\nb", 3},
-		{"up moves between rows", "a" + kLinefeed + "b" + kUp + "X" + kEnter, "aX\nb", 2},
-		{"down moves back", "a" + kLinefeed + "b" + kUp + kDown + "X" + kEnter, "a\nbX", 4},
-		{"home goes to the start of the row", "a" + kLinefeed + "bc" + kHome + "X" + kEnter, "a\nXbc", 3},
-
-		// Escape clears the line, which is what isocline does.
-		{"escape clears what was typed", "abc" + kEsc + kPause + "z" + kEnter, "z", 1},
+		// Undo. readline takes back a run of typing as one change, and has
+		// no redo.
+		{"undo takes back the typing", "abc" + kUndo + kEnter, "", 0},
+		{"undo takes back a kill", "abc" + kCtrlA + kCtrlK + kUndo + kEnter, "abc", 3},
 
 		// Braces close themselves.
 		{"an opening brace closes itself", "(" + kEnter, "()", 1},
 		{"typing the closing brace steps over it", "()" + kEnter, "()", 2},
 		{"a second opening brace closes itself too", "(" + kCtrlA + "(" + kEnter, "()()", 1},
-		{"jump to the matching brace", "(ab)" + kRight + kAltM + kEnter, "(ab)", 1},
 
 		// Text outside ASCII.
 		{"accented letters", "éàü" + kEnter, "éàü", 6},
@@ -280,6 +292,36 @@ func TestFeedEditing(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got, cursor := feed(t, test.keys)
+			if got != test.want {
+				t.Errorf("the line is %q, want %q", got, test.want)
+			}
+			if cursor != test.cursor {
+				t.Errorf("the cursor is at %d, want %d", cursor, test.cursor)
+			}
+		})
+	}
+}
+
+// TestRowsOfAStatement drives a statement over more than one row. The rows
+// come from WithContinue, which readline does not have (D45), and readline's
+// commands treat the rows as one line (D46).
+func TestRowsOfAStatement(t *testing.T) {
+	t.Parallel()
+	unfinished := func(s string) bool { return !strings.HasSuffix(s, ";") }
+	for _, test := range []struct {
+		name   string
+		keys   string
+		want   string
+		cursor int
+	}{
+		{"enter carries on until the statement ends", "a" + kEnter + "b;" + kEnter, "a\nb;", 4},
+		{"ctrl-j carries on as enter does", "a" + kLinefeed + "b;" + kLinefeed, "a\nb;", 4},
+		{"home goes to the start of the statement", "a" + kEnter + "b;" + kHome + "X" + kEnter, "Xa\nb;", 1},
+		{"backspace joins the rows", "a" + kEnter + kBackspace + "b;" + kEnter, "ab;", 3},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			got, cursor, _ := feedWith(t, test.keys, feedOpts{Continue: unfinished})
 			if got != test.want {
 				t.Errorf("the line is %q, want %q", got, test.want)
 			}
@@ -325,11 +367,13 @@ func TestHowALineEnds(t *testing.T) {
 		// Ctrl-C throws the line away and stops, whatever is in it.
 		{"ctrl-c abandons an empty line", "\x03", "", key.CtrlC},
 		{"ctrl-c abandons a line with text", "abc\x03", "", key.CtrlC},
-		{"ctrl-g abandons a line as well", "abc\x07", "", key.Bell},
 
-		// Escape clears the line, and ends it only when there is nothing left.
-		{"escape on an empty line ends it", kEsc + kPause, "", key.Esc},
-		{"escape with text clears and carries on", "abc" + kEsc + kPause + "z" + kEnter, "z", key.Enter},
+		// Ctrl-G is readline's abort. It rings the bell and leaves the line
+		// as it was (D45).
+		{"ctrl-g leaves the line", "abc\x07" + kEnter, "abc", key.Enter},
+
+		// Ctrl-J is accept-line in readline, as Enter is.
+		{"ctrl-j hands back the line", "abc" + kLinefeed, "abc", key.Enter},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -370,7 +414,9 @@ func TestInputThatIsNotUTF8(t *testing.T) {
 		{"mixed with ASCII", "a\xe9b" + kEnter, "a\xe9b", 3},
 		{"backspace takes off the whole byte", "a\xe9" + kBackspace + kEnter, "a", 1},
 		{"the cursor steps over it", "a\xe9b" + kLeft + kLeft + "X" + kEnter, "aX\xe9b", 2},
-		{"a word of them", "\xe9\xfc x" + kAltB + kEnter, "\xe9\xfc x", 2},
+		// readline's words are letters and digits, and a byte that is not
+		// UTF-8 is neither, so the word before the cursor is the x.
+		{"a word after them", "\xe9\xfc x" + kAltB + kEnter, "\xe9\xfc x", 3},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -444,9 +490,8 @@ func TestUTF8Editing(t *testing.T) {
 		{"a combining mark stays with its letter", "é" + kBackspace + kEnter, "e", 1},
 		{"mixed widths", "a日b😀" + kEnter, "a日b😀", 9},
 		{"home and end over wide characters", "日本語" + kHome + kEnd + kEnter, "日本語", 9},
-		// A word motion takes the space beside the word with it, which
-		// the recorded corpus for editline settles.
-		{"word motion over wide characters", "日本 語" + kAltB + kEnter, "日本 語", 6},
+		// readline's backward-word goes to the start of the word.
+		{"word motion over wide characters", "日本 語" + kAltB + kEnter, "日本 語", 7},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -497,145 +542,98 @@ func wordsStartingWith(start string, n int) []string {
 	return words
 }
 
-// TestCompletionMenu checks the menu that opens when several answers fit.
-//
-// With the preview on, which is how isocline starts, nothing is picked until
-// the user moves: the menu shows the answers and the line is still theirs.
-func TestCompletionMenu(t *testing.T) {
+// TestCompletionList checks how readline shows completions (D45): Tab fills
+// in what they share, a second Tab lists them below the line in columns, and
+// the line is drawn again below the list.
+func TestCompletionList(t *testing.T) {
 	t.Parallel()
 	words := wordsStartingWith("x", 30)
-	tests := []struct {
+	complete := feedOpts{Completer: manyWords(words...)}
+	for _, test := range []struct {
 		name   string
 		keys   string
 		want   string
-		cursor int
+		listed bool
 	}{
-		{
-			// The shared start is filled in first, and here every answer
-			// shares only the "x" that was typed, so the line does not move.
-			name: "escape leaves the menu and the line alone",
-			keys: "x" + kTab + kEsc + kPause + kEnter,
-			want: "x", cursor: 1,
-		},
-		{
-			// Nothing is picked yet, so Enter ends the line as it stands.
-			name: "enter with nothing picked ends the line",
-			keys: "x" + kTab + kEnter,
-			want: "x", cursor: 1,
-		},
-		{
-			// Down picks the first entry, and Enter takes it. The entries are
-			// sorted, so the first is the lowest numbered.
-			name: "down picks the first and enter takes it",
-			keys: "x" + kTab + kDown + kEnter + kEnter,
-			want: "x0-000", cursor: 6,
-		},
-		{
-			name: "up picks the last one shown",
-			keys: "x" + kTab + kUp + kEnter + kEnter,
-			want: "x8-008", cursor: 6,
-		},
-		{
-			// A digit picks that entry outright, counting from one.
-			name: "a digit picks that entry",
-			keys: "x" + kTab + "3" + kEnter,
-			want: "x2-002", cursor: 6,
-		},
-		{
-			// Tab moves on to the next entry and wraps at the end of what is
-			// shown, which is nine of the thirty.
-			name: "tab walks the entries and wraps",
-			keys: "x" + kTab + strings.Repeat(kTab, 10) + kEnter + kEnter,
-			want: "x0-000", cursor: 6,
-		},
-		{
-			// Typing anything else takes what was being previewed. Nothing
-			// was, so the letter is simply typed.
-			name: "typing carries on with nothing picked",
-			keys: "x" + kTab + "y" + kEnter,
-			want: "xy", cursor: 2,
-		},
-		{
-			name: "typing after picking takes the entry as well",
-			keys: "x" + kTab + kDown + "!" + kEnter,
-			want: "x0-000!", cursor: 7,
-		},
-		{
-			// One answer needs no menu: it goes straight in.
-			name: "a single answer is filled in",
-			keys: "x1-" + kTab + kEnter,
-			want: "x1-001", cursor: 6,
-		},
-		{
-			name: "no answer leaves the line as it was",
-			keys: "zz" + kTab + kEnter,
-			want: "zz", cursor: 2,
-		},
-	}
-	for _, test := range tests {
+		{"one tab rings and lists nothing", "x" + kTab + kEnter, "x", false},
+		{"a second tab lists them", "x" + kTab + kTab + kEnter, "x", true},
+		{"esc ? lists them at once", "x" + kEsc + "?" + kPause + kEnter, "x", true},
+		{"a key between the tabs lists nothing", "x" + kTab + kCtrlB + kCtrlF + kTab + kEnter, "x", false},
+		{"a single answer goes in", "x1-" + kTab + kEnter, "x1-001", false},
+		{"no answer leaves the line", "zz" + kTab + kTab + kEnter, "zz", false},
+	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			got, cursor, _ := feedWith(t, test.keys, feedOpts{Completer: manyWords(words...)})
-			if got != test.want {
-				t.Errorf("the line is %q, want %q", got, test.want)
+			line, _, _, out := feedSession(t, test.keys, complete)
+			if line != test.want {
+				t.Errorf("the line is %q, want %q", line, test.want)
 			}
-			if cursor != test.cursor {
-				t.Errorf("the cursor is at %d, want %d", cursor, test.cursor)
+			drawn := stripEscapes(out)
+			for _, w := range words {
+				if strings.Contains(drawn, w) != test.listed && w != test.want {
+					t.Fatalf("%q drawn is %v, want %v\ndrawn: %q", w, !test.listed, test.listed, drawn)
+				}
 			}
 		})
 	}
-}
 
-// TestCompletionMenuShowsThereAreMore checks the menu says how many answers it
-// is not showing, and that page-down shows all of them.
-func TestCompletionMenuShowsThereAreMore(t *testing.T) {
-	t.Parallel()
-	words := wordsStartingWith("x", 30)
-	_, _, _, out := feedSession(t, "x"+kTab+kEnter, feedOpts{Completer: manyWords(words...)})
+	// Thirty words of six columns fit nine to a row of 80, so the list is
+	// four rows that run down and then across: x0-000 heads the first column
+	// and x4-004 the second.
+	_, _, _, out := feedSession(t, "x"+kTab+kTab+kEnter, complete)
 	drawn := stripEscapes(out)
-	if want := "to see all 30 completions"; !strings.Contains(drawn, want) {
-		t.Errorf("the menu does not say %q\ndrawn: %s", want, drawn)
+	if !strings.Contains(drawn, "x0-000  x4-004  x8-008") {
+		t.Errorf("the list does not run down the columns\ndrawn: %q", drawn)
 	}
-	// Nine of the thirty are shown, so the tenth is not there.
-	if strings.Contains(drawn, "x9-009") {
-		t.Errorf("the menu shows a tenth entry\ndrawn: %s", drawn)
+	// The line is drawn again below the list.
+	if i, j := strings.LastIndex(drawn, "x29"), strings.LastIndex(drawn, "> x"); j < i {
+		t.Errorf("the line was not drawn again below the list\ndrawn: %q", drawn)
 	}
 }
 
-// TestCompletionWithTooManyAnswers checks a completer with more answers than
-// the editor will ask for.
-//
-// It stops the completer at 250 and says so, rather than saying how many
-// there are, because it does not know. Page-down asks for the rest and lists
-// them all.
-func TestCompletionWithTooManyAnswers(t *testing.T) {
+// TestCompletionWithManyAnswers checks a list as long as readline's
+// completion-query-items, which is 100. readline asks before it lists them,
+// and stops at each screenful with --More--.
+func TestCompletionWithManyAnswers(t *testing.T) {
 	t.Parallel()
 	words := wordsStartingWith("x", 300)
-	completer := manyWords(words...)
+	complete := feedOpts{Completer: manyWords(words...)}
+	const ask = "Display all 300 possibilities? (y or n)"
 
-	_, _, _, out := feedSession(t, "x"+kTab+kEnter, feedOpts{Completer: completer})
+	_, _, _, out := feedSession(t, "x"+kTab+kTab+"n"+kEnter, complete)
 	drawn := stripEscapes(out)
-	if want := "to see all further completions"; !strings.Contains(drawn, want) {
-		t.Errorf("the menu does not say %q\ndrawn: %s", want, drawn)
+	if !strings.Contains(drawn, ask) {
+		t.Errorf("readline's question was never asked\ndrawn: %q", drawn)
 	}
-	if strings.Contains(drawn, "possible completions") {
-		t.Error("the menu says how many there are, which it cannot know")
+	if strings.Contains(drawn, words[0]) {
+		t.Errorf("n was answered and the list was drawn\ndrawn: %q", drawn)
 	}
 
-	// Page-down asks the completer for the rest and lists every one.
-	line, cursor, _, out := feedSession(t, "x"+kTab+kPageDown+kEnter, feedOpts{Completer: completer})
+	// 300 words of six columns are 34 rows of nine, and a screen of 24
+	// shows 23 rows before it asks for more. The columns run down, so the
+	// 23rd word is at the foot of the first screenful and the 34th is on the
+	// next. q stops there.
+	sorted := slices.Sorted(slices.Values(words))
+	line, _, _, out := feedSession(t, "x"+kTab+kTab+"y"+"q"+kEnter, complete)
 	drawn = stripEscapes(out)
-	if want := "(300 possible completions)"; !strings.Contains(drawn, want) {
-		t.Errorf("the list does not say %q\ndrawn: %s", want, drawn)
+	if !strings.Contains(drawn, "--More--") {
+		t.Errorf("a list taller than the screen did not stop\ndrawn: %q", drawn)
 	}
-	for _, w := range []string{words[0], words[len(words)-1]} {
-		if !strings.Contains(drawn, w) {
-			t.Errorf("the list leaves out %q", w)
-		}
+	if !strings.Contains(drawn, sorted[22]) || strings.Contains(drawn, sorted[33]) {
+		t.Errorf("q did not stop the list after the first screenful\ndrawn: %q", drawn)
 	}
-	// Listing them all takes nothing, so the line is as it was typed.
-	if line != "x" || cursor != 1 {
-		t.Errorf("the line is %q at %d, want %q at 1", line, cursor, "x")
+	if line != "x" {
+		t.Errorf("the line is %q, want %q", line, "x")
+	}
+
+	// Space shows the rest.
+	_, _, _, out = feedSession(t, "x"+kTab+kTab+"y"+" "+kEnter, complete)
+	if drawn := stripEscapes(out); !strings.Contains(drawn, sorted[33]) {
+		t.Errorf("space did not show the rest of the list\ndrawn: %q", drawn)
+	}
+	// Another key is no answer, and the bell rings until one comes.
+	if line, _, _, _ := feedSession(t, "x"+kTab+kTab+"z"+"n"+kEnter, complete); line != "x" {
+		t.Errorf("the line is %q after a key that is no answer, want %q", line, "x")
 	}
 }
 
@@ -650,7 +648,8 @@ func TestHintIsOfferedAndTaken(t *testing.T) {
 		want string
 	}{
 		{"the right arrow takes the suggestion", "sel" + kRight + kEnter, "select"},
-		{"the end key takes it as well", "sel" + kEnd + kEnter, "select"},
+		// Only Right takes a hint (D46).
+		{"the end key leaves it", "sel" + kEnd + kEnter, "sel"},
 		{"nothing is taken when two answers fit", "se" + kRight + kEnter, "se"},
 		{"typing on carries past it", "selec" + "t" + kEnter, "select"},
 	}
@@ -771,17 +770,16 @@ func TestTabFillsInWhatEveryAnswerShares(t *testing.T) {
 		cursor int
 	}{
 		{
-			// Every answer carries on "sel", so that much goes in and the
-			// menu opens on what is left.
+			// Every answer carries on "select", so that much goes in.
 			name:  "as much as they share",
 			words: []string{"select", "selected", "selecting"},
-			keys:  "se" + kTab + kEsc + kPause + kEnter,
+			keys:  "se" + kTab + kEnter,
 			want:  "select", cursor: 6,
 		},
 		{
 			name:  "nothing when they share nothing",
 			words: []string{"select", "settle"},
-			keys:  "se" + kTab + kEsc + kPause + kEnter,
+			keys:  "se" + kTab + kEnter,
 			want:  "se", cursor: 2,
 		},
 		{
@@ -859,7 +857,7 @@ func TestReadLineTellsAnInterruptFromAnEmptyLine(t *testing.T) {
 // something that changes while it runs needs.
 func TestSetCompleterReplacesTheCompleter(t *testing.T) {
 	t.Parallel()
-	ev, _ := feedEnv(t, "se"+kTab+kEsc+kPause+kEnter, feedOpts{})
+	ev, _ := feedEnv(t, "se"+kTab+kEnter, feedOpts{})
 	r := &Session{env: ev, canEdit: true}
 
 	// Nothing is offered until a completer is set.
@@ -1071,5 +1069,327 @@ func TestBraceMatchingDrawsTheMatch(t *testing.T) {
 	if on == off {
 		t.Errorf("a matching brace was drawn the same as the text around it, so "+
 			"brace matching reaches nothing\ndrawn: %q", on)
+	}
+}
+
+// TestSessionMatchesReadline replays each case that tools/probe-readline.c
+// recorded from GNU readline 8.3 through the whole loop: the decoder, the
+// keymap, the line and the editor. The package internal/readline checks each
+// key against the recording. This checks that the keys reach the commands
+// and the line reaches the editor, so it compares the line and the cursor at
+// the end of each case.
+//
+// It runs in the readline configuration of D45: no rows, no hints, no brace
+// insertion and no highlighting, which readline does not have.
+func TestSessionMatchesReadline(t *testing.T) {
+	// tilde-expand reads HOME, and the probe set it to /home/probe.
+	t.Setenv("HOME", "/home/probe")
+	const path = "testdata/readline-emacs.txt"
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading %s: %v", path, err)
+	}
+	type rlCase struct {
+		name    string
+		history []string
+		binds   map[string]inputrc.Bind
+		keys    []string
+		line    string
+		point   int
+		done    bool
+		words   []string
+		listed  []string
+		rc      []string
+	}
+	var cases []*rlCase
+	at := func(name string) *rlCase {
+		if len(cases) == 0 || cases[len(cases)-1].name != name {
+			cases = append(cases, &rlCase{name: name, binds: map[string]inputrc.Bind{}})
+		}
+		return cases[len(cases)-1]
+	}
+	text := func(h string) string {
+		if h == "-" {
+			return ""
+		}
+		return string(mustHex(t, h))
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(b)), "\n")[1:] {
+		f := strings.Fields(line)
+		switch {
+		case len(f) == 3 && f[0] == "history":
+			c := at(f[1])
+			c.history = append(c.history, text(f[2]))
+		case len(f) == 4 && f[0] == "bind":
+			at(f[1]).binds[inputrc.Unescape(text(f[3]))] = inputrc.Bind{Action: f[2]}
+		case len(f) == 3 && f[0] == "rc":
+			c := at(f[1])
+			c.rc = append(c.rc, text(f[2]))
+		case len(f) == 3 && f[0] == "prompt":
+			// internal/readline compares the prompts. Here only the line
+			// and the cursor are.
+		case len(f) >= 2 && (f[0] == "words" || f[0] == "list"):
+			c := at(f[1])
+			for _, h := range f[2:] {
+				if f[0] == "words" {
+					c.words = append(c.words, text(h))
+				} else if !c.done {
+					c.listed = append(c.listed, text(h))
+				}
+			}
+		case len(f) == 6:
+			c := at(f[0])
+			if c.done {
+				continue
+			}
+			keys := text(f[5])
+			if f[1] != "-" {
+				keys = text(f[1])
+			}
+			c.keys = append(c.keys, keys)
+			c.line, c.point, c.done = text(f[5]), mustInt(t, f[2]), f[4] == "1"
+		default:
+			t.Fatalf("%s: cannot read %q", path, line)
+		}
+	}
+	if len(cases) < 60 {
+		t.Fatalf("%s holds %d cases, expected at least 60", path, len(cases))
+	}
+	for _, c := range cases {
+		binds := c.binds
+		// Typing pauses between the keys, as it does between the steps of the
+		// probe, so that the decoder does not join the end of one key to the
+		// start of the next.
+		keys := ""
+		pauses := map[int]bool{}
+		for _, k := range c.keys {
+			pauses[len(keys)] = true
+			keys += k
+		}
+		if !c.done {
+			// Enter hands the line back as it stands, so that it can be
+			// compared.
+			pauses[len(keys)] = true
+			keys += kEnter
+		}
+		ev, sink := feedEnv(t, keys, feedOpts{ZeroIsKey: true, Pauses: pauses, Completer: wordsCompleter(c.words)})
+		ev.keymap = emacsKeymap()
+		bindAll(ev.keymap, binds)
+		if c.rc != nil {
+			// The lines go through the Session's own reading of an inputrc
+			// file, with the case's bindings before them.
+			rc := ""
+			for seq, b := range c.binds {
+				rc += fmt.Sprintf("%q: %s\n", inputrc.Escape(seq), b.Action)
+			}
+			rc += strings.Join(c.rc, "\n") + "\n"
+			path := filepath.Join(t.TempDir(), "inputrc")
+			if err := os.WriteFile(path, []byte(rc), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			ev.readInputrc(&config{inputrcFile: path, appName: "rline-probe"})
+			if len(ev.notices) > 0 {
+				t.Errorf("%s: the notices are %q", c.name, ev.notices)
+			}
+		}
+		ev.multiline = false
+		ev.opts.AutoPair = false
+		for _, h := range c.history {
+			ev.history.push(h)
+		}
+		e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+		ended := ev.runEditLoop(e)
+		if c.done {
+			// readline handed the line back, by accept-line or at the end of
+			// the input.
+			if ended != key.Enter && ended != key.CtrlD {
+				t.Errorf("%s: the line was ended by %#x, want Enter or Ctrl-D", c.name, ended)
+			}
+			continue
+		}
+		if ended != key.Enter {
+			t.Errorf("%s: the line was ended by %#x, want Enter", c.name, ended)
+			continue
+		}
+		if got := e.Input.String(); got != c.line || e.Pos != c.point {
+			t.Errorf("%s: the line is %q with the cursor at %d, and readline left %q with the cursor at %d",
+				c.name, got, e.Pos, c.line, c.point)
+		}
+		ev.term.flush()
+		for _, w := range c.listed {
+			if !strings.Contains(sink.String(), w) {
+				t.Errorf("%s: readline listed %q, and it was never drawn", c.name, w)
+			}
+		}
+	}
+}
+
+// wordsCompleter completes the word before the cursor from words, as the
+// probe's completion function does. A word ends at readline's default word
+// break characters, and a single completion is followed by a space.
+func wordsCompleter(words []string) Completer {
+	if words == nil {
+		return nil
+	}
+	return CompleterFunc(func(c *Completion, prefix string) {
+		start := strings.LastIndexAny(prefix, " \t\n\"\\'`@$><=;|&{(") + 1
+		for _, w := range words {
+			if strings.HasPrefix(w, prefix[start:]) {
+				c.AddCandidate(Candidate{Replacement: w, DeleteBefore: len(prefix) - start, Suffix: " "})
+			}
+		}
+	})
+}
+
+// testInputrc is an inputrc file for the tests: a macro, bindings in two
+// keymaps, bindings behind $if, a variable that rline reads, one it does not
+// know, and a command that it does not have.
+const testInputrc = `set show-all-if-ambiguous on
+set no-such-variable on
+"\C-xa": "hello "
+"\C-xq": vi-fetch-history
+set keymap emacs-ctlx
+"y": capitalize-word
+set keymap emacs
+$if rline
+"\C-xz": unix-line-discard
+$endif
+$if other
+"\C-xw": kill-line
+$endif
+`
+
+// TestSessionReadsInputrc checks that the bindings, the macros and the
+// variables of an inputrc file reach the keys, and that what rline does not
+// support is listed (D41, D43).
+func TestSessionReadsInputrc(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(path, []byte(testInputrc), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name, keys, want string
+	}{
+		{"a macro types its text", "\x18a\x18a" + kEnter, "hello hello "},
+		{"a binding in the Ctrl-X keymap", "abc" + kCtrlA + "\x18y" + kEnter, "Abc"},
+		{"a binding for this program", "abc\x18z" + kEnter, ""},
+		{"a binding for another program", "abc\x18w" + kEnter, "abc"},
+		{"the defaults stay", "abc" + kCtrlA + kCtrlK + kEnter, ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			ev, _ := feedEnv(t, test.keys, feedOpts{})
+			ev.readInputrc(&config{inputrcFile: path, appName: DefaultAppName})
+			e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+			ev.runEditLoop(e)
+			if got := e.Input.String(); got != test.want {
+				t.Errorf("the line is %q, want %q", got, test.want)
+			}
+		})
+	}
+
+	// show-all-if-ambiguous lists the completions at the first Tab.
+	ev, sink := feedEnv(t, "x"+kTab+kEnter, feedOpts{Completer: manyWords(wordsStartingWith("x", 5)...)})
+	ev.readInputrc(&config{inputrcFile: path, appName: DefaultAppName})
+	ev.runEditLoop(&editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1})
+	ev.term.flush()
+	if !strings.Contains(stripEscapes(sink.String()), "x4-004") {
+		t.Errorf("show-all-if-ambiguous did not list the completions at once\ndrawn: %q", sink.String())
+	}
+
+	want := []string{
+		"the command vi-fetch-history is not supported",
+		"the variable no-such-variable is not supported",
+	}
+	if !slices.Equal(ev.notices, want) {
+		t.Errorf("the notices are %q, want %q", ev.notices, want)
+	}
+}
+
+// TestSessionReadsTheUsersInputrc checks that WithUserInputrc reads the file
+// that $INPUTRC names, as readline does, and that nothing is read without it.
+func TestSessionReadsTheUsersInputrc(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(path, []byte(testInputrc), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("INPUTRC", path)
+	for _, read := range []bool{true, false} {
+		p, err := New(WithUserInputrc(read), WithStdin(strings.NewReader("")), WithStdout(&bytes.Buffer{}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := len(p.Notices()) > 0; got != read {
+			t.Errorf("with WithUserInputrc(%v) the notices are %q", read, p.Notices())
+		}
+		_ = p.Close()
+	}
+
+	// When $INPUTRC names a file that is missing, readline reads nothing,
+	// and does not go on to ~/.inputrc. The home here holds one that the
+	// search would find, and that would give a notice.
+	home := t.TempDir()
+	if err := os.WriteFile(filepath.Join(home, ".inputrc"), []byte(testInputrc), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", home)
+	t.Setenv("INPUTRC", filepath.Join(home, "missing"))
+	p, err := New(WithUserInputrc(true), WithStdin(strings.NewReader("")), WithStdout(&bytes.Buffer{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = p.Close() }()
+	if n := p.Notices(); len(n) > 0 {
+		t.Errorf("with $INPUTRC naming a missing file, ~/.inputrc was read: the notices are %q", n)
+	}
+	// Without $INPUTRC, ~/.inputrc is the one read.
+	t.Setenv("INPUTRC", "")
+	q, err := New(WithUserInputrc(true), WithStdin(strings.NewReader("")), WithStdout(&bytes.Buffer{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = q.Close() }()
+	if len(q.Notices()) == 0 {
+		t.Error("with no $INPUTRC, ~/.inputrc was not read")
+	}
+}
+
+// TestViMode checks that WithViMode edits as vi does, and that a line that
+// switches the mode leaves the next line in that mode, as readline does.
+func TestViMode(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name, keys, want string
+	}{
+		{"typing goes in as in emacs", "abc" + kEnter, "abc"},
+		{"esc and x delete in command mode", "abc" + kEsc + "0x" + kEnter, "bc"},
+		{"dw deletes a word", "one two" + kEsc + "0dw" + kEnter, "two"},
+		{"an arrow still moves in insert mode", "ac" + kLeft + "b" + kEnter, "abc"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			ev, _ := feedEnv(t, test.keys, feedOpts{})
+			ev.viMode = true
+			e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+			ev.runEditLoop(e)
+			if got := e.Input.String(); got != test.want {
+				t.Errorf("the line is %q, want %q", got, test.want)
+			}
+		})
+	}
+
+	// Ctrl-E in command mode switches to emacs, and the next line starts
+	// there: Ctrl-A goes to the start instead of being typed.
+	ev, _ := feedEnv(t, "x"+kEsc+"\x05"+kEnter+"bc"+kCtrlA+"a"+kEnter, feedOpts{})
+	ev.viMode = true
+	ev.runEditLoop(&editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1})
+	if ev.viMode {
+		t.Fatal("the line switched to emacs, and the Session kept vi")
+	}
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	ev.runEditLoop(e)
+	if got := e.Input.String(); got != "abc" {
+		t.Errorf("the second line is %q, want %q", got, "abc")
 	}
 }

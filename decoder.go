@@ -237,6 +237,11 @@ func (t *keyDecoder) readTimeout(timeout time.Duration) (key.Code, bool) {
 	switch {
 	case key.Code(c) == key.Esc:
 		code = t.readEsc(t.escInitialTimeout, t.escTimeout)
+	case c == 0:
+		// A terminal sends the zero byte for ctrl+space, which readline calls
+		// \C-@. isocline decodes it as key.None, which also means that no
+		// key came, so nothing could be bound to it.
+		code = key.Space | key.ModCtrl
 	case c <= 0x7F:
 		code = key.Code(c)
 	case t.isUTF8:
@@ -261,12 +266,13 @@ func (t *keyDecoder) read() key.Code {
 
 // modifyCode rewrites the keys that terminals disagree about, so that the
 // edit loop sees one code for each of them whatever sent it.
+//
+// isocline also turns DEL, 0x7f, into backspace. rline keeps the two apart,
+// because readline does and an inputrc can bind \C-h and \C-? to different
+// commands (D42).
 func modifyCode(code key.Code) key.Code {
 	k, mods := code.NoMods(), code.Mods()
 	switch {
-	case k == key.Rubout:
-		// Delete always arrives as backspace.
-		code = key.Backspace | mods
 	case k == 0x1F && mods&key.ModAlt == 0:
 		// Linux sends 0x1F for ctrl+'_'. Put it back together.
 		//
@@ -795,36 +801,46 @@ func (t *keyDecoder) readOSC(peek byte, timeout time.Duration) key.Code {
 // for the byte after the escape, and follow how long to wait for each byte
 // after that.
 //
-// Nothing arriving within initial means the user pressed the Escape key. A
-// byte that starts no sequence the decoder knows becomes alt and that byte.
+// Nothing arriving within initial means the user pressed the Escape key. An
+// escape before a byte that starts no sequence the decoder knows is the Escape
+// key as well, and the bytes after it are read again as keys of their own.
+// isocline reads ESC and a byte as alt and that byte. rline leaves that choice
+// to the keymap, where Esc is a prefix, as it is in readline (D46).
 func (t *keyDecoder) readEsc(initial, follow time.Duration) key.Code {
 	var mods key.Code
 	peek, ok := t.readByte(initial)
 	if !ok {
 		return key.Esc
 	}
-	// macOS sends ESC ESC [ A for alt and an arrow, so a second escape is an
-	// alt modifier.
+	// macOS sends ESC ESC [ A for alt and an arrow, so a second escape before
+	// a sequence is an alt modifier. Before anything else it is a second
+	// Escape key, which the switch below puts back.
 	if key.Code(peek) == key.Esc {
 		next, ok := t.readByte(follow)
 		if !ok {
-			return key.Code(peek) | key.ModAlt
+			return t.escThen(peek)
 		}
 		peek = next
 		mods |= key.ModAlt
+	}
+	// The bytes read after the escape, for when they turn out to start no
+	// sequence.
+	read := []byte{peek}
+	if mods&key.ModAlt != 0 {
+		read = []byte{'\x1B', peek}
 	}
 	switch peek {
 	case '[':
 		next, ok := t.readByte(follow)
 		if !ok {
-			return key.Code(peek) | key.ModAlt
+			return t.escThen(read...)
 		}
 		return t.readCSI('[', next, mods, follow)
 	case 'O', 'o', '?':
 		start := peek
 		next, ok := t.readByte(follow)
 		if !ok {
-			return key.Code(peek) | key.ModAlt
+			return t.escThen(read...)
 		}
 		if start == 'o' {
 			// Eterm sends this for ctrl and an arrow.
@@ -835,11 +851,24 @@ func (t *keyDecoder) readEsc(initial, follow time.Duration) key.Code {
 	case ']':
 		next, ok := t.readByte(follow)
 		if !ok {
-			return key.Code(peek) | key.ModAlt
+			return t.escThen(read...)
 		}
 		return t.readOSC(next, follow)
 	}
-	return key.Code(peek) | key.ModAlt
+	return t.escThen(read...)
+}
+
+// escThen puts back the bytes that were read after an escape, in order, and
+// returns the Escape key. A zero byte is put back too, because here it is
+// the key ctrl+@ and not a byte of a broken character, which is what
+// pushByte drops.
+func (t *keyDecoder) escThen(read ...byte) key.Code {
+	for i := len(read) - 1; i >= 0; i-- {
+		if len(t.pushedBytes) < ttyPushMax {
+			t.pushedBytes = append(t.pushedBytes, read[i])
+		}
+	}
+	return key.Esc
 }
 
 // --------------------------------------------------------------------------

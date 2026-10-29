@@ -1,0 +1,907 @@
+readline 8.3
+command abort
+command accept-line
+command arrow-key-prefix
+command backward-byte
+command backward-char
+command backward-delete-char
+command backward-kill-line
+command backward-kill-word
+command backward-word
+command beginning-of-history
+command beginning-of-line
+command bracketed-paste-begin
+command call-last-kbd-macro
+command capitalize-word
+command character-search
+command character-search-backward
+command clear-display
+command clear-screen
+command complete
+command copy-backward-word
+command copy-forward-word
+command copy-region-as-kill
+command delete-char
+command delete-char-or-list
+command delete-horizontal-space
+command digit-argument
+command do-lowercase-version
+command downcase-word
+command dump-functions
+command dump-macros
+command dump-variables
+command emacs-editing-mode
+command end-kbd-macro
+command end-of-history
+command end-of-line
+command exchange-point-and-mark
+command execute-named-command
+command export-completions
+command fetch-history
+command forward-backward-delete-char
+command forward-byte
+command forward-char
+command forward-search-history
+command forward-word
+command history-search-backward
+command history-search-forward
+command history-substring-search-backward
+command history-substring-search-forward
+command insert-comment
+command insert-completions
+command kill-line
+command kill-region
+command kill-whole-line
+command kill-word
+command menu-complete
+command menu-complete-backward
+command next-history
+command next-screen-line
+command non-incremental-forward-search-history
+command non-incremental-forward-search-history-again
+command non-incremental-reverse-search-history
+command non-incremental-reverse-search-history-again
+command old-menu-complete
+command operate-and-get-next
+command overwrite-mode
+command possible-completions
+command previous-history
+command previous-screen-line
+command print-last-kbd-macro
+command quoted-insert
+command re-read-init-file
+command redraw-current-line
+command reverse-search-history
+command revert-line
+command self-insert
+command set-mark
+command skip-csi-sequence
+command start-kbd-macro
+command tab-insert
+command tilde-expand
+command transpose-chars
+command transpose-words
+command tty-status
+command undo
+command universal-argument
+command unix-filename-rubout
+command unix-line-discard
+command unix-word-rubout
+command upcase-word
+command vi-append-eol
+command vi-append-mode
+command vi-arg-digit
+command vi-bWord
+command vi-back-to-indent
+command vi-backward-bigword
+command vi-backward-word
+command vi-bword
+command vi-change-case
+command vi-change-char
+command vi-change-to
+command vi-char-search
+command vi-column
+command vi-complete
+command vi-delete
+command vi-delete-to
+command vi-eWord
+command vi-editing-mode
+command vi-end-bigword
+command vi-end-word
+command vi-eof-maybe
+command vi-eword
+command vi-fWord
+command vi-fetch-history
+command vi-first-print
+command vi-forward-bigword
+command vi-forward-word
+command vi-fword
+command vi-goto-mark
+command vi-insert-beg
+command vi-insertion-mode
+command vi-match
+command vi-movement-mode
+command vi-next-word
+command vi-overstrike
+command vi-overstrike-delete
+command vi-prev-word
+command vi-put
+command vi-redo
+command vi-replace
+command vi-rubout
+command vi-search
+command vi-search-again
+command vi-set-mark
+command vi-subst
+command vi-tilde-expand
+command vi-undo
+command vi-unix-word-rubout
+command vi-yank-arg
+command vi-yank-pop
+command vi-yank-to
+command yank
+command yank-last-arg
+command yank-nth-arg
+command yank-pop
+emacs abort \C-g
+emacs abort \C-x\C-g
+emacs abort \e\C-g
+emacs accept-line \C-j
+emacs accept-line \C-m
+emacs backward-char \C-b
+emacs backward-char \eOD
+emacs backward-char \e[D
+emacs backward-delete-char \C-h
+emacs backward-delete-char \C-?
+emacs backward-kill-line \C-x\C-?
+emacs backward-kill-word \e\C-h
+emacs backward-kill-word \e\C-?
+emacs backward-word \e[1;3D
+emacs backward-word \e[1;5D
+emacs backward-word \eb
+emacs beginning-of-history \e<
+emacs beginning-of-line \C-a
+emacs beginning-of-line \eOH
+emacs beginning-of-line \e[H
+emacs bracketed-paste-begin \e[200~
+emacs call-last-kbd-macro \C-xe
+emacs capitalize-word \ec
+emacs character-search \C-]
+emacs character-search-backward \e\C-]
+emacs clear-display \e\C-l
+emacs clear-screen \C-l
+emacs complete \C-i
+emacs complete \e\e
+emacs delete-char \C-d
+emacs delete-char \e[3~
+emacs delete-horizontal-space \e\\
+emacs digit-argument \e-
+emacs digit-argument \e0
+emacs digit-argument \e1
+emacs digit-argument \e2
+emacs digit-argument \e3
+emacs digit-argument \e4
+emacs digit-argument \e5
+emacs digit-argument \e6
+emacs digit-argument \e7
+emacs digit-argument \e8
+emacs digit-argument \e9
+emacs do-lowercase-version \C-xA
+emacs do-lowercase-version \C-xB
+emacs do-lowercase-version \C-xC
+emacs do-lowercase-version \C-xD
+emacs do-lowercase-version \C-xE
+emacs do-lowercase-version \C-xF
+emacs do-lowercase-version \C-xG
+emacs do-lowercase-version \C-xH
+emacs do-lowercase-version \C-xI
+emacs do-lowercase-version \C-xJ
+emacs do-lowercase-version \C-xK
+emacs do-lowercase-version \C-xL
+emacs do-lowercase-version \C-xM
+emacs do-lowercase-version \C-xN
+emacs do-lowercase-version \C-xO
+emacs do-lowercase-version \C-xP
+emacs do-lowercase-version \C-xQ
+emacs do-lowercase-version \C-xR
+emacs do-lowercase-version \C-xS
+emacs do-lowercase-version \C-xT
+emacs do-lowercase-version \C-xU
+emacs do-lowercase-version \C-xV
+emacs do-lowercase-version \C-xW
+emacs do-lowercase-version \C-xX
+emacs do-lowercase-version \C-xY
+emacs do-lowercase-version \C-xZ
+emacs do-lowercase-version \eA
+emacs do-lowercase-version \eB
+emacs do-lowercase-version \eC
+emacs do-lowercase-version \eD
+emacs do-lowercase-version \eE
+emacs do-lowercase-version \eF
+emacs do-lowercase-version \eG
+emacs do-lowercase-version \eH
+emacs do-lowercase-version \eI
+emacs do-lowercase-version \eJ
+emacs do-lowercase-version \eK
+emacs do-lowercase-version \eL
+emacs do-lowercase-version \eM
+emacs do-lowercase-version \eN
+emacs do-lowercase-version \eP
+emacs do-lowercase-version \eQ
+emacs do-lowercase-version \eR
+emacs do-lowercase-version \eS
+emacs do-lowercase-version \eT
+emacs do-lowercase-version \eU
+emacs do-lowercase-version \eV
+emacs do-lowercase-version \eW
+emacs do-lowercase-version \eX
+emacs do-lowercase-version \eY
+emacs do-lowercase-version \eZ
+emacs downcase-word \el
+emacs end-kbd-macro \C-x)
+emacs end-of-history \e>
+emacs end-of-line \C-e
+emacs end-of-line \eOF
+emacs end-of-line \e[F
+emacs exchange-point-and-mark \C-x\C-x
+emacs execute-named-command \ex
+emacs forward-char \C-f
+emacs forward-char \eOC
+emacs forward-char \e[C
+emacs forward-search-history \C-s
+emacs forward-word \e[1;3C
+emacs forward-word \e[1;5C
+emacs forward-word \ef
+emacs history-search-backward \e[5~
+emacs history-search-forward \e[6~
+emacs insert-comment \e#
+emacs insert-completions \e*
+emacs kill-line \C-k
+emacs kill-word \e[3;5~
+emacs kill-word \ed
+emacs next-history \C-n
+emacs next-history \eOB
+emacs next-history \e[B
+emacs non-incremental-forward-search-history \en
+emacs non-incremental-reverse-search-history \ep
+emacs operate-and-get-next \C-o
+emacs overwrite-mode \e[2~
+emacs possible-completions \e=
+emacs possible-completions \e?
+emacs previous-history \C-p
+emacs previous-history \eOA
+emacs previous-history \e[A
+emacs quoted-insert \C-q
+emacs quoted-insert \C-v
+emacs re-read-init-file \C-x\C-r
+emacs reverse-search-history \C-r
+emacs revert-line \e\C-r
+emacs revert-line \er
+emacs self-insert  
+emacs self-insert !
+emacs self-insert \"
+emacs self-insert #
+emacs self-insert $
+emacs self-insert %
+emacs self-insert &
+emacs self-insert '
+emacs self-insert (
+emacs self-insert )
+emacs self-insert *
+emacs self-insert +
+emacs self-insert ,
+emacs self-insert -
+emacs self-insert .
+emacs self-insert /
+emacs self-insert 0
+emacs self-insert 1
+emacs self-insert 2
+emacs self-insert 3
+emacs self-insert 4
+emacs self-insert 5
+emacs self-insert 6
+emacs self-insert 7
+emacs self-insert 8
+emacs self-insert 9
+emacs self-insert :
+emacs self-insert ;
+emacs self-insert <
+emacs self-insert =
+emacs self-insert >
+emacs self-insert ?
+emacs self-insert @
+emacs self-insert A
+emacs self-insert B
+emacs self-insert C
+emacs self-insert D
+emacs self-insert E
+emacs self-insert F
+emacs self-insert G
+emacs self-insert H
+emacs self-insert I
+emacs self-insert J
+emacs self-insert K
+emacs self-insert L
+emacs self-insert M
+emacs self-insert N
+emacs self-insert O
+emacs self-insert P
+emacs self-insert Q
+emacs self-insert R
+emacs self-insert S
+emacs self-insert T
+emacs self-insert U
+emacs self-insert V
+emacs self-insert W
+emacs self-insert X
+emacs self-insert Y
+emacs self-insert Z
+emacs self-insert [
+emacs self-insert \\
+emacs self-insert ]
+emacs self-insert ^
+emacs self-insert _
+emacs self-insert `
+emacs self-insert a
+emacs self-insert b
+emacs self-insert c
+emacs self-insert d
+emacs self-insert e
+emacs self-insert f
+emacs self-insert g
+emacs self-insert h
+emacs self-insert i
+emacs self-insert j
+emacs self-insert k
+emacs self-insert l
+emacs self-insert m
+emacs self-insert n
+emacs self-insert o
+emacs self-insert p
+emacs self-insert q
+emacs self-insert r
+emacs self-insert s
+emacs self-insert t
+emacs self-insert u
+emacs self-insert v
+emacs self-insert w
+emacs self-insert x
+emacs self-insert y
+emacs self-insert z
+emacs self-insert {
+emacs self-insert |
+emacs self-insert }
+emacs self-insert ~
+emacs self-insert \200
+emacs self-insert \201
+emacs self-insert \202
+emacs self-insert \203
+emacs self-insert \204
+emacs self-insert \205
+emacs self-insert \206
+emacs self-insert \207
+emacs self-insert \210
+emacs self-insert \211
+emacs self-insert \212
+emacs self-insert \213
+emacs self-insert \214
+emacs self-insert \215
+emacs self-insert \216
+emacs self-insert \217
+emacs self-insert \220
+emacs self-insert \221
+emacs self-insert \222
+emacs self-insert \223
+emacs self-insert \224
+emacs self-insert \225
+emacs self-insert \226
+emacs self-insert \227
+emacs self-insert \230
+emacs self-insert \231
+emacs self-insert \232
+emacs self-insert \233
+emacs self-insert \234
+emacs self-insert \235
+emacs self-insert \236
+emacs self-insert \237
+emacs self-insert \240
+emacs self-insert \241
+emacs self-insert \242
+emacs self-insert \243
+emacs self-insert \244
+emacs self-insert \245
+emacs self-insert \246
+emacs self-insert \247
+emacs self-insert \250
+emacs self-insert \251
+emacs self-insert \252
+emacs self-insert \253
+emacs self-insert \254
+emacs self-insert \255
+emacs self-insert \256
+emacs self-insert \257
+emacs self-insert \260
+emacs self-insert \261
+emacs self-insert \262
+emacs self-insert \263
+emacs self-insert \264
+emacs self-insert \265
+emacs self-insert \266
+emacs self-insert \267
+emacs self-insert \270
+emacs self-insert \271
+emacs self-insert \272
+emacs self-insert \273
+emacs self-insert \274
+emacs self-insert \275
+emacs self-insert \276
+emacs self-insert \277
+emacs self-insert \300
+emacs self-insert \301
+emacs self-insert \302
+emacs self-insert \303
+emacs self-insert \304
+emacs self-insert \305
+emacs self-insert \306
+emacs self-insert \307
+emacs self-insert \310
+emacs self-insert \311
+emacs self-insert \312
+emacs self-insert \313
+emacs self-insert \314
+emacs self-insert \315
+emacs self-insert \316
+emacs self-insert \317
+emacs self-insert \320
+emacs self-insert \321
+emacs self-insert \322
+emacs self-insert \323
+emacs self-insert \324
+emacs self-insert \325
+emacs self-insert \326
+emacs self-insert \327
+emacs self-insert \330
+emacs self-insert \331
+emacs self-insert \332
+emacs self-insert \333
+emacs self-insert \334
+emacs self-insert \335
+emacs self-insert \336
+emacs self-insert \337
+emacs self-insert \340
+emacs self-insert \341
+emacs self-insert \342
+emacs self-insert \343
+emacs self-insert \344
+emacs self-insert \345
+emacs self-insert \346
+emacs self-insert \347
+emacs self-insert \350
+emacs self-insert \351
+emacs self-insert \352
+emacs self-insert \353
+emacs self-insert \354
+emacs self-insert \355
+emacs self-insert \356
+emacs self-insert \357
+emacs self-insert \360
+emacs self-insert \361
+emacs self-insert \362
+emacs self-insert \363
+emacs self-insert \364
+emacs self-insert \365
+emacs self-insert \366
+emacs self-insert \367
+emacs self-insert \370
+emacs self-insert \371
+emacs self-insert \372
+emacs self-insert \373
+emacs self-insert \374
+emacs self-insert \375
+emacs self-insert \376
+emacs self-insert \377
+emacs set-mark \C-@
+emacs set-mark \e 
+emacs start-kbd-macro \C-x(
+emacs tab-insert \e\C-i
+emacs tilde-expand \e&
+emacs tilde-expand \e~
+emacs transpose-chars \C-t
+emacs transpose-words \et
+emacs undo \C-x\C-u
+emacs undo \C-_
+emacs unix-line-discard \C-u
+emacs unix-word-rubout \C-w
+emacs upcase-word \eu
+emacs vi-editing-mode \e\C-j
+emacs vi-editing-mode \e\C-m
+emacs yank \C-y
+emacs yank-last-arg \e.
+emacs yank-last-arg \e_
+emacs yank-nth-arg \e\C-y
+emacs yank-pop \ey
+vi-insert accept-line \C-j
+vi-insert accept-line \C-m
+vi-insert backward-char \eOD
+vi-insert backward-char \e[D
+vi-insert backward-delete-char \C-h
+vi-insert backward-delete-char \C-?
+vi-insert backward-word \e[1;3D
+vi-insert backward-word \e[1;5D
+vi-insert beginning-of-line \eOH
+vi-insert beginning-of-line \e[H
+vi-insert bracketed-paste-begin \e[200~
+vi-insert complete \C-i
+vi-insert delete-char \e[3~
+vi-insert end-of-line \eOF
+vi-insert end-of-line \e[F
+vi-insert forward-char \eOC
+vi-insert forward-char \e[C
+vi-insert forward-search-history \C-s
+vi-insert forward-word \e[1;3C
+vi-insert forward-word \e[1;5C
+vi-insert history-search-backward \e[5~
+vi-insert history-search-forward \e[6~
+vi-insert kill-word \e[3;5~
+vi-insert menu-complete \C-n
+vi-insert menu-complete-backward \C-p
+vi-insert next-history \eOB
+vi-insert next-history \e[B
+vi-insert overwrite-mode \e[2~
+vi-insert previous-history \eOA
+vi-insert previous-history \e[A
+vi-insert quoted-insert \C-v
+vi-insert reverse-search-history \C-r
+vi-insert self-insert \C-a
+vi-insert self-insert \C-b
+vi-insert self-insert \C-c
+vi-insert self-insert \C-e
+vi-insert self-insert \C-f
+vi-insert self-insert \C-g
+vi-insert self-insert \C-k
+vi-insert self-insert \C-l
+vi-insert self-insert \C-o
+vi-insert self-insert \C-q
+vi-insert self-insert \C-x
+vi-insert self-insert \C-z
+vi-insert self-insert \C-\\
+vi-insert self-insert \C-]
+vi-insert self-insert \C-^
+vi-insert self-insert  
+vi-insert self-insert !
+vi-insert self-insert \"
+vi-insert self-insert #
+vi-insert self-insert $
+vi-insert self-insert %
+vi-insert self-insert &
+vi-insert self-insert '
+vi-insert self-insert (
+vi-insert self-insert )
+vi-insert self-insert *
+vi-insert self-insert +
+vi-insert self-insert ,
+vi-insert self-insert -
+vi-insert self-insert .
+vi-insert self-insert /
+vi-insert self-insert 0
+vi-insert self-insert 1
+vi-insert self-insert 2
+vi-insert self-insert 3
+vi-insert self-insert 4
+vi-insert self-insert 5
+vi-insert self-insert 6
+vi-insert self-insert 7
+vi-insert self-insert 8
+vi-insert self-insert 9
+vi-insert self-insert :
+vi-insert self-insert ;
+vi-insert self-insert <
+vi-insert self-insert =
+vi-insert self-insert >
+vi-insert self-insert ?
+vi-insert self-insert @
+vi-insert self-insert A
+vi-insert self-insert B
+vi-insert self-insert C
+vi-insert self-insert D
+vi-insert self-insert E
+vi-insert self-insert F
+vi-insert self-insert G
+vi-insert self-insert H
+vi-insert self-insert I
+vi-insert self-insert J
+vi-insert self-insert K
+vi-insert self-insert L
+vi-insert self-insert M
+vi-insert self-insert N
+vi-insert self-insert O
+vi-insert self-insert P
+vi-insert self-insert Q
+vi-insert self-insert R
+vi-insert self-insert S
+vi-insert self-insert T
+vi-insert self-insert U
+vi-insert self-insert V
+vi-insert self-insert W
+vi-insert self-insert X
+vi-insert self-insert Y
+vi-insert self-insert Z
+vi-insert self-insert [
+vi-insert self-insert \\
+vi-insert self-insert ]
+vi-insert self-insert ^
+vi-insert self-insert _
+vi-insert self-insert `
+vi-insert self-insert a
+vi-insert self-insert b
+vi-insert self-insert c
+vi-insert self-insert d
+vi-insert self-insert e
+vi-insert self-insert f
+vi-insert self-insert g
+vi-insert self-insert h
+vi-insert self-insert i
+vi-insert self-insert j
+vi-insert self-insert k
+vi-insert self-insert l
+vi-insert self-insert m
+vi-insert self-insert n
+vi-insert self-insert o
+vi-insert self-insert p
+vi-insert self-insert q
+vi-insert self-insert r
+vi-insert self-insert s
+vi-insert self-insert t
+vi-insert self-insert u
+vi-insert self-insert v
+vi-insert self-insert w
+vi-insert self-insert x
+vi-insert self-insert y
+vi-insert self-insert z
+vi-insert self-insert {
+vi-insert self-insert |
+vi-insert self-insert }
+vi-insert self-insert ~
+vi-insert self-insert \200
+vi-insert self-insert \201
+vi-insert self-insert \202
+vi-insert self-insert \203
+vi-insert self-insert \204
+vi-insert self-insert \205
+vi-insert self-insert \206
+vi-insert self-insert \207
+vi-insert self-insert \210
+vi-insert self-insert \211
+vi-insert self-insert \212
+vi-insert self-insert \213
+vi-insert self-insert \214
+vi-insert self-insert \215
+vi-insert self-insert \216
+vi-insert self-insert \217
+vi-insert self-insert \220
+vi-insert self-insert \221
+vi-insert self-insert \222
+vi-insert self-insert \223
+vi-insert self-insert \224
+vi-insert self-insert \225
+vi-insert self-insert \226
+vi-insert self-insert \227
+vi-insert self-insert \230
+vi-insert self-insert \231
+vi-insert self-insert \232
+vi-insert self-insert \233
+vi-insert self-insert \234
+vi-insert self-insert \235
+vi-insert self-insert \236
+vi-insert self-insert \237
+vi-insert self-insert \240
+vi-insert self-insert \241
+vi-insert self-insert \242
+vi-insert self-insert \243
+vi-insert self-insert \244
+vi-insert self-insert \245
+vi-insert self-insert \246
+vi-insert self-insert \247
+vi-insert self-insert \250
+vi-insert self-insert \251
+vi-insert self-insert \252
+vi-insert self-insert \253
+vi-insert self-insert \254
+vi-insert self-insert \255
+vi-insert self-insert \256
+vi-insert self-insert \257
+vi-insert self-insert \260
+vi-insert self-insert \261
+vi-insert self-insert \262
+vi-insert self-insert \263
+vi-insert self-insert \264
+vi-insert self-insert \265
+vi-insert self-insert \266
+vi-insert self-insert \267
+vi-insert self-insert \270
+vi-insert self-insert \271
+vi-insert self-insert \272
+vi-insert self-insert \273
+vi-insert self-insert \274
+vi-insert self-insert \275
+vi-insert self-insert \276
+vi-insert self-insert \277
+vi-insert self-insert \300
+vi-insert self-insert \301
+vi-insert self-insert \302
+vi-insert self-insert \303
+vi-insert self-insert \304
+vi-insert self-insert \305
+vi-insert self-insert \306
+vi-insert self-insert \307
+vi-insert self-insert \310
+vi-insert self-insert \311
+vi-insert self-insert \312
+vi-insert self-insert \313
+vi-insert self-insert \314
+vi-insert self-insert \315
+vi-insert self-insert \316
+vi-insert self-insert \317
+vi-insert self-insert \320
+vi-insert self-insert \321
+vi-insert self-insert \322
+vi-insert self-insert \323
+vi-insert self-insert \324
+vi-insert self-insert \325
+vi-insert self-insert \326
+vi-insert self-insert \327
+vi-insert self-insert \330
+vi-insert self-insert \331
+vi-insert self-insert \332
+vi-insert self-insert \333
+vi-insert self-insert \334
+vi-insert self-insert \335
+vi-insert self-insert \336
+vi-insert self-insert \337
+vi-insert self-insert \340
+vi-insert self-insert \341
+vi-insert self-insert \342
+vi-insert self-insert \343
+vi-insert self-insert \344
+vi-insert self-insert \345
+vi-insert self-insert \346
+vi-insert self-insert \347
+vi-insert self-insert \350
+vi-insert self-insert \351
+vi-insert self-insert \352
+vi-insert self-insert \353
+vi-insert self-insert \354
+vi-insert self-insert \355
+vi-insert self-insert \356
+vi-insert self-insert \357
+vi-insert self-insert \360
+vi-insert self-insert \361
+vi-insert self-insert \362
+vi-insert self-insert \363
+vi-insert self-insert \364
+vi-insert self-insert \365
+vi-insert self-insert \366
+vi-insert self-insert \367
+vi-insert self-insert \370
+vi-insert self-insert \371
+vi-insert self-insert \372
+vi-insert self-insert \373
+vi-insert self-insert \374
+vi-insert self-insert \375
+vi-insert self-insert \376
+vi-insert self-insert \377
+vi-insert transpose-chars \C-t
+vi-insert unix-line-discard \C-u
+vi-insert vi-eof-maybe \C-d
+vi-insert vi-movement-mode \e
+vi-insert vi-undo \C-_
+vi-insert vi-unix-word-rubout \C-w
+vi-insert yank \C-y
+vi-command abort \C-g
+vi-command accept-line \C-j
+vi-command accept-line \C-m
+vi-command backward-char \C-h
+vi-command backward-char \eOD
+vi-command backward-char \e[D
+vi-command backward-char h
+vi-command backward-word \e[1;3D
+vi-command backward-word \e[1;5D
+vi-command beginning-of-line \eOH
+vi-command beginning-of-line \e[H
+vi-command beginning-of-line 0
+vi-command clear-screen \C-l
+vi-command delete-char \e[3~
+vi-command emacs-editing-mode \C-e
+vi-command end-of-line \eOF
+vi-command end-of-line \e[F
+vi-command end-of-line $
+vi-command forward-char \eOC
+vi-command forward-char \e[C
+vi-command forward-char  
+vi-command forward-char l
+vi-command forward-search-history \C-s
+vi-command forward-word \e[1;3C
+vi-command forward-word \e[1;5C
+vi-command history-search-backward \e[5~
+vi-command history-search-forward \e[6~
+vi-command insert-comment #
+vi-command kill-line \C-k
+vi-command kill-word \e[3;5~
+vi-command next-history \C-n
+vi-command next-history \eOB
+vi-command next-history \e[B
+vi-command next-history +
+vi-command next-history j
+vi-command overwrite-mode \e[2~
+vi-command previous-history \C-p
+vi-command previous-history \eOA
+vi-command previous-history \e[A
+vi-command previous-history -
+vi-command previous-history k
+vi-command quoted-insert \C-q
+vi-command quoted-insert \C-v
+vi-command reverse-search-history \C-r
+vi-command revert-line U
+vi-command transpose-chars \C-t
+vi-command unix-line-discard \C-u
+vi-command vi-append-eol A
+vi-command vi-append-mode a
+vi-command vi-arg-digit 1
+vi-command vi-arg-digit 2
+vi-command vi-arg-digit 3
+vi-command vi-arg-digit 4
+vi-command vi-arg-digit 5
+vi-command vi-arg-digit 6
+vi-command vi-arg-digit 7
+vi-command vi-arg-digit 8
+vi-command vi-arg-digit 9
+vi-command vi-change-case ~
+vi-command vi-change-char r
+vi-command vi-change-to C
+vi-command vi-change-to c
+vi-command vi-char-search ,
+vi-command vi-char-search ;
+vi-command vi-char-search F
+vi-command vi-char-search T
+vi-command vi-char-search f
+vi-command vi-char-search t
+vi-command vi-column |
+vi-command vi-complete *
+vi-command vi-complete =
+vi-command vi-complete \\
+vi-command vi-delete x
+vi-command vi-delete-to D
+vi-command vi-delete-to d
+vi-command vi-end-word E
+vi-command vi-end-word e
+vi-command vi-eof-maybe \C-d
+vi-command vi-fetch-history G
+vi-command vi-first-print ^
+vi-command vi-goto-mark `
+vi-command vi-insert-beg I
+vi-command vi-insertion-mode i
+vi-command vi-match %
+vi-command vi-next-word W
+vi-command vi-next-word w
+vi-command vi-prev-word B
+vi-command vi-prev-word b
+vi-command vi-put P
+vi-command vi-put p
+vi-command vi-redo .
+vi-command vi-replace R
+vi-command vi-rubout X
+vi-command vi-search /
+vi-command vi-search ?
+vi-command vi-search-again N
+vi-command vi-search-again n
+vi-command vi-set-mark m
+vi-command vi-subst S
+vi-command vi-subst s
+vi-command vi-tilde-expand &
+vi-command vi-undo \C-_
+vi-command vi-undo u
+vi-command vi-unix-word-rubout \C-w
+vi-command vi-yank-arg _
+vi-command vi-yank-to Y
+vi-command vi-yank-to y
+vi-command yank \C-y

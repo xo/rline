@@ -113,7 +113,7 @@ program prints is. A bracket in it is not a tag. Markup goes through
 
 ```go
 fmt.Fprintf(p, "read: %s\n", line)                     // plain
-fmt.Fprintf(p.Markup(), "[ic-error]%s[/]\n", err)       // styled
+fmt.Fprintf(p.Markup(), "[rline-error]%s[/]\n", err) // styled
 ```
 
 Write through the `Prompt` rather than to `os.Stdout`, because the terminal it
@@ -124,6 +124,30 @@ writes through is the one that knows where the prompt is. A `Prompt` is an
 user gave the line up with Ctrl-C. Those are different answers on purpose: the
 C cannot tell them apart, and a shell has to.
 
+## Keys
+
+The keys are GNU readline's, and the commands behave as readline 8.3's
+commands do. rline's tests replay recordings of readline 8.3 to check this.
+The emacs keys are the default. `WithViMode(true)` gives readline's vi
+insert and command modes.
+
+`WithUserInputrc(true)` reads the user's inputrc file as readline finds it:
+the file that `$INPUTRC` names, and no other when it is set, or else
+`~/.inputrc`, or else `/etc/inputrc`. Its bindings, macros and variables apply, and
+`set editing-mode vi` turns vi mode on. `WithAppName` sets the name that
+`$if` tests. `Notices` lists what in the file rline does not support.
+
+```go
+p, err := rline.New(rline.WithUserInputrc(true), rline.WithAppName("usql"))
+for _, n := range p.Notices() {
+	fmt.Fprintln(p.Stderr(), "inputrc:", n)
+}
+```
+
+Tab completes as readline does: the first Tab fills in what the completions
+share, and the second lists them below the line. Ctrl-R is readline's
+incremental search.
+
 ## The example
 
 `_examples/sql/` is a small SQL prompt. It shows input over more than one line,
@@ -131,8 +155,8 @@ highlighting that changes as the line is typed, and a completer.
 
 A statement ends at a semicolon. Until then Enter starts another row inside the
 same line rather than handing it back, which is what `WithContinue` does. The
-rows are one buffer, so the up and down keys move the cursor between them and
-the whole statement comes back at once.
+rows are one buffer, and the whole statement comes back at once. The keys are
+GNU readline's, so Up brings back an earlier statement in place of this one.
 
 `\pass` reads a password and then echoes it back, so that what was collected
 can be checked against what was typed. A real program does not echo it.
@@ -166,6 +190,23 @@ javascript, json, python, ruby and rust:
 
 ```sh
 cd _examples/transit && go run . -lang python
+```
+
+`_examples/bash/` reads lines as bash does and runs none of them. It
+highlights bash as it is typed, prints each line back exactly as it was
+typed, and keeps every line in `rline_example_bash_history`. A line that ends
+with a backslash, or that leaves a quote open, carries on to the next row, as
+it does in bash. Its keys are bash's: readline's emacs keys, vi keys with
+`-vi` or with `set editing-mode vi`, and the user's inputrc, with its
+`$if Bash` sections. `-inputrc FILE` reads another file. `exit` or Ctrl-D
+leaves. Run it from the root of the repository:
+
+```sh
+go run ./_examples/bash
+```
+
+```sh
+go run ./_examples/bash -vi
 ```
 
 ## How the port was checked

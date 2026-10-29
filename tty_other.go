@@ -13,6 +13,12 @@ func fileIsTerminal(*os.File) bool {
 	return false
 }
 
+// childSignals are the signals that a key raises at the terminal. Here that
+// is only the interrupt, which every system that Go runs on can deliver.
+// Session.Release keeps it from ending the program while it has given the
+// terminal away.
+var childSignals = []os.Signal{os.Interrupt}
+
 // errUnsupported is returned by a platform that has no terminal layer of its
 // own. It lives here rather than beside the other error values because this
 // is the only file that uses it, and a constant declared where nothing on

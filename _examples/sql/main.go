@@ -85,9 +85,9 @@ func run() error {
 	p.DefineStyle("sql-comment", "ansi-gray")
 
 	_, _ = fmt.Fprintln(out, "[b]rline[/b] SQL example.")
-	_, _ = fmt.Fprintln(out, "[ic-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
-	_, _ = fmt.Fprintln(out, "[ic-info]Enter carries on until then, so up and down move between the rows.[/]")
-	_, _ = fmt.Fprintln(out, `[ic-info]\pass reads a password without showing it, then echoes it back.[/]`)
+	_, _ = fmt.Fprintln(out, "[rline-info]A statement ends at a semicolon. \\q or exit leaves.[/]")
+	_, _ = fmt.Fprintln(out, "[rline-info]Enter carries on until then, and the rows are one statement.[/]")
+	_, _ = fmt.Fprintln(out, `[rline-info]\pass reads a password without showing it, then echoes it back.[/]`)
 
 	// When there is no terminal to edit on, ReadLine hands back one line at a
 	// time and WithContinue never runs, so the statement is joined here
@@ -141,7 +141,7 @@ func run() error {
 			pw, err := p.Password("password: ")
 			switch {
 			case errors.Is(err, rline.ErrInterrupted):
-				_, _ = fmt.Fprintln(out, "[ic-info]cancelled[/]")
+				_, _ = fmt.Fprintln(out, "[rline-info]cancelled[/]")
 				continue
 			case errors.Is(err, io.EOF):
 				return nil

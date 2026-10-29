@@ -262,6 +262,12 @@ startup behaves and later ones do not. Nothing here explains that asymmetry
 yet, and a fix that stops the double-read without explaining it is probably
 incomplete.
 
+D48 gives usql the contract: `Session.Release` hands the terminal to a child
+and takes it back, and `Session.Size` gives the size of the terminal. rline
+reads keys only inside `ReadLine` and `Password`, so it does not read while
+the child runs. usql/pager uses Release. The asymmetry is still not
+explained.
+
 ## A password reaches the session log on the systems without no-echo
 
 Found while narrowing `terminalController`, and not fixed here because the

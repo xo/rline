@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -246,9 +247,9 @@ func TestHelpMatchesC(t *testing.T) {
 		}
 		switch kind {
 		case "banner":
-			wantBanner = string(mustHex(t, body))
+			wantBanner = fromCStyles(string(mustHex(t, body)))
 		case "row":
-			want = append(want, string(mustHex(t, body)))
+			want = append(want, fromCStyles(string(mustHex(t, body))))
 		default:
 			t.Fatalf("%s:%d: unknown kind %q", helpCorpusPath(), i+1, kind)
 		}
@@ -272,6 +273,15 @@ func TestHelpMatchesC(t *testing.T) {
 			t.Errorf("row %d differs.\n got %q\nwant %q", i, got[i], want[i])
 		}
 	}
+}
+
+// cStyleName finds a style name of isocline, such as ic-info.
+var cStyleName = regexp.MustCompile(`\bic-([a-z])`)
+
+// fromCStyles renames the styles in markup that the C wrote to the names rline
+// gives them: isocline's ic-info is rline-info (D49).
+func fromCStyles(markup string) string {
+	return cStyleName.ReplaceAllString(markup, "rline-$1")
 }
 
 // regenerateHelp runs the C probe and writes the corpus for this branch.
@@ -461,7 +471,7 @@ func TestResizeWithContentBelowTheLine(t *testing.T) {
 	ev, e, sink, sz := newResizeEnv(t)
 	e.Input.Replace("select")
 	e.Pos = 6
-	e.Extra.Replace("[ic-info]1. one[/]\n[ic-info]2. two[/]\n")
+	e.Extra.Replace("[rline-info]1. one[/]\n[rline-info]2. two[/]\n")
 	ev.refresh(e)
 	sink.Reset()
 

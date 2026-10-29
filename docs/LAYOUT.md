@@ -92,9 +92,10 @@ one thing then ends up in one file without anyone arranging it.
 Checked with go/ast rather than by eye, because a regex missed cases both
 ways. What is left after the check is all deliberate. `env` is the session,
 and its methods are in the file for the subject they serve: completion in
-`comp.go`, the history walk in `history.go`, the menu in `menu.go`. Moving
-them to `prompt.go` because that is where the struct is declared would empty
-`menu.go` of everything it was split out to hold. `capture.Transcript.Encode`
+`comp.go`, the history file in `history.go`, the keymaps and the list of
+completions in `bind.go`. Moving them to `prompt.go` because that is where
+the struct is declared would empty the files they were split out to fill.
+`capture.Transcript.Encode`
 sits in `transcript.go` with `Escape` and `writeBlock`, which are the only
 things it uses. And `tty` and `fileSizer` are each declared once per
 platform under mutually exclusive build tags, so the methods beside each
@@ -162,11 +163,11 @@ with the undo stack behind them. It depends on `internal/text` and on `ansi`
 and on nothing else.
 
 The buffer is in `internal/text` rather than in `internal/editor`, which is
-where the refactor list asked for it, and the reason is what the six callers
+where the refactor list asked for it, and the reason is what the five callers
 in `rline` use it for. Only the editor edits with it. `term.go` buffers escape
-sequences in one, `bbcode.go` renders markup into two, `menu.go` builds the
-completion menu, `comp.go` applies a completion, `history.go` assembles an
-entry, and `prompt.go` holds the area below the line. Putting it in the editor
+sequences in one, `bbcode.go` renders markup into two, `comp.go` applies a
+completion, `history.go` assembles an entry, and `prompt.go` holds the area
+below the line. Putting it in the editor
 would make the terminal writer and the highlighter import the editor to reach
 a byte buffer, which is the cycle that sent `brace.go` down to the same place.
 
@@ -188,9 +189,9 @@ in one Go file and the header of each says which.
 
   rline.go       the public interface, the session log, and reading a
                  password with no echo
-  prompt.go      reading one line: drawing, the hint, resize, dispatch, help
+  prompt.go      reading one line: drawing, the hint, resize, the loop, help
+  bind.go        the keymaps, rline's own commands, the list of completions
   comp.go        completions, completers and file names
-  menu.go        the menu of completions, which reads its own keys
   history.go     the history list, its file, walking and searching
   bbcode.go      markup and the highlighting built on it
   term.go        writing to a terminal

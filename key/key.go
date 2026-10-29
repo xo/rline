@@ -61,7 +61,8 @@ const (
 	CtrlZ    Code = 26
 	Esc      Code = 27
 	Space    Code = 32
-	// Rubout is what the Delete key sends. It always becomes [Backspace].
+	// Rubout is DEL, which most terminals send for the Backspace key. It is
+	// a key of its own and does not become [Backspace], which is Ctrl-H.
 	Rubout Code = 127
 
 	// UnicodeMax is the largest code point a Code can hold.

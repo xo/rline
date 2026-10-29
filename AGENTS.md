@@ -6,8 +6,9 @@ of isocline, a line editor written in C by Daan Leijen under the MIT
 license. It uses no cgo. usql is the program it exists for.
 
 The module is `github.com/xo/rline`, and `go.mod` asks for Go 1.25.0. It
-depends on `github.com/mattn/go-runewidth` and `golang.org/x/sys` and on
-nothing else (D7).
+depends on `github.com/mattn/go-runewidth` and `golang.org/x/sys` (D7), and
+D39 adds `github.com/xo/inputrc` for reading inputrc files. Add no other
+dependency without a decision.
 
 ## Standing rules
 
@@ -54,11 +55,13 @@ for, not the C file they came from, and the header of each file names the C
 files (D15):
 
 - `rline.go`: the public API, the session log, and reading a password.
-- `prompt.go`: reading one line, the redraw, hints, resize and the key
-  dispatch.
-- `comp.go` and `menu.go`: completion and file name completion, and the menu
-  of completions.
-- `history.go`: the history list, its file, walking it and searching it.
+- `prompt.go`: reading one line, the redraw, hints, resize and the loop
+  that hands each key to the line.
+- `bind.go`: the keymaps, built from readline's defaults, the commands that
+  rline runs itself, and the list of completions that readline shows.
+- `comp.go`: completion and file name completion.
+- `history.go`: the history list and its file. Walking and searching it are
+  readline's commands, in `internal/readline`.
 - `bbcode.go`: markup and the highlighting built on it.
 - `term.go`: writing to a terminal.
 - `decoder.go`: decoding bytes and escape sequences into keys, and turning
@@ -78,11 +81,18 @@ The other folders:
 - `internal/text/`: the buffer a line is edited in, widths, the QUTF-8 codec
   and brace matching.
 - `internal/editor/`: the line being edited, the operations on it and the
-  undo stack.
+  undo stack. These are isocline's, and the corpus of the C tests them.
+- `internal/readline/`: GNU readline's commands over one line, with the kill
+  ring, the undo list, the numeric argument, the history, the keymaps,
+  completion, incremental search, the variables of an inputrc file and vi's
+  modes (D44 to D46). It is written from readline's manual and recordings of
+  readline 8.3, and never from readline's C, which is under the GPL (D47).
 - `internal/capture/`: records a program under a pseudo-terminal, and holds
   the sessions recorded from the C demo in `testdata/<goos>/`.
 - `testdata/`: the corpora recorded from the C. `testdata/default/` and
   `testdata/darwin/` split on the mark at the end of a wrapped row.
+  `testdata/readline-emacs.txt` and `testdata/readline-binds.txt` are
+  recorded from GNU readline 8.3.
 - `tools/`: the C probes (`probe-*.c`), the scripts that build them
   (`build-*.sh`), the linter module (`tools/lint`), `lint.sh`, `lint.ps1`
   and `mutate.sh`.
@@ -91,6 +101,9 @@ The other folders:
   - `_examples/sql/`: a small SQL prompt that uses the package. The tests
     in `rline_test.go` and `uitest` build it with
     `go build ./_examples/sql`.
+  - `_examples/bash/`: a prompt that highlights bash, prints each line
+    back and keeps it in the history, and runs nothing. Its tests run
+    through `TestBashExampleTests` in `rline_test.go`.
   - `_examples/transit/`: a prompt that highlights and completes code with
     transit. It is a module of its own, so that rline gets no new dependency
     (D7), and its `go.mod` requires published versions of rline and
@@ -128,6 +141,20 @@ more than one file, and always after a rename (D31).
 A corpus is regenerated from its C probe with `go test -update` in its
 package. That needs a C compiler and `isocline/`. `go test ./internal/capture
 -update` records the sessions, on Linux or macOS only.
+
+The readline corpora come from `tools/probe-readline.c`, which links the GNU
+readline 8.3 of the system. Record them on Linux, with readline's headers
+installed:
+
+```sh
+tools/build-probe-readline.sh
+go test ./internal/readline -args -update
+```
+
+The probe runs each case in a process of its own, with no inputrc, and
+records what each key does to the line, the cursor and the mark. A new
+behaviour of readline gets a case in the probe first, and the Go code is
+written to match the recording.
 
 `tools/mutate.sh <file> <find> <replace> [test pattern]` breaks the code on
 purpose and says whether a test caught it. It tells "caught", "NOT CAUGHT"

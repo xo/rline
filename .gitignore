@@ -2,6 +2,8 @@
 /.build/
 /_examples/sql/sql
 /_examples/sql/sql.exe
+/_examples/bash/bash
+/_examples/bash/bash.exe
 /_examples/transit/transit
 /_examples/transit/transit.exe
 /rlex
@@ -10,3 +12,4 @@ rline_example_history
 /uitest/uitest
 /uitest/uitest.exe
 .claude/settings.local.json
+rline_example_bash_history

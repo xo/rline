@@ -142,6 +142,13 @@ func fileIsTerminal(f *os.File) bool {
 	return windows.GetConsoleMode(windows.Handle(f.Fd()), &mode) == nil
 }
 
+// childSignals are the signals that a key raises at the console. Go reads
+// Ctrl-C and Ctrl-Break as os.Interrupt. The console sends them to every
+// process attached to it, so a program that runs a pager gets them as well as
+// the pager. Session.Release keeps them from ending the program while it has
+// given the console away.
+var childSignals = []os.Signal{os.Interrupt}
+
 // openTTY prepares the console for reading keys. The file descriptor is
 // ignored, for the reason isTerminal gives.
 func openTTY(fd int) (*tty, error) {

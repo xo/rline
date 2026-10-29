@@ -133,6 +133,25 @@ to each session that happens to show the problem.
 Nothing in the recorded sessions moved, because the C demo writes its banner
 at once and was never waiting on this.
 
+## A probe that recorded its own fault
+
+The first recordings of incremental search in `tools/probe-readline.c`
+showed readline doing something odd. After Ctrl-R and one letter, the line
+held only that letter, and Esc kept it. It looked like a quirk of
+readline's callback interface, and the Go code nearly copied it.
+
+Real bash, which links the same readline 8.3, did not do it. Driven under a
+pseudo-terminal, Ctrl-R and `e` showed `select 2` with the cursor on the
+`e`. The fault was in the probe. Its `history` field held four entries, the
+search cases gave it four, and no NULL ended the list, so the loop that
+adds the history ran on into the keys of the case. Ctrl-R, `e` and Enter
+became lines of the history, and the search found the line `e`.
+
+A recording is the expected value only when the recorder is right. When a
+recording disagrees with what a person sees in the real program, run the
+real program before you write code to match the recording. The field now
+holds eight, and every case so far has four at most.
+
 ## The blind spot a recorded corpus has
 
 A corpus records what the C answered. So it cannot record anything the C has
