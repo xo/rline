@@ -133,7 +133,7 @@ insert and command modes.
 
 `WithUserInputrc(true)` reads the user's inputrc file as readline finds it:
 the file that `$INPUTRC` names, and no other when it is set, or else
-`~/.inputrc`, or else `/etc/inputrc`. Its bindings, macros and variables apply, and
+`~/.inputrc`, or else `/etc/inputrc`. On Windows the file is `~/_inputrc`. Its bindings, macros and variables apply, and
 `set editing-mode vi` turns vi mode on. `WithAppName` sets the name that
 `$if` tests. `Notices` lists what in the file rline does not support.
 

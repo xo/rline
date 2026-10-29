@@ -449,7 +449,8 @@ func WithBraceInsertion(autoPair bool) Option {
 // WithUserInputrc reads the user's inputrc file, as GNU readline does. When
 // $INPUTRC is set, it reads that file and no other, and reads nothing when
 // the file is missing. Otherwise it reads ~/.inputrc, or else /etc/inputrc
-// when that is missing. The key bindings, macros and variables of the file
+// when that is missing. On Windows the file is ~/_inputrc, and there is no
+// /etc/inputrc. The key bindings, macros and variables of the file
 // change how the keys edit the line, and they override the program's own
 // (D41). Notices lists what in the file rline does not support.
 func WithUserInputrc(userInputrc bool) Option {

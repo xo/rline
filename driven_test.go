@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -1330,7 +1331,12 @@ func TestSessionReadsTheUsersInputrc(t *testing.T) {
 	// and does not go on to ~/.inputrc. The home here holds one that the
 	// search would find, and that would give a notice.
 	home := t.TempDir()
-	if err := os.WriteFile(filepath.Join(home, ".inputrc"), []byte(testInputrc), 0o600); err != nil {
+	// Windows names the file _inputrc, as readline does there.
+	name := ".inputrc"
+	if runtime.GOOS == "windows" {
+		name = "_inputrc"
+	}
+	if err := os.WriteFile(filepath.Join(home, name), []byte(testInputrc), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("HOME", home)
