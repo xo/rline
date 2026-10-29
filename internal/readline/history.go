@@ -18,6 +18,15 @@ func (h *History) Add(line string) {
 	h.entries = append(h.entries, line)
 }
 
+// Entry returns the history line at pos, counted from the oldest, and reports
+// false when there is none.
+func (h *History) Entry(pos int) (string, bool) {
+	if pos < 0 || pos >= len(h.entries) {
+		return "", false
+	}
+	return h.entries[pos], true
+}
+
 // start puts the history at the new line, before a line is read.
 func (h *History) start() {
 	h.pos = len(h.entries)

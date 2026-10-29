@@ -32,6 +32,11 @@ type Completer func(line string, point int) []Candidate
 // the default of its completion-query-items.
 const queryItems = 100
 
+// completerWordBreaks are the characters that end a word for completion,
+// readline's default rl_completer_word_break_characters. export-completions
+// finds the word with them when there is no completion to say where it is.
+const completerWordBreaks = " \t\n\"\\'`@$><=;|&{("
+
 // menu is the state of menu-complete between two presses: the completions,
 // which one is in the line, and the stretch of the line that it fills.
 type menu struct {
@@ -40,6 +45,7 @@ type menu struct {
 	start, end int
 	original   string
 	suffix     bool
+	single     bool // one completion, which old-menu-complete keeps in place
 }
 
 // SetCompleter sets what the completion commands complete with.
@@ -137,21 +143,27 @@ func insertCompletions(l *Line, _ call) {
 // menuComplete puts the next completion in place of the word, dir steps on.
 // Pressed again at once, it steps through the completions, and after the last
 // one puts back the text that was there before. A single completion goes in
-// as complete puts it.
-func menuComplete(l *Line, dir int) {
-	if m := l.menu; m != nil && (l.last == "menu-complete" || l.last == "menu-complete-backward") {
+// as complete puts it. With old, as old-menu-complete, a single completion
+// stays in place when it is pressed again, where menu-complete completes the
+// next word.
+func menuComplete(l *Line, dir int, old bool) {
+	if m := l.menu; m != nil && (l.last == "menu-complete" || l.last == "menu-complete-backward" ||
+		l.last == "old-menu-complete") {
 		n := len(m.cands) + 1
+		if m.single {
+			n = 1
+		}
 		m.index = ((m.index+dir)%n + n) % n
 		l.fillMenu()
 		return
 	}
 	l.menu = nil
 	cands := l.candidates()
-	switch len(cands) {
-	case 0:
+	switch {
+	case len(cands) == 0:
 		l.ding()
 		return
-	case 1:
+	case len(cands) == 1 && !old:
 		l.insertCandidate(cands[0], cands[0].Text, true)
 		return
 	}
@@ -162,6 +174,7 @@ func menuComplete(l *Line, dir int) {
 		end:      c.End,
 		original: string(l.buf[c.Start:c.End]),
 		suffix:   c.End == len(l.buf),
+		single:   len(cands) == 1,
 	}
 	if dir < 0 {
 		m.index = len(cands) - 1

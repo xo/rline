@@ -58,9 +58,16 @@ type env struct {
 	lastSearch string
 
 	// vars are the variables of readline that an inputrc file set, and
-	// notices what in the file rline does not support.
+	// notices what in the file rline does not support. inputrc names the
+	// file that was read, for re-read-init-file, and is nil when none was.
 	vars    map[string]any
 	notices []string
+	inputrc *config
+
+	// next is the history line that the next line starts with when hasNext
+	// is set, as operate-and-get-next asks.
+	next    string
+	hasNext bool
 
 	// The keymaps of vi's insert and command modes, nil for readline's
 	// defaults, and whether the next line is read in vi mode. A line that
@@ -93,6 +100,10 @@ type env struct {
 	completionMenu bool
 	menu           *completionMenu
 	menuAutoTab    bool
+
+	// keepInterrupted leaves a line that Ctrl-C gave up on the screen, with
+	// ^C after it (D52).
+	keepInterrupted bool
 
 	// completePreview shows in the line what picking the selected entry would
 	// do, and takes it straight back out again. It is on by default. The C
@@ -496,16 +507,29 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		}
 	}
 	ev.menu, ev.menuAutoTab = nil, false
-	l := readline.New(ev.keymap, ev.readlineHistory())
+	hist := ev.readlineHistory()
+	l := readline.New(ev.keymap, hist)
 	l.SetKeymaps(ev.keymap, ev.viInsert, ev.viCommand)
 	l.SetHandler(func(name string, c key.Code) bool { return ev.command(e, l, name, c) })
+	l.SetCommandNames(rlineOnly())
 	l.SetCompleter(ev.candidates)
 	l.Configure(ev.vars)
 	l.SetEditingMode(ev.viMode)
 	l.SetSearchString(ev.lastSearch)
+	if ev.hasNext {
+		// operate-and-get-next asked for this line to start with a history
+		// line.
+		l.StartWith(ev.next)
+		showLine(e, l)
+		ev.refresh(e)
+	}
 	defer func() {
 		ev.lastSearch = l.SearchString()
 		ev.viMode = l.Mode() != "emacs"
+		ev.next, ev.hasNext = "", false
+		if pos, ok := l.NextLine(); ok {
+			ev.next, ev.hasNext = hist.Entry(pos)
+		}
 	}()
 	bells := 0
 	asked := false
@@ -527,6 +551,8 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		// A command of rline's copies the line into the editor itself, so
 		// what changed is measured against the line before the key.
 		before, beforePoint := l.Text(), l.Point()
+		promptw, _ := ev.promptWidth(e, false)
+		l.SetScreen(e.TermW, promptw)
 		switch {
 		case ev.menu != nil:
 			// The open menu takes every key, as the C's menu reads every key
@@ -538,9 +564,12 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		case c == key.CtrlC:
 			// Ctrl-C gives the line up (D13). In readline the terminal turns
 			// it into a signal, and it is no key. The line is emptied, as
-			// isocline empties it, so that the history does not keep it.
-			e.Input.Clear()
-			e.Pos = 0
+			// isocline empties it, unless the program asked for it to stay
+			// on the screen (D52).
+			if !ev.keepInterrupted {
+				e.Input.Clear()
+				e.Pos = 0
+			}
 			return c
 		case c == key.EventStop:
 			return c
@@ -579,6 +608,9 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		}
 		if list := l.Listing(); len(list) > 0 {
 			ev.showListing(e, list)
+		}
+		if out := l.Output(); out != "" {
+			ev.showOutput(e, out)
 		}
 		if p := l.Prompt(); p != shownPrompt {
 			shownPrompt = p
@@ -633,6 +665,10 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	ev.braceMatching = false
 	ev.refresh(e)
 	ev.braceMatching = was
+	if c == key.CtrlC && ev.keepInterrupted && ev.echoControlCharacters() {
+		// readline echoes the key that gave the line up after it.
+		ev.term.write("^C")
+	}
 
 	line, ok := e.Input.String(), true
 	if (c == key.CtrlD && e.Input.Length() == 0) || c == key.EventStop {
@@ -642,12 +678,20 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	}
 
 	ev.history.update(e.Input.String())
-	if !ok || e.Input.Length() <= 1 {
-		// Neither an empty line nor a single character is worth keeping.
+	if !ok || c == key.CtrlC || e.Input.Length() <= 1 {
+		// Neither an empty line nor a single character is worth keeping,
+		// nor a line that Ctrl-C gave up.
 		ev.history.removeLast()
 	}
 	_ = ev.history.save()
 	return line, ok, c
+}
+
+// echoControlCharacters reports whether readline's echo-control-characters
+// is on, which it is unless an inputrc file turns it off.
+func (ev *env) echoControlCharacters() bool {
+	on, ok := ev.vars["echo-control-characters"].(bool)
+	return on || !ok
 }
 
 // --------------------------------------------------------------------------

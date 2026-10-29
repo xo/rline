@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -741,6 +742,83 @@ func TestInputrcModeAfterEditingMode(t *testing.T) {
 	}
 }
 
+// TestOperateAndGetNext checks that Ctrl-O accepts the line, and that the
+// next line starts with the history line after it, as readline does under
+// bash: here the line after "second" is "third".
+func TestOperateAndGetNext(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "\x10\x10\x0f"+kEnter, feedOpts{})
+	for _, h := range []string{"first", "second", "third"} {
+		ev.history.push(h)
+	}
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	if c := ev.runEditLoop(e); c != key.Enter || e.Input.String() != "second" {
+		t.Fatalf("Ctrl-O ended the line with %#x and %q, want Enter and %q", c, e.Input.String(), "second")
+	}
+	// editLine keeps the accepted line as the newest one.
+	ev.history.push("second")
+	e = &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	ev.runEditLoop(e)
+	if got := e.Input.String(); got != "third" {
+		t.Errorf("the next line is %q, want %q", got, "third")
+	}
+	// The line after that starts empty again.
+	if ev.hasNext {
+		t.Errorf("a line that Enter accepted asks for the history line %q next", ev.next)
+	}
+}
+
+// TestReReadInitFile checks that C-x C-r reads the inputrc file again and
+// uses its new bindings at once, and that without a file it changes nothing.
+func TestReReadInitFile(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "inputrc")
+	write := func(macro string) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(`"\C-xa": "`+macro+`"`+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("one")
+	keys := "\x18a\x18\x12\x18a" + kEnter
+	ev, _ := feedEnv(t, keys, feedOpts{})
+	ev.readInputrc(&config{inputrcFile: path, appName: DefaultAppName})
+	write("two")
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	ev.runEditLoop(e)
+	if got := e.Input.String(); got != "onetwo" {
+		t.Errorf("the line is %q, want %q", got, "onetwo")
+	}
+
+	// With no inputrc file, the keys keep readline's defaults.
+	line, _, _, _ := feedSession(t, "ab"+"\x18\x12"+kEnter, feedOpts{})
+	if line != "ab" {
+		t.Errorf("without a file the line is %q, want %q", line, "ab")
+	}
+}
+
+// TestScreenLineUsesTheTerminal checks that next-screen-line moves by the
+// width of the terminal, counting the prompt, as readline does. On a
+// terminal 20 wide, with the prompt "> " two wide, the row below the start
+// of the line begins at the 18th character, and the cursor lands on the 20th.
+func TestScreenLineUsesTheTerminal(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(path, []byte(`"\C-xn": next-screen-line`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ev, _ := feedEnv(t, strings.Repeat("a", 30)+kCtrlA+"\x18n"+"X"+kEnter, feedOpts{})
+	ev.readInputrc(&config{inputrcFile: path, appName: DefaultAppName})
+	ev.term = newTerm(&bytes.Buffer{}, termOptions{Sizer: fixedSize{cols: 20, rows: 24}})
+	ev.bb = newBBCode(ev.term)
+	e := &editor.Editor{Opts: ev.opts, TermW: 20, CurRows: 1}
+	ev.runEditLoop(e)
+	want := strings.Repeat("a", 20) + "X" + strings.Repeat("a", 10)
+	if got := e.Input.String(); got != want {
+		t.Errorf("the line is %q, want %q", got, want)
+	}
+}
+
 // TestCompletionWithManyAnswers checks a list as long as readline's
 // completion-query-items, which is 100. readline asks before it lists them,
 // and stops at each screenful with --More--.
@@ -1002,6 +1080,117 @@ func TestReadLineTellsAnInterruptFromAnEmptyLine(t *testing.T) {
 	}
 }
 
+// TestKeepInterrupted checks WithKeepInterrupted (D52): Ctrl-C leaves the
+// line on the screen with ^C after it, as GNU readline does under psql, and
+// the next prompt starts below it. echo-control-characters off leaves out
+// the ^C. Without the option the line is erased, as isocline erases it.
+// Either way ReadLine returns ErrInterrupted and the history keeps nothing.
+func TestKeepInterrupted(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name string
+		keep bool
+		vars map[string]any
+		want string
+	}{
+		{"kept with ^C", true, nil, "> abc^C"},
+		{"kept without ^C", true, map[string]any{"echo-control-characters": false}, "> abc"},
+		{"erased", false, nil, "> "},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			ev, sink := feedEnv(t, "abc\x03", feedOpts{})
+			ev.keepInterrupted, ev.vars = test.keep, test.vars
+			r := &Session{env: ev, canEdit: true}
+			if _, err := r.ReadLine(""); !errors.Is(err, ErrInterrupted) {
+				t.Fatalf("ReadLine gave %v, want ErrInterrupted", err)
+			}
+			ev.term.flush()
+			// The last row is what the screen keeps, and the cursor moved
+			// below it.
+			out := sink.String()
+			if !strings.HasSuffix(out, "\n") {
+				t.Errorf("the cursor did not move below the line: %q", out)
+			}
+			if last := lastRow(out); last != test.want {
+				t.Errorf("the last row on the screen is %q, want %q\ndrawn: %q", last, test.want, out)
+			}
+			if slices.Contains(ev.history.all(), "abc") {
+				t.Errorf("the history keeps the line that Ctrl-C gave up: %q", ev.history.all())
+			}
+		})
+	}
+}
+
+// TestKeepInterruptedKeepsEveryRow checks that a statement over two rows
+// stays whole on the screen when Ctrl-C gives it up with
+// WithKeepInterrupted: the cursor goes to its end, and ^C follows the last
+// row.
+func TestKeepInterruptedKeepsEveryRow(t *testing.T) {
+	t.Parallel()
+	ev, sink := feedEnv(t, "select"+kEnter+"from t"+kCtrlA+"\x03", feedOpts{Continue: func(string) bool { return true }})
+	ev.keepInterrupted = true
+	r := &Session{env: ev, canEdit: true}
+	if _, err := r.ReadLine(""); !errors.Is(err, ErrInterrupted) {
+		t.Fatalf("ReadLine gave %v, want ErrInterrupted", err)
+	}
+	ev.term.flush()
+	out := sink.String()
+	if last := lastRow(out); last != "> from t^C" {
+		t.Errorf("the last row on the screen is %q, want %q\ndrawn: %q", last, "> from t^C", out)
+	}
+	if i := strings.LastIndex(out, "select"); i < 0 || i > strings.LastIndex(out, "from t") {
+		t.Errorf("the first row was not drawn above the last one\ndrawn: %q", out)
+	}
+}
+
+// lastRow returns what the screen shows on the row before the last line
+// break of out. It follows a carriage return, a move to the right, an erase
+// to the end of the row and the characters written, which is all that
+// drawing one row uses, and skips any other escape sequence.
+func lastRow(out string) string {
+	out = strings.TrimSuffix(out, "\n")
+	if i := strings.LastIndex(out, "\n"); i >= 0 {
+		out = out[i+1:]
+	}
+	var row []rune
+	col := 0
+	rs := []rune(out)
+	for i := 0; i < len(rs); i++ {
+		switch r := rs[i]; {
+		case r == '\r':
+			col = 0
+		case r == 0x1b && i+1 < len(rs) && rs[i+1] == '[':
+			j := i + 2
+			for j < len(rs) && (rs[j] < 0x40 || rs[j] > 0x7e) {
+				j++
+			}
+			if j >= len(rs) {
+				return string(row)
+			}
+			arg := string(rs[i+2 : j])
+			switch rs[j] {
+			case 'C':
+				n, err := strconv.Atoi(arg)
+				if err != nil {
+					n = 1
+				}
+				col += n
+			case 'K':
+				row = row[:min(col, len(row))]
+			}
+			i = j
+		default:
+			for len(row) <= col {
+				row = append(row, ' ')
+			}
+			row[col] = r
+			col++
+		}
+	}
+	return string(row)
+}
+
 // TestSetCompleterReplacesTheCompleter checks that a completer can be changed
 // after the reader exists, which is what a program whose completions depend on
 // something that changes while it runs needs.
@@ -1250,6 +1439,7 @@ func TestSessionMatchesReadline(t *testing.T) {
 		words   []string
 		listed  []string
 		rc      []string
+		printed []string
 	}
 	var cases []*rlCase
 	at := func(name string) *rlCase {
@@ -1278,6 +1468,13 @@ func TestSessionMatchesReadline(t *testing.T) {
 		case len(f) == 3 && f[0] == "prompt":
 			// internal/readline compares the prompts. Here only the line
 			// and the cursor are.
+		case len(f) == 3 && f[0] == "out":
+			// internal/readline compares what the commands print. Here the
+			// first line of it has to be drawn.
+			if c := at(f[1]); !c.done {
+				first, _, _ := strings.Cut(strings.TrimLeft(text(f[2]), "\r\n"), "\n")
+				c.printed = append(c.printed, first)
+			}
 		case len(f) >= 2 && (f[0] == "words" || f[0] == "list"):
 			c := at(f[1])
 			for _, h := range f[2:] {
@@ -1330,7 +1527,7 @@ func TestSessionMatchesReadline(t *testing.T) {
 			// file, with the case's bindings before them.
 			rc := ""
 			for seq, b := range c.binds {
-				rc += fmt.Sprintf("%q: %s\n", inputrc.Escape(seq), b.Action)
+				rc += fmt.Sprintf("\"%s\": %s\n", inputrc.Escape(seq), b.Action)
 			}
 			rc += strings.Join(c.rc, "\n") + "\n"
 			path := filepath.Join(t.TempDir(), "inputrc")
@@ -1344,6 +1541,8 @@ func TestSessionMatchesReadline(t *testing.T) {
 		}
 		ev.multiline = false
 		ev.opts.AutoPair = false
+		// The probe has no prompt, and next-screen-line counts the prompt.
+		ev.promptMarker = ""
 		for _, h := range c.history {
 			ev.history.push(h)
 		}
@@ -1369,6 +1568,11 @@ func TestSessionMatchesReadline(t *testing.T) {
 		for _, w := range c.listed {
 			if !strings.Contains(sink.String(), w) {
 				t.Errorf("%s: readline listed %q, and it was never drawn", c.name, w)
+			}
+		}
+		for _, w := range c.printed {
+			if !strings.Contains(sink.String(), w) {
+				t.Errorf("%s: readline printed %q, and it was never drawn", c.name, w)
 			}
 		}
 	}
@@ -1397,7 +1601,7 @@ func wordsCompleter(words []string) Completer {
 const testInputrc = `set show-all-if-ambiguous on
 set no-such-variable on
 "\C-xa": "hello "
-"\C-xq": vi-fetch-history
+"\C-xq": no-such-command
 set keymap emacs-ctlx
 "y": capitalize-word
 set keymap emacs
@@ -1449,7 +1653,7 @@ func TestSessionReadsInputrc(t *testing.T) {
 	}
 
 	want := []string{
-		"the command vi-fetch-history is not supported",
+		"the command no-such-command is not supported",
 		"the variable no-such-variable is not supported",
 	}
 	if !slices.Equal(ev.notices, want) {

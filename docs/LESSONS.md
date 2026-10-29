@@ -152,6 +152,38 @@ recording disagrees with what a person sees in the real program, run the
 real program before you write code to match the recording. The field now
 holds eight, and every case so far has four at most.
 
+## A recording of a command that did nothing
+
+The first recordings of `execute-named-command` showed M-x doing nothing,
+and the name typed after it went into the line. `arrow-key-prefix` let the
+next key be typed, and `operate-and-get-next` with an argument handed the
+line back one key late. Each looked like a fact about readline. None was.
+These commands read keys of their own, and through readline's callback
+interface, which the probe used, they cannot. bash calls `readline()`, and
+there M-x reads a name after a `!` prompt and runs the command.
+
+The probe now runs such a case through `readline()`, and prints the state of
+a key when readline asks for the byte after it. The rule of the last lesson
+holds again in another form: a recording that contradicts the manual is a
+question about the recorder first. Read the manual for every command that a
+recording shows doing nothing.
+
+The same work found that `print-last-kbd-macro` writes to standard output,
+not to readline's output stream. Its text landed in the middle of the
+corpus, as a line that the parser could not read, so the run failed loudly,
+which is the better way to fail.
+
+## A history position that moved under the next line
+
+`operate-and-get-next` starts the next line at the history line after the
+one accepted. The first version kept the position of that line. The tests
+of `internal/readline` passed, because their history only grows at the end.
+The test through the whole Session failed: rline keeps one copy of each
+line, so accepting `second` again moved it to the end, and the position now
+named `second`. The Session now keeps the text of the line, and finds it in
+the new history. A test of a part cannot see what the whole does to its
+data. Test a command that spans two lines through the Session as well.
+
 ## The blind spot a recorded corpus has
 
 A corpus records what the C answered. So it cannot record anything the C has

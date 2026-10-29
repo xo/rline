@@ -43,9 +43,15 @@ func defaultSettings() settings {
 // which holds them by readline's names, as an inputrc file sets them. It
 // returns the names that it does not know, so that the program can say that
 // they do nothing.
+//
+// Every variable of readline keeps its value for dump-variables, whether this
+// package reads it or not.
 func (l *Line) Configure(vars map[string]any) []string {
 	var unknown []string
 	for name, v := range vars {
+		if _, ok := l.variables()[name]; ok {
+			l.allVars[name] = v
+		}
 		switch name {
 		case "disable-completion":
 			l.vars.disableCompletion, _ = v.(bool)
@@ -77,4 +83,13 @@ func (l *Line) Configure(vars map[string]any) []string {
 		}
 	}
 	return unknown
+}
+
+// variables returns every variable of readline with its value, which starts
+// as readline's default.
+func (l *Line) variables() map[string]any {
+	if l.allVars == nil {
+		l.allVars = inputrc.DefaultVars()
+	}
+	return l.allVars
 }

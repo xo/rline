@@ -76,11 +76,11 @@ func bindAll(km *readline.Keymap, binds map[string]inputrc.Bind) {
 		}
 		if b.Macro {
 			if text, ok := decodeSeq(b.Action); ok {
-				km.BindMacro(keys, text)
+				km.BindMacroSeq(seq, keys, b.Action, text)
 			}
 			continue
 		}
-		km.Bind(keys, b.Action)
+		km.BindSeq(seq, keys, b.Action)
 	}
 }
 
@@ -103,8 +103,8 @@ func (ev *env) defaultKeymaps() (emacs, viInsert, viCommand *readline.Keymap) {
 	emacs = emacsKeymap()
 	viInsert, viCommand = viKeymaps()
 	if ev.completionMenu {
-		emacs.Bind([]key.Code{key.Tab}, "rline-menu-complete")
-		viInsert.Bind([]key.Code{key.Tab}, "rline-menu-complete")
+		emacs.BindSeq("\t", []key.Code{key.Tab}, "rline-menu-complete")
+		viInsert.BindSeq("\t", []key.Code{key.Tab}, "rline-menu-complete")
 	}
 	return emacs, viInsert, viCommand
 }
@@ -196,6 +196,15 @@ func (ev *env) command(e *editor.Editor, l *readline.Line, name string, c key.Co
 		ev.generateCompletions(e, false)
 		l.Edit(e.Input.String(), e.Pos)
 		return true
+	case "re-read-init-file":
+		// The file is read again only when the program asked for one.
+		if ev.inputrc == nil {
+			return false
+		}
+		ev.readInputrc(ev.inputrc)
+		l.SetKeymaps(ev.keymap, ev.viInsert, ev.viCommand)
+		l.Configure(ev.vars)
+		return true
 	}
 	return false
 }
@@ -283,6 +292,19 @@ func (ev *env) showListing(e *editor.Editor, cands []readline.Candidate) {
 	ev.refresh(e)
 }
 
+// showOutput prints what a command such as dump-variables wrote below the
+// line, and draws the line again below it.
+func (ev *env) showOutput(e *editor.Editor, out string) {
+	ev.term.down(e.CurRows - 1 - e.CurRow)
+	ev.term.writeln("")
+	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
+		ev.term.write(line)
+		ev.term.writeln("")
+	}
+	e.CurRows, e.CurRow = 1, 0
+	ev.refresh(e)
+}
+
 // more asks whether to show more of a long list, and reads the answer as
 // readline does: Space or y shows another screenful, Enter one more row, and
 // q or n stops. It sets page to how many more rows to show.
@@ -312,6 +334,19 @@ var rlineCommands = map[string]bool{
 	"rline-help": true, "rline-menu-complete": true,
 }
 
+// rlineOnly returns the names of the commands that rline has and readline
+// does not, for dump-functions and execute-named-command.
+func rlineOnly() []string {
+	var names []string
+	for name := range rlineCommands {
+		if !readline.Has(name) {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
 // rlineVars are the variables of readline that rline reads itself, rather
 // than the line. keyseq-timeout is the wait of the decoder, which already
 // waits for the rest of an escape sequence.
@@ -322,6 +357,8 @@ var rlineVars = map[string]bool{"bell-style": true, "keyseq-timeout": true}
 // file rline does not support goes into the notices, and a file that cannot
 // be read is one notice.
 func (ev *env) readInputrc(c *config) {
+	ev.inputrc = c
+	ev.notices = nil
 	// An empty configuration, so that what the file sets can be told from the
 	// defaults. It reads files for UserDefault and for $include.
 	cfg := inputrc.NewConfig()

@@ -110,8 +110,8 @@ func init() {
 		"complete":               complete,
 		"possible-completions":   possibleCompletions,
 		"insert-completions":     insertCompletions,
-		"menu-complete":          func(l *Line, c call) { menuComplete(l, c.count) },
-		"menu-complete-backward": func(l *Line, c call) { menuComplete(l, -c.count) },
+		"menu-complete":          func(l *Line, c call) { menuComplete(l, c.count, false) },
+		"menu-complete-backward": func(l *Line, c call) { menuComplete(l, -c.count, false) },
 
 		// Ending the line.
 		"accept-line": func(l *Line, _ call) { l.done = true },

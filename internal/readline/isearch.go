@@ -42,7 +42,11 @@ type isearch struct {
 func (l *Line) Prompt() string {
 	s := l.searching
 	if s == nil {
-		if n, ok := l.arg.count(); ok {
+		if r := l.reading; r != nil {
+			return r.prompt
+		}
+		if l.arg.shown() {
+			n, _ := l.arg.count()
 			return fmt.Sprintf("(arg: %d) ", n)
 		}
 		return ""

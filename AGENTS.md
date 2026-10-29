@@ -84,10 +84,11 @@ The other folders:
   and brace matching.
 - `internal/editor/`: the line being edited, the operations on it and the
   undo stack. These are isocline's, and the corpus of the C tests them.
-- `internal/readline/`: GNU readline's commands over one line, with the kill
-  ring, the undo list, the numeric argument, the history, the keymaps,
-  completion, incremental search, the variables of an inputrc file and vi's
-  modes (D44 to D46). It is written from readline's manual and recordings of
+- `internal/readline/`: all of GNU readline's commands over one line, with
+  the kill ring, the undo list, the numeric argument, the history, the
+  keymaps, completion, incremental search, the prompt that reads a search or
+  a command name, the commands that print, the variables of an inputrc file
+  and vi's modes (D44 to D46). It is written from readline's manual and recordings of
   readline 8.3, and never from readline's C, which is under the GPL (D47).
 - `internal/capture/`: records a program under a pseudo-terminal, and holds
   the sessions recorded from the C demo in `testdata/<goos>/`.

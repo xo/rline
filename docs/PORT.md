@@ -271,6 +271,9 @@ One departure is over a behaviour rather than a fault, and is the only one.
 where the C clears the line and hands back an empty string that no caller can
 tell from Enter on an empty line. usql cannot work without that distinction.
 Ken decided for the program over the C. See "What rline offers usql" in USQL.md.
+`WithKeepInterrupted(true)` departs further, and only when a program asks:
+the line stays on the screen with `^C` after it, where the C erases it
+(D52).
 
 The QUTF-8 decoder refuses the byte pair `0xED 0x80`, which encodes U+D000 to
 U+D03F. Those are ordinary characters. The test that refuses UTF-16 surrogate

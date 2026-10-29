@@ -5,6 +5,42 @@ import "github.com/xo/rline/key"
 // Keymap maps sequences of keys to the names of commands.
 type Keymap struct {
 	root node
+
+	// sources are the key sequences that bindings were made from, as a
+	// terminal sends them, by the sequence, so that dump-functions and
+	// dump-macros can print them as readline does.
+	sources map[string]source
+}
+
+// source is one binding as it was made: the keys that its sequence decodes
+// to, and the text of a macro.
+type source struct {
+	keys  []key.Code
+	macro string
+}
+
+// BindSeq binds keys, which the key sequence seq decodes to, to the command
+// called name, as Bind does, and keeps seq for dump-functions.
+func (k *Keymap) BindSeq(seq string, keys []key.Code, name string) {
+	k.Bind(keys, name)
+	k.keep(seq, source{keys: keys})
+}
+
+// BindMacroSeq binds keys, which the key sequence seq decodes to, to the
+// macro whose text is text and whose keys are macro, as BindMacro does, and
+// keeps both texts for dump-macros.
+func (k *Keymap) BindMacroSeq(seq string, keys []key.Code, text string, macro []key.Code) {
+	k.BindMacro(keys, macro)
+	k.keep(seq, source{keys: keys, macro: text})
+}
+
+// keep records the binding that seq made.
+func (k *Keymap) keep(seq string, s source) {
+	if k.sources == nil {
+		k.sources = make(map[string]source)
+	}
+	s.keys = append([]key.Code(nil), s.keys...)
+	k.sources[seq] = s
 }
 
 // node is one key of a sequence: the command or the macro bound to the keys

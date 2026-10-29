@@ -267,6 +267,7 @@ type config struct {
 	multiline       bool
 	autoTab         bool
 	completionMenu  bool
+	keepInterrupted bool
 
 	hintDelay time.Duration
 
@@ -494,6 +495,16 @@ func WithMultilineIndent(multilineIndent bool) Option {
 	return func(c *config) { c.multilineIndent = multilineIndent }
 }
 
+// WithKeepInterrupted leaves the line on the screen when Ctrl-C gives it up,
+// as GNU readline does under psql: the text stays, ^C follows it unless an
+// inputrc file turns echo-control-characters off, and the next prompt starts
+// below it. Without it, the line is erased, as isocline erases it. Either
+// way ReadLine returns ErrInterrupted, and the history does not keep the
+// line (D52).
+func WithKeepInterrupted(keepInterrupted bool) Option {
+	return func(c *config) { c.keepInterrupted = keepInterrupted }
+}
+
 // WithCompletionMenu binds Tab to rline-menu-complete, which completes as
 // isocline does: Tab fills in what the completions share, and then opens a
 // numbered menu of them below the line. The arrow keys, Tab and Shift-Tab
@@ -651,6 +662,7 @@ func New(opts ...Option) (*Prompt, error) {
 		multiline:       c.multiline,
 		completeAutoTab: c.autoTab,
 		completionMenu:  c.completionMenu,
+		keepInterrupted: c.keepInterrupted,
 		completePreview: true,
 		hintDelay:       c.hintDelay,
 	}

@@ -295,6 +295,23 @@ records the line, the cursor, the mark, and whether the line was handed back.
 `testdata/readline-binds.txt` holds readline's default keymaps and the names
 of all of its commands. `internal/readline` replays them.
 
+Three fields of a case cover what that leaves out:
+
+- `out` records what readline writes to its output stream, as the dump
+  commands and `export-completions` write. The test compares the text,
+  without the line breaks around it, which rline draws in its own way.
+- `again` goes on after readline hands a line back, so that the keys after
+  it edit the next line. `operate-and-get-next` needs it.
+- `blocking` runs `readline()` in place of the callback interface, as bash
+  does. Three commands read keys of their own and do nothing through the
+  callback interface: `execute-named-command`, `operate-and-get-next` and
+  `arrow-key-prefix`.
+
+Every command that readline 8.3 has is in `internal/readline`.
+`TestEveryCommandIsReadlines` holds that the package has no name that
+readline does not, and the cases of `dump-functions` list every name that
+readline has, so a missing command fails them.
+
 `TestSessionMatchesReadline` in `driven_test.go` replays the same cases
 through the whole edit loop: the decoder, the keymap that rline builds from
 the inputrc defaults, the line and the editor. It runs in the readline

@@ -127,19 +127,25 @@ writes through is the one that knows where the prompt is. A `Prompt` is an
 user gave the line up with Ctrl-C. Those are different answers on purpose: the
 C cannot tell them apart, and a shell has to.
 
+Ctrl-C erases the line, as isocline does. `WithKeepInterrupted(true)` leaves
+it on the screen with `^C` after it, as GNU readline does under psql, and the
+next prompt starts below it.
+
 ## Keys
 
 The keys are GNU readline's, and the commands behave as readline 8.3's
-commands do. rline's tests replay recordings of readline 8.3 to check this.
-The emacs keys are the default. `WithViMode(true)` gives readline's vi
-insert and command modes.
+commands do. rline has all 143 of readline's commands, including those that
+no key is bound to, so an inputrc file can bind any of them. rline's tests
+replay recordings of readline 8.3 to check this. The emacs keys are the
+default. `WithViMode(true)` gives readline's vi insert and command modes.
 
 `WithUserInputrc(true)` reads the user's inputrc file as readline finds it:
 the file that `$INPUTRC` names, and no other when it is set, or else
 `~/.inputrc`, or else `/etc/inputrc`. On Windows the file is `~/_inputrc`.
 Its bindings, macros and variables apply, and `set editing-mode vi` turns vi
-mode on. `WithAppName` sets the name that
-`$if` tests. `Notices` lists what in the file rline does not support.
+mode on. `WithAppName` sets the name that `$if` tests. `Notices` lists what
+in the file rline does not support. C-x C-r reads the file again, when the
+program asked for one.
 
 ```go
 p, err := rline.New(rline.WithUserInputrc(true), rline.WithAppName("usql"))

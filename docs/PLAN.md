@@ -84,7 +84,8 @@ that holds it.
 | [D48](#d48-a-session-gives-the-terminal-to-another-program-with-release-and-watches-the-stop-signals-only-in-raw-mode-proposed) | A Session gives the terminal to another program with Release, and watches the stop signals only in raw mode | Proposed |
 | [D49](#d49-the-style-names-start-with-rline--and-not-with-ic--decided) | The style names start with rline- and not with ic- | Decided |
 | [D50](#d50-a-program-asks-for-the-users-inputrc-with-withuserinputrc-and-notices-lists-what-rline-does-not-support-decided) | A program asks for the user's inputrc with WithUserInputrc, and Notices lists what rline does not support | Decided |
-| [D51](#d51-isoclines-completion-menu-comes-back-as-the-command-rline-menu-complete-and-withcompletionmenu-binds-tab-to-it-proposed-amends-d45) | isocline's completion menu comes back as the command rline-menu-complete, and WithCompletionMenu binds Tab to it | Proposed. Amends D45 |
+| [D51](#d51-isoclines-completion-menu-comes-back-as-the-command-rline-menu-complete-and-withcompletionmenu-binds-tab-to-it-decided-amends-d45) | isocline's completion menu comes back as the command rline-menu-complete, and WithCompletionMenu binds Tab to it | Decided. Amends D45 |
+| [D52](#d52-withkeepinterrupted-leaves-a-line-that-ctrl-c-gave-up-on-the-screen-decided) | WithKeepInterrupted leaves a line that Ctrl-C gave up on the screen | Decided |
 
 ## Purpose
 
@@ -1024,7 +1025,7 @@ backlog 48 holds it.
 
 Ken accepted the decision as proposed on 2026-10-29.
 
-### D51. isocline's completion menu comes back as the command rline-menu-complete, and WithCompletionMenu binds Tab to it. Proposed. Amends D45.
+### D51. isocline's completion menu comes back as the command rline-menu-complete, and WithCompletionMenu binds Tab to it. Decided. Amends D45.
 
 Point 2 of D45 removed isocline's numbered completion menu, so that Tab
 completes as readline's Tab does. D44 said that isocline's behaviour can
@@ -1051,6 +1052,27 @@ asked on 2026-10-30 for the menu to come back:
    replays them through the edit loop's way of handing keys to the menu.
 5. With `WithAutoTab`, a pick that leaves one completion completes again,
    and opens the menu again when there are several, as isocline does.
+
+Ken accepted the decision as proposed on 2026-10-30.
+
+### D52. WithKeepInterrupted leaves a line that Ctrl-C gave up on the screen. Decided.
+
+usql asked on 2026-10-30 that Ctrl-C leave the text of the line on the
+screen, as GNU readline does under psql, and said that Ken wants psql's
+behaviour in usql. Ken asked on the same day for the option that usql
+asked for:
+
+1. `WithKeepInterrupted(true)` keeps the line when Ctrl-C gives it up. The
+   cursor goes to the end of the line, `^C` follows it, and the next prompt
+   starts on the row below. A line over several rows stays whole.
+2. `^C` is left out when an inputrc file turns `echo-control-characters`
+   off, as readline does.
+3. Without the option the line is erased, as isocline erases it (D4). It is
+   off by default, because D26 names a switch for what it turns on.
+4. Either way `ReadLine` returns `ErrInterrupted` with an empty string
+   (D13), and the history does not keep the line.
+
+Ken accepted the decision as proposed on 2026-10-30.
 
 ## Open questions for Ken
 

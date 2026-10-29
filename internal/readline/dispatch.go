@@ -7,22 +7,26 @@ import (
 )
 
 // argument is the numeric argument being typed: Esc and a digit start it,
-// and plain digits then add to it.
+// and plain digits then add to it. universal-argument starts it at four, and
+// multiplies it by four each time it runs again.
 type argument struct {
 	active bool
 	digits bool // a digit was given, so n holds the value
 	neg    bool
 	n      int
+	times4 bool // universal-argument started it, so n holds a power of four
+	quiet  bool // universal-argument ran last, and nothing is shown yet
 }
 
 // count returns the argument for a command, and whether one was given.
-// Without digits it is 1, so that Esc - alone means -1.
+// Without digits it is 1, so that Esc - alone means -1, or the power of four
+// that universal-argument gave.
 func (a argument) count() (int, bool) {
 	if !a.active {
 		return 1, false
 	}
 	n := a.n
-	if !a.digits {
+	if !a.digits && (!a.times4 || a.neg) {
 		n = 1
 	}
 	if a.neg {
@@ -31,14 +35,26 @@ func (a argument) count() (int, bool) {
 	return n, true
 }
 
+// shown reports whether readline shows the argument in place of the prompt.
+// It does not right after universal-argument, until a digit or a minus is
+// typed.
+func (a argument) shown() bool {
+	return a.active && !a.quiet
+}
+
 // add puts the key c into the argument, and reports whether it was a digit
-// or a leading minus that belongs to it.
+// or a leading minus that belongs to it. The first digit after
+// universal-argument replaces the four.
 func (a *argument) add(c key.Code) bool {
 	switch {
 	case c >= '0' && c <= '9':
-		a.active, a.digits = true, true
+		if !a.digits {
+			a.n = 0
+		}
+		a.active, a.digits, a.quiet = true, true, false
 		a.n = a.n*10 + int(c-'0')
 	case c == '-' && !a.digits:
+		a.quiet = false
 		a.active, a.neg = true, true
 	default:
 		return false
@@ -87,16 +103,35 @@ func (l *Line) Key(c key.Code) {
 		l.searchKey(c)
 		return
 	}
+	if l.reading != nil {
+		l.readKey(c)
+		return
+	}
 	// The end of the input is Ctrl-D on an empty line. readline checks for it
 	// before the keymap, as the terminal's end of file character.
 	if len(l.pending) == 0 && c == key.CtrlD && len(l.buf) == 0 {
 		l.done, l.eof = true, true
 		return
 	}
-	// While a numeric argument is being typed, plain digits add to it.
-	if l.arg.active && len(l.pending) == 0 && c >= '0' && c <= '9' {
+	// While a numeric argument is being typed, plain digits add to it, and
+	// after universal-argument a minus does too.
+	if l.arg.active && len(l.pending) == 0 &&
+		(c >= '0' && c <= '9' || c == '-' && l.arg.times4 && !l.arg.digits && !l.arg.neg) {
 		l.arg.add(c)
 		return
+	}
+	// vi's replace mode reads its keys from a keymap of its own, which an
+	// inputrc file cannot change: a character replaces the one at the
+	// cursor, and Rubout puts it back.
+	if l.mode == modeViInsert && l.overwrite && len(l.pending) == 0 {
+		switch {
+		case c == key.Rubout || c == key.Backspace:
+			l.run("vi-overstrike-delete", c)
+			return
+		case c >= ' ' && c <= key.UnicodeMax && c != key.Rubout && !unicode.IsControl(rune(c)):
+			l.run("vi-overstrike", c)
+			return
+		}
 	}
 	seq := append(append([]key.Code(nil), l.pending...), c)
 	n, prefix := l.keymap.find(seq)
@@ -175,7 +210,7 @@ func (l *Line) runNode(b *node, c key.Code) {
 // is complete, and keeps them for redo when it changed the line.
 func (l *Line) viKeyDone() {
 	if !l.viRecording || l.mode != modeViCommand || l.viOp != nil || l.readNext != nil ||
-		len(l.pending) > 0 || l.arg.active || l.searching != nil {
+		len(l.pending) > 0 || l.arg.active || l.searching != nil || l.reading != nil {
 		return
 	}
 	if l.viChange {

@@ -50,7 +50,7 @@ const version = "readline 8.3"
 
 // binding is one key sequence and the command it runs.
 type binding struct {
-	keys []key.Code
+	seq  string
 	name string
 }
 
@@ -58,7 +58,7 @@ type binding struct {
 func bindKeymap(bindings []binding) *Keymap {
 	km := NewKeymap()
 	for _, b := range bindings {
-		km.Bind(b.keys, b.name)
+		km.BindSeq(b.seq, keysOf(b.seq), b.name)
 	}
 	return km
 }
@@ -88,7 +88,7 @@ func defaultBindings(t *testing.T, name string) []binding {
 		if fields[0] != name {
 			continue
 		}
-		out = append(out, binding{keys: keysOf(inputrc.Unescape(fields[2])), name: fields[1]})
+		out = append(out, binding{seq: inputrc.Unescape(fields[2]), name: fields[1]})
 	}
 	if len(out) == 0 {
 		t.Fatalf("%s binds nothing in the keymap %s", bindsPath, name)
@@ -118,6 +118,9 @@ type step struct {
 	// prompt is the prompt that readline showed after the key in place of
 	// the program's, as incremental search does.
 	prompt string
+	// out is what readline wrote to its output stream for the key, as the
+	// commands that print write.
+	out string
 }
 
 // recordedCase is one case of the corpus: its history, the bindings it
@@ -175,6 +178,11 @@ func readCorpus(t *testing.T, path string) []recordedCase {
 			c.steps[len(c.steps)-1].prompt = mustText(t, f[2])
 			continue
 		}
+		if len(f) == 3 && f[0] == "out" {
+			c := at(f[1])
+			c.steps[len(c.steps)-1].out = mustText(t, f[2])
+			continue
+		}
 		if len(f) == 3 && f[0] == "history" {
 			c := at(f[1])
 			c.history = append(c.history, mustText(t, f[2]))
@@ -183,7 +191,7 @@ func readCorpus(t *testing.T, path string) []recordedCase {
 		if len(f) == 4 && f[0] == "bind" {
 			c := at(f[1])
 			seq := inputrc.Unescape(mustText(t, f[3]))
-			c.bindings = append(c.bindings, binding{keys: keysOf(seq), name: f[2]})
+			c.bindings = append(c.bindings, binding{seq: seq, name: f[2]})
 			continue
 		}
 		if len(f) != 6 {
@@ -233,17 +241,39 @@ func TestEmacsCommandsMatchReadline(t *testing.T) {
 			km := bindKeymap(append(append([]binding(nil), defaults...), rc.bindings...))
 			vi, vc := bindKeymap(viInsert), bindKeymap(viCommand)
 			vars := readInputrc(t, map[string]*Keymap{"emacs": km, "vi-insert": vi, "vi-command": vc}, rc.rc)
-			l := New(km, h)
-			l.SetKeymaps(km, vi, vc)
-			if unknown := l.Configure(vars); len(unknown) > 0 {
-				t.Fatalf("the case sets %q, which Configure does not know", unknown)
+			newLine := func() *Line {
+				l := New(km, h)
+				l.SetKeymaps(km, vi, vc)
+				l.SetScreen(80, 0)
+				// The probe sets keyseq-timeout to 0, and TERM to xterm, whose
+				// standout sequences readline takes for the active region.
+				l.Configure(map[string]any{
+					"keyseq-timeout":            0,
+					"active-region-start-color": "\x1b[7m",
+					"active-region-end-color":   "\x1b[27m",
+				})
+				if unknown := l.Configure(vars); len(unknown) > 0 {
+					t.Fatalf("the case sets %q, which Configure does not know", unknown)
+				}
+				// The probe sets HOME to /home/probe for tilde expansion.
+				l.home = func(name string) (string, bool) { return "/home/probe", name == "" }
+				if rc.words != nil {
+					l.SetCompleter(wordCompleter(rc.words))
+				}
+				return l
 			}
-			// The probe sets HOME to /home/probe for tilde expansion.
-			l.home = func(name string) (string, bool) { return "/home/probe", name == "" }
-			if rc.words != nil {
-				l.SetCompleter(wordCompleter(rc.words))
-			}
+			l := newLine()
 			for i, st := range rc.steps {
+				// A case that goes on after the line was handed back edits the
+				// next line, which operate-and-get-next can start with a
+				// history line. In any other case readline reads no more.
+				if l.Done() && !st.done {
+					next, ok := l.NextLine()
+					l = newLine()
+					if text, found := h.Entry(next); ok && found {
+						l.StartWith(text)
+					}
+				}
 				keys := st.keys
 				// The first step of most cases types the text the case
 				// starts from, and the corpus gives the line it left.
@@ -266,6 +296,11 @@ func TestEmacsCommandsMatchReadline(t *testing.T) {
 				}
 				if !slices.Equal(listed, st.list) {
 					t.Fatalf("step %d, key %x: listed %q, and readline listed %q", i, st.keys, listed, st.list)
+				}
+				// readline writes line breaks around what it prints, which
+				// rline draws in its own way, so only the text is compared.
+				if out, want := strings.Trim(l.Output(), "\r\n"), strings.Trim(st.out, "\r\n"); out != want {
+					t.Fatalf("step %d, key %x: printed %q, and readline printed %q", i, st.keys, out, want)
 				}
 				if st.done {
 					// Once readline hands the line back, its buffer and cursor
@@ -317,10 +352,10 @@ func (h *inputrcHandler) Bind(keymap, seq, action string, macro bool) error {
 		h.t.Fatalf("the case binds in the keymap %s, which this test does not read", keymap)
 	}
 	if macro {
-		km.BindMacro(keysOf(seq), keysOf(action))
+		km.BindMacroSeq(seq, keysOf(seq), action, keysOf(action))
 		return nil
 	}
-	km.Bind(keysOf(seq), action)
+	km.BindSeq(seq, keysOf(seq), action)
 	return nil
 }
 
@@ -343,16 +378,12 @@ func readInputrc(t *testing.T, km map[string]*Keymap, lines []string) map[string
 	return h.vars
 }
 
-// wordBreaks are the characters that end a word for completion, readline's
-// default rl_completer_word_break_characters.
-const wordBreaks = " \t\n\"\\'`@$><=;|&{("
-
 // wordCompleter completes the word before the cursor from words, as the
 // probe's completion function does, and adds a space after a single one, as
 // readline does by default.
 func wordCompleter(words []string) Completer {
 	return func(line string, point int) []Candidate {
-		start := strings.LastIndexAny(line[:point], wordBreaks) + 1
+		start := strings.LastIndexAny(line[:point], completerWordBreaks) + 1
 		var out []Candidate
 		for _, w := range words {
 			if strings.HasPrefix(w, line[start:point]) {

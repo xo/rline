@@ -4,6 +4,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	rtext "github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
 
@@ -585,6 +586,7 @@ func init() {
 			l.insert(pos, all)
 			l.point = pos + len(all) - 1
 			l.mark = pos
+			l.viPutLen = len(all)
 			l.viChange = true
 		},
 		"vi-change-char": func(l *Line, c call) {
@@ -642,6 +644,7 @@ func init() {
 		},
 		"vi-replace": func(l *Line, _ call) {
 			l.overwrite = true
+			l.viReplaced = nil
 			l.startInsert()
 		},
 		"vi-undo": func(l *Line, c call) {
@@ -689,4 +692,181 @@ func init() {
 // so that what it did can be repeated and the cursor is kept on the line.
 func (l *Line) viDone() {
 	l.viClamp()
+}
+
+// viOverstrike puts the character of c in place of the one at the cursor, or
+// after the last one, and moves past it. In replace mode it keeps the
+// character it replaced, for Rubout to put back.
+func viOverstrike(l *Line, c call) {
+	for range max(c.count, 1) {
+		end := l.nextChar(l.point)
+		if l.overwrite {
+			l.viReplaced = append(l.viReplaced, string(l.buf[l.point:end]))
+		}
+		text := rtext.AppendRune(nil, rune(c.key&^key.ModMask))
+		l.replace(l.point, end, text)
+		l.point += len(text)
+	}
+	l.viChange = true
+}
+
+// viOverstrikeDelete is Rubout in replace mode: it puts back the character
+// that the last one typed replaced, or takes away one typed past the end of
+// the line. It does nothing before the place where replace mode started, or
+// outside replace mode.
+func viOverstrikeDelete(l *Line, _ call) {
+	if !l.overwrite || len(l.viReplaced) == 0 {
+		return
+	}
+	orig := l.viReplaced[len(l.viReplaced)-1]
+	l.viReplaced = l.viReplaced[:len(l.viReplaced)-1]
+	start := l.prevChar(l.point)
+	l.replace(start, l.point, []byte(orig))
+	l.point = start
+}
+
+// viYankPop replaces the text that the last put or vi-yank-pop inserted with
+// the kill before it on the kill ring.
+func viYankPop(l *Line, _ call) {
+	if l.last != "vi-put" && l.last != "vi-yank-pop" {
+		l.ding()
+		return
+	}
+	start := l.mark
+	l.kills.rotate()
+	text, _ := l.kills.current()
+	l.replace(start, start+l.viPutLen, text)
+	l.viPutLen = len(text)
+	l.point = start + len(text) - 1
+	l.mark = start
+	l.viChange = true
+}
+
+// viMarkIndex returns the mark that the letter r names.
+func viMarkIndex(r key.Code) (int, bool) {
+	if r >= 'a' && r <= 'z' {
+		return int(r - 'a'), true
+	}
+	return 0, false
+}
+
+// viFetchHistory makes the history line n the line, counted from 1 for the
+// oldest, or the oldest without an argument, with the cursor at its start and
+// the mark at its end. A line outside the history rings the bell.
+func viFetchHistory(l *Line, c call) {
+	h := l.history
+	pos := 0
+	if c.explicit {
+		pos = c.count - 1
+	}
+	if len(h.entries) == 0 || pos < 0 || pos >= len(h.entries) {
+		l.ding()
+		return
+	}
+	l.moveTo(pos)
+	l.point, l.mark = 0, len(l.buf)
+}
+
+// viYankArg appends a word of the previous history line after the cursor,
+// with a space in front, and starts insert mode after it. The word is the
+// last one, or the one that the argument counts to from 1.
+func viYankArg(l *Line, c call) {
+	ws, ok := l.previousWords(1)
+	n := len(ws)
+	if c.explicit {
+		n = c.count
+	}
+	if !ok || n < 1 || n > len(ws) {
+		l.ding()
+		return
+	}
+	pos := l.nextChar(l.point)
+	text := " " + ws[n-1]
+	l.insert(pos, []byte(text))
+	l.mark = l.point
+	l.point = pos + len(text)
+	l.startInsert()
+}
+
+// viComplete moves past the end of the word at the cursor, then completes
+// it: \ completes it and starts insert mode, * inserts every completion and
+// starts insert mode, and = lists them.
+func viComplete(l *Line, c call) {
+	for l.point < len(l.buf) && !isBlank(l.runeAt(l.point)) {
+		l.point = l.nextChar(l.point)
+	}
+	switch c.key {
+	case '=':
+		possibleCompletions(l, c)
+	case '*':
+		insertCompletions(l, c)
+		l.startInsert()
+	default:
+		complete(l, c)
+		l.startInsert()
+	}
+}
+
+// The vi commands that readline has and that rline added later.
+func init() {
+	for name, cmd := range map[string]command{
+		// vi-fword and the five like it move by words that only blanks
+		// separate, as W, B and E do, whichever case their name is in.
+		"vi-fword": func(l *Line, c call) { l.point = l.viNextWord(l.point, c.count, true) },
+		"vi-fWord": func(l *Line, c call) { l.point = l.viNextWord(l.point, c.count, true) },
+		"vi-bword": func(l *Line, c call) { l.point = l.viPrevWord(l.point, c.count, true) },
+		"vi-bWord": func(l *Line, c call) { l.point = l.viPrevWord(l.point, c.count, true) },
+		"vi-eword": func(l *Line, c call) { l.point = l.viEndWord(l.point, c.count, true) },
+		"vi-eWord": func(l *Line, c call) { l.point = l.viEndWord(l.point, c.count, true) },
+
+		"vi-forward-word":     func(l *Line, c call) { l.point = l.viNextWord(l.point, c.count, false) },
+		"vi-forward-bigword":  func(l *Line, c call) { l.point = l.viNextWord(l.point, c.count, true) },
+		"vi-backward-word":    func(l *Line, c call) { l.point = l.viPrevWord(l.point, c.count, false) },
+		"vi-backward-bigword": func(l *Line, c call) { l.point = l.viPrevWord(l.point, c.count, true) },
+		"vi-end-bigword":      func(l *Line, c call) { l.point = l.viEndWord(l.point, c.count, true) },
+		"vi-back-to-indent":   func(l *Line, _ call) { l.point = l.viFirstPrint() },
+
+		"vi-overstrike":        viOverstrike,
+		"vi-overstrike-delete": viOverstrikeDelete,
+		"vi-yank-pop":          viYankPop,
+
+		// m and a letter marks the cursor, and the backquote and a letter
+		// goes back to it. A mark that was never set is the start of the
+		// line, and the backquote twice goes to readline's own mark.
+		"vi-set-mark": func(l *Line, _ call) {
+			l.readNext = func(r key.Code) {
+				i, ok := viMarkIndex(r)
+				if !ok {
+					l.ding()
+					return
+				}
+				l.viMarks[i] = l.point
+			}
+		},
+		"vi-goto-mark": func(l *Line, _ call) {
+			l.readNext = func(r key.Code) {
+				switch i, ok := viMarkIndex(r); {
+				case r == '`':
+					l.point = min(l.mark, len(l.buf))
+				case ok:
+					l.point = min(l.viMarks[i], len(l.buf))
+				default:
+					l.ding()
+				}
+			}
+		},
+
+		"vi-fetch-history": viFetchHistory,
+		"vi-yank-arg":      viYankArg,
+		"vi-tilde-expand": func(l *Line, c call) {
+			tildeExpand(l, c)
+			l.startInsert()
+		},
+		// Ctrl-D ends the input on an empty line, before the keymap, and
+		// accepts any other line.
+		"vi-eof-maybe": func(l *Line, c call) { l.run("accept-line", c.key) },
+		"vi-complete":  viComplete,
+	} {
+		commands[name] = cmd
+	}
 }

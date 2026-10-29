@@ -94,6 +94,37 @@ type Line struct {
 	searching  *isearch
 	lastSearch string
 
+	// reading is the text being read in a prompt of its own, as the
+	// non-incremental searches and execute-named-command read it, and
+	// readSearch what the last non-incremental search looked for.
+	reading    *reader
+	readSearch string
+
+	// next is the history line that the next line starts with, which
+	// operate-and-get-next sets.
+	next int
+
+	// output is what the commands that print, such as dump-variables, wrote
+	// for the program to show.
+	output []byte
+
+	// The width of the screen and of the prompt in columns, which the
+	// commands that move by screen rows need.
+	screenWidth, promptWidth int
+
+	// The marks of vi, a to z, the original characters that vi's replace
+	// mode overwrote, so that Rubout can put them back, and how long the
+	// last put was, for vi-yank-pop.
+	viMarks    [26]int
+	viReplaced []string
+	viPutLen   int
+
+	// allVars holds every variable of readline with its value, for
+	// dump-variables, and extra names the commands of the program, for
+	// dump-functions.
+	allVars map[string]any
+	extra   []string
+
 	// handler runs the commands of the program, and may take over any
 	// command of this package. cmd and call are the command that is running
 	// and what it was given, so that the handler can run it with Default.
@@ -112,7 +143,7 @@ func New(km *Keymap, h *History) *Line {
 		h = &History{}
 	}
 	h.start()
-	return &Line{keymap: km, history: h, home: homeDir, vars: defaultSettings()}
+	return &Line{keymap: km, history: h, home: homeDir, vars: defaultSettings(), next: -1, screenWidth: 80}
 }
 
 // A Handler runs a command for the program that reads the line. It is given

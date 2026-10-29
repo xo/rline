@@ -46,7 +46,22 @@
    A case can give readline lines of an inputrc file, which it reads before
    the keys and prints first, one to a line, as
 
-       rc <case> <line in hex> The first key of most cases
+       rc <case> <line in hex>
+
+   A case that sets out records what readline writes to its output stream,
+   as the commands that print do, and prints it after the line of the key
+   that wrote it, as
+
+       out <case> <text in hex>
+
+   A case that sets again goes on after readline hands a line back, so that
+   the next keys edit the next line, as operate-and-get-next needs.
+
+   A few commands read keys themselves and do nothing through the callback
+   interface: execute-named-command, operate-and-get-next and
+   arrow-key-prefix. A case that sets blocking runs readline() instead, as
+   bash does, and prints the state after a key when readline asks for the
+   byte after it. The first key of most cases
    is the text the case starts from, fed whole, and its key is printed as -.
    The kill ring is not printed, because the shared library does not export
    it, so the cases yank to show what it holds.
@@ -118,12 +133,33 @@ static void reset(void) {
   rl_free_undo_list();
 }
 
-/* step feeds one key and prints the state after it. */
-static void step(const char *name, const char *key, size_t n) {
+/* capture is set while a case records the output. */
+static int capture;
+
+/* feed_key feeds the bytes of one key to readline. In a case that records
+   the output, standard output goes to the same file while readline reads,
+   because print-last-kbd-macro writes the macro there. */
+static void feed_key(const char *key, size_t n) {
+  int saved = -1;
+  if (capture) {
+    fflush(stdout);
+    fflush(rl_outstream);
+    saved = dup(1);
+    dup2(fileno(rl_outstream), 1);
+  }
   feed = key;
   feed_len = n;
   feed_pos = 0;
   while (feed_pos < feed_len && !done) rl_callback_read_char();
+  if (saved >= 0) {
+    fflush(stdout);
+    dup2(saved, 1);
+    close(saved);
+  }
+}
+
+/* print_state prints the line of one key, and the prompt readline shows. */
+static void print_state(const char *name, const char *key, size_t n) {
   printf("%s ", name);
   if (n == 0) printf("-");
   for (size_t i = 0; i < n; i++) printf("%02x", (unsigned char)key[i]);
@@ -135,6 +171,29 @@ static void step(const char *name, const char *key, size_t n) {
     print_bytes(rl_display_prompt);
     printf("\n");
   }
+}
+
+/* step feeds one key and prints the state after it. */
+static void step(const char *name, const char *key, size_t n) {
+  feed_key(key, n);
+  print_state(name, key, n);
+}
+
+/* written is how much of the output stream has been printed. */
+static long written;
+
+/* print_out prints what readline wrote to its output stream since the last
+   key, when it wrote anything. */
+static void print_out(const char *name) {
+  fflush(rl_outstream);
+  long end = ftell(rl_outstream);
+  if (end <= written) return;
+  fseek(rl_outstream, written, SEEK_SET);
+  printf("out %s ", name);
+  for (long i = written; i < end; i++) printf("%02x", (unsigned char)fgetc(rl_outstream));
+  printf("\n");
+  fseek(rl_outstream, end, SEEK_SET);
+  written = end;
 }
 
 /* A case is a name, the history it starts with, and its keys. Each key is a
@@ -151,9 +210,15 @@ struct probe_case {
   const char *words[12];
   /* Lines of an inputrc file, which readline reads before the keys. */
   const char *rc[6];
+  /* out records what readline writes, and again goes on to the next line
+     after readline hands a line back. */
+  int out;
+  int again;
+  int blocking;
 };
 
-/* The case that is running, for the completion functions. */
+/* The case that is running, for the completion functions and for blocking
+   cases. */
 static const struct probe_case *running;
 
 /* complete_word offers each word of the running case that starts with text,
@@ -439,8 +504,147 @@ static const struct probe_case cases[] = {
   {"vi-eof", {0}, {"\x04"}, VI},
   {"vi-enter", {0}, {"abc", "\x1b", "0", "\r"}, VI},
   {"vi-emacs", {0}, {"abc", "\x1b", "\x05", "\x01", "X"}, VI},
+  /* vi commands that rline added later. VIRC binds keys in command mode,
+     and leaves the keymap of insert mode in use. */
+#define VIRC(...) .rc = {"set editing-mode vi", "set keymap vi-command", __VA_ARGS__, "set keymap vi-insert"}
+#define H3 {"first", "second", "third", 0}
+#define HS {"select 1", "show tables", "select 2", 0}
+#define W {"select", "selection", "set", "show", "shutdown", "drop", 0}
+  {"vi-fword", {0}, {T1, "\x1b", "0", "g", "g", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-fword")},
+  {"vi-fWord", {0}, {T1, "\x1b", "0", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-fWord")},
+  {"vi-bword", {0}, {T1, "\x1b", "g", "g", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-bword")},
+  {"vi-bWord", {0}, {T1, "\x1b", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-bWord")},
+  {"vi-eword", {0}, {T1, "\x1b", "0", "g", "g", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-eword")},
+  {"vi-eWord", {0}, {T1, "\x1b", "0", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-eWord")},
+  {"vi-forward-word", {0}, {T1, "\x1b", "0", "g", "g", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-forward-word")},
+  {"vi-forward-bigword", {0}, {T1, "\x1b", "0", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-forward-bigword")},
+  {"vi-backward-word", {0}, {T1, "\x1b", "g", "g", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-backward-word")},
+  {"vi-backward-bigword", {0}, {T1, "\x1b", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-backward-bigword")},
+  {"vi-end-bigword", {0}, {T1, "\x1b", "0", "g", "g", "g", "g", "g"}, VIRC("\"g\": vi-end-bigword")},
+  {"vi-word-count", {0}, {T1, "\x1b", "0", "2", "g", "3", "q", "2", "z"}, VIRC("\"g\": vi-fword", "\"q\": vi-bword", "\"z\": vi-eword")},
+  {"vi-word-operator", {0}, {T3, "\x1b", "0", "d", "g", "d", "z"}, VIRC("\"g\": vi-fword", "\"z\": vi-eword")},
+  {"vi-back-to-indent", {0}, {"  one two", "\x1b", "$", "g", "0", "g"}, VIRC("\"g\": vi-back-to-indent")},
+  {"vi-yank-pop", {0}, {T3, "\x1b", "0", "d", "w", "d", "w", "p", "g", "g"}, VIRC("\"g\": vi-yank-pop")},
+  {"vi-yank-pop-not-after-put", {0}, {T3, "\x1b", "0", "d", "w", "g", "x"}, VIRC("\"g\": vi-yank-pop")},
+  {"vi-overstrike", {0}, {"abc", "\x1b", "0", "i", "#", "#"}, .rc = {"set editing-mode vi", "\"#\": vi-overstrike"}},
+  {"vi-R-rubout", {0}, {"abcdef", "\x1b", "0", "l", "R", "X", "Y", "\x7f", "\x7f", "\x7f", "\x7f", "Z"}, VI},
+  {"vi-R-rubout-past-end", {0}, {"ab", "\x1b", "0", "R", "X", "Y", "Z", "\x7f", "\x7f", "\x7f"}, VI},
+  {"vi-overstrike-delete", {0}, {"abc", "\x1b", "0", "R", "XY", "%", "%", "%"}, .rc = {"set editing-mode vi", "\"%\": vi-overstrike-delete"}},
+  {"vi-overstrike-delete-insert", {0}, {"abc", "%", "%"}, .rc = {"set editing-mode vi", "\"%\": vi-overstrike-delete"}},
+  {"vi-set-mark", {0}, {T1, "\x1b", "0", "w", "w", "m", "a", "0", "`", "a"}, VI},
+  {"vi-goto-mark-unset", {0}, {T1, "\x1b", "`", "b", "x"}, VI},
+  {"vi-goto-mark-backquote", {0}, {T1, "\x1b", "0", "w", "m", "a", "w", "`", "`"}, VI},
+  {"vi-set-mark-bad", {0}, {T1, "\x1b", "m", "1", "x"}, VI},
+  {"vi-fetch-history", H3, {"\x1b", "G"}, VI},
+  {"vi-fetch-history-arg", H3, {"\x1b", "2", "G"}, VI},
+  {"vi-fetch-history-arg-out", H3, {"abc", "\x1b", "9", "G"}, VI},
+  {"vi-search", HS, {"\x1b", "/", "sel", "\r", "n", "n", "N"}, VI, .blocking = 1},
+  {"vi-search-question", HS, {"\x1b", "k", "k", "k", "?", "sel", "\r", "n"}, VI, .blocking = 1},
+  {"vi-search-esc", HS, {"abc", "\x1b", "/", "sel", "\x1b", "x", "\r"}, VI, .blocking = 1},
+  {"vi-search-again-none", HS, {"\x1b", "n", "N", "x"}, VI, .blocking = 1},
+  {"vi-search-empty", HS, {"\x1b", "/", "sel", "\r", "/", "\r"}, VI, .blocking = 1},
+  {"vi-search-fail", HS, {"abc", "\x1b", "/", "zz", "\r", "x"}, VI, .blocking = 1},
+  {"vi-search-rubout", HS, {"\x1b", "/", "sx", "\x7f", "how", "\r"}, VI, .blocking = 1},
+  {"vi-yank-arg", {"ls one two", 0}, {"abc", "\x1b", "_", "Z"}, VI},
+  {"vi-yank-arg-count", {"ls one two", 0}, {"abc", "\x1b", "1", "_", "Z"}, VI},
+  {"vi-yank-arg-none", {0}, {"abc", "\x1b", "_", "x"}, VI},
+  {"vi-tilde-expand", {0}, {"ls ~/x", "\x1b", "&", "Z"}, VI},
+  {"vi-eof-maybe", {0}, {"abc", "\x04"}, VI},
+  {"vi-eof-maybe-command", {0}, {"abc", "\x1b", "\x04"}, VI},
+  {"vi-eof-maybe-command-empty", {0}, {"\x1b", "\x04"}, VI},
+  {"vi-complete", {0}, {"se", "\x1b", "\\", "Z"}, VI, .words = W},
+  {"vi-complete-star", {0}, {"se", "\x1b", "*", "Z"}, VI, .words = W},
+  {"vi-complete-equal", {0}, {"se", "\x1b", "=", "x"}, VI, .words = W},
+  {"vi-complete-one", {0}, {"sho", "\x1b", "\\", "Z"}, VI, .words = W},
+  {"vi-complete-midword", {0}, {"sho x", "\x1b", "0", "l", "\\", "Z"}, VI, .words = W},
+#undef W
+#undef HS
+#undef H3
+#undef VIRC
 #undef VI
 #undef T3
+
+  /* Commands that readline binds by default and rline added later. */
+#define H3 {"first", "second", "third", 0}
+#define HS {"select 1", "show tables", "select 2", 0}
+  {"operate-and-get-next", H3, {"\x10", "\x10", "\x0f", "\x05", "\x0f", "\x05"}, .again = 1, .blocking = 1},
+  {"operate-and-get-next-arg", H3, {"\x1b" "1", "\x0f", "\x05"}, .again = 1, .blocking = 1},
+  {"operate-and-get-next-arg2", H3, {"\x1b" "2", "\x0f", "\x05"}, .again = 1, .blocking = 1},
+  {"operate-and-get-next-new", H3, {"abc", "\x0f", "\x05"}, .again = 1, .blocking = 1},
+  {"execute-named-command", {0}, {T1, "\x01", "\x1b" "x", "forward-word", "\r", "\x05"}, .blocking = 1},
+  {"execute-named-command-arg", {0}, {T1, "\x01", "\x1b" "3", "\x1b" "x", "forward-word", "\r"}, .blocking = 1},
+  {"execute-named-command-unknown", {0}, {T1, "\x1b" "x", "no-such-command", "\r", "x"}, .blocking = 1},
+  {"execute-named-command-abort", {0}, {T1, "\x1b" "x", "forw", "\x07", "x"}, .blocking = 1},
+  {"execute-named-command-rubout", {0}, {T1, "\x01", "\x1b" "x", "forward-wordx", "\x7f", "\r"}, .blocking = 1},
+  {"execute-named-command-complete", {0}, {T1, "\x01", "\x1b" "x", "forward-w", "\t", "\r"}, .blocking = 1},
+  {"execute-named-command-ambiguous", {0}, {T1, "\x01", "\x1b" "x", "forward-", "\t", "w", "\t", "\r"}, .blocking = 1},
+  {"execute-named-command-rubout-empty", {0}, {T1, "\x1b" "x", "f", "\x7f", "\x7f", "x"}, .blocking = 1},
+  {"execute-named-command-empty", {0}, {T1, "\x1b" "x", "\r", "x"}, .blocking = 1},
+  {"nisearch-reverse", HS, {"\x1b" "p", "sel", "\r", "\x1b" "p", "\r"}, .blocking = 1},
+  {"nisearch-forward", HS, {"\x1b" "<", "\x1b" "n", "sel", "\r"}, .blocking = 1},
+  {"nisearch-abort", HS, {"abc", "\x1b" "p", "sel", "\x07", "x"}, .blocking = 1},
+  {"nisearch-rubout", HS, {"\x1b" "p", "sx", "\x7f", "how", "\r"}, .blocking = 1},
+  {"nisearch-fail", HS, {"abc", "\x1b" "p", "zz", "\r", "x"}, .blocking = 1},
+  {"nisearch-rubout-empty", HS, {"abc", "\x1b" "p", "\x7f", "x"}, .blocking = 1},
+  {"nisearch-again", HS, {"\x1b" "p", "sel", "\r", "\x18" "a", "\x18" "a", "\x18" "b"},
+   {"\\C-xa", "non-incremental-reverse-search-history-again", "\\C-xb", "non-incremental-forward-search-history-again"}},
+  {"nisearch-ctrl-u", HS, {"\x1b" "p", "sel", "\x15", "show", "\r"}, .blocking = 1},
+  {"nisearch-ctrl-w", HS, {"\x1b" "p", "show tab", "\x17", "x", "\r"}, .blocking = 1},
+  {"nisearch-ctrl-v", HS, {"abc", "\x1b" "p", "s", "\x16", "\x01", "\x02", "\r"}, .blocking = 1},
+  {"nisearch-ctrl-v-ctrl-u", HS, {"abc", "\x1b" "p", "s", "\x16", "\x15", "x", "\r"}, .blocking = 1},
+  {"nisearch-ctrl-v-enter", HS, {"abc", "\x1b" "p", "s", "\x16", "\r", "x", "\r"}, .blocking = 1},
+  {"nisearch-ctrl-v-ctrl-g", HS, {"abc", "\x1b" "p", "s", "\x16", "\x07", "x", "\r"}, .blocking = 1},
+  {"nisearch-esc", HS, {"\x1b" "p", "sel", "\x1b", "x", "\r"}, .blocking = 1},
+  {"nisearch-again-first", HS, {"\x18" "a", "x"}, {"\\C-xa", "non-incremental-reverse-search-history-again"}, .blocking = 1},
+
+  /* Commands that readline has and binds to no key. */
+  {"fetch-history", H3, {"\x18" "g"}, {"\\C-xg", "fetch-history"}},
+  {"fetch-history-arg", H3, {"\x1b" "2", "\x18" "g"}, {"\\C-xg", "fetch-history"}},
+  {"fetch-history-arg-out", H3, {"abc", "\x1b" "9", "\x18" "g"}, {"\\C-xg", "fetch-history"}},
+  {"fetch-history-arg-zero", H3, {"abc", "\x1b" "0", "\x18" "g"}, {"\\C-xg", "fetch-history"}},
+#define UA {"\\C-xu", "universal-argument"}
+  {"universal-argument", {0}, {T1, "\x01", "\x18" "u", "\x06"}, UA},
+  {"universal-argument-twice", {0}, {T1, "\x01", "\x18" "u", "\x18" "u", "\x06"}, UA},
+  {"universal-argument-digits", {0}, {T1, "\x01", "\x18" "u", "1", "2", "\x06"}, UA},
+  {"universal-argument-ends", {0}, {"ab", "\x18" "u", "1", "2", "\x18" "u", "5"}, UA},
+  {"universal-argument-minus", {0}, {T1, "\x18" "u", "-", "\x06"}, UA},
+  {"universal-argument-insert", {0}, {"ab", "\x18" "u", "x"}, UA},
+#undef UA
+#define W {"select", "selection", "set", "show", "shutdown", "drop", 0}
+  {"delete-char-or-list", {0}, {"sel x", "\x01", "\x18" "d"}, {"\\C-xd", "delete-char-or-list"}, .words = W},
+  {"delete-char-or-list-end", {0}, {"se", "\x18" "d", "\x18" "d"}, {"\\C-xd", "delete-char-or-list"}, .words = W},
+  {"delete-char-or-list-middle", {0}, {"sel x", "\x02", "\x02", "\x18" "d"}, {"\\C-xd", "delete-char-or-list"}, .words = W},
+  {"delete-char-or-list-empty", {0}, {"\x18" "d", "x"}, {"\\C-xd", "delete-char-or-list"}, .words = W},
+  {"old-menu-complete", {0}, {"se", "\x18" "m", "\x18" "m", "\x18" "m", "\x18" "m", "\x18" "m"},
+   {"\\C-xm", "old-menu-complete"}, .words = W},
+  {"old-menu-complete-one", {0}, {"sho", "\x18" "m", "\x18" "m"}, {"\\C-xm", "old-menu-complete"}, .words = W},
+  {"old-menu-complete-then-type", {0}, {"se", "\x18" "m", "\x18" "m", "x"}, {"\\C-xm", "old-menu-complete"}, .words = W},
+  {"export-completions", {0}, {"se", "\x18" "q", "x"}, {"\\C-xq", "export-completions"}, .words = W, .out = 1},
+  {"export-completions-one", {0}, {"sho", "\x18" "q"}, {"\\C-xq", "export-completions"}, .words = W, .out = 1},
+  {"export-completions-none", {0}, {"zz", "\x18" "q"}, {"\\C-xq", "export-completions"}, .words = W, .out = 1},
+  {"export-completions-midline", {0}, {"drop sh x", "\x02", "\x02", "\x18" "q"}, {"\\C-xq", "export-completions"}, .words = W, .out = 1},
+#undef W
+  {"skip-csi-sequence", {0}, {"ab", "\x1b[1;5P", "\x1b[D", "x"}, {"\\e[", "skip-csi-sequence"}},
+  {"arrow-key-prefix", {0}, {T1, "\x18" "a", "D", "\x18" "a", "D", "\x18" "a", "C", "\x18" "a", "x"}, {"\\C-xa", "arrow-key-prefix"}, .blocking = 1},
+  {"arrow-key-prefix-history", H3, {"\x18" "a", "A", "\x18" "a", "A", "\x18" "a", "B"}, {"\\C-xa", "arrow-key-prefix"}, .blocking = 1},
+  {"tty-status", {0}, {"ab", "\x18" "t", "x"}, {"\\C-xt", "tty-status"}, .out = 1},
+#define L200 "0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij" \
+             "0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij" \
+             "0123456789abcdefghij0123456789abcdefghij"
+#define SL {"\\C-xn", "next-screen-line", "\\C-xp", "previous-screen-line"}
+  {"screen-line-next", {0}, {L200, "\x01", "\x06", "\x06", "\x06", "\x18" "n", "\x18" "n", "\x18" "n", "\x18" "p"}, SL},
+  {"screen-line-previous", {0}, {L200, "\x18" "p", "\x18" "p", "\x18" "p", "\x18" "n", "\x18" "n"}, SL},
+  {"screen-line-short", {0}, {"abc", "\x02", "\x18" "n", "\x18" "p"}, SL},
+#undef SL
+#undef L200
+  {"print-last-kbd-macro", {0}, {"\x18" "(", "a", "b", "\x02", "\x18" ")", "\x18" "q"}, {"\\C-xq", "print-last-kbd-macro"}, .out = 1},
+  {"print-last-kbd-macro-none", {0}, {"\x18" "q", "x"}, {"\\C-xq", "print-last-kbd-macro"}, .out = 1},
+  {"dump-macros", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-macros"},
+   .rc = {"\"\\C-xy\": \"hello\"", "\"\\ez\": \"a\\tb\""}, .out = 1},
+  {"dump-variables", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-variables"}, .out = 1},
+  {"dump-functions", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-functions"}, .out = 1},
+#undef HS
+#undef H3
 
   /* Ending the line. */
   {"accept-line", {0}, {"abc", "\r"}},
@@ -464,6 +668,65 @@ static void print_binds(const char *keymap) {
     free(seqs);
   }
   free(names);
+}
+
+/* The key of a blocking case that readline is reading, and the last one
+   whose state was printed. */
+static int block_key, block_printed;
+
+/* key_len is how many bytes a key of a case has. A key of one NUL byte is
+   set-mark on C-@, which strlen cannot see. */
+static size_t key_len(const char *key) {
+  size_t n = strlen(key);
+  return n == 0 ? 1 : n;
+}
+
+/* print_block prints the state after key k of the running blocking case. */
+static void print_block(int k) {
+  const char *key = running->keys[k];
+  size_t n = key_len(key);
+  if (k == 0 && n > 2) {
+    print_state(running->name, "", 0);
+  } else {
+    print_state(running->name, key, n);
+  }
+  if (running->out) print_out(running->name);
+  block_printed = k;
+}
+
+/* getc_block gives readline() the bytes of the keys of a blocking case.
+   When readline asks for a byte after the last one of a key, that key is
+   done, and its state is printed. After the last key it gives EOF. */
+static int getc_block(FILE *f) {
+  (void)f;
+  while (feed_pos >= feed_len) {
+    if (block_key >= 0 && block_printed < block_key) print_block(block_key);
+    if (running->keys[block_key + 1] == NULL) return EOF;
+    block_key++;
+    feed = running->keys[block_key];
+    feed_len = key_len(feed);
+    feed_pos = 0;
+  }
+  return (unsigned char)feed[feed_pos++];
+}
+
+/* run_blocking runs the keys of the running case through readline(). The
+   key that makes readline hand a line back is printed when it returns. */
+static void run_blocking(void) {
+  rl_getc_function = getc_block;
+  block_key = -1;
+  block_printed = -1;
+  feed_len = feed_pos = 0;
+  for (;;) {
+    done = 0;
+    char *line = readline("");
+    if (block_key >= 0 && block_printed < block_key) {
+      done = 1;
+      print_block(block_key);
+    }
+    free(line);
+    if (line == NULL || !running->again || running->keys[block_key + 1] == NULL) return;
+  }
 }
 
 int main(int argc, char **argv) {
@@ -520,6 +783,12 @@ int main(int argc, char **argv) {
       if (waitpid(pid, &status, 0) < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) return 1;
       continue;
     }
+    if (cases[c].out) {
+      rl_outstream = tmpfile();
+      if (rl_outstream == NULL) return 1;
+      written = 0;
+      capture = 1;
+    }
     reset();
     running = &cases[c];
     for (int r = 0; cases[c].rc[r] != NULL; r++) {
@@ -556,6 +825,12 @@ int main(int argc, char **argv) {
       print_bytes(seq);
       printf("\n");
     }
+    if (cases[c].blocking) {
+      rl_callback_handler_remove();
+      run_blocking();
+      fflush(stdout);
+      _exit(0);
+    }
     for (int k = 0; cases[c].keys[k] != NULL; k++) {
       const char *key = cases[c].keys[k];
       size_t n = strlen(key);
@@ -565,14 +840,15 @@ int main(int argc, char **argv) {
          character of several bytes arrives whole, and the step is printed
          with - as its key, because it is not one key. */
       if (k == 0 && n > 2) {
-        feed = key;
-        feed_len = n;
-        feed_pos = 0;
-        while (feed_pos < feed_len && !done) rl_callback_read_char();
-        step(cases[c].name, "", 0);
+        feed_key(key, n);
+        print_state(cases[c].name, "", 0);
+        if (cases[c].out) print_out(cases[c].name);
         continue;
       }
+      /* After a line is handed back, readline is ready for the next one. */
+      if (done && cases[c].again) done = 0;
       step(cases[c].name, key, n);
+      if (cases[c].out) print_out(cases[c].name);
     }
     rl_callback_handler_remove();
     fflush(stdout);

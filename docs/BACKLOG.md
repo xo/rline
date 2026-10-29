@@ -204,12 +204,6 @@ something from rline before usql can fix them.
 
 ## Found in phase 1 of the readline work
 
-37. `operate-and-get-next` (Ctrl-O) accepts the line and starts the next one
-    at the history entry after it. It needs the `Session`, which reads the
-    next line. From: phase 1.
-38. `execute-named-command` (`\ex`) reads the name of a command in a prompt
-    of its own, as incremental search does, so it comes with search in
-    phase 4. From: phase 1.
 39. `yank-nth-arg` and `yank-last-arg` split an earlier line at spaces.
     readline splits it as the shell would, so a quoted word with a space in
     it is one word there. No case records a quoted word yet. From: phase 1.
@@ -272,10 +266,6 @@ asked for the whole list of what readline support still needs.
 
 ## Found while search moved to readline
 
-59. The non-incremental searches, `non-incremental-reverse-search-history`
-    and `non-incremental-forward-search-history` on M-p and M-n, read the
-    text to search for in a prompt of their own. They ring the bell until
-    then, as `execute-named-command` does (item 38). From: backlog 47.
 60. In an incremental search, C-w adds the next word of the line to the
     text searched for, and C-y adds the rest of the line. Neither is
     recorded or written, so both end the search and run as commands. From:
@@ -286,14 +276,24 @@ asked for the whole list of what readline support still needs.
     the Esc ends the search and the f is typed. An arrow key arrives as one
     key and works. From: backlog 47.
 
+## Found while every command of readline was added
+
+These come from 2026-10-30, when rline gained the 45 commands of readline
+8.3 that it did not have.
+
+68. `dump-variables` prints the values that rline holds, and rline reads no
+    terminfo. So `active-region-start-color` and `active-region-end-color`
+    are empty where readline prints the standout sequences of the terminal,
+    and `keyseq-timeout` is readline's default of 500 unless an inputrc
+    file sets it, although the decoder waits its own time. From: the
+    recordings of `dump-variables`, which the test matches by setting the
+    three values that the probe's terminal gives.
+69. `tty-status` rings the bell. readline sends the terminal's status
+    character, which BSD and macOS have and Linux does not, so the probe on
+    Linux records nothing. Sending it needs a system call on those systems.
+    From: the recording of `tty-status`.
 ## Found while vi mode was written
 
-63. The vi commands that are not written yet ring the bell: `/` and `?`
-    with `n` and `N` (vi-search, vi-search-again), `G` (vi-fetch-history),
-    `_` (vi-yank-arg), `m` and the backquote (vi-set-mark, vi-goto-mark),
-    `*`, `=` and the backslash (vi-complete), and `~` as vi-tilde-expand.
-    `vi-eof-maybe` on a line that is not empty is not recorded. Each needs
-    a case in the probe first. From: backlog 50.
 64. readline acts on a lone Esc in vi insert mode after keyseq-timeout.
     With readline's defaults, every sequence that starts with Esc decodes
     to one key, so Esc is no prefix there and acts at once. An inputrc that
