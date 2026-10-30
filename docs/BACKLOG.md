@@ -242,11 +242,12 @@ These come from 2026-10-30, when rline gained the 45 commands of readline
     readline reads the escapes of is to be recorded from readline 8.3 first.
     From: D55.
 77. The visible bell. readline's `bell-style visible` writes the terminal's
-    `flash` sequence, and xterm's holds the padding `$<100/>`, which
-    github.com/xo/terminfo v1.2.1 does not apply or remove. A function that
-    applies it would be a new feature, which terminfo's D14 does not allow.
-    Ken has to answer open question 5 in terminfo's docs/PLAN.md first.
-    From: D55.
+    `flash` sequence, and xterm's holds the padding `$<100/>`.
+    github.com/xo/terminfo v1.3.0 applies padding (its D23), so rline can
+    write the sequence with `ti.Puts(w, ti.Printf(terminfo.FlashScreen), 1,
+    baud)`. For an entry with `npc`, such as xterm, Puts waits instead of
+    writing NUL bytes. Otherwise it writes pad bytes in proportion to the
+    baud rate, so rline must find the baud rate of the terminal. From: D55.
 78. An empty `.rline_example_history.<number>` file, mode 0600, was left in
     the root after a `uitest` run, twice on 2026-10-30. The history is saved
     through a temporary file that is renamed over the old one, and a program

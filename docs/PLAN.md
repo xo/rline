@@ -1280,8 +1280,9 @@ that wants a default key has no way to give one yet.
 ### D65. rline takes the colors of the active region from terminfo, and moves none of isocline's sequences. Proposed.
 
 D55 adopted `github.com/xo/terminfo` and left each sequence to be
-decided on its own. rline uses v1.2.1, which reads `$HOME` for
-`~/.terminfo` as ncurses does. This is what was built on 2026-10-30, and a
+decided on its own. rline uses v1.3.0. Since v1.2.1 it reads `$HOME`
+for `~/.terminfo` as ncurses does, and v1.3.0 adds `Puts`, which applies
+padding. This is what was built on 2026-10-30, and a
 recommendation for the rest.
 
 When the output is a terminal, `New` reads the entry of `$TERM`. The
