@@ -190,7 +190,8 @@ in one Go file and the header of each says which.
   rline.go       the public interface, the session log, and reading a
                  password with no echo
   prompt.go      reading one line: drawing, the hint, resize, the loop, help
-  bind.go        the keymaps, rline's own commands, the list of completions
+  bind.go        the keymaps, rline's own commands, a program's commands,
+                 the list of completions
   comp.go        completions, completers and file names
   history.go     the history list, its file, walking and searching
   bbcode.go      markup and the highlighting built on it

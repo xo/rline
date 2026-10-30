@@ -20,18 +20,12 @@ something from rline before usql can fix them.
    The redraw starts with an unconditional carriage return, so `\echo -n`
    output is written over. rline has no way for a caller to say that the
    cursor is where it meant to leave it. From: usql issue 215, which Ken
-   kept as a numbered backlog item.
+   kept as a numbered backlog item. usql said on 2026-10-30 that it still needs this, at a low priority, because it only shows after `\echo -n` and `\warn -n`. Ken will consider it later (2026-10-30).
 2. Explain why the first pager after startup behaves and later ones do not.
    D48 added `Session.Release`, which gives the terminal to a child process
    and takes it back, and usql/pager uses it. Check usql issue 508 again
    with that pager. From: usql issue 508, and "Two programs reading one
    terminal" in [USQL.md](USQL.md).
-3. Let a caller ask which completer and which highlighter a `Session` holds.
-   `SetCompleter` and `SetHighlighter` cannot be read back, so a lost
-   completer looks like a completer with nothing to offer. From: usql issue
-   478, "A regression test waiting for the consumer layer" in
-   [TESTING.md](TESTING.md), and the eighth open question.
-
 ## Faults of rline's own
 
 4. A focus notification is decoded as a key. The decoder reads `CSI I` as
@@ -39,10 +33,6 @@ something from rline before usql can fix them.
    the reporters saw. From: "A focus notification is read as a keystroke" in
    [USQL.md](USQL.md), as the likely cause of usql issues 93, 122, 483 and
    490.
-5. A password reaches the session log where the terminal has no no-echo
-   mode, which is Windows. The fix needs a way to stop the log for a moment.
-   From: `c91bacf`, and "A password reaches the session log" in
-   [USQL.md](USQL.md). It waits on the sixth and seventh open questions.
 6. File name completion uses `/` as the only path separator, so it is wrong
    on Windows. From: the comment on `dirSeparator` in `comp.go`, found while
    this file was written. The comment said that the old `PLAN.md` recorded
@@ -57,21 +47,12 @@ something from rline before usql can fix them.
    `bracketed-paste-begin` in `internal/readline` rings the bell until
    then. Ctrl-V now runs readline's `quoted-insert`. From: usql issue 472,
    and isocline pull request 43 for the decoding.
-8. The cursor shape that goes with vi's modes, a bar in insert mode and a
-   block in command mode. vi's insert and command modes are in place, and
-   the shape still waits on the fourth open question. readline's
-   show-mode-in-prompt, which marks the mode in the prompt, is not
-   supported either. From: usql issues 236 and 552.
 9. History that filters by prefix on the up arrow, and a walk through the
    history by query. Nobody has examined either yet. From: usql issues 72
    and 320.
-10. A `context.Context` on `ReadLine`, so that a read that waits can be
-    cancelled and the terminal put back. `asyncStop` and `key.EventStop`
-    already make a waiting read return, and only a test calls them. From:
-    "What usql needs and nothing tests" in [TESTING.md](TESTING.md).
 11. Rewrite the history. D10 records that it is going to be rewritten. Three
-    things wait for the rewrite. One is the file mode, which is the tenth
-    open question. One is an explicit access control list on Windows. One is
+    things wait for the rewrite. The file mode is settled: D21 stands, as
+    readline does. One is an explicit access control list on Windows. One is
     whether the file becomes an append-only log that is compacted, as
     `e19767f` describes. From: D10, D21, and "Known departures from the C
     code" in [PORT.md](PORT.md).
@@ -119,11 +100,6 @@ something from rline before usql can fix them.
     package comments of `rline` and `key` carry it for their own packages.
     From: D5, which says that each file derived from the C carries the
     notice.
-23. The comment above `history.save` in `history.go`, and the paragraph on
-    the history file in "Known departures from the C code" in
-    [PORT.md](PORT.md), say that nothing restricts the file mode. The code
-    creates the file 0600. Fix whichever one the tenth open question makes
-    wrong.
 24. The receivers of `tty` are named `d`, and those of `keyDecoder` are named
     `t`. Both are left from before `d08ea9a` renamed the types, when `tty`
     was `ttyDevice` and `keyDecoder` was `tty`. A receiver is named for its
@@ -162,23 +138,8 @@ something from rline before usql can fix them.
     `./...` leaves out a folder whose name starts with an underscore. The
     tests still build it. Naming the folder in the vet steps of CI and in
     `tools/lint.sh` would put it back under both. From: D37.
-66. The `go.mod` of `_examples/transit` replaces rline with `../..`, so
-    that the example can use `WithCompletionMenu` and `WithViMode` before a
-    release of rline has them. Once one does, the example requires that
-    version and the replace goes, as D38 did for v0.1.0. Whether the tag
-    of v0.2.0 may hold the replace is Ken's choice. From: Ken, on
-    2026-10-30, when the example moved to the menu.
-
 ## Found while answering usql
 
-31. The comment on `Completion.Add` says that the completion replaces the
-    prefix that was handed to the completer. A completer given to rline
-    directly is handed everything before the cursor, and `Add` sets
-    `DeleteBefore` to 0, so it deletes nothing. Measured: typing `sel`, then
-    Tab with `Add("select")`, gives `selselect`. Either the comment or the
-    code is wrong, and which one is Ken's choice. Until then, a completer
-    uses `AddCandidate` with `DeleteBefore`, as `_examples/sql` does. From:
-    a question from the usql session on 2026-10-01.
 32. No test holds that a highlighter is given every row of the text.
     `prompt.go` hands it `e.Input.String()`, which holds them all, and
     "What rline offers usql" in [USQL.md](USQL.md) says that usql's
@@ -190,18 +151,7 @@ something from rline before usql can fix them.
     `SetPrompt`. Nothing says what happens if `SetPrompt` runs during an
     edit, and nothing tests it. Supporting `%R` needs new API, such as a
     function that is given the text and returns the prompt of each row, and
-    Ken decides it. From: the usql session, 2026-10-01.
-34. Text that the next `ReadLine` starts with. usql's `\e` opens an editor
-    on the query buffer and gives the edited text back for more editing.
-    `ReadLine` takes only the prompt text, so the text cannot be placed in
-    the line. This needs new API, and Ken decides it. From: the usql
-    session, 2026-10-01.
-35. A way to change `WithContinue` after the `Session` is made. There is a
-    `SetCompleter` and a `SetHighlighter`, and no setter for the function
-    that decides whether Enter continues. So a read such as usql's
-    `\prompt` keeps the continuation rule of SQL, unless the function asks
-    usql which mode it is in. From: the usql session, 2026-10-01.
-
+    Ken decides it. From: the usql session, 2026-10-01. usql said on 2026-10-30 that it still needs this, as a function that is given the text before a row and returns the prompt of that row. Ken will consider it later (2026-10-30).
 ## Found in phase 1 of the readline work
 
 39. `yank-nth-arg` and `yank-last-arg` split an earlier line at spaces.
@@ -210,31 +160,6 @@ something from rline before usql can fix them.
 40. `transpose-chars` with a numeric argument drags the character more than
     one place in readline. Only the count of one is written and recorded.
     From: phase 1.
-
-## Found from usql's use
-
-42. A `Session` changes the bytes a program writes through it, even when the
-    output is a pipe or a file. `term.appendBuf` drops the control bytes 0 to
-    6 and 14 to 26, and with color off, as it is on a pipe, `appendEsc` drops
-    every SGR sequence, so `a\e[31mred\e[0mb` comes out as `aredb`. The rule
-    is isocline's `term_append_buf`, kept by D4, and it protects a terminal.
-    usql writes query results through its `Prompt`, so a value that holds
-    these bytes changes in every output format. Measured on 2026-10-22,
-    through `os.Pipe`. The fix is a decision for Ken: pass the bytes through
-    unchanged when the output is not a terminal, add a writer of raw bytes,
-    or have usql write to `os.Stdout` itself. From: usql issue W63 in usql's
-    backlog, reported by the usql session.
-
-## Decided for readline and not yet tracked
-
-These come from D41 to D46. They had no item until 2026-10-29, when Ken
-asked for the whole list of what readline support still needs.
-
-48. The commands of an application, which a program registers by name so
-    that an inputrc file can bind them, as `rl_add_defun` does. A command
-    needs the line, the cursor and a way to change them, and the shape is a
-    decision for Ken. The reading of the file is done (D50). From: D39,
-    D41, D43.
 
 ## Found while the keys moved to readline
 
@@ -245,25 +170,13 @@ asked for the whole list of what readline support still needs.
 
 ## Found while completion moved to readline
 
-57. The decoder reads `ESC ?` and `ESC o` as the start of an SS3 sequence,
-    as isocline does for Eterm, and waits for the byte after them. So M-?,
-    which is readline's `possible-completions`, typed fast with the next
-    key, joins the two into one sequence. A person who types leaves a gap
-    that ends the wait, and a terminal that sends meta as an escape sends
-    the two bytes alone. Whether rline still needs the Eterm form is open.
-    From: `TestSessionMatchesReadline`, which pauses between keys for this.
-58. `Completion.Add` gives a completion no suffix, so a completer that uses
-    it gets no space after a single completion, which readline adds by
-    default. `AddCandidate` takes a `Suffix`, and file name completion puts
-    a space after a file. Whether `Add` adds a space is Ken's choice, and it
-    goes with item 31. From: backlog 46.
-65. The GIF in the README was made with v0.1.0. `_examples/sql` opens the
-    completion menu again (D51), so the `readme` session in
-    `uitest/session.go` should still match it, but nobody has run that
-    session since the keys moved to readline. `contrib/make-demo-gif.sh`
-    must make the GIF again in a real terminal, and the `completion`
-    session must be run again too. From: the release of v0.2.0.
-
+65. Make the README GIF again with `contrib/make-demo-gif.sh`, and put it on
+    the `assets` branch. The `readme` session now indents its rows alike and
+    waits after the last Enter, so the result and the next prompt show. The
+    script reads the window from the screenshot of that session, and foot
+    keeps a solid cursor without focus. The result line still wraps onto two
+    rows, and a shorter statement would fix it. Ken will make the GIF later.
+    From: the release of v0.2.0, and Ken's recording on 2026-10-30.
 ## Found while search moved to readline
 
 60. In an incremental search, C-w adds the next word of the line to the
@@ -281,17 +194,66 @@ asked for the whole list of what readline support still needs.
 These come from 2026-10-30, when rline gained the 45 commands of readline
 8.3 that it did not have.
 
-68. `dump-variables` prints the values that rline holds, and rline reads no
-    terminfo. So `active-region-start-color` and `active-region-end-color`
-    are empty where readline prints the standout sequences of the terminal,
-    and `keyseq-timeout` is readline's default of 500 unless an inputrc
-    file sets it, although the decoder waits its own time. From: the
+68. `keyseq-timeout` is readline's default of 500 in `dump-variables` unless
+    an inputrc file sets it, although the decoder waits its own time. The
+    two colors of the active region now come from terminfo (D55). From: the
     recordings of `dump-variables`, which the test matches by setting the
-    three values that the probe's terminal gives.
+    values that the probe's terminal gives.
 69. `tty-status` rings the bell. readline sends the terminal's status
     character, which BSD and macOS have and Linux does not, so the probe on
     Linux records nothing. Sending it needs a system call on those systems.
     From: the recording of `tty-status`.
+## Decided on 2026-10-30
+
+71. Which of isocline's sequences to read from terminfo (D55, D65). rline
+    reads the entry of `$TERM` and takes the two colors of the active region
+    from it. No sequence that rline writes has moved yet, because each one
+    changes the recorded corpus. D65 proposes which to move. From: D55.
+73. A strategy for character widths. go-runewidth and isocline's table
+    disagree on 3870 code points. Three kinds are open: the Hangul medial
+    vowels and final consonants, the tag characters in a flag, and the
+    UTF-16 surrogate halves. tblfmt measures by grapheme cluster with
+    go-runewidth's `StringWidth` (tblfmt D39), which gives isocline's answer
+    inside a cluster. Ken's pull requests 123 and 124 on go-runewidth change
+    none of the three. Ken wants a larger strategy before rline changes.
+    From: the eleventh open question, and tblfmt on 2026-10-30.
+
+## Found while the checks were cut to D60
+
+74. The VS Code terminal is in the matrix of D60, and `uitest` cannot open
+    it. VS Code has no command line that opens a terminal at a given size
+    and runs a program in it. The terminal is xterm.js, so a harness could
+    drive xterm.js itself in a browser or in `@xterm/headless` under Node.
+    From: D60.
+75. No tmux or Windows session is blessed yet, and the blessed logs of the
+    other terminals are stale, because the banner of `_examples/sql` changed
+    after they were blessed. The format of the log did not change with D54.
+    `go run ./uitest -terminal tmux` runs, and its screenshots looked right
+    on 2026-10-30. A person looks at the logs and the screenshots, and then
+    runs it again with `-update`. The four Windows entries were written
+    without a Windows host, and have not run. From: D60.
+
+## Found while terminfo was adopted
+
+76. A string variable that an inputrc file sets reaches the line as the file
+    wrote it, so `set active-region-end-color \e[0m` holds a backslash and an
+    e, and `dump-variables` prints it as `\\e[0m`. The mode strings of D53 and
+    `isearch-terminators` read their escapes. Which other string variables
+    readline reads the escapes of is to be recorded from readline 8.3 first.
+    From: D55.
+77. The visible bell. readline's `bell-style visible` writes the terminal's
+    `flash` sequence, and xterm's holds the padding `$<100/>`, which
+    github.com/xo/terminfo v1.2.1 does not apply or remove. A function that
+    applies it would be a new feature, which terminfo's D14 does not allow.
+    Ken has to answer open question 5 in terminfo's docs/PLAN.md first.
+    From: D55.
+78. An empty `.rline_example_history.<number>` file, mode 0600, was left in
+    the root after a `uitest` run, twice on 2026-10-30. The history is saved
+    through a temporary file that is renamed over the old one, and a program
+    that the terminal kills between the two leaves the temporary file. A
+    signal handler that removes it, or a name that the next save cleans up,
+    would stop it. From: the `uitest` runs of D54 and D60.
+
 ## Found while vi mode was written
 
 64. readline acts on a lone Esc in vi insert mode after keyseq-timeout.

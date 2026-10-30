@@ -1,10 +1,13 @@
 package rline
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/xo/terminfo"
 
 	"github.com/xo/rline/ansi"
 	"github.com/xo/rline/internal/text"
@@ -55,6 +58,10 @@ type term struct {
 	beep    bool
 	isUTF8  bool
 
+	// passThrough says the output is not a terminal, so what a program
+	// writes goes out unchanged (D57).
+	passThrough bool
+
 	// The attributes the terminal is showing now. This is kept up to date by
 	// the write path rather than by setAttr, because setAttr sets attributes
 	// by writing escape sequences, and appendEsc reads every sequence that
@@ -80,6 +87,10 @@ type termOptions struct {
 
 	// Sizer reports the size of the terminal, and may be nil.
 	Sizer sizer
+
+	// PassThrough says the output is not a terminal, so writeOutput changes
+	// nothing that a program writes (D57).
+	PassThrough bool
 }
 
 // newTerm returns a term that writes to out.
@@ -95,6 +106,8 @@ func newTerm(out io.Writer, opts termOptions) *term {
 		beep:    opts.Beep,
 		isUTF8:  opts.IsUTF8,
 		attr:    ansi.DefaultAttr(),
+
+		passThrough: opts.PassThrough,
 	}
 	if os.Getenv("NO_COLOR") != "" {
 		t.color = false
@@ -155,6 +168,36 @@ func detectPalette() ansi.Palette {
 		return ansi.PaletteMono
 	}
 	return ansi.PaletteANSI16
+}
+
+// terminfoVars returns the variables of readline that readline takes from the
+// terminfo entry of the terminal called name, by readline's names (D55). A
+// terminal with no entry, which every Windows console is, gives none, and the
+// defaults stand.
+//
+// readline draws the active region between the standout sequences, smso and
+// rmso, unless an inputrc file sets the two colors.
+func terminfoVars(name string) map[string]any {
+	if name == "" {
+		return nil
+	}
+	ti, err := terminfo.Load(name)
+	if err != nil {
+		return nil
+	}
+	return terminfoVarsOf(ti)
+}
+
+// terminfoVarsOf is terminfoVars for an entry that is already loaded.
+func terminfoVarsOf(ti *terminfo.Terminfo) map[string]any {
+	vars := make(map[string]any, 2)
+	if s, ok := ti.Strings[terminfo.EnterStandoutMode]; ok {
+		vars["active-region-start-color"] = string(s)
+	}
+	if s, ok := ti.Strings[terminfo.ExitStandoutMode]; ok {
+		vars["active-region-end-color"] = string(s)
+	}
+	return vars
 }
 
 // containsAny reports whether s holds any of the given parts.
@@ -239,6 +282,20 @@ func (t *term) writeBytes(b []byte) {
 		return
 	}
 	t.appendBuf(b)
+}
+
+// writeOutput adds what a program writes. When the output is a terminal it
+// goes through appendBuf, which drops the control bytes a terminal cannot use
+// and, with color off, every SGR sequence, as isocline does. When the output
+// is not a terminal it goes out unchanged, so that a pipe or a file gets the
+// program's bytes (D57).
+func (t *term) writeOutput(b []byte) {
+	if !t.passThrough {
+		t.writeBytes(b)
+		return
+	}
+	t.buf.AppendString(string(b))
+	t.checkFlush(bytes.IndexByte(b, '\n') >= 0)
 }
 
 // writeln adds s and then a line break.

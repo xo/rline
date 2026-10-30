@@ -7,7 +7,8 @@ license. It uses no cgo. usql is the program it exists for.
 
 The module is `github.com/xo/rline`, and `go.mod` asks for Go 1.25.0. It
 depends on `github.com/mattn/go-runewidth` and `golang.org/x/sys` (D7), and
-D39 adds `github.com/xo/inputrc` for reading inputrc files. Add no other
+D39 adds `github.com/xo/inputrc` for reading inputrc files. D55 adds
+`github.com/xo/terminfo` for the capabilities of the terminal. Add no other
 dependency without a decision.
 
 ## Standing rules
@@ -58,7 +59,8 @@ files (D15):
 - `prompt.go`: reading one line, the redraw, hints, resize and the loop
   that hands each key to the line.
 - `bind.go`: the keymaps, built from readline's defaults, the commands that
-  rline runs itself, and the list of completions that readline shows.
+  rline runs itself, the commands that a program adds (D58), and the list of
+  completions that readline shows.
 - `comp.go`: completion and file name completion.
 - `menu.go`: isocline's numbered completion menu, which
   `WithCompletionMenu` binds to Tab (D51).
@@ -97,8 +99,8 @@ The other folders:
   `testdata/readline-emacs.txt` and `testdata/readline-binds.txt` are
   recorded from GNU readline 8.3.
 - `tools/`: the C probes (`probe-*.c`), the scripts that build them
-  (`build-*.sh`), the linter module (`tools/lint`), `lint.sh`, `lint.ps1`
-  and `mutate.sh`.
+  (`build-*.sh`), the linter module (`tools/lint`), `lint.sh`, `lint.ps1`,
+  `mutate.sh`, and `systems.txt`, the systems that the checks vet (D60).
 - `_examples/`: one folder for each example program (D37). The underscore
   keeps them out of `./...`, so a command names the folder.
   - `_examples/sql/`: a small SQL prompt that uses the package. The tests
@@ -110,9 +112,9 @@ The other folders:
   - `_examples/transit/`: a prompt that highlights and completes code with
     transit. It is a module of its own, so that rline gets no new dependency
     (D7). Its `go.mod` requires a published transit, and replaces rline
-    with this checkout until a release of rline has `WithCompletionMenu`
-    (backlog 66). D38 removed the replace directive for v0.1.0. Run
-    `go test ./...` inside it.
+    with this checkout, so that the example always builds against the code
+    beside it. Ken chose to keep the replace on 2026-10-30. D38 removed it
+    for v0.1.0 only. Run `go test ./...` inside it.
 - `uitest/`: drives real terminal emulators. It does not run in CI.
 - `contrib/`: installers for what `uitest` drives, and the script that makes
   the demonstration GIF.
@@ -137,10 +139,16 @@ tools/lint.sh               # on Windows: pwsh -File tools/lint.ps1
 `tools/lint.sh` builds the pinned golangci-lint from `tools/lint` and runs
 it for linux, darwin and windows, with the settings in `.golangci.yml`.
 
-`go vet` also runs for every pair that `go tool dist list` gives, because a
-file tagged for another system is invisible to a build on this one. The loop
-is in `.github/workflows/test.yml`. Run it after any change that touches
-more than one file, and always after a rename (D31).
+`go vet` also runs for each GOOS/GOARCH pair in `tools/systems.txt`,
+because a file tagged for another system is invisible to a build on this
+one. The list holds one pair for each build tag (D60), and
+`TestEveryFileBuildsSomewhere` makes sure that every file compiles in one of
+them. The loop is in `.github/workflows/test.yml`. Run it after any change
+that touches more than one file, and always after a rename (D31):
+
+```sh
+for pair in $(grep -v '^#' tools/systems.txt); do GOOS=${pair%/*} GOARCH=${pair#*/} go vet ./... || break; done
+```
 
 A corpus is regenerated from its C probe with `go test -update` in its
 package. That needs a C compiler and `isocline/`. `go test ./internal/capture

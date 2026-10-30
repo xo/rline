@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 	"unicode"
@@ -2033,5 +2035,230 @@ func TestBashExampleTests(t *testing.T) {
 	}
 	if out, err := exec.Command("go", "test", "-count=1", "./_examples/bash").CombinedOutput(); err != nil {
 		t.Fatalf("the tests of the bash example failed: %v\n%s", err, out)
+	}
+}
+
+// TestWriteToAPipeChangesNothing checks that what a program writes through a
+// Session reaches a pipe unchanged, with its control bytes and its color
+// sequences (D57). Before D57, "a\x1b[31mred\x1b[0mb" came out as "aredb".
+func TestWriteToAPipeChangesNothing(t *testing.T) {
+	t.Parallel()
+	const text = "a\x1b[31mred\x1b[0mb\x01\x02\x0e\x1ac\n"
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = r.Close() })
+	s, err := New(WithStdin(strings.NewReader("")), WithStdout(w), WithStderr(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Write([]byte(text)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.WriteString(text); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := text + text; string(out) != want {
+		t.Errorf("the pipe got %q, want %q", out, want)
+	}
+}
+
+// TestWriteToATerminalKeepsTheFilter checks that a terminal still gets
+// isocline's filter (D57): the control bytes that a terminal cannot use are
+// dropped, and so are the color sequences when color is off. A writer that is
+// not a file counts as a terminal.
+func TestWriteToATerminalKeepsTheFilter(t *testing.T) {
+	t.Parallel()
+	const text = "a\x1b[31mred\x1b[0mb\x01\x02\x0e\x1ac\n"
+	for _, test := range []struct {
+		name  string
+		color bool
+		want  string
+	}{
+		{"with color", true, "a\x1b[31mred\x1b[0mbc\n"},
+		{"without color", false, "aredbc\n"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			var out bytes.Buffer
+			s, err := New(WithStdin(strings.NewReader("")), WithStdout(&out), WithStderr(io.Discard), WithColor(test.color))
+			if err != nil {
+				t.Fatal(err)
+			}
+			// The reset that a new terminal starts with goes out first.
+			if _, err := s.WriteString(""); err != nil {
+				t.Fatal(err)
+			}
+			before := out.Len()
+			if _, err := s.Write([]byte(text)); err != nil {
+				t.Fatal(err)
+			}
+			if got := out.String()[before:]; got != test.want {
+				t.Errorf("the terminal got %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+// recordHandler is a log/slog handler that keeps every record it is given.
+type recordHandler struct {
+	mu      sync.Mutex
+	records []slog.Record
+}
+
+// Enabled satisfies slog.Handler.
+func (h *recordHandler) Enabled(context.Context, slog.Level) bool { return true }
+
+// Handle satisfies slog.Handler.
+func (h *recordHandler) Handle(_ context.Context, r slog.Record) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.records = append(h.records, r.Clone())
+	return nil
+}
+
+// WithAttrs satisfies slog.Handler.
+func (h *recordHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+
+// WithGroup satisfies slog.Handler.
+func (h *recordHandler) WithGroup(string) slog.Handler { return h }
+
+// find returns the records with the message msg, and the attribute key of
+// each as a string.
+func (h *recordHandler) find(msg, key string) ([]slog.Record, []string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	var recs []slog.Record
+	var values []string
+	for _, r := range h.records {
+		if r.Message != msg {
+			continue
+		}
+		v := ""
+		r.Attrs(func(a slog.Attr) bool {
+			if a.Key == key {
+				v = a.Value.String()
+			}
+			return true
+		})
+		recs, values = append(recs, r), append(values, v)
+	}
+	return recs, values
+}
+
+// loggedSession returns a Session that reads keys and logs to a
+// recordHandler, as WithLogger sets it up. It has no terminal controller, so
+// Password reads through the decoder, as it does on Windows.
+func loggedSession(t *testing.T, keys string) (*Session, *recordHandler) {
+	t.Helper()
+	ev, _ := feedEnv(t, keys, feedOpts{})
+	h := &recordHandler{}
+	sl := &sessionLog{l: slog.New(h)}
+	ev.keys.src = logReader{src: ev.keys.src, logger: sl}
+	ev.term.out = logWriter{w: ev.term.out, logger: sl}
+	return &Session{env: ev, canEdit: true, logger: sl}, h
+}
+
+// TestLogRecordsTheSession checks the records that WithLogger gives its
+// handler (D54): each byte read and each write at debug level, and the line
+// at info level.
+func TestLogRecordsTheSession(t *testing.T) {
+	t.Parallel()
+	s, h := loggedSession(t, "ab"+kEnter)
+	line, err := s.ReadLine("> ")
+	if err != nil || line != "ab" {
+		t.Fatalf("ReadLine gave %q, %v, want %q", line, err, "ab")
+	}
+	reads, bytes := h.find(LogRead, LogBytes)
+	if got, want := strings.Join(bytes, ""), "ab"+kEnter; got != want {
+		t.Errorf("the reads recorded %q, want %q", got, want)
+	}
+	for _, r := range reads {
+		if r.Level != slog.LevelDebug {
+			t.Errorf("a read is at level %v, want debug", r.Level)
+		}
+	}
+	writes, written := h.find(LogWrite, LogBytes)
+	if !strings.Contains(strings.Join(written, ""), "> ") {
+		t.Errorf("the writes recorded %q, which holds no prompt", written)
+	}
+	for _, r := range writes {
+		if r.Level != slog.LevelDebug {
+			t.Errorf("a write is at level %v, want debug", r.Level)
+		}
+	}
+	lines, texts := h.find(LogLine, LogText)
+	if len(lines) != 1 || texts[0] != "ab" || lines[0].Level != slog.LevelInfo {
+		t.Errorf("the lines recorded are %q, want one line %q at info level", texts, "ab")
+	}
+}
+
+// TestLogRecordsTheEndOfTheInput checks the record of an interrupted line and
+// of the end of the input (D54).
+func TestLogRecordsTheEndOfTheInput(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		keys string
+		msg  string
+	}{
+		{"ab\x03", LogInterrupted},
+		{kCtrlD, LogEndOfInput},
+	} {
+		s, h := loggedSession(t, test.keys)
+		if _, err := s.ReadLine("> "); err == nil {
+			t.Fatalf("ReadLine of %q gave no error", test.keys)
+		}
+		if recs, _ := h.find(test.msg, ""); len(recs) != 1 || recs[0].Level != slog.LevelInfo {
+			t.Errorf("%q recorded %d records %q, want one at info level", test.keys, len(recs), test.msg)
+		}
+		if recs, _ := h.find(LogLine, ""); len(recs) != 0 {
+			t.Errorf("%q recorded a line", test.keys)
+		}
+	}
+}
+
+// TestPasswordStaysOutOfTheLog checks that what Password reads reaches no
+// record, on the path that reads through the decoder and so through the log,
+// which is the one that Windows takes (backlog 5). A record says that a
+// password was read.
+func TestPasswordStaysOutOfTheLog(t *testing.T) {
+	t.Parallel()
+	s, h := loggedSession(t, "secret"+kEnter+"x"+kEnter)
+	pw, err := s.Password("password: ")
+	if err != nil || pw != "secret" {
+		t.Fatalf("Password gave %q, %v, want %q", pw, err, "secret")
+	}
+	if recs, _ := h.find(LogRead, ""); len(recs) != 0 {
+		t.Errorf("Password recorded %d reads", len(recs))
+	}
+	recs, _ := h.find(LogPassword, "")
+	if len(recs) != 1 || recs[0].NumAttrs() != 0 {
+		t.Errorf("there are %d password records, want one with no attributes", len(recs))
+	}
+	for _, r := range h.records {
+		r.Attrs(func(a slog.Attr) bool {
+			if strings.Contains(a.Value.String(), "secret") {
+				t.Errorf("the record %q holds the password: %q", r.Message, a.Value.String())
+			}
+			return true
+		})
+	}
+	// The log records what is read again after the password.
+	if line, err := s.ReadLine("> "); err != nil || line != "x" {
+		t.Fatalf("ReadLine after the password gave %q, %v", line, err)
+	}
+	if _, bytes := h.find(LogRead, LogBytes); strings.Join(bytes, "") != "x"+kEnter {
+		t.Errorf("the reads after the password recorded %q, want %q", bytes, "x"+kEnter)
 	}
 }

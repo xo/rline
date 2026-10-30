@@ -56,26 +56,22 @@ func platformReady() error {
 	return nil
 }
 
-// platformTerminals is the Linux matrix. Engines rather than brands: several
-// popular terminals are VTE with a different menu bar, and testing two of
-// them tests VTE twice.
+// platformTerminals is the Linux matrix of D60. Engines rather than brands:
+// several popular terminals are VTE with a different menu bar, and testing two
+// of them tests VTE twice. foot is outside the matrix, and runs only when it
+// is named, for the README GIF. The VS Code terminal is in the matrix of D60
+// and is not here yet (backlog 74).
 func platformTerminals() []Terminal {
 	return []Terminal{
 		{
-			Name: "foot", Bin: "foot", Engine: "foot",
+			Name: "foot", Bin: "foot", Engine: "foot", ByNameOnly: true,
 			Args: func(c, r int, cmd []string) []string {
-				argv := append([]string{"foot", "--app-id=" + appID}, fontArgs("foot")...)
+				// foot draws a hollow cursor while it thinks that its window has
+				// no focus, which on the headless compositor is most of the
+				// time, and the recording then shows an empty box.
+				argv := append([]string{"foot", "--app-id=" + appID, "-o", "cursor.unfocused-style=unchanged"},
+					fontArgs("foot")...)
 				return append(append(argv, fmt.Sprintf("--window-size-chars=%dx%d", c, r), "--"), cmd...)
-			},
-		},
-		{
-			Name: "alacritty", Bin: "alacritty", Engine: "alacritty",
-			Args: func(c, r int, cmd []string) []string {
-				argv := append([]string{"alacritty", "--class", appID}, fontArgs("alacritty")...)
-				return append(append(argv,
-					"-o", fmt.Sprintf("window.dimensions.columns=%d", c),
-					"-o", fmt.Sprintf("window.dimensions.lines=%d", r),
-					"-e"), cmd...)
 			},
 		},
 		{
@@ -112,6 +108,16 @@ func platformTerminals() []Terminal {
 			GetText: weztermGetText,
 		},
 		{
+			Name: "tmux", Bin: "tmux", Engine: "tmux in wezterm", Needs: []string{"wezterm"},
+			Args: func(c, r int, cmd []string) []string {
+				return append([]string{"wezterm",
+					"--config", fmt.Sprintf("initial_cols=%d", c),
+					"--config", fmt.Sprintf("initial_rows=%d", r),
+					"--config", "cursor_blink_rate=0",
+					"start", "--class", appID, "--"}, tmuxArgs(cmd)...)
+			},
+		},
+		{
 			Name: "gnome-terminal", Bin: "dbus-run-session", Engine: "VTE",
 			Args: func(c, r int, cmd []string) []string {
 				// VTE is the engine most Linux desktops actually run, and
@@ -134,16 +140,6 @@ func platformTerminals() []Terminal {
 				return append([]string{"dbus-run-session", "--",
 					"gnome-terminal", "--wait", "--class=" + appID,
 					fmt.Sprintf("--geometry=%dx%d", c, r), "--"}, cmd...)
-			},
-		},
-		{
-			Name: "xterm", Bin: "xterm", Engine: "xterm",
-			Args: func(c, r int, cmd []string) []string {
-				// The reference implementation. Everything else is measured
-				// against what xterm does, so when two terminals disagree
-				// this is the one that says which is unusual.
-				return append([]string{"xterm", "-class", appID, "-geometry", fmt.Sprintf("%dx%d", c, r),
-					"-bg", "black", "-fg", "white", "-e"}, cmd...)
 			},
 		},
 	}
@@ -177,16 +173,12 @@ func fontArgs(name string) []string {
 	switch name {
 	case "foot":
 		return []string{fmt.Sprintf("--font=monospace:size=%d", fontSize)}
-	case "alacritty":
-		return []string{"-o", fmt.Sprintf("font.size=%d", fontSize)}
 	case "kitty":
 		return []string{"-o", fmt.Sprintf("font_size=%d", fontSize)}
 	case "ghostty":
 		return []string{fmt.Sprintf("--font-size=%d", fontSize)}
 	case "wezterm":
 		return []string{"--config", fmt.Sprintf("font_size=%d", fontSize)}
-	case "xterm":
-		return []string{"-fa", "monospace", "-fs", fmt.Sprint(fontSize)}
 	}
 	return nil
 }

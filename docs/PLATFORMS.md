@@ -177,10 +177,13 @@ properly, and leaving raw mode puts the mode back to exactly the `0x000003` it
 found. That branch had never been exercised until a real console ran it. So
 two calls replace the 400 lines.
 
-What remains open is which consoles are supported. Turning the flag on works
-on Windows 10 and later. Anything older cannot read escape sequences at all
-and would need the emulation. Dropping them is a narrowing of where rline runs
-and is a decision about supported platforms rather than a detail of the port.
+Turning the flag on works on Windows 10 version 1511 and later. Anything
+older cannot read escape sequences at all and would need the emulation. Ken
+decided that rline is tested on Windows 11 only, and supports no console that
+cannot read escape sequences (D62). Go itself has needed Windows 10 or Server
+2016 since Go 1.21, so Windows 7, 8 and 8.1 could not run rline anyway. A
+console with "Use legacy console" ticked in its properties is the one place
+on a current Windows where this still shows.
 
 The flag is a property of the console rather than of the process, which
 matters for any test that reads it: a test asserting the ambient default is
@@ -324,9 +327,12 @@ Four checks run on the Go code, plus one that runs when someone remembers to.
    test file whose tag no longer matches its source still compiles on the
    systems where both are excluded, and only vet on a system where they
    disagree says so. That happened the moment the Unix tag widened, and
-   what is now `tty_other_test.go` kept the old tag for an hour. The systems
-   are not named: the loop enumerates `go tool dist list`, which is 47 pairs
-   and 15 systems, for the reason in the entry below. This also checks that
+   what is now `tty_other_test.go` kept the old tag for an hour. The loop
+   reads the 13 pairs in `tools/systems.txt`, one for each build tag (D60).
+   It enumerated all 47 pairs of `go tool dist list` before D60, for the
+   reason in the entry below. A list cannot report what it leaves out, so
+   `TestEveryFileBuildsSomewhere` makes sure that every file of the module
+   compiles in at least one of the 13. This also checks that
    the fallback still compiles. `tty_other.go` exists so
    that such a system builds and reads plain lines, and a function added with
    implementations for only two of the three tag groups breaks it invisibly:
@@ -494,6 +500,13 @@ does not do without an artifact and a collecting job, and none of that is
 built. What exists is each job printing its own counts, and this paragraph
 recording the union. If the matrix ever loses a runner, nothing will say
 which pairs went with it.
+
+D60 ended the sweep of every pair. The loop now names 13 pairs in
+`tools/systems.txt`, one for each build tag, and leaves out android, ios
+and every pair that needs cgo. The lesson above still holds, because a
+named list cannot report what it leaves out. `TestEveryFileBuildsSomewhere`
+is the answer to it: it makes sure that every Go file of the module compiles
+in at least one of the 13 pairs.
 
 Cross-vet is the whole type-check, including test files. `go vet`
 type-checks a package's tests as well as its source, so a rename that breaks

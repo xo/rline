@@ -3,11 +3,14 @@ package rline
 // These tests read the repository rather than the package. They hold the
 // setup that every xo repository shares, which D36 adopts from dbmeta D110
 // and dbmeta D111: the agent skills, the import in CLAUDE.md, the four
-// documents in the root, and the decision log in docs/PLAN.md.
+// documents in the root, and the decision log in docs/PLAN.md. They also
+// hold the list of systems that the checks vet (D60).
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"go/build"
 	"io/fs"
 	"maps"
 	"os"
@@ -423,4 +426,96 @@ func readFile(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(b)
+}
+
+// systemsPath is the list of GOOS/GOARCH pairs that CI vets.
+const systemsPath = "tools/systems.txt"
+
+// readSystems returns the pairs in systemsPath, as GOOS and GOARCH.
+func readSystems(t *testing.T) [][2]string {
+	t.Helper()
+	f, err := os.Open(systemsPath)
+	if err != nil {
+		t.Fatalf("opening %s: %v", systemsPath, err)
+	}
+	defer f.Close()
+	var pairs [][2]string
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		goos, goarch, ok := strings.Cut(line, "/")
+		if !ok {
+			t.Fatalf("%s: %q is not a GOOS/GOARCH pair", systemsPath, line)
+		}
+		pairs = append(pairs, [2]string{goos, goarch})
+	}
+	if err := sc.Err(); err != nil {
+		t.Fatalf("reading %s: %v", systemsPath, err)
+	}
+	return pairs
+}
+
+// TestEveryFileBuildsSomewhere checks that every Go file of the module
+// compiles in at least one of the systems that CI vets. A file that matches
+// none of them is never vetted, and a list that leaves out a system cannot
+// say so by itself (D60).
+func TestEveryFileBuildsSomewhere(t *testing.T) {
+	t.Parallel()
+	pairs := readSystems(t)
+	if len(pairs) != 13 {
+		t.Errorf("%s holds %d pairs, want the 13 of D60", systemsPath, len(pairs))
+	}
+	ctxts := make([]build.Context, len(pairs))
+	for i, p := range pairs {
+		ctxts[i] = build.Default
+		ctxts[i].GOOS, ctxts[i].GOARCH = p[0], p[1]
+		// A cross build has cgo off, as the vet step runs it.
+		ctxts[i].CgoEnabled = false
+	}
+	checked := 0
+	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		name := d.Name()
+		if d.IsDir() {
+			if path == "." {
+				return nil
+			}
+			// The examples, testdata, the C source and every other module
+			// are not part of this module.
+			if strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".") ||
+				name == "testdata" || name == "isocline" {
+				return filepath.SkipDir
+			}
+			if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(name, ".go") {
+			return nil
+		}
+		checked++
+		for _, ctxt := range ctxts {
+			ok, err := ctxt.MatchFile(filepath.Dir(path), name)
+			if err != nil {
+				return fmt.Errorf("reading the build tags of %s: %w", path, err)
+			}
+			if ok {
+				return nil
+			}
+		}
+		t.Errorf("%s compiles in none of the systems in %s, so nothing vets it", path, systemsPath)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if checked < 50 {
+		t.Errorf("checked %d files, which is too few: the walk missed the package", checked)
+	}
 }

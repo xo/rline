@@ -137,13 +137,23 @@ type Completion struct {
 
 	// add offers one completion.
 	add addFunc
+
+	// replace is how many bytes before the cursor Add takes away. It is the
+	// length of the prefix that the completer was handed, less what a
+	// wrapper of add already takes away for it.
+	replace int
 }
 
 // Add offers one completion, which replaces the prefix that was handed to the
-// completer. It reports whether more are wanted: a completer that is walking a
-// large directory should stop when it answers false.
+// completer. When it is the only completion and the cursor is at the end of
+// the line, a space follows it, as readline adds one (D56). It reports whether
+// more are wanted: a completer that is walking a large directory should stop
+// when it answers false.
 func (c *Completion) Add(replacement string) bool {
-	return c.AddCandidate(Candidate{Replacement: replacement})
+	if c == nil {
+		return false
+	}
+	return c.AddCandidate(Candidate{Replacement: replacement, DeleteBefore: c.replace, Suffix: " "})
 }
 
 // AddCandidate offers one completion, said in full. It reports whether more are
@@ -391,7 +401,7 @@ func (c *completions) generate(input string, pos, maxOffers int) int {
 	if c.completer == nil || pos < 0 || len(input) < pos {
 		return 0
 	}
-	cenv := &Completion{input: input, cursor: pos, arg: c.completerArg}
+	cenv := &Completion{input: input, cursor: pos, arg: c.completerArg, replace: pos}
 	cenv.add = c.add
 	c.completerMax = maxOffers
 	c.completer.Complete(cenv, input[:pos])
@@ -487,15 +497,17 @@ func withWordPrefix(cenv *Completion, deleteBeforeAdjust int,
 	if cenv.cursor >= 0 && cenv.cursor <= len(cenv.input) {
 		postfix = cenv.input[cenv.cursor:]
 	}
-	prev := cenv.add
+	prev, prevReplace := cenv.add, cenv.replace
 	cenv.add = func(cand Candidate) bool {
 		cand.Replacement = fix(cand.Replacement)
 		cand.DeleteBefore += deleteBeforeAdjust
 		cand.DeleteAfter += text.CountEndOverlap(cand.Replacement, postfix)
 		return prev(cand)
 	}
+	// The wrapper takes the word away itself, so Add takes nothing more.
+	cenv.replace = 0
 	fun.Complete(cenv, word)
-	cenv.add = prev
+	cenv.add, cenv.replace = prev, prevReplace
 }
 
 // completeQWord is completeWord for a word that may be quoted, with the usual

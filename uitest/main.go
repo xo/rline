@@ -60,6 +60,9 @@ func listTerminals() {
 		if t.GetText != nil {
 			grid = "  (can dump its screen)"
 		}
+		if t.ByNameOnly {
+			grid += "  (only with -terminal)"
+		}
 		fmt.Printf("%-18s %-14s %-14s%s\n", t.Name, t.Engine, state, grid)
 	}
 }
@@ -92,7 +95,7 @@ func run(termName, sessName, outDir string, update, keep, visible, video, vnc bo
 		chosen = []Terminal{t}
 	default:
 		for _, t := range terminals() {
-			if t.found() {
+			if t.found() && !t.ByNameOnly {
 				chosen = append(chosen, t)
 			}
 		}

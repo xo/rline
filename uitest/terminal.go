@@ -32,12 +32,25 @@ type Terminal struct {
 	// terminals can answer this. It is a bonus rather than the mechanism:
 	// the byte log is what every terminal gives us.
 	GetText func() (string, error)
+
+	// Needs names the other executables that must be installed, such as the
+	// terminal that tmux runs in.
+	Needs []string
+
+	// ByNameOnly leaves the terminal out of a run that names no terminal.
+	// It is outside the matrix of D60 and is kept for one job, such as foot
+	// for the README GIF.
+	ByNameOnly bool
 }
 
 // found reports whether this terminal is installed.
 func (t Terminal) found() bool {
-	_, err := exec.LookPath(t.Bin)
-	return err == nil
+	for _, bin := range append([]string{t.Bin}, t.Needs...) {
+		if _, err := exec.LookPath(bin); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 // terminals returns every terminal the current platform knows, installed or

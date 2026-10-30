@@ -178,13 +178,16 @@ var sessions = []Session{
 			Step{Text: "(*", Wait: 400 * time.Millisecond},
 			Step{Key: "End", Wait: 400 * time.Millisecond},
 			Step{Text: " as total", Wait: 800 * time.Millisecond},
+			// Each row after the first is indented by the same two spaces.
 			Press("Return"),
 			Step{Text: "  from users", Wait: 800 * time.Millisecond},
 			Press("Return"),
-			Step{Text: " where active = true and age > 21 -- adults", Wait: 900 * time.Millisecond},
+			Step{Text: "  where active = true and age > 21 -- adults", Wait: 900 * time.Millisecond},
 			Press("Return"),
-			Step{Text: " group by name;", Wait: 900 * time.Millisecond},
-			Press("Return"),
+			Step{Text: "  group by name;", Wait: 900 * time.Millisecond},
+			// The statement runs, and the recording stays long enough to show
+			// what the example prints and the next prompt.
+			Step{Key: "Return", Wait: 2500 * time.Millisecond},
 		},
 		Quiet: 600 * time.Millisecond,
 		// The recording is for a person to look at. The sessions above hold

@@ -52,15 +52,18 @@ package rline
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
+	"maps"
 	"os"
 	"os/signal"
 	"slices"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/xo/rline/internal/editor"
@@ -110,6 +113,10 @@ const (
 	// behind. This is the one place where the port departs from the C over a
 	// behaviour rather than a fault.
 	ErrInterrupted Error = "interrupted"
+
+	// ErrCommandExists is returned by New when WithCommand names a command
+	// that readline or rline already has (D58).
+	ErrCommandExists Error = "command exists"
 
 	// ErrNotAFile is returned by Release when the Session writes to
 	// something that is not a file, such as a buffer, so there is no file to
@@ -250,9 +257,9 @@ type config struct {
 
 	// What marks up a line, what completes a word, and what decides whether a
 	// line is finished.
-	highlighter  Highlighter
-	completer    Completer
-	isIncomplete func(string) bool
+	highlighter Highlighter
+	completer   Completer
+	cont        func(string) bool
 
 	// Editing settings.
 	opts editor.EditOptions
@@ -279,7 +286,10 @@ type config struct {
 	viMode      bool
 
 	// logger records everything read and written, and may be nil.
-	logger io.Writer
+	logger slog.Handler
+
+	// commands are the program's own commands, by name (D58).
+	commands map[string]Command
 
 	// stdin reads the keys when it is not a terminal, which is what a pipe or a
 	// test gives.
@@ -413,12 +423,12 @@ func WithCompleter(completer Completer) Option {
 // commands treat the rows as one line: Ctrl-A goes to the start of the
 // statement, and Up puts an earlier statement in its place (D46).
 //
-// Enter and Ctrl-J both run readline's accept-line. When fn answers true, the
-// line breaks at the cursor, wherever the cursor is.
+// Enter and Ctrl-J both run readline's accept-line. When cont answers true,
+// the line breaks at the cursor, wherever the cursor is.
 //
 // Without this, Enter always finishes the line.
-func WithContinue(fn func(text string) bool) Option {
-	return func(c *config) { c.isIncomplete = fn }
+func WithContinue(cont func(text string) bool) Option {
+	return func(c *config) { c.cont = cont }
 }
 
 // WithColor writes color when the terminal supports it. Turning it off writes
@@ -538,15 +548,33 @@ func WithAutoPairs(autoPairs string) Option {
 }
 
 // WithLogger records everything the session reads from the keyboard and writes to
-// the terminal, so that a session can be read back afterwards by someone who
-// was not watching it.
+// the terminal through logger, a log/slog handler, so that a session can be
+// read back afterwards by someone who was not watching it (D54).
 //
-// Every line of the log says which direction it went: "<" for what was written
-// to the terminal, ">" for a key that was read, and "=" for a finished line.
-// The bytes are escaped so that the log can be read by eye, with the escape
-// byte written as "\e".
-func WithLogger(logger io.Writer) Option {
+// What is written to the terminal is a record at debug level with the message
+// LogWrite, and each byte read from the keyboard is one with the message
+// LogRead. Both hold the bytes in the attribute LogBytes. A line that
+// ReadLine hands back is a record at info level with the message LogLine and
+// the line in the attribute LogText. A line given up is LogInterrupted, and
+// the end of the input is LogEndOfInput, both at info level.
+//
+// What Password reads is never recorded. A record at info level with the
+// message LogPassword says that a password was read, and holds nothing of it.
+func WithLogger(logger slog.Handler) Option {
 	return func(c *config) { c.logger = logger }
+}
+
+// WithCommand adds a command of the program's own, called name, which an
+// inputrc file binds a key to by that name, as readline's rl_add_defun adds
+// one (D58). execute-named-command (M-x) runs it by name too. New returns
+// ErrCommandExists when readline or rline already has a command called name.
+func WithCommand(name string, command Command) Option {
+	return func(c *config) {
+		if c.commands == nil {
+			c.commands = make(map[string]Command)
+		}
+		c.commands[name] = command
+	}
 }
 
 // New returns a Session.
@@ -584,6 +612,11 @@ func New(opts ...Option) (*Prompt, error) {
 	for _, o := range opts {
 		o(c)
 	}
+	for _, name := range slices.Sorted(maps.Keys(c.commands)) {
+		if hasCommand(name) {
+			return nil, fmt.Errorf("adding the command %s: %w", name, ErrCommandExists)
+		}
+	}
 
 	in := io.Reader(os.Stdin)
 	if c.stdin != nil {
@@ -611,13 +644,13 @@ func New(opts ...Option) (*Prompt, error) {
 	// The log sits between the session and the terminal. The size and the
 	// question of whether the output is a terminal are still asked of the real
 	// output, not of the log.
-	var slog *sessionLog
+	var sl *sessionLog
 	out := c.stdout
 	if c.logger != nil {
-		slog = &sessionLog{w: c.logger}
-		out = logWriter{w: c.stdout, logger: slog}
+		sl = &sessionLog{l: slog.New(c.logger)}
+		out = logWriter{w: c.stdout, logger: sl}
 		if ttyErr == nil {
-			t.src = logReader{src: t.src, logger: slog}
+			t.src = logReader{src: t.src, logger: sl}
 		}
 	}
 	tm := newTerm(out, termOptions{
@@ -628,6 +661,8 @@ func New(opts ...Option) (*Prompt, error) {
 		Beep:   c.beep,
 		IsUTF8: isUTF8,
 		Sizer:  outputSizer(c.stdout),
+		// A pipe or a file gets the program's bytes unchanged (D57).
+		PassThrough: !writesToTerminal(c.stdout),
 	})
 	bb := newBBCode(tm)
 	for _, s := range defaultStyles {
@@ -653,7 +688,7 @@ func New(opts ...Option) (*Prompt, error) {
 		promptMarker:    c.promptMarker,
 		cpromptMarker:   c.cpromptMarker,
 		highlighter:     c.highlighter,
-		isIncomplete:    c.isIncomplete,
+		cont:            c.cont,
 		opts:            c.opts,
 		multilineIndent: c.multilineIndent,
 		braceMatching:   c.braceMatching,
@@ -663,14 +698,18 @@ func New(opts ...Option) (*Prompt, error) {
 		completeAutoTab: c.autoTab,
 		completionMenu:  c.completionMenu,
 		keepInterrupted: c.keepInterrupted,
+		commands:        c.commands,
 		completePreview: true,
 		hintDelay:       c.hintDelay,
 	}
 	r.env.viMode = c.viMode
+	if writesToTerminal(c.stdout) {
+		r.env.termVars = terminfoVars(os.Getenv("TERM"))
+	}
 	if c.userInputrc || c.inputrcFile != "" {
 		r.env.readInputrc(c)
 	}
-	r.logger = slog
+	r.logger = sl
 	r.canEdit = ttyErr == nil && isInteractive()
 	return &Prompt{Session: r, markup: &MarkupWriter{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
 }
@@ -722,15 +761,15 @@ func (s *Session) ReadLine(prompt string) (string, error) {
 	line, ok, err := s.env.readLine(prompt)
 	if err != nil {
 		if errors.Is(err, ErrInterrupted) {
-			s.logger.note(logLine, "<interrupted>")
+			s.logger.note(LogInterrupted)
 		}
 		return "", err
 	}
 	if !ok {
-		s.logger.note(logLine, "<end of input>")
+		s.logger.note(LogEndOfInput)
 		return "", io.EOF
 	}
-	s.logger.note(logLine, line)
+	s.logger.note(LogLine, slog.String(LogText, line))
 	return line, nil
 }
 
@@ -831,11 +870,15 @@ func (s *Session) SetPrompt(marker, continuation string) {
 // os.Stdout, because the terminal this goes through is the one that knows
 // where the prompt is. An adapter that has to offer an io.Writer can return
 // the Session itself.
+//
+// On a terminal, the control bytes that a terminal has no use for are
+// dropped, and so is every color sequence when color is off. When the output
+// is a pipe or a file, the bytes go out unchanged (D57).
 func (s *Session) Write(p []byte) (int, error) {
 	if s.env == nil {
 		return len(p), nil
 	}
-	s.env.term.writeBytes(p)
+	s.env.term.writeOutput(p)
 	s.env.term.flush()
 	return len(p), nil
 }
@@ -888,7 +931,7 @@ func (s *Session) WriteString(text string) (int, error) {
 	if s.env == nil {
 		return len(text), nil
 	}
-	s.env.term.write(text)
+	s.env.term.writeOutput([]byte(text))
 	s.env.term.flush()
 	return len(text), nil
 }
@@ -1186,78 +1229,79 @@ func (s *Session) Size() (cols, rows int) {
 // into the original bytes. It is what lets a session be reconstructed
 // afterwards by someone who was not watching it.
 
-// Directions, written at the start of every line of a log.
+// The messages and the attributes of the records that WithLogger gives its
+// handler (D54).
 const (
-	// logWrite marks bytes the reader wrote to the terminal.
-	logWrite = "<"
+	// LogWrite is the message of a record of what was written to the
+	// terminal, at debug level.
+	LogWrite = "write"
 
-	// logRead marks bytes the reader read from the keyboard.
-	logRead = ">"
+	// LogRead is the message of a record of a byte read from the keyboard,
+	// at debug level.
+	LogRead = "read"
 
-	// logLine marks a finished line, as it was handed back to the caller.
-	logLine = "="
+	// LogLine is the message of a record of a line that ReadLine handed
+	// back, at info level.
+	LogLine = "line"
+
+	// LogInterrupted is the message of a record of a line given up with
+	// Ctrl-C, at info level.
+	LogInterrupted = "interrupted"
+
+	// LogEndOfInput is the message of a record of the end of the input, at
+	// info level.
+	LogEndOfInput = "end of input"
+
+	// LogPassword is the message of a record that says Password read a
+	// password, at info level. It holds nothing of the password.
+	LogPassword = "password"
+
+	// LogBytes is the attribute that holds the bytes of a LogWrite or a
+	// LogRead record, as a string.
+	LogBytes = "bytes"
+
+	// LogText is the attribute that holds the line of a LogLine record.
+	LogText = "text"
 )
 
-// sessionLog writes what a reader read and wrote.
+// sessionLog records what a reader read and wrote.
 //
-// It is safe for use from more than one goroutine, because the reading and the
-// writing can happen at the same time.
+// A slog handler is safe for use from more than one goroutine, so the reading
+// and the writing can record at the same time.
 type sessionLog struct {
-	mu sync.Mutex
-	w  io.Writer
+	l *slog.Logger
+
+	// hidden stops the records of what is read while Password reads, so that
+	// a password does not reach the log on a terminal that has no no-echo
+	// mode, which is Windows (backlog 5).
+	hidden atomic.Bool
 }
 
-// record writes one entry.
-func (l *sessionLog) record(direction string, b []byte) {
+// record logs bytes that were written or read, at debug level.
+func (l *sessionLog) record(msg string, b []byte) {
 	if l == nil || len(b) == 0 {
 		return
 	}
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	_, _ = fmt.Fprintf(l.w, "%s %s\n", direction, escapeBytes(b))
+	if msg == LogRead && l.hidden.Load() {
+		return
+	}
+	l.l.LogAttrs(context.Background(), slog.LevelDebug, msg, slog.String(LogBytes, string(b)))
 }
 
-// note writes one entry for text that is not raw bytes, such as a finished
-// line.
-func (l *sessionLog) note(direction, s string) {
+// note logs an event of the session, such as a finished line, at info level.
+func (l *sessionLog) note(msg string, attrs ...slog.Attr) {
 	if l == nil {
 		return
 	}
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	_, _ = fmt.Fprintf(l.w, "%s %s\n", direction, escapeBytes([]byte(s)))
+	l.l.LogAttrs(context.Background(), slog.LevelInfo, msg, attrs...)
 }
 
-// escapeBytes renders bytes so that a person can read them and a program can
-// turn them back.
-//
-// The escape byte becomes "\e", which is what makes a log of terminal output
-// readable at all, and the other control bytes become "\xNN". Bytes above 0x7f
-// pass through, so that text outside ASCII stays legible.
-func escapeBytes(b []byte) string {
-	var sb strings.Builder
-	sb.Grow(len(b) + len(b)/4)
-	for _, c := range b {
-		switch c {
-		case 0x1b:
-			sb.WriteString(`\e`)
-		case '\\':
-			sb.WriteString(`\\`)
-		case '\r':
-			sb.WriteString(`\r`)
-		case '\n':
-			sb.WriteString(`\n`)
-		case '\t':
-			sb.WriteString(`\t`)
-		default:
-			if c < 0x20 || c == 0x7f {
-				fmt.Fprintf(&sb, `\x%02x`, c)
-				continue
-			}
-			sb.WriteByte(c)
-		}
+// hide stops or starts again the records of what is read.
+func (l *sessionLog) hide(hidden bool) {
+	if l == nil {
+		return
 	}
-	return sb.String()
+	l.hidden.Store(hidden)
 }
 
 // logWriter writes to a terminal and records what it wrote.
@@ -1268,7 +1312,7 @@ type logWriter struct {
 
 // Write satisfies io.Writer.
 func (t logWriter) Write(p []byte) (int, error) {
-	t.logger.record(logWrite, p)
+	t.logger.record(LogWrite, p)
 	n, err := t.w.Write(p)
 	if err != nil {
 		return n, fmt.Errorf("writing to the terminal: %w", err)
@@ -1292,7 +1336,7 @@ func (t logReader) inputEnded() bool {
 func (t logReader) readByte(timeout time.Duration) (byte, bool) {
 	c, ok := t.src.readByte(timeout)
 	if ok {
-		t.logger.record(logRead, []byte{c})
+		t.logger.record(LogRead, []byte{c})
 	}
 	return c, ok
 }
@@ -1321,6 +1365,15 @@ func (t logReader) readByte(timeout time.Duration) (byte, bool) {
 // in that case, because there is no terminal to hide it from, and a caller
 // that must not read a password from a pipe should check Interactive first.
 func (s *Session) Password(prompt string) (string, error) {
+	line, err := s.password(prompt)
+	if err == nil {
+		s.logger.note(LogPassword)
+	}
+	return line, err
+}
+
+// password is Password, without the record in the log.
+func (s *Session) password(prompt string) (string, error) {
 	switch {
 	case s.closed:
 		return "", ErrClosed
@@ -1338,7 +1391,11 @@ func (s *Session) Password(prompt string) (string, error) {
 	if err := s.env.keys.startRaw(); err != nil {
 		return "", fmt.Errorf("switching the terminal to raw mode: %w", err)
 	}
+	// The keys go through the decoder, and so through the log, so the log
+	// stops recording what is read until the password is in.
+	s.logger.hide(true)
 	line, err := s.readHidden()
+	s.logger.hide(false)
 	s.env.keys.endRaw()
 	// The line the user typed is invisible, so the cursor has to be moved on
 	// by hand or the next thing written lands beside the prompt.

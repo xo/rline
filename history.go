@@ -239,11 +239,10 @@ func (h *history) load() error {
 
 // save writes the list to its file, oldest first.
 //
-// Nothing here restricts who can read the file. The C code creates it and
-// then changes its mode to owner only, which this used to follow, and the
-// mode is deliberately left out now: it cannot be expressed on Windows at
-// all, and the history is going to be rewritten, so guarding it here would
-// be work thrown away twice. docs/PORT.md records what that leaves open.
+// A new file gets the mode that WithHistoryFileMode sets, 0600 by default, as
+// the C and readline make it owner only (D21). On Windows the mode sets only
+// the read-only attribute, so who can read the file depends on the access
+// control list of its directory. docs/PORT.md records that.
 func (h *history) save() error {
 	if h.name == "" {
 		return nil

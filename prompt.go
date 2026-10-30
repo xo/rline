@@ -7,7 +7,12 @@ package rline
 
 import (
 	"fmt"
+	"maps"
+	"slices"
+	"strings"
 	"time"
+
+	"github.com/xo/inputrc"
 
 	"github.com/xo/rline/internal/editor"
 	"github.com/xo/rline/internal/readline"
@@ -46,6 +51,11 @@ type env struct {
 	promptMarker  string
 	cpromptMarker string
 
+	// modeString is what show-mode-in-prompt puts in front of the prompt for
+	// the editing mode, with readline's \1 and \2 around what the terminal
+	// does not show (D53). It is empty when the variable is off.
+	modeString string
+
 	// highlighter marks up the line, and may be nil.
 	highlighter Highlighter
 
@@ -64,6 +74,10 @@ type env struct {
 	notices []string
 	inputrc *config
 
+	// termVars are the variables that readline takes from the terminfo entry
+	// of the terminal, which the variables of an inputrc file go over (D55).
+	termVars map[string]any
+
 	// next is the history line that the next line starts with when hasNext
 	// is set, as operate-and-get-next asks.
 	next    string
@@ -75,10 +89,10 @@ type env struct {
 	viInsert, viCommand *readline.Keymap
 	viMode              bool
 
-	// isIncomplete reports whether a line is unfinished, so that Enter starts
+	// cont reports whether a line is unfinished, so that Enter starts
 	// another row rather than handing the line back. It may be nil, which
 	// makes Enter always finish, as the C does.
-	isIncomplete func(string) bool
+	cont func(string) bool
 
 	// Editing settings, shared with the operations in editor.go.
 	opts editor.EditOptions
@@ -105,6 +119,9 @@ type env struct {
 	// ^C after it (D52).
 	keepInterrupted bool
 
+	// commands are the program's own commands, by name (D58).
+	commands map[string]Command
+
 	// completePreview shows in the line what picking the selected entry would
 	// do, and takes it straight back out again. It is on by default. The C
 	// names its flag for what it turns off; this does not, so that every
@@ -125,7 +142,7 @@ func (ev *env) promptWidth(e *editor.Editor, inExtra bool) (int, int) {
 	if inExtra {
 		return 0, 0
 	}
-	textw := ev.bb.columnWidth(e.PromptText)
+	textw := ev.modeWidth() + ev.bb.columnWidth(e.PromptText)
 	markerw := ev.bb.columnWidth(ev.promptMarker)
 	cmarkerw := ev.bb.columnWidth(ev.cpromptMarker)
 	promptw := markerw + textw
@@ -153,6 +170,9 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	if inExtra {
 		return
 	}
+	if row == 0 {
+		ev.writeModeString()
+	}
 	ev.bb.styleOpen("rline-prompt")
 	switch {
 	case row == 0:
@@ -160,7 +180,7 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	case ev.multilineIndent:
 		// Pad the continuation marker out so the text lines up under the
 		// first row.
-		textw := ev.bb.columnWidth(e.PromptText)
+		textw := ev.modeWidth() + ev.bb.columnWidth(e.PromptText)
 		markerw := ev.bb.columnWidth(ev.promptMarker)
 		cmarkerw := ev.bb.columnWidth(ev.cpromptMarker)
 		if cmarkerw < markerw+textw {
@@ -173,6 +193,71 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	}
 	ev.bb.print(marker)
 	ev.bb.styleClose("")
+}
+
+// modeStringFor returns what show-mode-in-prompt puts in front of the prompt
+// in mode, which is "emacs", "vi-insert" or "vi-command", as readline takes it
+// from emacs-mode-string, vi-ins-mode-string and vi-cmd-mode-string (D53). It
+// is empty when show-mode-in-prompt is off. An inputrc file writes a string as
+// a key sequence is written, so \e is the escape byte and \1 and \2 are the
+// bytes 1 and 2.
+func (ev *env) modeStringFor(mode string) string {
+	if on, _ := ev.vars["show-mode-in-prompt"].(bool); !on {
+		return ""
+	}
+	name, def := "emacs-mode-string", "@"
+	switch mode {
+	case "vi-insert":
+		name, def = "vi-ins-mode-string", "(ins)"
+	case "vi-command":
+		name, def = "vi-cmd-mode-string", "(cmd)"
+	}
+	s, ok := ev.vars[name].(string)
+	if !ok {
+		return def
+	}
+	return inputrc.Unescape(s)
+}
+
+// modeParts calls fn with each part of the mode string, in order, and says
+// whether the terminal shows it. What is between the bytes 1 and 2 is not
+// shown, as readline marks the escape sequences of a prompt, and the two
+// bytes themselves are dropped.
+func (ev *env) modeParts(fn func(part string, shown bool)) {
+	s, shown := ev.modeString, true
+	for s != "" {
+		i := strings.IndexAny(s, "\x01\x02")
+		if i < 0 {
+			fn(s, shown)
+			return
+		}
+		if i > 0 {
+			fn(s[:i], shown)
+		}
+		shown = s[i] == 2
+		s = s[i+1:]
+	}
+}
+
+// modeWidth returns how many columns the mode string takes on the screen.
+func (ev *env) modeWidth() int {
+	w := 0
+	ev.modeParts(func(part string, shown bool) {
+		if shown {
+			w += text.StrWidth([]byte(part))
+		}
+	})
+	return w
+}
+
+// writeModeString writes the mode string in front of the prompt. It goes
+// straight to the terminal and not through the markup, because a bracket in
+// an escape sequence is not a tag. rline sends no sequence of its own, so a
+// cursor shape set here stays until the mode string changes it (D53).
+func (ev *env) writeModeString() {
+	ev.modeParts(func(part string, _ bool) {
+		ev.term.write(part)
+	})
 }
 
 // refreshRows draws the rows of text between firstRow and lastRow.
@@ -511,9 +596,9 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 	l := readline.New(ev.keymap, hist)
 	l.SetKeymaps(ev.keymap, ev.viInsert, ev.viCommand)
 	l.SetHandler(func(name string, c key.Code) bool { return ev.command(e, l, name, c) })
-	l.SetCommandNames(rlineOnly())
+	l.SetCommandNames(append(rlineOnly(), slices.Sorted(maps.Keys(ev.commands))...))
 	l.SetCompleter(ev.candidates)
-	l.Configure(ev.vars)
+	l.Configure(ev.lineVars())
 	l.SetEditingMode(ev.viMode)
 	l.SetSearchString(ev.lastSearch)
 	if ev.hasNext {
@@ -620,6 +705,15 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 			}
 			changed = true
 		}
+		// The mode string follows the editing mode. A prompt of the line's
+		// own, such as that of a search, is drawn without it.
+		m := ev.modeStringFor(l.Mode())
+		if shownPrompt != "" {
+			m = ""
+		}
+		if m != ev.modeString {
+			ev.modeString, changed = m, true
+		}
 		switch {
 		case l.Last() == "self-insert" && changed:
 			ev.refreshHint(e)
@@ -650,6 +744,11 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 		CurRows:    1,
 		PromptText: promptText,
 	}
+	mode := "emacs"
+	if ev.viMode {
+		mode = "vi-insert"
+	}
+	ev.modeString = ev.modeStringFor(mode)
 	ev.writePrompt(e, 0, false)
 
 	// The line being typed is always the newest history entry, so that walking
@@ -685,6 +784,18 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	}
 	_ = ev.history.save()
 	return line, ok, c
+}
+
+// lineVars returns the variables of readline for the line: those from the
+// terminfo entry of the terminal, with those of the inputrc file over them
+// (D55).
+func (ev *env) lineVars() map[string]any {
+	if len(ev.termVars) == 0 {
+		return ev.vars
+	}
+	vars := maps.Clone(ev.termVars)
+	maps.Copy(vars, ev.vars)
+	return vars
 }
 
 // echoControlCharacters reports whether readline's echo-control-characters

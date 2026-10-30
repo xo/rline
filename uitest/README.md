@@ -8,7 +8,7 @@ them need software that is not on every machine. They are run by a person,
 with one command, and they leave artifacts a person can look at.
 
     go run ./uitest -list
-    go run ./uitest -terminal foot -session basic
+    go run ./uitest -terminal kitty -session basic
     go run ./uitest                       # every terminal found on this machine
     go run ./uitest -update               # bless the current output
 
@@ -85,7 +85,8 @@ Three things are recorded per run.
 **The byte log**, which is uniform across every terminal and needs nothing
 from the emulator. `rline.WithLogger` already records every byte read from
 the keyboard, every byte written to the terminal, and each finished line, so
-the program under test records itself. This is the part that can be compared
+the program under test records itself. The log is a `log/slog` handler
+(D54), and the SQL example's `byteLog` writes it one record to a line. This is the part that can be compared
 mechanically, and it is where a key-encoding difference shows up.
 
 **A screenshot**, which is the only thing that can show what was drawn. Per
@@ -104,14 +105,23 @@ would bypass exactly what we came to measure.
 Distinct engines rather than brands. Several of the popular terminals share
 an engine and testing both adds nothing.
 
+The matrix is the one that D60 chose.
+
 | Platform | Terminals |
 | --- | --- |
-| Linux, X11 and Wayland | wezterm, foot, ghostty, kitty, alacritty, gnome-terminal (VTE), xterm |
-| macOS | wezterm, ghostty, iTerm2, Terminal.app |
-| Windows | conhost, Windows Terminal, wezterm |
+| Linux, X11 and Wayland | wezterm, ghostty, kitty, gnome-terminal (VTE), tmux |
+| macOS | wezterm, ghostty, iTerm2, Terminal.app, tmux |
+| Windows | conhost and Windows Terminal, each with cmd.exe and PowerShell, and wezterm |
 
-`tmux` belongs in the matrix as a layer rather than a terminal: it sits
-between the emulator and the program, rewrites `TERM`, and intercepts keys.
+`tmux` is in the matrix as a layer rather than a terminal: it sits between
+the emulator and the program, rewrites `TERM`, and intercepts keys. The
+harness runs it inside wezterm, on a tmux server of its own with no
+configuration.
+
+foot is outside the matrix. It runs only when `-terminal foot` names it,
+because `contrib/make-demo-gif.sh` records the README GIF in it. The VS Code
+terminal is in the matrix of D60, and the harness cannot open it yet
+(backlog 74).
 
 ### The Windows row is about hosts, not shells
 

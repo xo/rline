@@ -149,10 +149,12 @@ var menuGenerated = []string{
 	"gen07", "gen08", "gen09", "gen10", "gen11", "gen12",
 }
 
-// menuCompleter offers menuGenerated, whatever the prefix.
+// menuCompleter offers menuGenerated, whatever the prefix. It takes nothing
+// away and adds no space, as ic_add_completion in the probe does, so it uses
+// AddCandidate and not Add (D56).
 var menuCompleter = CompleterFunc(func(c *Completion, _ string) {
 	for _, name := range menuGenerated {
-		if !c.Add(name) {
+		if !c.AddCandidate(Candidate{Replacement: name}) {
 			return
 		}
 	}

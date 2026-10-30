@@ -24,6 +24,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -69,7 +70,9 @@ func run() error {
 			return fmt.Errorf("opening the log: %w", err)
 		}
 		defer f.Close()
-		opts = append(opts, rline.WithLogger(f))
+		// Every record, down to each byte read and written, which rline logs
+		// at debug level.
+		opts = append(opts, rline.WithLogger(slog.NewTextHandler(f, &slog.HandlerOptions{Level: slog.LevelDebug})))
 	}
 	p, err := rline.New(opts...)
 	if err != nil {

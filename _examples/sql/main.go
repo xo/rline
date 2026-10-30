@@ -21,16 +21,21 @@
 //
 // Pass -vi to edit with vi's keys, and -log to record everything read and
 // written, which is the way to see what was drawn without watching it happen.
+// The log is a log/slog handler, and byteLog below writes it in the form that
+// uitest compares.
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/xo/rline"
 )
@@ -73,7 +78,7 @@ func run() error {
 			return fmt.Errorf("opening the log: %w", err)
 		}
 		defer f.Close()
-		opts = append(opts, rline.WithLogger(f))
+		opts = append(opts, rline.WithLogger(&byteLog{w: f}))
 	}
 	p, err := rline.New(opts...)
 	if err != nil {
@@ -353,4 +358,78 @@ func complete(c *rline.Completion, prefix string) {
 			return
 		}
 	}
+}
+
+// byteLog is a log/slog handler that writes a session one record to a line,
+// in the form that uitest compares. A line starts with "<" for what was
+// written to the terminal, ">" for a byte read from the keyboard, or "=" for
+// a finished line or another event of the session. The bytes are escaped so
+// that the log can be read by eye, with the escape byte written as "\e".
+type byteLog struct {
+	mu sync.Mutex
+	w  io.Writer
+}
+
+// Enabled satisfies slog.Handler. The log takes every record, at every level.
+func (h *byteLog) Enabled(context.Context, slog.Level) bool { return true }
+
+// Handle satisfies slog.Handler.
+func (h *byteLog) Handle(_ context.Context, r slog.Record) error {
+	var text string
+	r.Attrs(func(a slog.Attr) bool {
+		if a.Key == rline.LogBytes || a.Key == rline.LogText {
+			text = a.Value.String()
+		}
+		return true
+	})
+	mark := "="
+	switch r.Message {
+	case rline.LogWrite:
+		mark = "<"
+	case rline.LogRead:
+		mark = ">"
+	case rline.LogLine:
+	default:
+		text = "<" + r.Message + ">"
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if _, err := fmt.Fprintf(h.w, "%s %s\n", mark, escapeBytes(text)); err != nil {
+		return fmt.Errorf("writing the log: %w", err)
+	}
+	return nil
+}
+
+// WithAttrs satisfies slog.Handler. rline adds no attributes to its logger.
+func (h *byteLog) WithAttrs([]slog.Attr) slog.Handler { return h }
+
+// WithGroup satisfies slog.Handler. rline opens no groups.
+func (h *byteLog) WithGroup(string) slog.Handler { return h }
+
+// escapeBytes renders bytes so that a person can read them. The escape byte
+// becomes "\e" and the other control bytes become "\xNN". Bytes above 0x7f
+// pass through, so that text outside ASCII stays legible.
+func escapeBytes(s string) string {
+	var sb strings.Builder
+	for i := range len(s) {
+		switch c := s[i]; c {
+		case 0x1b:
+			sb.WriteString(`\e`)
+		case '\\':
+			sb.WriteString(`\\`)
+		case '\r':
+			sb.WriteString(`\r`)
+		case '\n':
+			sb.WriteString(`\n`)
+		case '\t':
+			sb.WriteString(`\t`)
+		default:
+			if c < 0x20 || c == 0x7f {
+				fmt.Fprintf(&sb, `\x%02x`, c)
+				continue
+			}
+			sb.WriteByte(c)
+		}
+	}
+	return sb.String()
 }

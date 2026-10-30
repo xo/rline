@@ -10,8 +10,8 @@
 //
 // The example is a module of its own, so that rline gets no new dependency
 // (rline D7). Its go.mod requires a published transit, and replaces rline
-// with the checkout that holds this folder, because it needs rline's
-// WithCompletionMenu before a release has it. Run it from this folder:
+// with the checkout that holds this folder, so that it always builds against
+// the code beside it. Run it from this folder:
 //
 //	go run . -lang python
 //

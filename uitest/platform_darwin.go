@@ -41,7 +41,8 @@ func platformReady() error {
 	return nil
 }
 
-// platformTerminals is the macOS matrix.
+// platformTerminals is the macOS matrix of D60. The VS Code terminal is in
+// that matrix and is not here yet (backlog 74).
 //
 // Terminal.app and iTerm2 are here because they are what people actually use
 // on a Mac, and they are the two that lag: Terminal.app uses older width
@@ -59,6 +60,16 @@ func platformTerminals() []Terminal {
 					"start", "--class", appID, "--"}, cmd...)
 			},
 			GetText: weztermGetText,
+		},
+		{
+			Name: "tmux", Bin: "tmux", Engine: "tmux in wezterm", Needs: []string{"wezterm"},
+			Args: func(c, r int, cmd []string) []string {
+				return append([]string{"wezterm",
+					"--config", fmt.Sprintf("initial_cols=%d", c),
+					"--config", fmt.Sprintf("initial_rows=%d", r),
+					"--config", "cursor_blink_rate=0",
+					"start", "--class", appID, "--"}, tmuxArgs(cmd)...)
+			},
 		},
 		{
 			Name: "ghostty", Bin: "ghostty", Engine: "ghostty",

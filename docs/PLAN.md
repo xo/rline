@@ -39,36 +39,36 @@ that holds it.
 | [D3](#d3-a-c-module-is-the-unit-of-work-and-the-modules-are-ported-from-the-leaves-up-decided) | A C module is the unit of work, and the modules are ported from the leaves up | Decided |
 | [D4](#d4-output-recorded-from-the-c-build-is-the-test-corpus-decided) | Output recorded from the C build is the test corpus | Decided |
 | [D5](#d5-each-file-derived-from-the-c-carries-isoclines-mit-notice-decided) | Each file derived from the C carries isocline's MIT notice | Decided |
-| [D6](#d6-rline-runs-on-linux-macos-and-windows-and-on-windows-in-cmdexe-and-powershell-proposed) | rline runs on Linux, macOS and Windows, and on Windows in cmd.exe and PowerShell | Proposed |
-| [D7](#d7-character-width-comes-from-go-runewidth-and-the-terminal-settings-from-xsysunix-proposed-amended-by-d39) | Character width comes from go-runewidth, and the terminal settings from x/sys/unix | Proposed. Amended by D39 |
-| [D8](#d8-the-key-codes-are-exported-from-their-own-package-key-proposed-amends-d1) | The key codes are exported from their own package, key | Proposed. Amends D1 |
-| [D9](#d9-the-port-writes-escape-sequences-to-the-windows-console-and-carries-none-of-the-console-emulation-in-termc-proposed) | The port writes escape sequences to the Windows console and carries none of the console emulation in term.c | Proposed |
+| [D6](#d6-rline-runs-on-linux-macos-and-windows-and-on-windows-in-cmdexe-and-powershell-decided-amended-by-d62) | rline runs on Linux, macOS and Windows, and on Windows in cmd.exe and PowerShell | Decided. Amended by D62 |
+| [D7](#d7-character-width-comes-from-go-runewidth-and-the-terminal-settings-from-xsysunix-decided-amended-by-d39-and-d55) | Character width comes from go-runewidth, and the terminal settings from x/sys/unix | Decided. Amended by D39 and D55 |
+| [D8](#d8-the-key-codes-are-exported-from-their-own-package-key-decided-amends-d1) | The key codes are exported from their own package, key | Decided. Amends D1 |
+| [D9](#d9-the-port-writes-escape-sequences-to-the-windows-console-and-carries-none-of-the-console-emulation-in-termc-decided-amended-by-d62) | The port writes escape sequences to the Windows console and carries none of the console emulation in term.c | Decided. Amended by D62 |
 | [D10](#d10-the-history-file-mode-is-left-to-the-umask-decided-amended-by-d21) | The history file mode is left to the umask | Decided. Amended by D21 |
-| [D11](#d11-a-program-makes-its-own-session-and-sets-it-up-with-options-proposed) | A program makes its own Session, and sets it up with options | Proposed |
+| [D11](#d11-a-program-makes-its-own-session-and-sets-it-up-with-options-decided) | A program makes its own Session, and sets it up with options | Decided |
 | [D12](#d12-password-turns-echo-off-and-leaves-line-editing-to-the-terminal-decided) | Password turns echo off and leaves line editing to the terminal | Decided |
 | [D13](#d13-ctrl-c-answers-errinterrupted-and-setcompleter-replaces-the-completer-decided-amended-by-d45) | Ctrl-C answers ErrInterrupted, and SetCompleter replaces the completer | Decided. Amended by D45 |
 | [D14](#d14-a-session-reads-lines-a-markupwriter-writes-markup-and-a-prompt-holds-both-decided) | A Session reads lines, a MarkupWriter writes markup, and a Prompt holds both | Decided |
 | [D15](#d15-files-are-grouped-by-what-a-reader-looks-for-and-there-are-fewer-of-them-decided) | Files are grouped by what a reader looks for, and there are fewer of them | Decided |
 | [D16](#d16-rline-never-adapts-to-usql-decided) | rline never adapts to usql | Decided |
 | [D17](#d17-an-error-is-a-constant-of-a-string-type-and-its-text-is-its-name-without-err-decided) | An error is a constant of a string type, and its text is its name without Err | Decided |
-| [D18](#d18-the-terminal-code-builds-for-every-unix-system-but-aix-and-three-systems-are-tested-proposed) | The terminal code builds for every Unix system but aix, and three systems are tested | Proposed |
+| [D18](#d18-the-terminal-code-builds-for-every-unix-system-but-aix-and-three-systems-are-tested-decided) | The terminal code builds for every Unix system but aix, and three systems are tested | Decided |
 | [D19](#d19-the-library-needs-go-1250-and-the-linter-is-a-module-of-its-own-decided-amended-by-d40) | The library needs Go 1.25.0, and the linter is a module of its own | Decided. Amended by D40 |
-| [D20](#d20-continuous-integration-runs-every-check-on-four-hosted-runners-with-the-go-that-gomod-names-proposed) | Continuous integration runs every check on four hosted runners, with the Go that go.mod names | Proposed |
-| [D21](#d21-saving-the-history-never-makes-the-file-shorter-and-the-file-is-created-0600-proposed-amends-d10) | Saving the history never makes the file shorter, and the file is created 0600 | Proposed. Amends D10 |
+| [D20](#d20-continuous-integration-runs-every-check-on-four-hosted-runners-with-the-go-that-gomod-names-decided) | Continuous integration runs every check on four hosted runners, with the Go that go.mod names | Decided |
+| [D21](#d21-saving-the-history-never-makes-the-file-shorter-and-the-file-is-created-0600-decided-amends-d10) | Saving the history never makes the file shorter, and the file is created 0600 | Decided. Amends D10 |
 | [D22](#d22-the-completion-file-is-named-compgo-decided) | The completion file is named comp.go | Decided |
-| [D23](#d23-color-is-the-ansi-package-and-the-line-editor-and-the-text-under-it-are-internal-packages-proposed) | Color is the ansi package, and the line editor and the text under it are internal packages | Proposed |
+| [D23](#d23-color-is-the-ansi-package-and-the-line-editor-and-the-text-under-it-are-internal-packages-decided) | Color is the ansi package, and the line editor and the text under it are internal packages | Decided |
 | [D24](#d24-the-recorded-color-and-sgr-cases-of-10b07d6-are-discarded-decided) | The recorded color and SGR cases of 10b07d6 are discarded | Decided |
 | [D25](#d25-ansicodergba-keeps-its-named-results-decided) | ansi.Code.RGBA keeps its named results | Decided |
-| [D26](#d26-every-switch-is-named-for-what-it-turns-on-proposed) | Every switch is named for what it turns on | Proposed |
+| [D26](#d26-every-switch-is-named-for-what-it-turns-on-decided) | Every switch is named for what it turns on | Decided |
 | [D27](#d27-each-options-parameter-names-the-field-it-sets-decided) | Each option's parameter names the field it sets | Decided |
-| [D28](#d28-the-stream-options-are-withstdin-withstdout-and-withstderr-proposed) | The stream options are WithStdin, WithStdout and WithStderr | Proposed |
-| [D29](#d29-a-deferred-close-of-a-file-opened-for-reading-is-not-checked-proposed) | A deferred close of a file opened for reading is not checked | Proposed |
-| [D30](#d30-the-terminal-types-are-named-tty-keydecoder-and-term-proposed) | The terminal types are named tty, keyDecoder and term | Proposed |
-| [D31](#d31-the-checks-cover-every-system-that-the-go-toolchain-lists-proposed) | The checks cover every system that the Go toolchain lists | Proposed |
-| [D32](#d32-four-gaps-in-the-checks-are-left-on-purpose-proposed) | Four gaps in the checks are left on purpose | Proposed |
-| [D33](#d33-real-terminals-are-tested-on-a-private-compositor-never-on-the-desktop-proposed) | Real terminals are tested on a private compositor, never on the desktop | Proposed |
-| [D34](#d34-the-test-suite-is-designed-as-seven-layers-proposed) | The test suite is designed as seven layers | Proposed |
-| [D35](#d35-usqls-readline-label-is-the-queue-that-rline-plans-against-proposed) | usql's readline label is the queue that rline plans against | Proposed |
+| [D28](#d28-the-stream-options-are-withstdin-withstdout-and-withstderr-decided) | The stream options are WithStdin, WithStdout and WithStderr | Decided |
+| [D29](#d29-a-deferred-close-of-a-file-opened-for-reading-is-not-checked-decided) | A deferred close of a file opened for reading is not checked | Decided |
+| [D30](#d30-the-terminal-types-are-named-tty-keydecoder-and-term-decided) | The terminal types are named tty, keyDecoder and term | Decided |
+| [D31](#d31-the-checks-cover-every-system-that-the-go-toolchain-lists-decided-amended-by-d60) | The checks cover every system that the Go toolchain lists | Decided. Amended by D60 |
+| [D32](#d32-four-gaps-in-the-checks-are-left-on-purpose-decided) | Four gaps in the checks are left on purpose | Decided |
+| [D33](#d33-real-terminals-are-tested-on-a-private-compositor-never-on-the-desktop-decided) | Real terminals are tested on a private compositor, never on the desktop | Decided |
+| [D34](#d34-the-test-suite-is-designed-as-seven-layers-decided) | The test suite is designed as seven layers | Decided |
+| [D35](#d35-usqls-readline-label-is-the-queue-that-rline-plans-against-decided) | usql's readline label is the queue that rline plans against | Decided |
 | [D36](#d36-rline-is-set-up-for-coding-agents-as-every-xo-repository-is-decided) | rline is set up for coding agents as every xo repository is | Decided |
 | [D37](#d37-each-example-program-is-a-folder-under-_examples-decided) | Each example program is a folder under _examples | Decided |
 | [D38](#d38-the-first-release-is-v010-and-no-gomod-in-it-has-a-replace-directive-decided) | The first release is v0.1.0, and no go.mod in it has a replace directive | Decided |
@@ -81,11 +81,24 @@ that holds it.
 | [D45](#d45-readlines-keys-commands-completion-and-search-are-checked-against-gnu-readline-and-rlines-renderer-and-features-stay-decided-amends-d13-and-d44-amended-by-d51) | readline's keys, commands, completion and search are checked against GNU readline, and rline's renderer and features stay | Decided. Amends D13 and D44, amended by D51 |
 | [D46](#d46-the-readline-work-records-against-readline-83-treats-esc-as-a-prefix-and-starts-with-the-whole-emacs-command-set-decided-amends-d43) | The readline work records against readline 8.3, treats Esc as a prefix, and starts with the whole emacs command set | Decided. Amends D43 |
 | [D47](#d47-the-readline-commands-are-written-from-readlines-manual-and-recordings-never-from-its-c-decided) | The readline commands are written from readline's manual and recordings, never from its C | Decided |
-| [D48](#d48-a-session-gives-the-terminal-to-another-program-with-release-and-watches-the-stop-signals-only-in-raw-mode-proposed) | A Session gives the terminal to another program with Release, and watches the stop signals only in raw mode | Proposed |
+| [D48](#d48-a-session-gives-the-terminal-to-another-program-with-release-and-watches-the-stop-signals-only-in-raw-mode-decided) | A Session gives the terminal to another program with Release, and watches the stop signals only in raw mode | Decided |
 | [D49](#d49-the-style-names-start-with-rline--and-not-with-ic--decided) | The style names start with rline- and not with ic- | Decided |
 | [D50](#d50-a-program-asks-for-the-users-inputrc-with-withuserinputrc-and-notices-lists-what-rline-does-not-support-decided) | A program asks for the user's inputrc with WithUserInputrc, and Notices lists what rline does not support | Decided |
 | [D51](#d51-isoclines-completion-menu-comes-back-as-the-command-rline-menu-complete-and-withcompletionmenu-binds-tab-to-it-decided-amends-d45) | isocline's completion menu comes back as the command rline-menu-complete, and WithCompletionMenu binds Tab to it | Decided. Amends D45 |
 | [D52](#d52-withkeepinterrupted-leaves-a-line-that-ctrl-c-gave-up-on-the-screen-decided) | WithKeepInterrupted leaves a line that Ctrl-C gave up on the screen | Decided |
+| [D53](#d53-the-prompt-marks-vis-modes-as-readline-does-from-the-variables-of-an-inputrc-file-decided) | The prompt marks vi's modes as readline does, from the variables of an inputrc file | Decided |
+| [D54](#d54-the-session-log-is-a-logslog-handler-decided) | The session log is a log/slog handler | Decided |
+| [D55](#d55-rline-adopts-githubcomxoterminfo-and-takes-the-terminals-sequences-from-it-where-it-makes-sense-decided-amends-d7) | rline adopts github.com/xo/terminfo, and takes the terminal's sequences from it where it makes sense | Decided. Amends D7 |
+| [D56](#d56-completionadd-replaces-the-word-it-was-given-and-a-single-completion-gets-a-space-decided) | Completion.Add replaces the word it was given, and a single completion gets a space | Decided |
+| [D57](#d57-a-session-passes-bytes-through-unchanged-when-its-output-is-not-a-terminal-decided) | A Session passes bytes through unchanged when its output is not a terminal | Decided |
+| [D58](#d58-a-program-registers-commands-of-its-own-as-readlines-rl_add_defun-does-decided) | A program registers commands of its own, as readline's rl_add_defun does | Decided |
+| [D59](#d59-the-decoder-reads-esc--and-esc-o-as-readline-does-with-no-eterm-form-decided) | The decoder reads ESC ? and ESC o as readline does, with no Eterm form | Decided |
+| [D60](#d60-the-checks-cover-a-chosen-set-of-systems-and-terminals-not-every-pair-the-toolchain-lists-decided-amends-d31) | The checks cover a chosen set of systems and terminals, not every pair the toolchain lists | Decided. Amends D31 |
+| [D61](#d61-a-session-has-no-getters-for-what-it-was-given-and-withcontinues-parameter-names-its-field-decided) | A Session has no getters for what it was given, and WithContinue's parameter names its field | Decided |
+| [D62](#d62-rline-supports-windows-11-and-tests-nothing-older-on-windows-decided-amends-d6-and-d9) | rline supports Windows 11 and tests nothing older on Windows | Decided. Amends D6 and D9 |
+| [D63](#d63-the-session-log-gives-a-handler-fixed-messages-bytes-at-debug-level-and-lines-at-info-level-proposed) | The session log gives a handler fixed messages, bytes at debug level and lines at info level | Proposed |
+| [D64](#d64-a-programs-command-is-a-command-that-gets-a-line-and-its-name-cannot-be-one-that-readline-or-rline-has-proposed) | A program's command is a Command that gets a Line, and its name cannot be one that readline or rline has | Proposed |
+| [D65](#d65-rline-takes-the-colors-of-the-active-region-from-terminfo-and-moves-none-of-isoclines-sequences-proposed) | rline takes the colors of the active region from terminfo, and moves none of isocline's sequences | Proposed |
 
 ## Purpose
 
@@ -221,7 +234,7 @@ carry the notice and say that it covers the package. `ansi`,
 notice, and the repository has no `LICENSE` file. [BACKLOG.md](BACKLOG.md)
 holds this.
 
-### D6. rline runs on Linux, macOS and Windows, and on Windows in cmd.exe and PowerShell. Proposed.
+### D6. rline runs on Linux, macOS and Windows, and on Windows in cmd.exe and PowerShell. Decided. Amended by D62.
 
 Commits: `9aeab74` (2026-09-19), `231a976` (2026-09-19), `591b9d9`
 (2026-09-19), `202866f` (2026-09-20).
@@ -235,7 +248,9 @@ supported" and "Platforms" in [PLATFORMS.md](PLATFORMS.md) hold the detail.
 
 Reason not recorded.
 
-### D7. Character width comes from go-runewidth, and the terminal settings from x/sys/unix. Proposed. Amended by D39.
+Ken accepted the decision on 2026-10-30.
+
+### D7. Character width comes from go-runewidth, and the terminal settings from x/sys/unix. Decided. Amended by D39 and D55.
 
 Commits: `51a1ffa` (2026-09-19), `52a9718` (2026-09-19), `b885bf8`
 (2026-09-19).
@@ -257,7 +272,9 @@ the disagreement in a committed file, so an upgrade of go-runewidth shows as
 a changed file. Three parts of the disagreement are not settled. "The width
 table" in [PORT.md](PORT.md) names them, and they are an open question below.
 
-### D8. The key codes are exported from their own package, key. Proposed. Amends D1.
+Ken accepted the decision on 2026-10-30.
+
+### D8. The key codes are exported from their own package, key. Decided. Amends D1.
 
 Commits: `b56d755` (2026-09-19).
 
@@ -270,7 +287,9 @@ decided.
 
 No commit says that Ken chose it.
 
-### D9. The port writes escape sequences to the Windows console and carries none of the console emulation in term.c. Proposed.
+Ken accepted the decision on 2026-10-30.
+
+### D9. The port writes escape sequences to the Windows console and carries none of the console emulation in term.c. Decided. Amended by D62.
 
 Commits: `fd1c1e3` (2026-09-19), `b76e82a` (2026-09-19), `cc5a887`
 (2026-09-19).
@@ -287,6 +306,8 @@ Reason, from the old plan: two calls to `SetConsoleMode` replace the 400
 lines, and a Windows 11 console measured with the flag off moved the cursor
 correctly once the flag was on.
 
+Ken accepted the decision on 2026-10-30.
+
 ### D10. The history file mode is left to the umask. Decided. Amended by D21.
 
 Commits: `231ea07` (2026-09-19).
@@ -302,7 +323,7 @@ typed, which can include a password typed at the wrong prompt. On Windows the
 protection comes from the access control list of the folder, and nothing in
 this package sets it.
 
-### D11. A program makes its own Session, and sets it up with options. Proposed.
+### D11. A program makes its own Session, and sets it up with options. Decided.
 
 Commits: `73aaf21` (2026-09-19), `ea31d9d` (2026-09-19).
 
@@ -318,6 +339,8 @@ detail.
 
 Reason, from `73aaf21`: one global state means one reader per program, on a
 terminal the program cannot choose.
+
+Ken accepted the decision on 2026-10-30.
 
 ### D12. Password turns echo off and leaves line editing to the terminal. Decided.
 
@@ -448,7 +471,7 @@ The Windows terminal layer used to have its own `errNotATerminal` reading
 "not a console". There is now one value for the one idea, and it reads "not a
 terminal" everywhere. Nothing asserts the text.
 
-### D18. The terminal code builds for every Unix system but aix, and three systems are tested. Proposed.
+### D18. The terminal code builds for every Unix system but aix, and three systems are tested. Decided.
 
 Commits: `83f2d96` (2026-09-20), `1763b1c` (2026-09-20), `850107e`
 (2026-09-20).
@@ -462,6 +485,8 @@ systems are tested and which only compile. No commit says that Ken chose to
 widen the tag. "Which systems are supported" in
 [PLATFORMS.md](PLATFORMS.md) holds the measurements and DeepSeek's argument
 against the change.
+
+Ken accepted the decision on 2026-10-30.
 
 ### D19. The library needs Go 1.25.0, and the linter is a module of its own. Decided. Amended by D40.
 
@@ -480,7 +505,7 @@ for Go 1.26, and Ken chose to stay on Go 1.25.0, so `x/sys` stays at v0.47.0,
 the last release that asks for Go 1.25. The status changed from Proposed to
 Decided then.
 
-### D20. Continuous integration runs every check on four hosted runners, with the Go that go.mod names. Proposed.
+### D20. Continuous integration runs every check on four hosted runners, with the Go that go.mod names. Decided.
 
 Commits: `9cef5e4` (2026-09-20), `b9ab8ba` (2026-09-20).
 
@@ -492,7 +517,9 @@ Windows it skips `TestGoldenSetIsPresent` alone, not its package.
 Reason, from `9cef5e4`: "a library that builds only with the newest Go is
 one its consumers cannot use".
 
-### D21. Saving the history never makes the file shorter, and the file is created 0600. Proposed. Amends D10.
+Ken accepted the decision on 2026-10-30.
+
+### D21. Saving the history never makes the file shorter, and the file is created 0600. Decided. Amends D10.
 
 Commits: `e19767f` (2026-09-20).
 
@@ -509,6 +536,8 @@ and the departure in "Known departures from the C code" in
 [PORT.md](PORT.md) still describe D10. The status of the mode is an open
 question below.
 
+Ken accepted the decision on 2026-10-30.
+
 ### D22. The completion file is named comp.go. Decided.
 
 Commits: `a474a27` (2026-09-20).
@@ -517,7 +546,7 @@ Commits: `a474a27` (2026-09-20).
 completes. Gemini and DeepSeek both preferred `completion.go`. `a474a27`
 says: "the name is Ken's call and this is the name he asked for."
 
-### D23. Color is the ansi package, and the line editor and the text under it are internal packages. Proposed.
+### D23. Color is the ansi package, and the line editor and the text under it are internal packages. Decided.
 
 Commits: `0233416` (2026-09-20), `ec5f9c3` (2026-09-20), `d91288c`
 (2026-09-20).
@@ -533,6 +562,8 @@ API frozen by the first tagged release. "Where things live" in
 Reason, from `d91288c`: a type that must export 42 members is a struct that
 was moved, not a boundary that was drawn. If the fields become methods and
 the count falls under about fifteen, the package can be made public.
+
+Ken accepted the decision on 2026-10-30.
 
 ### D24. The recorded color and SGR cases of 10b07d6 are discarded. Decided.
 
@@ -554,7 +585,7 @@ Commits: `4311130` (2026-09-20).
 the method with those names, and four bare `uint32` values do not say which
 is which. The reason is written above the method.
 
-### D26. Every switch is named for what it turns on. Proposed.
+### D26. Every switch is named for what it turns on. Decided.
 
 Commits: `ea31d9d` (2026-09-19), `64d0004` (2026-09-20).
 
@@ -569,6 +600,8 @@ highlighter already says that. A caller turns highlighting off with
 Reason, from `64d0004`: a negative name makes every read a double negative,
 and its zero value hides a default.
 
+Ken accepted the decision on 2026-10-30.
+
 ### D27. Each option's parameter names the field it sets. Decided.
 
 Commits: `64834d1` (2026-09-20).
@@ -580,7 +613,7 @@ takes `name`, as `os.Open` does. `WithContinue` takes `fn`, because its field
 is `isIncomplete` and the two mean opposite things. The name of
 `WithContinue` is an open question below.
 
-### D28. The stream options are WithStdin, WithStdout and WithStderr. Proposed.
+### D28. The stream options are WithStdin, WithStdout and WithStderr. Decided.
 
 Commits: `64834d1` (2026-09-20).
 
@@ -594,7 +627,9 @@ terminal.
 Reason, from `64834d1`: the third option was already `Stderr`, and nothing
 was going to rename it.
 
-### D29. A deferred close of a file opened for reading is not checked. Proposed.
+Ken accepted the decision on 2026-10-30.
+
+### D29. A deferred close of a file opened for reading is not checked. Decided.
 
 Commits: `72a77ac` (2026-09-20).
 
@@ -604,7 +639,9 @@ cannot change either. errcheck cannot limit the exclusion to deferred calls,
 so an unchecked close of a file opened for writing passes too. `history.go`
 checks its own write close for that reason.
 
-### D30. The terminal types are named tty, keyDecoder and term. Proposed.
+Ken accepted the decision on 2026-10-30.
+
+### D30. The terminal types are named tty, keyDecoder and term. Decided.
 
 Commits: `d08ea9a` (2026-09-21).
 
@@ -614,7 +651,9 @@ all, is `keyDecoder`. `term` writes to the terminal. The files follow the
 types. "The terminal types are named for what they are" in
 [LAYOUT.md](LAYOUT.md) holds the detail.
 
-### D31. The checks cover every system that the Go toolchain lists. Proposed.
+Ken accepted the decision on 2026-10-30.
+
+### D31. The checks cover every system that the Go toolchain lists. Decided. Amended by D60.
 
 Commits: `83f2d96` (2026-09-20), `b89a07f` (2026-09-23), `4121b01`
 (2026-09-23).
@@ -630,7 +669,9 @@ is Ken's. It is an open question below.
 Reason, from `b89a07f`: a hand-written list missed five systems, and a loop
 cannot report on what it was not given.
 
-### D32. Four gaps in the checks are left on purpose. Proposed.
+Ken accepted the decision on 2026-10-30.
+
+### D32. Four gaps in the checks are left on purpose. Decided.
 
 Commits: `b89a07f` (2026-09-23).
 
@@ -642,7 +683,9 @@ The results of the matrix are not pooled. "Gaps left on purpose" in
 "somebody weighed them and said no", and names the session `ken-mba` as the
 source of the section. It does not say that Ken weighed them.
 
-### D33. Real terminals are tested on a private compositor, never on the desktop. Proposed.
+Ken accepted the decision on 2026-10-30.
+
+### D33. Real terminals are tested on a private compositor, never on the desktop. Decided.
 
 Commits: `3e77b8b` (2026-09-23), `e8a1d71` (2026-09-23).
 
@@ -656,7 +699,9 @@ against a real terminal" in [LESSONS.md](LESSONS.md) and
 Reason, from `3e77b8b`: a check before a synthetic keystroke and the
 keystroke are different moments, so only isolation makes it safe.
 
-### D34. The test suite is designed as seven layers. Proposed.
+Ken accepted the decision on 2026-10-30.
+
+### D34. The test suite is designed as seven layers. Decided.
 
 Commits: `fbe0a8d` (2026-09-23).
 
@@ -674,7 +719,9 @@ properties, there is no layer holding rline to usql's contract at all, and the
 layer that drives a Session over fixed input has no name and no directory,
 which is why it is the one a new feature skips.
 
-### D35. usql's readline label is the queue that rline plans against. Proposed.
+Ken accepted the decision on 2026-10-30.
+
+### D35. usql's readline label is the queue that rline plans against. Decided.
 
 Commits: `1ee5929` (2026-09-23), `5630135` (2026-09-23).
 
@@ -683,6 +730,8 @@ each one whether rline has to offer something first. `5630135` calls this
 "the arrangement" and does not say who made it. It says that Ken kept usql
 215 as a numbered backlog item. "What usql needs, and who moves first" in
 [USQL.md](USQL.md) sorts the issues.
+
+Ken accepted the decision on 2026-10-30.
 
 ### D36. rline is set up for coding agents as every xo repository is. Decided.
 
@@ -937,7 +986,7 @@ The rule came up while the first phase was written, on 2026-10-14, and Ken
 confirmed it the same day: readline's code is only read, never copied or
 translated here. The status changed from Proposed to Decided then.
 
-### D48. A Session gives the terminal to another program with Release, and watches the stop signals only in raw mode. Proposed.
+### D48. A Session gives the terminal to another program with Release, and watches the stop signals only in raw mode. Decided.
 
 usql moves its pager into a package of its own, usql/pager. The pager holds
 the output of a command until it is taller or wider than the terminal. Then
@@ -979,6 +1028,8 @@ each read, so only the second point applies there, through `os.Interrupt`.
 The status is Proposed, because the names and the rules for the signals are
 not yet confirmed by Ken. Item 2 of [BACKLOG.md](BACKLOG.md) asked for the
 first point.
+
+Ken accepted the decision on 2026-10-30.
 
 ### D49. The style names start with rline- and not with ic-. Decided.
 
@@ -1074,10 +1125,207 @@ asked for:
 
 Ken accepted the decision as proposed on 2026-10-30.
 
+### D53. The prompt marks vi's modes as readline does, from the variables of an inputrc file. Decided.
+
+Ken decided on 2026-10-30 that the mode indicator follows readline (the
+fourth open question). readline does not set the shape of the cursor
+itself. With `show-mode-in-prompt` on, it puts `emacs-mode-string`,
+`vi-ins-mode-string` or `vi-cmd-mode-string` in front of the prompt, and a
+user who wants a bar in insert mode and a block in command mode puts the
+DECSCUSR sequence in those strings, between `\1` and `\2`. rline does the
+same, reads the four variables from the inputrc file, and changes the
+string when the mode changes. It sends no cursor sequence of its own, so it
+has nothing to put back.
+
+### D54. The session log is a log/slog handler. Decided.
+
+Ken decided on 2026-10-30 that `WithLogger` takes a `log/slog` handler in
+place of an `io.Writer` (the sixth and seventh open questions). A record
+can then carry a level and fields, and the log can leave out what must not
+be in it, such as a password on a system with no no-echo terminal (backlog
+5). The shape of the records is designed with the change.
+
+### D55. rline adopts github.com/xo/terminfo, and takes the terminal's sequences from it where it makes sense. Decided. Amends D7.
+
+Ken decided on 2026-10-30 that rline adds `github.com/xo/terminfo` as a
+dependency (the first open question). Where a sequence or a capability comes
+from the terminal, rline reads it from terminfo, with the sequences that
+isocline writes as the fallback when there is no entry. Which sequences move
+is decided item by item, because isocline's recorded output is the corpus
+(D4) and each move changes it. The terminal's values also fill the variables
+that readline takes from terminfo, such as the colors of the active region
+(backlog 68).
+
+### D56. Completion.Add replaces the word it was given, and a single completion gets a space. Decided.
+
+Ken decided on 2026-10-30 that `Completion.Add` does what its comment says
+(backlog 31 and 58). The completion replaces the prefix that was handed to
+the completer, and a single completion at the end of the line is followed by
+a space, as readline adds one. A completer that already uses `AddCandidate`
+with `DeleteBefore` is not changed. A completer that calls `Add` now gets
+the word replaced, where it was appended to before.
+
+### D57. A Session passes bytes through unchanged when its output is not a terminal. Decided.
+
+Ken decided on 2026-10-30 that when the output of a `Session` is not a
+terminal, the bytes that a program writes through it pass unchanged
+(backlog 42). isocline drops the control bytes 0 to 6 and 14 to 26, and
+drops every SGR sequence when color is off, which protects a terminal and
+changes the data of a pipe or a file. On a terminal the filter stays.
+
+### D58. A program registers commands of its own, as readline's rl_add_defun does. Decided.
+
+Ken decided on 2026-10-30 that a program can register commands by name, so
+that an inputrc file can bind them, as readline's `rl_add_defun` does
+(backlog 48). The shape of the API is designed with the change.
+
+### D59. The decoder reads ESC ? and ESC o as readline does, with no Eterm form. Decided.
+
+Ken decided on 2026-10-30 that the decoder stops reading `ESC ?` and
+`ESC o` as the start of Eterm's SS3 sequence, and reads them as readline
+does (backlog 57). So M-? typed fast with the next key stays two keys.
+`testdata/tty.txt` records isocline's rule, so this is a departure with a
+delta, as D42 and D46 are.
+
+### D60. The checks cover a chosen set of systems and terminals, not every pair the toolchain lists. Decided. Amends D31.
+
+Ken decided on 2026-10-30 that vetting all 47 pairs that `go tool dist list`
+gives is too much, and asked the models which systems and terminals to keep.
+Gemini Pro, DeepSeek Pro and Kimi K3 answered.
+
+The systems: one pair for each build tag. The three models also added a
+32-bit pair where the code makes system calls, and Ken left those out. The
+list is `linux/amd64`, `darwin/arm64`, `windows/amd64`, `freebsd/amd64`,
+`netbsd/amd64`, `openbsd/amd64`, `dragonfly/amd64`, `illumos/amd64`,
+`solaris/amd64`, `aix/ppc64`, `js/wasm`, `wasip1/wasm` and `plan9/amd64`. A
+test holds that every file with a build tag compiles in at least one of
+them.
+
+The terminals: Ken's list is iTerm2, Ghostty, Terminal.app and WezTerm on
+macOS, WezTerm, PowerShell and cmd.exe on Windows, and WezTerm, Ghostty and
+kitty on Linux. All three models add Windows Terminal, which is the default
+on Windows 11, and the VS Code terminal, which is xterm.js. All three add
+GNOME Terminal (VTE), the largest Linux base. Two add tmux, which rewrites
+escape sequences. All three leave out GNU screen, Alacritty and foot, and
+two leave out Konsole. PowerShell and cmd.exe are shells, so they are
+tested in conhost and in Windows Terminal.
+
+Ken accepted these recommendations on 2026-10-30, without `linux/386` and
+`windows/386`. The terminals are the maintainer's list with Windows
+Terminal, the VS Code terminal, GNOME Terminal and tmux added. foot stays in
+`uitest` only to record the README GIF.
+
+### D61. A Session has no getters for what it was given, and WithContinue's parameter names its field. Decided.
+
+Ken decided on 2026-10-30, on the recommendation for the eighth open
+question, that a `Session` gets no getters for its completer, its
+highlighter or its continuation function. usql no longer needs one (backlog
+3), and a program knows what it set. The field that `WithContinue` sets is
+renamed to match the option, so that the parameter names the field, as D27
+asks.
+
+### D62. rline supports Windows 11 and tests nothing older on Windows. Decided. Amends D6 and D9.
+
+Ken decided on 2026-10-30 that rline is tested on Windows 11 and on
+nothing older, and that consoles which cannot read escape sequences are not
+supported (the twelfth open question). Go itself runs only on Windows 10 or
+Server 2016 and later since Go 1.21, and rline needs Go 1.25, so Windows 7,
+8 and 8.1 could not run rline anyway. What this gives up is Windows 10 before
+version 1511, and a console with "Use legacy console" ticked in its
+properties.
+
+### D63. The session log gives a handler fixed messages, bytes at debug level and lines at info level. Proposed.
+
+D54 left the shape of the records open. This is the shape that was built on
+2026-10-30, for Ken to accept or change.
+
+`WithLogger` takes a `slog.Handler`. Each record has a message from a set of
+exported constants, so that a handler can test it without a string literal:
+
+- `LogWrite` and `LogRead` are at debug level. They hold what was written to
+  the terminal and each byte read from the keyboard, in the attribute
+  `LogBytes`, as a string with nothing escaped.
+- `LogLine` is at info level, with the line in the attribute `LogText`.
+- `LogInterrupted` and `LogEndOfInput` are at info level, with no
+  attributes.
+- `LogPassword` is at info level, with no attributes. It says that
+  `Password` read a password.
+
+While `Password` reads through the decoder, the log records no read, on
+every system. That closes backlog 5. A handler at the default info level
+gets the lines and none of the bytes.
+
+The SQL example writes the old format of one record to a line, with `<`,
+`>` and `=`, through a handler of its own, so the logs that `uitest`
+compares keep their form. The bash example uses `slog.NewTextHandler`.
+
+### D64. A program's command is a Command that gets a Line, and its name cannot be one that readline or rline has. Proposed.
+
+D58 left the shape of the API open. This is the shape that was built on
+2026-10-30, for Ken to accept or change.
+
+`WithCommand(name, command)` adds a command. `Command` is an interface with
+one method, `Run(l *Line)`, and `CommandFunc` adapts a function, as
+`Completer` and `Highlighter` do. A `Line` gives the text, the cursor as a
+byte offset, the numeric argument and the key. It changes the line with
+`Replace` and `Insert`, rings the bell with `Bell`, and finishes the line
+with `AcceptLine`. Undo takes a command back as one step.
+
+An inputrc file binds a key to the command by its name, and M-x runs it.
+`New` returns `ErrCommandExists` when the name is one that readline or rline
+already has, so a program cannot replace a command of readline. readline's
+`rl_add_defun` also takes a key to bind. rline takes none, and a program
+that wants a default key has no way to give one yet.
+
+### D65. rline takes the colors of the active region from terminfo, and moves none of isocline's sequences. Proposed.
+
+D55 adopted `github.com/xo/terminfo` and left each sequence to be
+decided on its own. rline uses v1.2.1, which reads `$HOME` for
+`~/.terminfo` as ncurses does. This is what was built on 2026-10-30, and a
+recommendation for the rest.
+
+When the output is a terminal, `New` reads the entry of `$TERM`. The
+standout sequences, `smso` and `rmso`, become `active-region-start-color`
+and `active-region-end-color`, as readline takes them, and an inputrc file
+goes over them. A terminal with no entry, which every Windows console is,
+keeps readline's empty defaults. No recorded corpus changed.
+
+The recommendation is that no sequence that rline writes moves now:
+
+1. The cursor moves, the erase and the SGR sequences stay isocline's.
+   Every terminal in the matrix of D60 reads them, the corpus records them,
+   and terminfo gives the same bytes for those terminals.
+2. The color palette stays isocline's rule. The terminals of D60 set
+   `COLORTERM` or are named in the rule, and terminfo understates them:
+   `xterm` gives 8 colors where the rule gives 16.
+3. The visible bell moves to terminfo's `flash` when `bell-style visible`
+   is built, after terminfo applies padding (backlog 77).
+4. Bracketed paste reads the extended capabilities `BE` and `BD` when it is
+   built (backlog 7).
+
 ## Open questions for Ken
 
 The first eight came from the old plan, in its words. The rest were found
 while this document was written.
+
+Ken answered most of them on 2026-10-30:
+
+- The first is answered by D55: rline adopts terminfo.
+- The second is answered by D39, the fourth by D53, and the fifth by D41 to
+  D50, where vi's modes arrived.
+- The sixth and the seventh are answered by D54: the log is a `log/slog`
+  handler.
+- The ninth is answered: Ken accepted every decision that was Proposed.
+- The thirteenth is answered by D60.
+- The tenth is answered: D21 stands. readline 8.3 creates a new history
+  file 0600 under any umask, as D21 does, and leaves the mode of a file
+  that exists. The library and bash were both measured.
+- The eighth is answered by D61, and the twelfth by D62.
+- The eleventh waits for a larger strategy for widths, which backlog 73
+  holds. tblfmt measures by grapheme cluster with go-runewidth v0.0.31,
+  which gives isocline's answer inside a cluster, and Ken's two pull
+  requests on go-runewidth change none of the three kinds.
+- The third is open.
 
 First, does `rline` adopt `github.com/xo/terminfo`? isocline contains no
 terminfo code. `term.c` reads the `TERM`, `COLORTERM`, `NO_COLOR`,

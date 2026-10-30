@@ -46,9 +46,10 @@ gif=uitest/out/rline.gif
 [[ -f "$mp4" ]] || { echo "no recording at $mp4; is wf-recorder installed?" >&2; exit 1; }
 
 # The window is centred on the compositor's 1920x1080 output. Its size is read
-# from a screenshot the run just took rather than assumed, because it depends
-# on the font and on what the terminal makes of the requested size.
-shot=$(ls uitest/out/foot/demo/*.png | tail -1)
+# from a screenshot of the session that was just recorded rather than assumed,
+# because it depends on the font and on what the terminal makes of the
+# requested size.
+shot=$(ls uitest/out/foot/readme/*.png | tail -1)
 read -r ww wh < <(python3 -c "
 import struct,sys
 d=open(sys.argv[1],'rb').read()

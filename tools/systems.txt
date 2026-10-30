@@ -1,0 +1,18 @@
+# The systems that the checks vet, one GOOS/GOARCH pair to a line (D60).
+# There is one pair for each build tag that the code names. The vet step in
+# .github/workflows/test.yml reads this file, and TestEveryFileBuildsSomewhere
+# in agents_test.go makes sure that every file with a build tag compiles in
+# at least one of these pairs.
+linux/amd64
+darwin/arm64
+windows/amd64
+freebsd/amd64
+netbsd/amd64
+openbsd/amd64
+dragonfly/amd64
+illumos/amd64
+solaris/amd64
+aix/ppc64
+js/wasm
+wasip1/wasm
+plan9/amd64

@@ -173,7 +173,10 @@ exists as a code with nothing behind it, and bracketed paste is in neither
 implementation. Nobody dropped these in the port.
 
 **236 and 552**, vi bindings, filed five years apart. Worth knowing before a
-mode abstraction is designed rather than after.
+mode abstraction is designed rather than after. rline has readline's vi
+modes, and D53 gives the cursor shape as readline gives it: an inputrc file
+puts the cursor sequence in `vi-ins-mode-string` and `vi-cmd-mode-string`,
+with `show-mode-in-prompt` on.
 
 ### Already answered here
 
@@ -382,3 +385,11 @@ What it needs is a way to stop recording for the length of a password read,
 which is a change to what `sessionLog` promises rather than to the password
 code, and the logger's type is already an open question in PLAN.md. Fixing one
 without the other would settle the second by accident.
+
+D54 settled both on 2026-10-30. The log is a `log/slog` handler, and
+`Password` stops the records of what is read while `readHidden` runs, on
+every system. A record with the message `LogPassword` says that a password
+was read, and holds nothing of it. `TestPasswordStaysOutOfTheLog` drives the
+`readHidden` path and fails when any byte is read into the log while the
+password is typed, which is the check that reassembles, because it counts
+the reads rather than searching for the text.

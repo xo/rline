@@ -102,8 +102,9 @@ redo chain dropping when you type after undoing.
 **The help screen.** Drawn over a line being edited and then taken away again,
 which is a redraw problem with a modal in it.
 
-**Password.** There is one test and a known defect: on the systems without a
-no-echo terminal the password is written into the session log. See USQL.md.
+**Password.** `TestPasswordStaysOutOfTheLog` holds that no byte of a
+password reaches the session log on the path that reads through the
+decoder, which Windows takes (D54). See USQL.md.
 
 **BBcode, palette reduction and wcwidth** are pinned at L1 and thin at L0.
 Malformed tags, RGB to 256 to 16 being deterministic and monotonic, combining
@@ -388,3 +389,8 @@ runner.
 What is not in dispute is that the *architectures* add nothing: the value is in
 the 15 systems, not the 47 pairs. Whether to keep sweeping pairs, and whether
 per-commit or nightly, is Ken's.
+
+Ken decided it in D60. The loop vets the 13 pairs in `tools/systems.txt`,
+one for each build tag, on every push. `TestEveryFileBuildsSomewhere` makes
+sure that every file of the module compiles in at least one of them, which
+is the fault that the hand-written list of ten systems hid.

@@ -162,7 +162,7 @@ func (ev *env) command(e *editor.Editor, l *readline.Line, name string, c key.Co
 		}
 		// The caller may say the line is not finished, which starts another
 		// row instead of handing it back.
-		if ev.isIncomplete != nil && ev.isIncomplete(e.Input.String()) {
+		if ev.cont != nil && ev.cont(e.Input.String()) {
 			e.InsertChar('\n')
 			l.Edit(e.Input.String(), e.Pos)
 			return true
@@ -203,10 +203,93 @@ func (ev *env) command(e *editor.Editor, l *readline.Line, name string, c key.Co
 		}
 		ev.readInputrc(ev.inputrc)
 		l.SetKeymaps(ev.keymap, ev.viInsert, ev.viCommand)
-		l.Configure(ev.vars)
+		l.Configure(ev.lineVars())
+		return true
+	}
+	if cmd := ev.commands[name]; cmd != nil {
+		ev.runCommand(l, cmd, c)
 		return true
 	}
 	return false
+}
+
+// A Command is a command of the program's own, which an inputrc file binds a
+// key to by its name, as readline's rl_add_defun adds one (D58). WithCommand
+// adds it.
+//
+// This is an interface rather than a function type so that a command can
+// grow a second method without breaking everyone who has one. Wrap a plain
+// function in CommandFunc.
+type Command interface {
+	Run(l *Line)
+}
+
+// CommandFunc makes a Command out of an ordinary function.
+type CommandFunc func(l *Line)
+
+// Run satisfies Command.
+func (f CommandFunc) Run(l *Line) { f(l) }
+
+// Line is the line being edited, as a Command sees it and changes it. Every
+// position is a byte offset, as everywhere in this package.
+type Line struct {
+	text   string
+	cursor int
+	count  int
+	key    key.Code
+
+	// What the command asked for, which runCommand does after it returns.
+	changed bool
+	bell    bool
+	accept  bool
+}
+
+// Text returns the line.
+func (l *Line) Text() string { return l.text }
+
+// Cursor returns where the cursor is in Text.
+func (l *Line) Cursor() int { return l.cursor }
+
+// Count returns the numeric argument typed before the key, as readline
+// passes it to a command. It is 1 when none was typed, and can be negative.
+func (l *Line) Count() int { return l.count }
+
+// Key returns the key that ran the command.
+func (l *Line) Key() key.Code { return l.key }
+
+// Replace makes the line text, with the cursor at cursor. Undo takes the
+// change back as one step, with the rest of the command.
+func (l *Line) Replace(text string, cursor int) {
+	l.text, l.cursor, l.changed = text, min(max(cursor, 0), len(text)), true
+}
+
+// Insert puts s in at the cursor and leaves the cursor after it.
+func (l *Line) Insert(s string) {
+	l.Replace(l.text[:l.cursor]+s+l.text[l.cursor:], l.cursor+len(s))
+}
+
+// Bell rings the bell, as a readline command does when it can do nothing.
+func (l *Line) Bell() { l.bell = true }
+
+// AcceptLine finishes the line after the command returns, as accept-line
+// does, so that ReadLine hands it back.
+func (l *Line) AcceptLine() { l.accept = true }
+
+// runCommand runs a command of the program's own, and makes the changes that
+// it asked for in the line.
+func (ev *env) runCommand(rl *readline.Line, cmd Command, c key.Code) {
+	n, _ := rl.Count()
+	l := &Line{text: rl.Text(), cursor: rl.Point(), count: n, key: c}
+	cmd.Run(l)
+	if l.changed {
+		rl.Edit(l.text, l.cursor)
+	}
+	if l.bell {
+		rl.Ding()
+	}
+	if l.accept {
+		rl.Run("accept-line", c)
+	}
 }
 
 // acceptHint puts in the only completion, which is what a hint shows. With
@@ -334,6 +417,11 @@ var rlineCommands = map[string]bool{
 	"rline-help": true, "rline-menu-complete": true,
 }
 
+// hasCommand reports whether readline or rline has a command called name.
+func hasCommand(name string) bool {
+	return readline.Has(name) || rlineCommands[name]
+}
+
 // rlineOnly returns the names of the commands that rline has and readline
 // does not, for dump-functions and execute-named-command.
 func rlineOnly() []string {
@@ -349,8 +437,16 @@ func rlineOnly() []string {
 
 // rlineVars are the variables of readline that rline reads itself, rather
 // than the line. keyseq-timeout is the wait of the decoder, which already
-// waits for the rest of an escape sequence.
-var rlineVars = map[string]bool{"bell-style": true, "keyseq-timeout": true}
+// waits for the rest of an escape sequence. The mode strings are drawn in
+// front of the prompt (D53).
+var rlineVars = map[string]bool{
+	"bell-style":          true,
+	"keyseq-timeout":      true,
+	"show-mode-in-prompt": true,
+	"emacs-mode-string":   true,
+	"vi-ins-mode-string":  true,
+	"vi-cmd-mode-string":  true,
+}
 
 // readInputrc reads the inputrc file that c names, or the user's, and builds
 // the keymap and the variables from it, over readline's defaults. What in the
@@ -404,7 +500,7 @@ func (ev *env) readInputrc(c *config) {
 			continue
 		}
 		for seq, b := range cfg.Binds[km] {
-			if !b.Macro && !readline.Has(b.Action) && !rlineCommands[b.Action] {
+			if !b.Macro && !readline.Has(b.Action) && !rlineCommands[b.Action] && ev.commands[b.Action] == nil {
 				ev.notices = append(ev.notices, fmt.Sprintf("the command %s is not supported", b.Action))
 			}
 			binds[name][prefix+seq] = b

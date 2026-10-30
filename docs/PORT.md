@@ -309,7 +309,7 @@ search, with its prompt in place of the program's, in place of isocline's
 search below the line (D45). The help screen is the command `rline-help`, which no key is
 bound to.
 
-The decoder departs from `tty.c` in three places, and
+The decoder departs from `tty.c` in four places, and
 `testdata/tty-delta.txt` lists each line of `testdata/tty.txt` that changes:
 
 1. An escape before a byte that starts no sequence is the Escape key, and
@@ -322,9 +322,13 @@ The decoder departs from `tty.c` in three places, and
 3. The zero byte is ctrl+space. isocline decodes it as key code 0, which is
    also `key.None`, the code for no key, so a terminal could never reach
    `set-mark` on `\C-@`.
+4. `ESC ?` and `ESC o` are the Escape key and then the byte, as readline
+   reads them. isocline reads both as the start of an SS3 sequence, as Eterm
+   sends it, and `ESC o` adds ctrl. So M-?, typed fast with the next key,
+   joined the two into one sequence (D59).
 
 `FuzzEscapeDecoder` joins rline's keys back by isocline's rule before it
-compares them with the C, and leaves out three shapes that the rule cannot
+compares them with the C, and leaves out four shapes that the rule cannot
 join back. The test says which.
 
 isocline names its styles `ic-info`, `ic-hint` and so on. rline names them
@@ -357,6 +361,22 @@ blank line in the menu. A Go caller cannot pass the absence of a string, so
 the two are the same here. This is the only recorded case where the port
 answers differently on purpose, and the test says so where it checks it.
 
+When the output is not a terminal, what a program writes through a
+`Session` goes out unchanged (D57). isocline's `term_append_buf` drops the
+control bytes 0 to 6 and 14 to 26, and drops every SGR sequence when color is
+off, which it is on a pipe. That protects a terminal and changes the data of
+a pipe or a file. On a terminal the filter stays, and what the editor draws
+goes through it in both cases.
+
+`Completion.Add` takes away the prefix that the completer was handed, and
+puts a space after a single completion at the end of the line (D56).
+isocline's `ic_add_completion` takes nothing away and adds nothing, and its
+comment says that the completion replaces the prefix. A completer that word
+completion wraps is handed the word, and the wrapper takes the word away, so
+`Add` takes nothing more there. `AddCandidate` with no `DeleteBefore` and no
+`Suffix` is `ic_add_completion`, and the tests that compare with the C use
+it.
+
 The Windows function keys F11 and F12 are sent as vt codes 23 and 24, where
 the C sends 13 and 14. This is the one place the port cannot be faithful,
 because the C contradicts itself: `tty_waitc_console` encodes F11 as 13, and
@@ -373,26 +393,21 @@ terminal uses for those keys, and no recorded session anywhere carries the C
 answer, because nothing records on Windows. The port therefore sends what the
 decoder reads.
 
-The history file is written with no restriction on who can read it. The C
-code creates it with `fopen` and then calls `chmod` to make it owner only,
-and the port leaves both out. That is a decision rather than an oversight:
-the mode cannot be expressed on Windows, where `os.Chmod` maps only the owner
-write bit onto the read-only attribute and drops the rest, and the history is
-going to be rewritten, so guarding it now would be work thrown away twice. A
-file mode cannot appear in terminal output, so no recorded session can tell
-the difference either way.
+The history file is created 0600, as the C makes it owner only and as
+readline 8.3 does under any umask (D21). The C creates the file with `fopen`
+and then calls `chmod`. The port sets the mode on the temporary file before
+anything is written into it, so the contents are never readable under a
+wider mode, even for an instant. A file mode cannot appear in terminal
+output, so no recorded session can tell the difference either way.
 
-What that leaves open, for whoever rewrites the history. The file holds every
-line the user typed, which is the kind of thing that holds a password typed
-into the wrong prompt. On Unix the C code made it owner only and the port no
-longer does, so it is now whatever the umask gives, usually readable by the
-group and by everyone. On Windows a file written under a user profile came
-back with an access control list holding only SYSTEM, Administrators and the
-user, measured on a real host, but that list is inherited from the directory
-rather than set by the code. Write the history somewhere with a looser
-inherited list and the protection is gone with nothing to show it. Making it
-a guarantee on Windows needs `SetNamedSecurityInfo` with an explicit list,
-which is a change in behaviour rather than a port.
+On Windows the mode is not enough. `os.Chmod` maps only the owner write bit
+onto the read-only attribute and drops the rest. A file written under a user
+profile came back with an access control list that holds only SYSTEM,
+Administrators and the user, measured on a real host, but that list is
+inherited from the directory rather than set by the code. Write the history
+somewhere with a looser inherited list and the protection is gone with
+nothing to show it. Making it a guarantee on Windows needs
+`SetNamedSecurityInfo` with an explicit list (backlog 11).
 
 Case-insensitive comparison compares C `char` values, and the result depends on
 whether `char` is signed. Any byte above 0x7f sorts before every ASCII

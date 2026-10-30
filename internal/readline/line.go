@@ -233,6 +233,9 @@ func (l *Line) Bells() int { return l.bell }
 // ding records that a command could do nothing, as readline rings the bell.
 func (l *Line) ding() { l.bell++ }
 
+// Ding rings the bell, as a command does when it can do nothing.
+func (l *Line) Ding() { l.ding() }
+
 // insert puts text into the line at pos, and records it for undo.
 func (l *Line) insert(pos int, text []byte) {
 	if len(text) == 0 {

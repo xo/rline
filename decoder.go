@@ -852,17 +852,14 @@ func (t *keyDecoder) readEsc(initial, follow time.Duration) key.Code {
 			return t.escThen(read...)
 		}
 		return t.readCSI('[', next, mods, follow)
-	case 'O', 'o', '?':
-		start := peek
+	case 'O':
+		// isocline also starts SS3 at 'o' and '?', as Eterm sends them. rline
+		// reads both as readline does, as Escape and then the byte, so that
+		// M-? typed fast with the next key stays two keys (D59).
 		next, ok := t.readByte(follow)
 		if !ok {
 			return t.escThen(read...)
 		}
-		if start == 'o' {
-			// Eterm sends this for ctrl and an arrow.
-			mods |= key.ModCtrl
-		}
-		// 'o' and '?' are both treated as a plain SS3 start.
 		return t.readCSI('O', next, mods, follow)
 	case ']':
 		next, ok := t.readByte(follow)

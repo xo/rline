@@ -1023,3 +1023,57 @@ func TestCompleterFuncRunsTheFunction(t *testing.T) {
 			cm.replacement, cm.deleteBefore, "abx")
 	}
 }
+
+// TestAddReplacesThePrefix checks that Add takes away the prefix that the
+// completer was handed and adds a space, as its comment says (D56). Before
+// D56, typing "sel" and completing with Add("select") gave "selselect".
+func TestAddReplacesThePrefix(t *testing.T) {
+	t.Parallel()
+	add := func(words ...string) Completer {
+		return CompleterFunc(func(c *Completion, _ string) {
+			for _, w := range words {
+				c.Add(w)
+			}
+		})
+	}
+	for _, test := range []struct {
+		name string
+		keys string
+		comp Completer
+		want string
+	}{
+		{"one answer replaces the prefix and gets a space", "sel" + kTab + kEnter, add("select"), "select "},
+		{"the whole prefix is replaced", "x sel" + kTab + kEnter, add("select"), "select "},
+		{"several answers put in what they share and no space", "s" + kTab + kEnter, add("select", "set"), "se"},
+		{"no space in the middle of the line", "sel x" + kCtrlA + kCtrlF + kCtrlF + kCtrlF + kTab + kEnter, add("select"), "select x"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			line, _, _, _ := feedSession(t, test.keys, feedOpts{Completer: test.comp})
+			if line != test.want {
+				t.Errorf("the line is %q, want %q", line, test.want)
+			}
+		})
+	}
+}
+
+// TestAddInsideAWordTakesTheWordOnce checks that Add, called by a completer
+// that word completion wraps, takes the word away once. The wrapper takes the
+// word away itself, so Add must take nothing more.
+func TestAddInsideAWordTakesTheWordOnce(t *testing.T) {
+	t.Parallel()
+	c := &completions{}
+	c.setCompleter(CompleterFunc(func(cenv *Completion, prefix string) {
+		completeWord(cenv, prefix, CompleterFunc(func(cenv *Completion, _ string) {
+			cenv.Add("select")
+		}), nil)
+	}), nil)
+	if n := c.generate("x sel", 5, 10); n != 1 {
+		t.Fatalf("the completer offered %d, want 1", n)
+	}
+	cm, _ := c.get(0)
+	if cm.replacement != "select" || cm.deleteBefore != 3 || cm.suffix != " " {
+		t.Errorf("the candidate is %q taking away %d with suffix %q, want %q taking away 3 with suffix %q",
+			cm.replacement, cm.deleteBefore, cm.suffix, "select", " ")
+	}
+}

@@ -147,12 +147,40 @@ mode on. `WithAppName` sets the name that `$if` tests. `Notices` lists what
 in the file rline does not support. C-x C-r reads the file again, when the
 program asked for one.
 
+`set show-mode-in-prompt on` puts the editing mode in front of the prompt, as
+readline does. The mode is `@` in emacs mode, and `(ins)` and `(cmd)` in vi's
+insert and command modes. `emacs-mode-string`, `vi-ins-mode-string` and
+`vi-cmd-mode-string` change them. Text between `\1` and `\2` goes to the
+terminal and takes no column. For example, these lines give a bar cursor in
+insert mode and a block cursor in command mode:
+
+```
+set show-mode-in-prompt on
+set vi-ins-mode-string "\1\e[6 q\2"
+set vi-cmd-mode-string "\1\e[2 q\2"
+```
+
 ```go
 p, err := rline.New(rline.WithUserInputrc(true), rline.WithAppName("usql"))
 for _, n := range p.Notices() {
 	fmt.Fprintln(p.Stderr(), "inputrc:", n)
 }
 ```
+
+A program can add commands of its own, which an inputrc file binds by name,
+as readline's `rl_add_defun` adds them. A command gets the line, the cursor,
+the numeric argument and the key, and changes the line through a `Line`:
+
+```go
+upcase := rline.CommandFunc(func(l *rline.Line) {
+	l.Replace(strings.ToUpper(l.Text()), l.Cursor())
+})
+p, err := rline.New(rline.WithUserInputrc(true), rline.WithCommand("upcase-line", upcase))
+```
+
+With that, `"\C-xu": upcase-line` in the inputrc file binds Ctrl-X u to it,
+and M-x runs it by name. `New` returns `ErrCommandExists` for a name that
+readline or rline already has.
 
 Tab completes as readline does: the first Tab fills in what the completions
 share, and the second lists them below the line. Ctrl-R is readline's
@@ -278,9 +306,11 @@ highlighting, backspace, statements over three and four rows, the completion
 menu, the arrow keys within and between rows, the password read, and leaving.
 Those runs found no fault.
 
-`rline` needs Windows 10 or later, because it asks the console to read escape
-sequences rather than driving the console through its API. Older consoles
-cannot read them.
+On Windows, `rline` is tested on Windows 11 and nothing older (D62). It asks
+the console to read escape sequences rather than driving the console through
+its API, so a console that cannot read them is not supported: Windows 10
+before version 1511, or a console with "Use legacy console" ticked. Go itself
+needs Windows 10 or later.
 
 FreeBSD 15.1, NetBSD 11.0 and OmniOS r151058 pass the whole suite, built from
 source on the machine with the Go each one ships. None of them can record

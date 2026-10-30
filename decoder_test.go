@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"runtime"
@@ -750,11 +751,11 @@ func FuzzEscapeDecoder(f *testing.F) {
 			// compare rather than something to disagree about.
 			t.Skip()
 		}
-		if bytes.Contains(in, []byte("\x1b\x1b\x1b")) || escAndBroken(utf8, in) {
+		if bytes.Contains(in, []byte("\x1b\x1b\x1b")) || escAndBroken(utf8, in) || etermStart(in) {
 			// isoclineKeys cannot turn rline's answer into the C's for these.
 			// Three escapes and a sequence are an Escape key and alt with
 			// the sequence here, and alt with Escape and loose bytes in the
-			// C. escAndBroken says why for the other.
+			// C. escAndBroken and etermStart say why for the others.
 			t.Skip()
 		}
 		want := d.decode(t, utf8, in)
@@ -799,6 +800,15 @@ func escAndBroken(isUTF8 bool, in []byte) bool {
 		}
 	}
 	return false
+}
+
+// etermStart reports whether the input holds ESC ? or ESC o. The C reads
+// either as the start of an SS3 sequence, as Eterm sends it, and takes the
+// bytes after it as that sequence. rline reads the Escape key and then the
+// byte, as readline does (D59), so the keys after it differ in number and
+// in kind.
+func etermStart(in []byte) bool {
+	return bytes.Contains(in, []byte("\x1b?")) || bytes.Contains(in, []byte("\x1bo"))
 }
 
 // isoclineKeys joins keys back together as the C decodes them, so that the
@@ -973,7 +983,7 @@ func TestReadsStopWhenTheInputEnds(t *testing.T) {
 		t.Errorf("a read that found nothing gave %08x, want key.None", c)
 	}
 	// The session log wraps the reader, and must not hide that it ended.
-	logged := newDecoder(logReader{src: endedReader{}, logger: &sessionLog{w: io.Discard}})
+	logged := newDecoder(logReader{src: endedReader{}, logger: &sessionLog{l: slog.New(slog.DiscardHandler)}})
 	if c := logged.read(); c != key.EventStop {
 		t.Errorf("a read of ended input through the log gave %08x, want key.EventStop", c)
 	}

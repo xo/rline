@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,8 +16,10 @@ import (
 	"time"
 
 	"github.com/xo/inputrc"
+	"github.com/xo/terminfo"
 
 	"github.com/xo/rline/internal/editor"
+	"github.com/xo/rline/internal/readline"
 	"github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
@@ -221,7 +224,7 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 		ev.highlighter = opt.Highlighter
 	}
 	if opt.Continue != nil {
-		ev.isIncomplete = opt.Continue
+		ev.cont = opt.Continue
 	}
 	ev.completionMenu = opt.CompletionMenu
 	ev.completeAutoTab = opt.AutoTab
@@ -1750,5 +1753,277 @@ func TestViMode(t *testing.T) {
 	ev.runEditLoop(e)
 	if got := e.Input.String(); got != "abc" {
 		t.Errorf("the second line is %q, want %q", got, "abc")
+	}
+}
+
+// TestModeStringInThePrompt checks show-mode-in-prompt (D53): the mode string
+// of the editing mode goes in front of the prompt, and changes with the mode.
+func TestModeStringInThePrompt(t *testing.T) {
+	t.Parallel()
+	on := map[string]any{"show-mode-in-prompt": true}
+	for _, test := range []struct {
+		name   string
+		vars   map[string]any
+		vi     bool
+		keys   string
+		first  string
+		want   []string
+		absent []string
+	}{
+		{"off by default", nil, true, "a" + kEnter, "> ", nil, []string{"(ins)", "@"}},
+		{"emacs shows @", on, false, "a" + kEnter, "@> ", []string{"@> a"}, nil},
+		{"vi starts in insert mode", on, true, "a" + kEnter, "(ins)> ", []string{"(ins)> a"}, []string{"(cmd)"}},
+		{"Esc shows command mode", on, true, "a" + kEsc + kPause + kEnter, "(ins)> ", []string{"(cmd)> a"}, nil},
+		{"the strings come from the file", map[string]any{
+			"show-mode-in-prompt": true,
+			"vi-ins-mode-string":  "I:",
+			"vi-cmd-mode-string":  `\e[1mC\e[m:`,
+		}, true, "a" + kEsc + kPause + kEnter, "I:> ", []string{"C:> a"}, []string{"(ins)", "(cmd)"}},
+		{"a search prompt has no mode", on, false, "a\x12\x07" + kEnter, "@> ", []string{"(reverse-i-search)"}, []string{"@(reverse"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			ev, sink := feedEnv(t, test.keys, feedOpts{})
+			ev.vars, ev.viMode = test.vars, test.vi
+			ev.editLine("")
+			ev.term.flush()
+			drawn := stripEscapes(sink.String())
+			// The first prompt, drawn before any key, already holds the mode.
+			if !strings.HasPrefix(drawn, test.first) {
+				t.Errorf("the first prompt is not %q\ndrawn: %q", test.first, drawn)
+			}
+			for _, w := range test.want {
+				if !strings.Contains(drawn, w) {
+					t.Errorf("%q was not drawn\ndrawn: %q", w, drawn)
+				}
+			}
+			for _, a := range test.absent {
+				if strings.Contains(drawn, a) {
+					t.Errorf("%q was drawn\ndrawn: %q", a, drawn)
+				}
+			}
+		})
+	}
+}
+
+// TestModeStringHidesWhatIsBetweenOneAndTwo checks that what a mode string
+// holds between the bytes 1 and 2 goes to the terminal and takes no column,
+// as readline reads them, so that a cursor shape can be set from the
+// inputrc file (D53).
+func TestModeStringHidesWhatIsBetweenOneAndTwo(t *testing.T) {
+	t.Parallel()
+	ev, sink := feedEnv(t, "ab"+kEnter, feedOpts{})
+	ev.viMode = true
+	ev.vars = map[string]any{
+		"show-mode-in-prompt": true,
+		"vi-ins-mode-string":  `\1\e[6 q\2I`,
+	}
+	ev.editLine("")
+	ev.term.flush()
+	out := sink.String()
+	if !strings.Contains(out, "\x1b[6 qI> ") {
+		t.Errorf("the cursor sequence and the mode were not drawn\nout: %q", out)
+	}
+	if strings.ContainsAny(out, "\x01\x02") {
+		t.Errorf("the bytes 1 and 2 reached the terminal\nout: %q", out)
+	}
+	e := &editor.Editor{TermW: 80}
+	if got, _ := ev.promptWidth(e, false); got != len("I> ") {
+		t.Errorf("the prompt is %d columns, want %d", got, len("I> "))
+	}
+}
+
+// TestModeStringLinesUpTheRows checks that the rows after the first line up
+// under the text of the first, past the mode string (D53).
+func TestModeStringLinesUpTheRows(t *testing.T) {
+	t.Parallel()
+	ev, sink := feedEnv(t, "a"+kEnter+"b"+kEnter, feedOpts{
+		Continue: func(s string) bool { return !strings.HasSuffix(s, "b") },
+	})
+	ev.vars = map[string]any{"show-mode-in-prompt": true, "emacs-mode-string": "EM"}
+	ev.editLine("")
+	ev.term.flush()
+	drawn := stripEscapes(sink.String())
+	if !strings.Contains(drawn, "EM> a") || !strings.Contains(drawn, "\n  > b") {
+		t.Errorf("the second row does not line up under the first\ndrawn: %q", drawn)
+	}
+}
+
+// testCommands are the program's own commands that TestProgramCommands binds.
+func testCommands() map[string]Command {
+	return map[string]Command{
+		"test-upcase": CommandFunc(func(l *Line) {
+			l.Replace(strings.ToUpper(l.Text()), l.Cursor())
+		}),
+		"test-repeat": CommandFunc(func(l *Line) {
+			l.Insert(strings.Repeat(string(rune(l.Key()&0xff)), l.Count()))
+		}),
+		"test-finish": CommandFunc(func(l *Line) {
+			l.Insert(";")
+			l.AcceptLine()
+		}),
+	}
+}
+
+// TestProgramCommands checks that a command of the program's own runs from a
+// key that an inputrc file binds to it, and from execute-named-command, and
+// that it sees the line, the count and the key and changes the line (D58).
+func TestProgramCommands(t *testing.T) {
+	t.Parallel()
+	binds := map[string]inputrc.Bind{
+		"\x18u": {Action: "test-upcase"},
+		"\x18r": {Action: "test-repeat"},
+		"\x18f": {Action: "test-finish"},
+	}
+	for _, test := range []struct {
+		name  string
+		keys  string
+		want  string
+		point int
+		end   key.Code
+	}{
+		{"a bound key runs it", "ab\x18u" + kEnter, "AB", 2, key.Enter},
+		{"the cursor stays where the command put it", "ab" + kCtrlA + "\x18u" + kEnter, "AB", 0, key.Enter},
+		{"it sees the count and the key", "\x1b3\x18r" + kEnter, "rrr", 3, key.Enter},
+		{"undo takes it back in one step", "ab\x18u" + kUndo + kEnter, "ab", 2, key.Enter},
+		{"it can finish the line", "ab\x18f", "ab;", 3, key.Enter},
+		{"execute-named-command finds it", "ab\x1bxtest-upcase\r" + kEnter, "AB", 2, key.Enter},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			ev, _ := feedEnv(t, test.keys, feedOpts{})
+			ev.commands = testCommands()
+			ev.keymap = emacsKeymap()
+			bindAll(ev.keymap, binds)
+			e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+			end := ev.runEditLoop(e)
+			if got := e.Input.String(); got != test.want || e.Pos != test.point || end != test.end {
+				t.Errorf("the line is %q at %d, ended by %08x, want %q at %d, ended by %08x",
+					got, e.Pos, end, test.want, test.point, test.end)
+			}
+		})
+	}
+}
+
+// TestProgramCommandRingsTheBell checks Line.Bell (D58).
+func TestProgramCommandRingsTheBell(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "", feedOpts{})
+	rl := readline.New(nil, nil)
+	ev.runCommand(rl, CommandFunc(func(l *Line) { l.Bell() }), 'x')
+	if rl.Bells() != 1 {
+		t.Errorf("the bell rang %d times, want once", rl.Bells())
+	}
+	ev.runCommand(rl, CommandFunc(func(*Line) {}), 'x')
+	if rl.Bells() != 1 {
+		t.Errorf("a command that changed nothing rang the bell")
+	}
+}
+
+// TestWithCommandRefusesANameInUse checks that a program cannot add a
+// command that readline or rline already has (D58), and that an inputrc
+// file that binds a command of the program's gives no notice.
+func TestWithCommandRefusesANameInUse(t *testing.T) {
+	t.Parallel()
+	cmd := CommandFunc(func(*Line) {})
+	for _, name := range []string{"accept-line", "rline-help"} {
+		_, err := New(WithCommand(name, cmd), WithStdin(strings.NewReader("")), WithStdout(&bytes.Buffer{}))
+		if !errors.Is(err, ErrCommandExists) {
+			t.Errorf("WithCommand(%q) gave %v, want ErrCommandExists", name, err)
+		}
+	}
+	rc := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(rc, []byte(`"\C-xu": test-upcase`+"\n"+`"\C-xv": test-missing`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	p, err := New(WithCommand("test-upcase", cmd), WithInputrcFile(rc),
+		WithStdin(strings.NewReader("")), WithStdout(&bytes.Buffer{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = p.Close() }()
+	want := []string{"the command test-missing is not supported"}
+	if n := p.Notices(); !slices.Equal(n, want) {
+		t.Errorf("the notices are %q, want %q", n, want)
+	}
+}
+
+// TestTerminfoGivesTheActiveRegionColors checks that the two colors of the
+// active region come from the standout sequences of the terminfo entry, as
+// readline takes them, and that an inputrc file goes over them (D55).
+func TestTerminfoGivesTheActiveRegionColors(t *testing.T) {
+	t.Parallel()
+	ti := &terminfo.Terminfo{Strings: map[int][]byte{
+		terminfo.EnterStandoutMode: []byte("\x1b[7m"),
+		terminfo.ExitStandoutMode:  []byte("\x1b[27m"),
+	}}
+	want := map[string]any{"active-region-start-color": "\x1b[7m", "active-region-end-color": "\x1b[27m"}
+	if got := terminfoVarsOf(ti); !maps.Equal(got, want) {
+		t.Errorf("the variables are %q, want %q", got, want)
+	}
+	if got := terminfoVarsOf(&terminfo.Terminfo{}); len(got) != 0 {
+		t.Errorf("an entry with no standout gave %q", got)
+	}
+	for _, name := range []string{"", "rline-no-such-terminal"} {
+		if got := terminfoVars(name); got != nil {
+			t.Errorf("terminfoVars(%q) gave %q, want nothing", name, got)
+		}
+	}
+
+	keys := "\x1bxdump-variables\r" + kEnter
+	ev, sink := feedEnv(t, keys, feedOpts{})
+	ev.termVars = want
+	ev.vars = map[string]any{"active-region-end-color": "end"}
+	ev.editLine("")
+	ev.term.flush()
+	out := sink.String()
+	for _, w := range []string{"active-region-start-color is set to `\\e[7m'", "active-region-end-color is set to `end'"} {
+		if !strings.Contains(out, w) {
+			t.Errorf("dump-variables did not print %q\nout: %q", w, out)
+		}
+	}
+}
+
+// TestTerminfoReadsTheSystemEntry checks that terminfoVars reads the entry of
+// xterm from the system's terminfo database, where xterm's standout is
+// reverse video.
+func TestTerminfoReadsTheSystemEntry(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows has no terminfo database, so reading xterm's entry from one is not checked")
+	}
+	want := map[string]any{"active-region-start-color": "\x1b[7m", "active-region-end-color": "\x1b[27m"}
+	if got := terminfoVars("xterm"); !maps.Equal(got, want) {
+		t.Errorf("xterm's variables are %q, want %q", got, want)
+	}
+}
+
+// TestNewReadsTerminfoForATerminal checks that New reads the terminfo entry of
+// $TERM when the output is a terminal, and not when it is a pipe (D55).
+func TestNewReadsTerminfoForATerminal(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows has no terminfo database, so New reading one is not checked")
+	}
+	t.Setenv("TERM", "xterm")
+	p, err := New(WithStdin(strings.NewReader("")), WithStdout(&bytes.Buffer{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = p.Close() }()
+	if got := p.env.termVars["active-region-start-color"]; got != "\x1b[7m" {
+		t.Errorf("with a terminal the start color is %q, want %q", got, "\x1b[7m")
+	}
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = r.Close(); _ = w.Close() }()
+	q, err := New(WithStdin(strings.NewReader("")), WithStdout(w))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = q.Close() }()
+	if q.env.termVars != nil {
+		t.Errorf("with a pipe the terminfo variables are %q, want none", q.env.termVars)
 	}
 }

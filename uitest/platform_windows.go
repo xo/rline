@@ -13,12 +13,13 @@ import (
 
 // Windows.
 //
-// The matrix here is hosts rather than shells. cmd.exe, pwsh and powershell
-// are shells: what draws the screen and encodes the keys is conhost.exe or
-// Windows Terminal, and which of those a shell gets depends on how it was
-// launched rather than on which shell it is. A readline library owns raw mode
-// and reads the console handle itself, so the shell above it changes nothing
-// that this harness measures.
+// The matrix here is hosts first. cmd.exe, pwsh and powershell are shells:
+// what draws the screen and encodes the keys is conhost.exe or Windows
+// Terminal, and which of those a shell gets depends on how it was launched
+// rather than on which shell it is. A readline library owns raw mode and reads
+// the console handle itself. What the shell changes is the console modes that
+// the library finds when it starts, so each host runs the program from
+// cmd.exe and from PowerShell (D60).
 //
 // Everything is driven through PowerShell, because the pieces needed — bring
 // a window to the front, send keys to it, photograph it — are in the .NET
@@ -47,11 +48,15 @@ func platformReady() error {
 	return nil
 }
 
-// platformTerminals is the Windows matrix.
+// platformTerminals is the Windows matrix of D60. The hosts are conhost and
+// Windows Terminal, and each runs the program from cmd.exe and from
+// PowerShell, because the shell sets the console modes that rline then finds.
+// The VS Code terminal is in the matrix of D60 and is not here yet (backlog
+// 74).
 func platformTerminals() []Terminal {
 	return []Terminal{
 		{
-			Name: "conhost", Bin: "conhost.exe", Engine: "conhost",
+			Name: "conhost-cmd", Bin: "conhost.exe", Engine: "conhost",
 			Args: func(c, r int, cmd []string) []string {
 				// The legacy host. It is still what a program gets when it is
 				// started without Windows Terminal, and it is the one that
@@ -63,11 +68,27 @@ func platformTerminals() []Terminal {
 			},
 		},
 		{
-			Name: "windows-terminal", Bin: "wt.exe", Engine: "Windows Terminal",
+			Name: "conhost-powershell", Bin: "conhost.exe", Engine: "conhost", Needs: []string{"powershell.exe"},
+			Args: func(c, r int, cmd []string) []string {
+				inner := fmt.Sprintf("mode con: cols=%d lines=%d; $host.UI.RawUI.WindowTitle = '%s'; %s",
+					c, r, appID, psCommand(cmd))
+				return []string{"conhost.exe", "powershell.exe", "-NoProfile", "-Command", inner}
+			},
+		},
+		{
+			Name: "wt-cmd", Bin: "wt.exe", Engine: "Windows Terminal",
 			Args: func(c, r int, cmd []string) []string {
 				return append([]string{"wt.exe", "--window", "new",
 					"--size", fmt.Sprintf("%d,%d", c, r),
-					"--title", appID, "--"}, cmd...)
+					"--title", appID, "--", "cmd.exe", "/c"}, cmd...)
+			},
+		},
+		{
+			Name: "wt-powershell", Bin: "wt.exe", Engine: "Windows Terminal", Needs: []string{"powershell.exe"},
+			Args: func(c, r int, cmd []string) []string {
+				return []string{"wt.exe", "--window", "new",
+					"--size", fmt.Sprintf("%d,%d", c, r),
+					"--title", appID, "--", "powershell.exe", "-NoProfile", "-Command", psCommand(cmd)}
 			},
 		},
 		{
@@ -82,6 +103,16 @@ func platformTerminals() []Terminal {
 			GetText: weztermGetText,
 		},
 	}
+}
+
+// psCommand returns a PowerShell command that runs cmd, with each word in
+// single quotes so that a path with a space in it stays one word.
+func psCommand(cmd []string) string {
+	words := make([]string, len(cmd))
+	for i, w := range cmd {
+		words[i] = "'" + strings.ReplaceAll(w, "'", "''") + "'"
+	}
+	return "& " + strings.Join(words, " ")
 }
 
 // focusWindow brings the terminal to the front.
