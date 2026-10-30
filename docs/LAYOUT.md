@@ -127,7 +127,8 @@ the same way.
 
 Values that differ per system take a narrow tag, and the file is named for
 what it covers. `tty_sysv.go` and `tty_bsd.go` hold two ioctl numbers
-each. A system nobody mapped gets no constants and falls to the stub in
+each, and read the output speed of the terminal as their family keeps it.
+A system nobody mapped gets no constants and falls to the stub in
 `tty_other.go`, which reads plain lines and says the terminal is
 unsupported.
 

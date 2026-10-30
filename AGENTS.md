@@ -72,7 +72,8 @@ files (D15):
   Windows key events into sequences. It has no build tag, so every system
   tests it.
 - `tty_*.go`: the terminal device. `tty_posix.go` is `unix && !aix`.
-  `tty_sysv.go` and `tty_bsd.go` hold the ioctl numbers of each family.
+  `tty_sysv.go` and `tty_bsd.go` hold the ioctl numbers of each family,
+  and read the output speed as that family keeps it.
   `tty_sti.go` and `tty_nosti.go` split on the `TIOCSTI` ioctl.
   `tty_other.go` is the fallback that reads plain lines.
 - `sys_*.go`: everything that shares one build tag.

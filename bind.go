@@ -438,9 +438,10 @@ func rlineOnly() []string {
 // rlineVars are the variables of readline that rline reads itself, rather
 // than the line. keyseq-timeout is the wait of the decoder, which already
 // waits for the rest of an escape sequence. The mode strings are drawn in
-// front of the prompt (D53).
+// front of the prompt (D53). The two bell variables are the terminal's.
 var rlineVars = map[string]bool{
 	"bell-style":          true,
+	"prefer-visible-bell": true,
 	"keyseq-timeout":      true,
 	"show-mode-in-prompt": true,
 	"emacs-mode-string":   true,
@@ -525,14 +526,59 @@ func (ev *env) readInputrc(c *config) {
 	for _, name := range readline.New(nil, nil).Configure(vars) {
 		ev.notices = append(ev.notices, fmt.Sprintf("the variable %s is not supported", name))
 	}
-	if s, _ := cfg.Vars["bell-style"].(string); s == "none" {
-		ev.term.beep = false
-	}
+	style := bellStyleOf(cfg.Vars)
+	ev.term.beep = c.beep && style != bellNone
+	ev.term.visible = style == bellVisible
 	if s, ok := cfg.Vars["editing-mode"].(string); ok {
 		ev.viMode = s == "vi"
 	}
 	slices.Sort(ev.notices)
 	ev.notices = slices.Compact(ev.notices)
+}
+
+// bellStyle is what readline's bell-style asks the bell to do.
+type bellStyle int
+
+// bellStyle values. The zero value is readline's default.
+const (
+	bellAudible bellStyle = iota
+	bellNone
+	bellVisible
+)
+
+// bellStyleOf returns the bell style that the variables of an inputrc file
+// set. It follows readline 8.3, as bash 5.3 shows it:
+//
+//   - bell-style is none, visible or audible, in any case. off is none and
+//     on is audible, and inputrc gives those two as booleans. Any other value
+//     leaves the style as it was.
+//   - prefer-visible-bell on sets the style to visible, and off sets it to
+//     audible.
+//
+// readline lets the later of the two variables win. inputrc does not keep
+// their order, so bell-style wins here when a file sets both.
+func bellStyleOf(vars map[string]any) bellStyle {
+	style := bellAudible
+	if prefer, ok := vars["prefer-visible-bell"].(bool); ok && prefer {
+		style = bellVisible
+	}
+	switch v := vars["bell-style"].(type) {
+	case bool:
+		style = bellNone
+		if v {
+			style = bellAudible
+		}
+	case string:
+		switch strings.ToLower(v) {
+		case "none", "off":
+			style = bellNone
+		case "visible":
+			style = bellVisible
+		case "audible", "on":
+			style = bellAudible
+		}
+	}
+	return style
 }
 
 // homeUser returns the user whose home directory holds ~/.inputrc. readline

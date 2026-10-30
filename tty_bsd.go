@@ -11,3 +11,9 @@ const (
 	termiosGet      = unix.TIOCGETA
 	termiosSetFlush = unix.TIOCSETAF
 )
+
+// outputSpeed returns the output speed of a terminal in bits a second. The
+// BSD family keeps the speed itself in the settings.
+func outputSpeed(mode *unix.Termios) int {
+	return int(mode.Ospeed)
+}

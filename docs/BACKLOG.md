@@ -207,8 +207,9 @@ These come from 2026-10-30, when rline gained the 45 commands of readline
 
 71. Which of isocline's sequences to read from terminfo (D55, D65). rline
     reads the entry of `$TERM` and takes the two colors of the active region
-    from it. No sequence that rline writes has moved yet, because each one
-    changes the recorded corpus. D65 proposes which to move. From: D55.
+    from it, and the visible bell writes its `flash`. No sequence that
+    isocline writes has moved, because each one changes the recorded corpus.
+    D65 proposes which to move. From: D55.
 73. A strategy for character widths. go-runewidth and isocline's table
     disagree on 3870 code points. Three kinds are open: the Hangul medial
     vowels and final consonants, the tag characters in a flag, and the
@@ -241,19 +242,21 @@ These come from 2026-10-30, when rline gained the 45 commands of readline
     `isearch-terminators` read their escapes. Which other string variables
     readline reads the escapes of is to be recorded from readline 8.3 first.
     From: D55.
-77. The visible bell. readline's `bell-style visible` writes the terminal's
-    `flash` sequence, and xterm's holds the padding `$<100/>`.
-    github.com/xo/terminfo v1.3.0 applies padding (its D23), so rline can
-    write the sequence with `ti.Puts(w, ti.Printf(terminfo.FlashScreen), 1,
-    baud)`. For an entry with `npc`, such as xterm, Puts waits instead of
-    writing NUL bytes. Otherwise it writes pad bytes in proportion to the
-    baud rate, so rline must find the baud rate of the terminal. From: D55.
 78. An empty `.rline_example_history.<number>` file, mode 0600, was left in
     the root after a `uitest` run, twice on 2026-10-30. The history is saved
     through a temporary file that is renamed over the old one, and a program
     that the terminal kills between the two leaves the temporary file. A
     signal handler that removes it, or a name that the next save cleans up,
     would stop it. From: the `uitest` runs of D54 and D60.
+
+## Found while the visible bell was built
+
+79. readline lets the later of `bell-style` and `prefer-visible-bell` win,
+    so `set bell-style none` and then `set prefer-visible-bell on` gives the
+    visible bell. inputrc v0.7.1 keeps no order between variables, so rline
+    lets `bell-style` win. inputrc also gives `set bell-style on` and `off` as
+    booleans, which rline reads. The inputrc session was told on 2026-10-30.
+    From: backlog 77.
 
 ## Found while vi mode was written
 

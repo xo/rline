@@ -704,7 +704,11 @@ func New(opts ...Option) (*Prompt, error) {
 	}
 	r.env.viMode = c.viMode
 	if writesToTerminal(c.stdout) {
-		r.env.termVars = terminfoVars(os.Getenv("TERM"))
+		tm.ti = loadTerminfo(os.Getenv("TERM"))
+		r.env.termVars = terminfoVarsOf(tm.ti)
+	}
+	if ttyErr == nil {
+		tm.baud = t.baud
 	}
 	if c.userInputrc || c.inputrcFile != "" {
 		r.env.readInputrc(c)

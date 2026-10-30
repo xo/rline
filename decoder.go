@@ -89,6 +89,10 @@ type keyDecoder struct {
 	// 0x7f becomes a raw code point instead of being decoded.
 	isUTF8 bool
 
+	// baud is the output speed of the terminal in bits a second, or 0 when
+	// the system does not say.
+	baud int
+
 	// escInitialTimeout is how long to wait for the byte after an escape,
 	// and escTimeout how long for each byte after that.
 	escInitialTimeout time.Duration

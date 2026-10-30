@@ -2,7 +2,6 @@ package rline
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -44,11 +43,13 @@ type sizer interface {
 
 // term writes to a terminal.
 type term struct {
-	// Where the bytes go, and what is waiting to go there.
-	out  io.Writer
-	sz   sizer
-	buf  text.Buffer
-	mode bufferMode
+	// Where the bytes go, and what is waiting to go there. stderr is where
+	// the audible bell goes.
+	out    io.Writer
+	stderr io.Writer
+	sz     sizer
+	buf    text.Buffer
+	mode   bufferMode
 
 	// What the terminal can do.
 	width   int
@@ -57,6 +58,15 @@ type term struct {
 	color   bool
 	beep    bool
 	isUTF8  bool
+
+	// visible makes the bell flash the screen with the terminal's flash
+	// sequence, as readline's bell-style visible does. ti is the terminfo
+	// entry of the terminal, or nil when it has none, and baud is the output
+	// speed of the terminal in bits a second, which the padding in the flash
+	// sequence is measured in.
+	visible bool
+	ti      *terminfo.Terminfo
+	baud    int
 
 	// passThrough says the output is not a terminal, so what a program
 	// writes goes out unchanged (D57).
@@ -97,6 +107,7 @@ type termOptions struct {
 func newTerm(out io.Writer, opts termOptions) *term {
 	t := &term{
 		out:     out,
+		stderr:  os.Stderr,
 		sz:      opts.Sizer,
 		mode:    lineBuffered,
 		width:   80,
@@ -170,14 +181,10 @@ func detectPalette() ansi.Palette {
 	return ansi.PaletteANSI16
 }
 
-// terminfoVars returns the variables of readline that readline takes from the
-// terminfo entry of the terminal called name, by readline's names (D55). A
-// terminal with no entry, which every Windows console is, gives none, and the
-// defaults stand.
-//
-// readline draws the active region between the standout sequences, smso and
-// rmso, unless an inputrc file sets the two colors.
-func terminfoVars(name string) map[string]any {
+// loadTerminfo returns the terminfo entry of the terminal called name, or nil
+// when there is none, which is so for every Windows console (D55). terminfo
+// shares the entry it returns, so it is never changed.
+func loadTerminfo(name string) *terminfo.Terminfo {
 	if name == "" {
 		return nil
 	}
@@ -185,11 +192,19 @@ func terminfoVars(name string) map[string]any {
 	if err != nil {
 		return nil
 	}
-	return terminfoVarsOf(ti)
+	return ti
 }
 
-// terminfoVarsOf is terminfoVars for an entry that is already loaded.
+// terminfoVarsOf returns the variables of readline that readline takes from
+// the terminfo entry ti, by readline's names (D55). A nil entry gives none, and
+// the defaults stand.
+//
+// readline draws the active region between the standout sequences, smso and
+// rmso, unless an inputrc file sets the two colors.
 func terminfoVarsOf(ti *terminfo.Terminfo) map[string]any {
+	if ti == nil {
+		return nil
+	}
 	vars := make(map[string]any, 2)
 	if s, ok := ti.Strings[terminfo.EnterStandoutMode]; ok {
 		vars["active-region-start-color"] = string(s)
@@ -326,15 +341,30 @@ func (t *term) writef(format string, args ...any) {
 	t.buf.Appendf(format, args...)
 }
 
-// beep sounds the terminal bell, unless beeping is off.
+// bell sounds the terminal bell, unless beeping is off.
 //
 // The C writes to standard error rather than to the terminal, so the bell
 // still sounds while output is being collected. The port does the same.
+//
+// When readline's bell-style is visible, the bell is the terminal's flash
+// sequence instead. It goes to the terminal after what is waiting there, and
+// Puts applies its padding, which waits between turning the flash on and off.
+// A terminal with no flash sequence gets the audible bell, as readline gives
+// it.
 func (t *term) bell() {
 	if !t.beep {
 		return
 	}
-	fmt.Fprint(os.Stderr, "\a")
+	// terminfo gives a capability that an entry lacks as empty, as vt100's
+	// flash is.
+	if t.visible && t.ti != nil {
+		if len(t.ti.Strings[terminfo.FlashScreen]) != 0 {
+			t.flush()
+			_, _ = t.ti.Puts(t.out, t.ti.Printf(terminfo.FlashScreen), 1, t.baud)
+			return
+		}
+	}
+	_, _ = io.WriteString(t.stderr, "\a")
 }
 
 // appendEsc adds a whole escape sequence.

@@ -307,5 +307,6 @@ func openDecoder(fd int) (*keyDecoder, error) {
 	t := newDecoder(d)
 	t.ctrl = d
 	t.isUTF8 = localeIsUTF8()
+	t.baud = outputSpeed(&d.origMode)
 	return t, nil
 }

@@ -1965,9 +1965,12 @@ func TestTerminfoGivesTheActiveRegionColors(t *testing.T) {
 		t.Errorf("an entry with no standout gave %q", got)
 	}
 	for _, name := range []string{"", "rline-no-such-terminal"} {
-		if got := terminfoVars(name); got != nil {
-			t.Errorf("terminfoVars(%q) gave %q, want nothing", name, got)
+		if ti := loadTerminfo(name); ti != nil {
+			t.Errorf("loadTerminfo(%q) gave an entry, want none", name)
 		}
+	}
+	if got := terminfoVarsOf(nil); got != nil {
+		t.Errorf("no entry gave %q, want nothing", got)
 	}
 
 	keys := "\x1bxdump-variables\r" + kEnter
@@ -1984,7 +1987,7 @@ func TestTerminfoGivesTheActiveRegionColors(t *testing.T) {
 	}
 }
 
-// TestTerminfoReadsTheSystemEntry checks that terminfoVars reads the entry of
+// TestTerminfoReadsTheSystemEntry checks that loadTerminfo reads the entry of
 // xterm from the system's terminfo database, where xterm's standout is
 // reverse video.
 func TestTerminfoReadsTheSystemEntry(t *testing.T) {
@@ -1993,7 +1996,7 @@ func TestTerminfoReadsTheSystemEntry(t *testing.T) {
 		t.Skip("Windows has no terminfo database, so reading xterm's entry from one is not checked")
 	}
 	want := map[string]any{"active-region-start-color": "\x1b[7m", "active-region-end-color": "\x1b[27m"}
-	if got := terminfoVars("xterm"); !maps.Equal(got, want) {
+	if got := terminfoVarsOf(loadTerminfo("xterm")); !maps.Equal(got, want) {
 		t.Errorf("xterm's variables are %q, want %q", got, want)
 	}
 }
@@ -2013,6 +2016,9 @@ func TestNewReadsTerminfoForATerminal(t *testing.T) {
 	if got := p.env.termVars["active-region-start-color"]; got != "\x1b[7m" {
 		t.Errorf("with a terminal the start color is %q, want %q", got, "\x1b[7m")
 	}
+	if p.env.term.ti == nil {
+		t.Errorf("with a terminal the bell has no terminfo entry")
+	}
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
@@ -2025,5 +2031,135 @@ func TestNewReadsTerminfoForATerminal(t *testing.T) {
 	defer func() { _ = q.Close() }()
 	if q.env.termVars != nil {
 		t.Errorf("with a pipe the terminfo variables are %q, want none", q.env.termVars)
+	}
+	if q.env.term.ti != nil {
+		t.Errorf("with a pipe the bell has a terminfo entry, want none")
+	}
+}
+
+// TestBellStyleFollowsReadline checks bellStyleOf against what bash 5.3,
+// with readline 8.3, does with each value of bell-style and
+// prefer-visible-bell.
+func TestBellStyleFollowsReadline(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		vars map[string]any
+		want bellStyle
+	}{
+		{"nothing set is audible", nil, bellAudible},
+		{"visible", map[string]any{"bell-style": "visible"}, bellVisible},
+		{"the case does not matter", map[string]any{"bell-style": "VISIBLE"}, bellVisible},
+		{"None is none", map[string]any{"bell-style": "None"}, bellNone},
+		{"audible", map[string]any{"bell-style": "audible"}, bellAudible},
+		{"on is audible", map[string]any{"prefer-visible-bell": true, "bell-style": true}, bellAudible},
+		{"off is none", map[string]any{"bell-style": false}, bellNone},
+		{"the text on is audible", map[string]any{"prefer-visible-bell": true, "bell-style": "on"}, bellAudible},
+		{"the text off is none", map[string]any{"bell-style": "off"}, bellNone},
+		{"an unknown value changes nothing", map[string]any{"bell-style": "foo"}, bellAudible},
+		{"prefer-visible-bell on is visible", map[string]any{"prefer-visible-bell": true}, bellVisible},
+		{"prefer-visible-bell off is audible", map[string]any{"prefer-visible-bell": false}, bellAudible},
+		{"an unknown value keeps the preference", map[string]any{"prefer-visible-bell": true, "bell-style": "foo"}, bellVisible},
+		// readline lets the later one win, and inputrc keeps no order.
+		{"bell-style wins over the preference", map[string]any{"prefer-visible-bell": true, "bell-style": "none"}, bellNone},
+	}
+	for _, test := range tests {
+		if got := bellStyleOf(test.vars); got != test.want {
+			t.Errorf("%s: the style is %d, want %d", test.name, got, test.want)
+		}
+	}
+}
+
+// TestVisibleBellFlashesTheScreen checks the bytes of the visible bell
+// against what bash 5.3 wrote under TERM=xterm and TERM=linux. xterm has no
+// pad character, so its delay is a wait. linux pads with NUL bytes, 853 of
+// them at the 38400 bits a second of a pseudo-terminal on Linux.
+func TestVisibleBellFlashesTheScreen(t *testing.T) {
+	t.Parallel()
+	xterm := &terminfo.Terminfo{
+		Bools:   map[int]bool{terminfo.NoPadChar: true},
+		Strings: map[int][]byte{terminfo.FlashScreen: []byte("\x1b[?5h$<100/>\x1b[?5l")},
+	}
+	linux := &terminfo.Terminfo{
+		Bools:   map[int]bool{terminfo.XonXoff: true},
+		Strings: map[int][]byte{terminfo.FlashScreen: []byte("\x1b[?5h$<200/>\x1b[?5l")},
+	}
+	dumb := &terminfo.Terminfo{Strings: map[int][]byte{terminfo.Bell: []byte("\a")}}
+	vt100 := &terminfo.Terminfo{Strings: map[int][]byte{terminfo.FlashScreen: {}}}
+	tests := []struct {
+		name    string
+		ti      *terminfo.Terminfo
+		visible bool
+		beep    bool
+		want    string
+		stderr  string
+	}{
+		{"xterm", xterm, true, true, "pending\x1b[?5h\x1b[?5l", ""},
+		{"linux", linux, true, true, "pending\x1b[?5h" + strings.Repeat("\x00", 853) + "\x1b[?5l", ""},
+		{"a terminal with no flash rings on standard error", dumb, true, true, "", "\a"},
+		{"an empty flash rings on standard error", vt100, true, true, "", "\a"},
+		{"no entry rings on standard error", nil, true, true, "", "\a"},
+		{"the audible style does not flash", xterm, false, true, "", "\a"},
+		{"no beep does nothing", xterm, true, false, "", ""},
+	}
+	for _, test := range tests {
+		var out, stderr bytes.Buffer
+		tm := newTerm(&out, termOptions{Beep: test.beep})
+		tm.stderr = &stderr
+		tm.visible, tm.ti, tm.baud = test.visible, test.ti, 38400
+		tm.buf.AppendString("pending")
+		tm.bell()
+		got := out.String()
+		if test.want == "" {
+			got = strings.TrimPrefix(got, "pending")
+		}
+		if got != test.want {
+			t.Errorf("%s: the bell wrote %q, want %q", test.name, got, test.want)
+		}
+		if stderr.String() != test.stderr {
+			t.Errorf("%s: the bell wrote %q to standard error, want %q", test.name, stderr.String(), test.stderr)
+		}
+	}
+}
+
+// TestInputrcSetsTheBellStyle checks that an inputrc file sets the bell
+// style of the terminal, that WithBeep(false) keeps the bell off whatever the
+// file says, and that reading a file again can turn the bell back on.
+func TestInputrcSetsTheBellStyle(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	visible := write("visible", "set prefer-visible-bell on\n")
+	none := write("none", "set bell-style none\n")
+	audible := write("audible", "set bell-style audible\n")
+	p, err := New(WithInputrcFile(visible), WithStdin(strings.NewReader("")), WithStdout(&bytes.Buffer{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = p.Close() }()
+	if n := p.Notices(); len(n) != 0 {
+		t.Errorf("prefer-visible-bell gave the notices %q", n)
+	}
+	tm := p.env.term
+	if !tm.beep || !tm.visible {
+		t.Errorf("prefer-visible-bell on gave beep %t and visible %t, want both", tm.beep, tm.visible)
+	}
+	p.env.readInputrc(&config{inputrcFile: none, beep: true})
+	if tm.beep {
+		t.Errorf("bell-style none left the bell on")
+	}
+	p.env.readInputrc(&config{inputrcFile: audible, beep: true})
+	if !tm.beep || tm.visible {
+		t.Errorf("bell-style audible gave beep %t and visible %t, want the bell and no flash", tm.beep, tm.visible)
+	}
+	p.env.readInputrc(&config{inputrcFile: visible, beep: false})
+	if tm.beep {
+		t.Errorf("WithBeep(false) did not keep the bell off")
 	}
 }

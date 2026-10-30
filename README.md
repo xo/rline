@@ -160,6 +160,11 @@ set vi-ins-mode-string "\1\e[6 q\2"
 set vi-cmd-mode-string "\1\e[2 q\2"
 ```
 
+`set bell-style visible` flashes the screen in place of the bell. rline
+writes the `flash` sequence from the terminfo entry of the terminal. A
+terminal with no `flash`, such as vt100 or a Windows console, rings the bell.
+`set bell-style none` turns the bell off.
+
 ```go
 p, err := rline.New(rline.WithUserInputrc(true), rline.WithAppName("usql"))
 for _, n := range p.Notices() {

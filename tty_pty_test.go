@@ -60,6 +60,10 @@ func TestTTYOnARealTerminal(t *testing.T) {
 	if before.Lflag&unix.ECHO == 0 {
 		t.Fatal("echo was already off before raw mode")
 	}
+	// The decoder keeps the output speed for the padding of the visible bell.
+	if want := outputSpeed(before); want == 0 || term.baud != want {
+		t.Errorf("the decoder has the speed %d, and the terminal has %d", term.baud, want)
+	}
 	if err := term.startRaw(); err != nil {
 		t.Fatalf("starting raw mode: %v", err)
 	}
@@ -201,6 +205,31 @@ func TestSizeReadsTheTerminal(t *testing.T) {
 		if cols, rows := s.Size(); cols != int(want.Col) || rows != int(want.Row) {
 			t.Errorf("Size gave %d by %d, want %d by %d", cols, rows, want.Col, want.Row)
 		}
+	}
+}
+
+// TestNewKeepsTheOutputSpeed checks that New gives the terminal the output
+// speed of the terminal it reads, which the visible bell pads with.
+func TestNewKeepsTheOutputSpeed(t *testing.T) {
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = leader.Close()
+		_ = follower.Close()
+	})
+	mode, err := unix.IoctlGetTermios(int(follower.Fd()), termiosGet)
+	if err != nil {
+		t.Fatalf("reading the terminal settings: %v", err)
+	}
+	s, err := New(WithStdin(follower), WithStdout(follower))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	if want := outputSpeed(mode); want == 0 || s.env.term.baud != want {
+		t.Errorf("the terminal has the speed %d, and the device has %d", s.env.term.baud, want)
 	}
 }
 

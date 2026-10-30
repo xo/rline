@@ -1299,8 +1299,14 @@ The recommendation is that no sequence that rline writes moves now:
 2. The color palette stays isocline's rule. The terminals of D60 set
    `COLORTERM` or are named in the rule, and terminfo understates them:
    `xterm` gives 8 colors where the rule gives 16.
-3. The visible bell moves to terminfo's `flash` when `bell-style visible`
-   is built, after terminfo applies padding (backlog 77).
+3. The visible bell is terminfo's `flash`. Ken asked for it on 2026-10-30,
+   after terminfo v1.3.0 began to apply padding. `bell-style visible`, or
+   `prefer-visible-bell on`, writes the sequence through terminfo's `Puts`
+   at the output speed of the terminal, which rline reads from the termios
+   settings. A terminal with no `flash` rings the bell, as readline does.
+   The bytes match those of bash 5.3 under xterm, linux and vt100. When a
+   file sets both variables, `bell-style` wins, because inputrc keeps no
+   order (backlog 79).
 4. Bracketed paste reads the extended capabilities `BE` and `BD` when it is
    built (backlog 7).
 
