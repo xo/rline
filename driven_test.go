@@ -2037,34 +2037,35 @@ func TestNewReadsTerminfoForATerminal(t *testing.T) {
 	}
 }
 
-// TestBellStyleFollowsReadline checks bellStyleOf against what bash 5.3,
-// with readline 8.3, does with each value of bell-style and
-// prefer-visible-bell.
+// TestBellStyleFollowsReadline checks the bell style that an inputrc file
+// gives against what bash 5.3, with readline 8.3, does with each value of
+// bell-style and prefer-visible-bell, and with both in either order.
 func TestBellStyleFollowsReadline(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		vars map[string]any
+		file string
 		want bellStyle
 	}{
-		{"nothing set is audible", nil, bellAudible},
-		{"visible", map[string]any{"bell-style": "visible"}, bellVisible},
-		{"the case does not matter", map[string]any{"bell-style": "VISIBLE"}, bellVisible},
-		{"None is none", map[string]any{"bell-style": "None"}, bellNone},
-		{"audible", map[string]any{"bell-style": "audible"}, bellAudible},
-		{"on is audible", map[string]any{"prefer-visible-bell": true, "bell-style": true}, bellAudible},
-		{"off is none", map[string]any{"bell-style": false}, bellNone},
-		{"the text on is audible", map[string]any{"prefer-visible-bell": true, "bell-style": "on"}, bellAudible},
-		{"the text off is none", map[string]any{"bell-style": "off"}, bellNone},
-		{"an unknown value changes nothing", map[string]any{"bell-style": "foo"}, bellAudible},
-		{"prefer-visible-bell on is visible", map[string]any{"prefer-visible-bell": true}, bellVisible},
-		{"prefer-visible-bell off is audible", map[string]any{"prefer-visible-bell": false}, bellAudible},
-		{"an unknown value keeps the preference", map[string]any{"prefer-visible-bell": true, "bell-style": "foo"}, bellVisible},
-		// readline lets the later one win, and inputrc keeps no order.
-		{"bell-style wins over the preference", map[string]any{"prefer-visible-bell": true, "bell-style": "none"}, bellNone},
+		{"nothing set is audible", "", bellAudible},
+		{"visible", "set bell-style visible\n", bellVisible},
+		{"the case does not matter", "set bell-style VISIBLE\n", bellVisible},
+		{"None is none", "set bell-style None\n", bellNone},
+		{"audible", "set prefer-visible-bell on\nset bell-style audible\n", bellAudible},
+		{"on is audible", "set prefer-visible-bell on\nset bell-style on\n", bellAudible},
+		{"off is none", "set bell-style off\n", bellNone},
+		{"an unknown value changes nothing", "set bell-style visible\nset bell-style foo\n", bellVisible},
+		{"prefer-visible-bell on is visible", "set prefer-visible-bell on\n", bellVisible},
+		{"prefer-visible-bell off is audible", "set bell-style visible\nset prefer-visible-bell off\n", bellAudible},
+		{"the preference after bell-style wins", "set bell-style none\nset prefer-visible-bell on\n", bellVisible},
+		{"bell-style after the preference wins", "set prefer-visible-bell on\nset bell-style none\n", bellNone},
 	}
 	for _, test := range tests {
-		if got := bellStyleOf(test.vars); got != test.want {
+		cfg := inputrc.NewConfig()
+		if err := inputrc.ParseBytes([]byte(test.file), cfg); err != nil {
+			t.Fatalf("%s: %v", test.name, err)
+		}
+		if got := bellStyleOf(cfg.Vars); got != test.want {
 			t.Errorf("%s: the style is %d, want %d", test.name, got, test.want)
 		}
 	}

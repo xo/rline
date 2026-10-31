@@ -547,38 +547,16 @@ const (
 )
 
 // bellStyleOf returns the bell style that the variables of an inputrc file
-// set. It follows readline 8.3, as bash 5.3 shows it:
-//
-//   - bell-style is none, visible or audible, in any case. off is none and
-//     on is audible, and inputrc gives those two as booleans. Any other value
-//     leaves the style as it was.
-//   - prefer-visible-bell on sets the style to visible, and off sets it to
-//     audible.
-//
-// readline lets the later of the two variables win. inputrc does not keep
-// their order, so bell-style wins here when a file sets both.
+// set. inputrc reads bell-style and prefer-visible-bell as readline 8.3
+// does, and gives the style in bell-style as audible, visible or none.
 func bellStyleOf(vars map[string]any) bellStyle {
-	style := bellAudible
-	if prefer, ok := vars["prefer-visible-bell"].(bool); ok && prefer {
-		style = bellVisible
+	switch vars["bell-style"] {
+	case "none":
+		return bellNone
+	case "visible":
+		return bellVisible
 	}
-	switch v := vars["bell-style"].(type) {
-	case bool:
-		style = bellNone
-		if v {
-			style = bellAudible
-		}
-	case string:
-		switch strings.ToLower(v) {
-		case "none", "off":
-			style = bellNone
-		case "visible":
-			style = bellVisible
-		case "audible", "on":
-			style = bellAudible
-		}
-	}
-	return style
+	return bellAudible
 }
 
 // homeUser returns the user whose home directory holds ~/.inputrc. readline

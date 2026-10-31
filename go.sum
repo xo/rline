@@ -2,8 +2,8 @@ github.com/clipperhouse/uax29/v2 v2.7.0 h1:+gs4oBZ2gPfVrKPthwbMzWZDaAFPGYK72F0NJ
 github.com/clipperhouse/uax29/v2 v2.7.0/go.mod h1:EFJ2TJMRUaplDxHKj1qAEhCtQPW2tJSwu5BF98AuoVM=
 github.com/mattn/go-runewidth v0.0.31 h1:1oCV4ReTlosDBc6rYRw5cL8S/4y8iv5oRl4SJ5IBgwo=
 github.com/mattn/go-runewidth v0.0.31/go.mod h1:3qAiGCV4Koz/yuveO58qUefmUTRm8r0IGEXZ9jeHp/8=
-github.com/xo/inputrc v0.7.1 h1:Ok7TBbvHcMHJukSW1i1ON0L7zq3Bhltlijgnq80+l28=
-github.com/xo/inputrc v0.7.1/go.mod h1:DT5sknosn6ez9x2HVxa4XsEOPEGPKb9wO/FQvAgZZOs=
+github.com/xo/inputrc v0.8.0 h1:TOqHJ/+7K4EKLnjbglLVb3cHe8Hf3iz22jMR3Ns0X/k=
+github.com/xo/inputrc v0.8.0/go.mod h1:DT5sknosn6ez9x2HVxa4XsEOPEGPKb9wO/FQvAgZZOs=
 github.com/xo/terminfo v1.3.0 h1:KstyePbNW6UaLq9y12+544VK4aTP3Eku/sym3a9+UgQ=
 github.com/xo/terminfo v1.3.0/go.mod h1:lGzkSo8Fe7IRh/w+Gqz7n5mDog4FVXCj3gy/DYTBqio=
 golang.org/x/sys v0.47.0 h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=

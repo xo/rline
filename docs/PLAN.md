@@ -1305,8 +1305,8 @@ The recommendation is that no sequence that rline writes moves now:
    at the output speed of the terminal, which rline reads from the termios
    settings. A terminal with no `flash` rings the bell, as readline does.
    The bytes match those of bash 5.3 under xterm, linux and vt100. When a
-   file sets both variables, `bell-style` wins, because inputrc keeps no
-   order (backlog 79).
+   file sets both variables, the later one wins, as in readline, because
+   inputrc v0.8.0 makes them one setting.
 4. Bracketed paste reads the extended capabilities `BE` and `BD` when it is
    built (backlog 7).
 

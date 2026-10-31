@@ -249,15 +249,6 @@ These come from 2026-10-30, when rline gained the 45 commands of readline
     signal handler that removes it, or a name that the next save cleans up,
     would stop it. From: the `uitest` runs of D54 and D60.
 
-## Found while the visible bell was built
-
-79. readline lets the later of `bell-style` and `prefer-visible-bell` win,
-    so `set bell-style none` and then `set prefer-visible-bell on` gives the
-    visible bell. inputrc v0.7.1 keeps no order between variables, so rline
-    lets `bell-style` win. inputrc also gives `set bell-style on` and `off` as
-    booleans, which rline reads. The inputrc session was told on 2026-10-30.
-    From: backlog 77.
-
 ## Found while vi mode was written
 
 64. readline acts on a lone Esc in vi insert mode after keyseq-timeout.
