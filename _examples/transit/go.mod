@@ -4,15 +4,15 @@ go 1.27.1
 
 require (
 	github.com/xo/rline v0.1.0
-	github.com/xo/transit v0.5.0
-	github.com/xo/transit/grammars/bash v0.5.0
-	github.com/xo/transit/grammars/c v0.5.0
-	github.com/xo/transit/grammars/go v0.5.0
-	github.com/xo/transit/grammars/javascript v0.5.0
-	github.com/xo/transit/grammars/json v0.5.0
-	github.com/xo/transit/grammars/python v0.5.0
-	github.com/xo/transit/grammars/ruby v0.5.0
-	github.com/xo/transit/grammars/rust v0.5.0
+	github.com/xo/transit v0.7.0
+	github.com/xo/transit/grammars/bash v0.7.0
+	github.com/xo/transit/grammars/c v0.7.0
+	github.com/xo/transit/grammars/go v0.7.0
+	github.com/xo/transit/grammars/javascript v0.7.0
+	github.com/xo/transit/grammars/json v0.7.0
+	github.com/xo/transit/grammars/python v0.7.0
+	github.com/xo/transit/grammars/ruby v0.7.0
+	github.com/xo/transit/grammars/rust v0.7.0
 )
 
 require (
