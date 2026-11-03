@@ -165,6 +165,11 @@ writes the `flash` sequence from the terminfo entry of the terminal. A
 terminal with no `flash`, such as vt100 or a Windows console, rings the bell.
 `set bell-style none` turns the bell off.
 
+A paste goes into the line as text, in bracketed paste mode, as it does in
+readline: a paste of several lines is one entry, and Enter hands it back.
+`set enable-bracketed-paste off` turns the mode off, and then each line of a
+paste is an entry of its own.
+
 ```go
 p, err := rline.New(rline.WithUserInputrc(true), rline.WithAppName("usql"))
 for _, n := range p.Notices() {

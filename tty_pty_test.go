@@ -9,6 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -112,17 +115,17 @@ func TestTTYOnARealTerminal(t *testing.T) {
 	}
 }
 
-// TestRawModeDiscardsWhatWasTypedBeforeIt checks that entering raw mode
-// throws away input that was already waiting, which is what termiosSetFlush
-// is for: TCSETSF and TIOCSETAF set the attributes and empty the input queue,
-// where TCSETS and TIOCSETA set them and leave it alone.
+// TestRawModeKeepsWhatWasTypedBeforeIt checks that entering and leaving raw
+// mode keeps input that was already waiting, as readline keeps it, which is
+// what termiosSetDrain is for: TCSETSW and TIOCSETAW set the attributes and
+// leave the input queue alone, where TCSETSF and TIOCSETAF empty it (D66).
+// Until D66, rline emptied it, as the C does, and lost every line of a paste
+// after the first, because each line leaves raw mode and enters it again.
 //
-// Nothing else covers the difference. Found by ken-mba, who changed
-// TIOCSETAF to TIOCSETA on macOS and watched the whole suite pass; the same
-// change to TCSETSF here passes it too. The promise matters because a
-// keystroke typed before the prompt was drawn would otherwise be read as
-// though it had been typed at the prompt.
-func TestRawModeDiscardsWhatWasTypedBeforeIt(t *testing.T) {
+// Nothing else on this side of the terminal covers the difference. ken-mba
+// found that the flushing constant could be swapped for the plain one with
+// the whole suite still passing, and docs/LESSONS.md tells that story.
+func TestRawModeKeepsWhatWasTypedBeforeIt(t *testing.T) {
 	leader, follower, err := capture.OpenPTY()
 	if err != nil {
 		t.Skipf("no pseudo-terminal available: %v", err)
@@ -145,9 +148,7 @@ func TestRawModeDiscardsWhatWasTypedBeforeIt(t *testing.T) {
 	// Waiting for the echo rather than sleeping. The terminal is still in
 	// canonical mode with echo on, so the line discipline sends back what it
 	// accepted, and that arriving is what proves the bytes reached the input
-	// queue. Without it this test could pass by flushing nothing, which is
-	// the shape that has cost this port time before. A byte-count ioctl
-	// would say so directly, but only Linux spells one that x/sys exports.
+	// queue before raw mode started.
 	echoed := make(chan struct{})
 	go func() {
 		defer close(echoed)
@@ -156,29 +157,221 @@ func TestRawModeDiscardsWhatWasTypedBeforeIt(t *testing.T) {
 	select {
 	case <-echoed:
 	case <-time.After(2 * time.Second):
-		t.Fatal("the terminal never echoed what was typed, so nothing was waiting to be flushed and this test checked nothing")
+		t.Fatal("the terminal never echoed what was typed, so nothing was waiting and this test checked nothing")
 	}
 
+	// The tty reads one byte at a time, so what is not read yet stays in the
+	// terminal's queue, where leaving raw mode and entering it again could
+	// empty it.
+	for _, want := range "abc" {
+		if err := term.startRaw(); err != nil {
+			t.Fatalf("starting raw mode: %v", err)
+		}
+		got, ok := term.readTimeout(2 * time.Second)
+		term.endRaw()
+		if !ok {
+			t.Fatalf("raw mode lost %q, which was typed before it started", want)
+		}
+		if got != key.Code(want) {
+			t.Fatalf("raw mode read %08x, want %q", got, want)
+		}
+	}
+}
+
+// TestNoEchoKeepsWhatWasTypedBeforeIt checks that the mode that reads a
+// password keeps input that was already waiting, as raw mode keeps it (D66).
+func TestNoEchoKeepsWhatWasTypedBeforeIt(t *testing.T) {
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = leader.Close()
+		_ = follower.Close()
+	})
+	d, err := openTTY(int(follower.Fd()))
+	if err != nil {
+		t.Fatalf("opening the terminal: %v", err)
+	}
+	t.Cleanup(func() { _ = d.close() })
+	out := readPTY(leader)
+	if _, err := leader.WriteString("ab\n"); err != nil {
+		t.Fatalf("writing to the terminal: %v", err)
+	}
+	// The echo proves that the line reached the input queue.
+	if !out.waitFor("ab", 2*time.Second) {
+		t.Fatal("the terminal never echoed what was typed, so nothing was waiting and this test checked nothing")
+	}
+	for _, want := range "ab" {
+		if err := d.startNoEcho(); err != nil {
+			t.Fatalf("turning off echo: %v", err)
+		}
+		got, ok := d.readByte(2 * time.Second)
+		d.endNoEcho()
+		if !ok {
+			t.Fatalf("turning off echo lost %q, which was typed before it", want)
+		}
+		if rune(got) != want {
+			t.Fatalf("read %q with echo off, want %q", got, want)
+		}
+	}
+}
+
+// ptyOutput collects what a program writes to the leader of a
+// pseudo-terminal, so that a test can wait for a sequence in it.
+type ptyOutput struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+// readPTY copies what arrives on leader into a ptyOutput until the leader is
+// closed.
+func readPTY(leader *os.File) *ptyOutput {
+	o := &ptyOutput{}
+	go func() {
+		b := make([]byte, 4096)
+		for {
+			n, err := leader.Read(b)
+			o.mu.Lock()
+			o.buf.Write(b[:n])
+			o.mu.Unlock()
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return o
+}
+
+// String returns everything that arrived so far.
+func (o *ptyOutput) String() string {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return o.buf.String()
+}
+
+// waitFor waits for s to arrive, and reports whether it did within timeout.
+func (o *ptyOutput) waitFor(s string, timeout time.Duration) bool {
+	for end := time.Now().Add(timeout); time.Now().Before(end); time.Sleep(10 * time.Millisecond) {
+		if strings.Contains(o.String(), s) {
+			return true
+		}
+	}
+	return strings.Contains(o.String(), s)
+}
+
+// TestRawModeTurnsOnBracketedPaste checks that raw mode turns on bracketed
+// paste mode when it is asked to, and that leaving raw mode turns it off.
+func TestRawModeTurnsOnBracketedPaste(t *testing.T) {
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = leader.Close()
+		_ = follower.Close()
+	})
+	term, err := openDecoder(int(follower.Fd()))
+	if err != nil {
+		t.Fatalf("opening the terminal: %v", err)
+	}
+	t.Cleanup(func() { _ = term.close() })
+	out := readPTY(leader)
+
+	// Off is first, so that the sequences that arrive later cannot be
+	// mistaken for it.
+	term.setPaste(false)
 	if err := term.startRaw(); err != nil {
 		t.Fatalf("starting raw mode: %v", err)
 	}
-	defer term.endRaw()
+	term.endRaw()
+	term.setPaste(true)
+	if err := term.startRaw(); err != nil {
+		t.Fatalf("starting raw mode: %v", err)
+	}
+	if !out.waitFor(pasteOn, 2*time.Second) {
+		t.Fatalf("raw mode wrote %q, and no %q", out.String(), pasteOn)
+	}
+	term.endRaw()
+	if !out.waitFor(pasteOn+pasteOff, 2*time.Second) {
+		t.Fatalf("leaving raw mode wrote %q, and no %q after %q", out.String(), pasteOff, pasteOn)
+	}
+	if got := out.String(); got != pasteOn+pasteOff {
+		t.Errorf("the terminal got %q, want %q", got, pasteOn+pasteOff)
+	}
+}
 
-	if got, ok := term.readTimeout(200 * time.Millisecond); ok {
-		t.Errorf("raw mode kept %08x, which was typed before it started", got)
+// TestReadLineKeepsAPaste checks the whole path that usql found broken: a
+// paste of several lines into a terminal. Without bracketed paste each line
+// is a line of its own, and none is lost between them. With it, the paste is
+// one line of several rows, which Enter hands back. An inputrc file can turn
+// bracketed paste off, as in readline.
+func TestReadLineKeepsAPaste(t *testing.T) {
+	t.Setenv("TERM", "xterm")
+	off := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(off, []byte("set enable-bracketed-paste off\n"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-
-	// And the terminal is still readable, so the silence above is a flushed
-	// queue rather than a terminal that stopped delivering.
-	if _, err := leader.WriteString("z"); err != nil {
-		t.Fatalf("writing to the terminal: %v", err)
+	tests := []struct {
+		name  string
+		opts  []Option
+		paste string
+		want  []string
+		mode  bool
+	}{
+		{"plain", nil, "one\rtwo\rthree\r", []string{"one", "two", "three"}, true},
+		{"bracketed", nil, "\x1b[200~one\rtwo\x1b[Athree\x03\x1b[201~\r", []string{"one\ntwo\x1b[Athree\x03"}, true},
+		{"turned off", []Option{WithInputrcFile(off)}, "one\rtwo\r", []string{"one", "two"}, false},
 	}
-	got, ok := term.readTimeout(2 * time.Second)
-	if !ok {
-		t.Fatal("nothing arrived after raw mode started")
-	}
-	if got != key.Code('z') {
-		t.Errorf("read %08x after raw mode started, want %08x", got, key.Code('z'))
+	for _, test := range tests {
+		leader, follower, err := capture.OpenPTY()
+		if err != nil {
+			t.Skipf("no pseudo-terminal available, so a paste was not checked: %v", err)
+		}
+		s, err := New(append([]Option{WithStdin(follower), WithStdout(follower)}, test.opts...)...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := readPTY(leader)
+		lines := make(chan string, len(test.want))
+		go func() {
+			for range test.want {
+				line, err := s.ReadLine("")
+				if err != nil {
+					t.Errorf("%s: ReadLine: %v", test.name, err)
+				}
+				lines <- line
+			}
+		}()
+		// The prompt is drawn when the first line is read, and the paste
+		// comes after it.
+		if !out.waitFor("\x1b[", 2*time.Second) {
+			t.Fatalf("%s: nothing was drawn", test.name)
+		}
+		if _, err := leader.WriteString(test.paste); err != nil {
+			t.Fatal(err)
+		}
+		for i, want := range test.want {
+			select {
+			case got := <-lines:
+				if got != want {
+					t.Errorf("%s: line %d is %q, want %q", test.name, i, got, want)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatalf("%s: line %d never came back, and the terminal got %q", test.name, i, out.String())
+			}
+		}
+		// The last line turns the mode off after it comes back, so the
+		// output is waited for.
+		if test.mode && !out.waitFor(pasteOff, 2*time.Second) {
+			t.Errorf("%s: bracketed paste mode was not turned off after the last line", test.name)
+		}
+		if on := strings.Contains(out.String(), pasteOn); on != test.mode {
+			t.Errorf("%s: bracketed paste mode was turned on %t, want %t", test.name, on, test.mode)
+		}
+		_ = s.Close()
+		_ = leader.Close()
+		_ = follower.Close()
 	}
 }
 

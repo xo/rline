@@ -550,6 +550,7 @@ func (ev *env) readKey(e *editor.Editor) key.Code {
 // because the terminal rewrites it on the way in, and the editor never sees
 // the key that ends a line.
 func (ev *env) readLine(promptText string) (string, bool, error) {
+	ev.keys.setPaste(ev.bracketedPaste())
 	if err := ev.keys.startRaw(); err != nil {
 		return "", false, fmt.Errorf("switching the terminal to raw mode: %w", err)
 	}
@@ -803,6 +804,14 @@ func (ev *env) lineVars() map[string]any {
 func (ev *env) echoControlCharacters() bool {
 	on, ok := ev.vars["echo-control-characters"].(bool)
 	return on || !ok
+}
+
+// bracketedPaste reports whether a line is read in bracketed paste mode. It
+// is, as in readline, unless an inputrc file turns enable-bracketed-paste off
+// or the output is not a terminal (D66).
+func (ev *env) bracketedPaste() bool {
+	on, ok := ev.vars["enable-bracketed-paste"].(bool)
+	return (on || !ok) && !ev.term.passThrough
 }
 
 // --------------------------------------------------------------------------

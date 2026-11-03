@@ -37,6 +37,9 @@ type tty struct {
 	// the signal watcher restores them from its own goroutine.
 	mu         sync.Mutex
 	rawEnabled bool
+	// paste turns on bracketed paste mode while the terminal is in raw
+	// mode, and pasting says that it is on.
+	paste, pasting bool
 
 	// resized is set when the window changes size, and read and cleared by
 	// resizeEvent.
@@ -197,14 +200,36 @@ func (d *tty) startRaw() error {
 	if d.rawEnabled {
 		return nil
 	}
-	if err := unix.IoctlSetTermios(d.fd, termiosSetFlush, &d.rawMode); err != nil {
+	if err := unix.IoctlSetTermios(d.fd, termiosSetDrain, &d.rawMode); err != nil {
 		return fmt.Errorf("putting the terminal into raw mode: %w", err)
 	}
 	d.rawEnabled = true
+	if d.paste {
+		_, _ = unix.Write(d.fd, []byte(pasteOn))
+		d.pasting = true
+	}
 	if d.watching.Load() {
 		signal.Notify(d.stopCh, stopSignals...)
 	}
 	return nil
+}
+
+// pasteOn and pasteOff turn bracketed paste mode on and off. readline writes
+// these, and not what terminfo gives, and so does rline (D66). They go to the
+// terminal that the keys come from, beside the settings that raw mode
+// changes, so the log of WithLogger does not hold them.
+const (
+	pasteOn  = "\x1b[?2004h"
+	pasteOff = "\x1b[?2004l"
+)
+
+// setPaste says whether startRaw turns on bracketed paste mode. endRaw turns
+// it off again, on every path that puts the terminal back, a signal among
+// them.
+func (d *tty) setPaste(on bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.paste = on
 }
 
 // endRaw puts the terminal back the way it was.
@@ -217,7 +242,11 @@ func (d *tty) endRaw() {
 	// The watch stops even when the terminal cannot be put back, because
 	// the signals belong to the program again once raw mode is given up.
 	signal.Stop(d.stopCh)
-	if err := unix.IoctlSetTermios(d.fd, termiosSetFlush, &d.origMode); err != nil {
+	if d.pasting {
+		_, _ = unix.Write(d.fd, []byte(pasteOff))
+		d.pasting = false
+	}
+	if err := unix.IoctlSetTermios(d.fd, termiosSetDrain, &d.origMode); err != nil {
 		return
 	}
 	d.rawEnabled = false

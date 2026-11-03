@@ -9,7 +9,7 @@ import "golang.org/x/sys/unix"
 // these files are named for the family rather than for a system.
 const (
 	termiosGet      = unix.TIOCGETA
-	termiosSetFlush = unix.TIOCSETAF
+	termiosSetDrain = unix.TIOCSETAW
 )
 
 // outputSpeed returns the output speed of a terminal in bits a second. The

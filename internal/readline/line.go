@@ -350,13 +350,12 @@ func (l *Line) blankWordStart(pos int) int {
 
 // kill removes the bytes from start to end, puts them on the kill ring, and
 // leaves the cursor where they were. The kill commands move the mark there
-// too. A kill right after another kill joins it: text killed after the
-// cursor goes after it, and text killed before the cursor goes in front.
+// too, even when there was nothing to kill, as readline does. A kill right
+// after another kill joins it: text killed after the cursor goes after it,
+// and text killed before the cursor goes in front.
 func (l *Line) kill(start, end int) {
 	l.killText(start, end)
-	if start < end {
-		l.mark = start
-	}
+	l.mark = start
 }
 
 // killText kills the bytes from start to end and leaves the mark alone, as

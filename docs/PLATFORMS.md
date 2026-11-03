@@ -609,10 +609,11 @@ are here because somebody weighed them and said no, and a reader has no way
 to tell the two apart unless the text does it for them. ken-mba's point, and
 worth the section on its own.
 
-The flush is asserted on two platforms of seven. `termiosSetFlush` is
+The drain is asserted on two platforms of seven. `termiosSetDrain` is
 compiled wherever `tty_sysv.go` or `tty_bsd.go` is, which is seven systems,
-and `TestRawModeDiscardsWhatWasTypedBeforeIt` needs a pseudo-terminal, so it
-runs on linux and darwin only. On NetBSD and OmniOS the suite reports it as
+and `TestRawModeKeepsWhatWasTypedBeforeIt` needs a pseudo-terminal, so it
+runs on linux and darwin only. Until D66 the constant flushed the input,
+and the test held that. On NetBSD and OmniOS the suite reports it as
 absent rather than as passing, and a run report should say so rather than let
 a green summary imply otherwise.
 

@@ -39,7 +39,7 @@ func (d *tty) startNoEcho() error {
 	mode.Lflag &^= unix.ECHO
 	mode.Lflag |= unix.ICANON | unix.ISIG
 	mode.Iflag |= unix.ICRNL
-	if err := unix.IoctlSetTermios(d.fd, termiosSetFlush, &mode); err != nil {
+	if err := unix.IoctlSetTermios(d.fd, termiosSetDrain, &mode); err != nil {
 		return fmt.Errorf("turning off echo: %w", err)
 	}
 	return nil
@@ -50,7 +50,7 @@ func (d *tty) endNoEcho() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	mode := d.origMode
-	_ = unix.IoctlSetTermios(d.fd, termiosSetFlush, &mode)
+	_ = unix.IoctlSetTermios(d.fd, termiosSetDrain, &mode)
 }
 
 // --------------------------------------------------------------------------

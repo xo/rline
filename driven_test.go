@@ -2123,6 +2123,45 @@ func TestVisibleBellFlashesTheScreen(t *testing.T) {
 	}
 }
 
+// TestInputrcSetsBracketedPaste checks that bracketed paste mode is on by
+// default, as in readline 8.1 and later, that an inputrc file can turn it
+// off without a notice, and that it stays off when the output is not a
+// terminal (D66).
+func TestInputrcSetsBracketedPaste(t *testing.T) {
+	t.Parallel()
+	off := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(off, []byte("set enable-bracketed-paste off\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// A pipe is a file that is not a terminal. A writer that is not a file
+	// counts as a terminal.
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = r.Close(); _ = w.Close() }()
+	p, err := New(WithStdin(strings.NewReader("")), WithStdout(w))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = p.Close() }()
+	ev := p.env
+	if ev.bracketedPaste() {
+		t.Error("bracketed paste mode is on for an output that is not a terminal")
+	}
+	ev.term.passThrough = false
+	if !ev.bracketedPaste() {
+		t.Error("bracketed paste mode is off with no inputrc file")
+	}
+	ev.readInputrc(&config{inputrcFile: off})
+	if n := ev.notices; len(n) != 0 {
+		t.Errorf("enable-bracketed-paste gave the notices %q", n)
+	}
+	if ev.bracketedPaste() {
+		t.Error("enable-bracketed-paste off left bracketed paste mode on")
+	}
+}
+
 // TestInputrcSetsTheBellStyle checks that an inputrc file sets the bell
 // style of the terminal, that WithBeep(false) keeps the bell off whatever the
 // file says, and that reading a file again can turn the bell back on.

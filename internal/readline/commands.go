@@ -2,6 +2,7 @@ package readline
 
 import (
 	"bytes"
+	"slices"
 	"unicode"
 	"unicode/utf8"
 
@@ -128,8 +129,51 @@ func init() {
 		// Drawing is the renderer's, so these change nothing in the line.
 		"clear-screen":          func(*Line, call) {},
 		"redraw-current-line":   func(*Line, call) {},
-		"bracketed-paste-begin": func(l *Line, _ call) { l.ding() },
+		"bracketed-paste-begin": bracketedPasteBegin,
 	}
+}
+
+// pasteEnd is the sequence that a terminal sends after a paste, in bracketed
+// paste mode.
+var pasteEnd = []key.Code{key.Esc, '[', '2', '0', '1', '~'}
+
+// bracketedPasteBegin reads the keys of a paste, up to pasteEnd, and puts
+// them into the line as text with Paste. A program that reads the paste from
+// the terminal itself runs Paste in place of this command.
+func bracketedPasteBegin(l *Line, _ call) {
+	var keys []key.Code
+	var next func(k key.Code)
+	next = func(k key.Code) {
+		keys = append(keys, k)
+		n := len(keys) - len(pasteEnd)
+		if n < 0 || !slices.Equal(keys[n:], pasteEnd) {
+			l.readNext = next
+			return
+		}
+		var text []byte
+		for _, k := range keys[:n] {
+			text = rtext.AppendRune(text, rune(k&^key.ModMask))
+		}
+		l.this, l.thisKill = "bracketed-paste-begin", false
+		l.Paste(string(text))
+		l.last, l.lastKill = l.this, l.thisKill
+	}
+	l.readNext = next
+}
+
+// Paste puts text into the line at the cursor, as readline puts a bracketed
+// paste: as text, whatever the keys in it are bound to. A carriage return
+// becomes a line feed. The mark goes to the start of the text and the cursor
+// to its end, and undo takes the whole paste back in one step.
+func (l *Line) Paste(text string) {
+	if l.undo.open == nil {
+		l.undo.begin()
+		defer l.undo.end()
+	}
+	b := bytes.ReplaceAll([]byte(text), []byte{'\r'}, []byte{'\n'})
+	start := l.point
+	l.insert(start, b)
+	l.mark, l.point = start, start+len(b)
 }
 
 // moveChars moves the cursor n characters, forward when n is positive. It

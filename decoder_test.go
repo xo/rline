@@ -1003,3 +1003,43 @@ func TestReadsStopWhenTheInputEnds(t *testing.T) {
 		t.Fatal("readHidden did not return when the input ended")
 	}
 }
+
+// TestDecoderReadsAPaste checks that ESC [ 200 ~ is the start of a paste,
+// and that readPaste reads the paste as bytes up to ESC [ 201 ~, so that an
+// escape sequence and a control character in it stay text, and the key after
+// it is read as a key again. A paste that the input cuts off gives what
+// arrived.
+func TestDecoderReadsAPaste(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		in    string
+		paste string
+		after []key.Code
+	}{
+		{"\x1b[200~ab\x1b[201~", "ab", nil},
+		{"\x1b[200~a\x1b[Ab\x03\r\x1b[201~z", "a\x1b[Ab\x03\r", []key.Code{'z'}},
+		{"\x1b[200~\x1b[201~\x1b[A", "", []key.Code{key.Up}},
+		{"\x1b[200~a\x1b[201", "a\x1b[201", nil},
+	} {
+		d := newDecoder(&bytesReader{b: []byte(tc.in)})
+		d.setEscDelay(0, 0)
+		if c, ok := d.readTimeout(0); !ok || c != keyPaste {
+			t.Errorf("%q starts with %s, want the start of a paste", tc.in, showCodes([]key.Code{c}))
+			continue
+		}
+		if got := d.readPaste(); got != tc.paste {
+			t.Errorf("%q pastes %q, want %q", tc.in, got, tc.paste)
+		}
+		var after []key.Code
+		for {
+			c, ok := d.readTimeout(0)
+			if !ok {
+				break
+			}
+			after = append(after, c)
+		}
+		if !slices.Equal(after, tc.after) {
+			t.Errorf("%q gives %s after the paste, want %s", tc.in, showCodes(after), showCodes(tc.after))
+		}
+	}
+}

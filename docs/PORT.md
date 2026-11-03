@@ -295,6 +295,13 @@ only while the terminal is in raw mode, and passes them on without
 Before that, a Ctrl-C between two reads ended usql while it cancelled a
 query.
 
+isocline sets the terminal with `TCSAFLUSH`, which throws away what is typed
+ahead. The port keeps it, as readline does, because each line leaves raw mode
+and enters it again, and the flush lost every line of a paste after the
+first (D66). For the same reason the decoder reads `ESC [ 200 ~` as the start
+of a paste, where the C reads no key, and `testdata/tty-delta.txt` holds the
+two cases of the corpus that differ.
+
 The keys are GNU readline's, and isocline's `switch` over key codes is gone
 (D41, D44). A key goes through a keymap built from readline's defaults to a
 command that `internal/readline` runs. So isocline's key behaviours are gone

@@ -98,7 +98,8 @@ that holds it.
 | [D62](#d62-rline-supports-windows-11-and-tests-nothing-older-on-windows-decided-amends-d6-and-d9) | rline supports Windows 11 and tests nothing older on Windows | Decided. Amends D6 and D9 |
 | [D63](#d63-the-session-log-gives-a-handler-fixed-messages-bytes-at-debug-level-and-lines-at-info-level-proposed) | The session log gives a handler fixed messages, bytes at debug level and lines at info level | Proposed |
 | [D64](#d64-a-programs-command-is-a-command-that-gets-a-line-and-its-name-cannot-be-one-that-readline-or-rline-has-proposed) | A program's command is a Command that gets a Line, and its name cannot be one that readline or rline has | Proposed |
-| [D65](#d65-rline-takes-the-colors-of-the-active-region-from-terminfo-and-moves-none-of-isoclines-sequences-proposed) | rline takes the colors of the active region from terminfo, and moves none of isocline's sequences | Proposed |
+| [D65](#d65-rline-takes-the-colors-of-the-active-region-from-terminfo-and-moves-none-of-isoclines-sequences-proposed-amended-by-d66) | rline takes the colors of the active region from terminfo, and moves none of isocline's sequences | Proposed. Amended by D66 |
+| [D66](#d66-rline-keeps-what-is-typed-ahead-and-reads-a-paste-in-bracketed-paste-mode-as-readline-does-decided-amends-d65) | rline keeps what is typed ahead, and reads a paste in bracketed paste mode, as readline does | Decided. Amends D65 |
 
 ## Purpose
 
@@ -1277,7 +1278,7 @@ already has, so a program cannot replace a command of readline. readline's
 `rl_add_defun` also takes a key to bind. rline takes none, and a program
 that wants a default key has no way to give one yet.
 
-### D65. rline takes the colors of the active region from terminfo, and moves none of isocline's sequences. Proposed.
+### D65. rline takes the colors of the active region from terminfo, and moves none of isocline's sequences. Proposed. Amended by D66.
 
 D55 adopted `github.com/xo/terminfo` and left each sequence to be
 decided on its own. rline uses v1.3.0. Since v1.2.1 it reads `$HOME`
@@ -1309,6 +1310,51 @@ The recommendation is that no sequence that rline writes moves now:
    inputrc v0.8.0 makes them one setting.
 4. Bracketed paste reads the extended capabilities `BE` and `BD` when it is
    built (backlog 7).
+
+### D66. rline keeps what is typed ahead, and reads a paste in bracketed paste mode, as readline does. Decided. Amends D65.
+
+usql found on 2026-11-04 that a paste of several lines lost every line after
+the first. Ken found it when he pasted a Cypher script into usql on Neo4j.
+The usql session reproduced it on rline v0.4.3, and this session reproduced
+it on v0.4.4 with `_examples/bash`. Ken accepted the fix on 2026-11-04, and
+asked for keys to be kept as readline keeps them. He said that rline no
+longer supports isocline, so the behavior of the C does not matter here.
+
+The cause was the ioctl that sets the terminal. rline set it with `TCSETSF`
+on Linux and Solaris and with `TIOCSETAF` on the BSD systems and macOS. Both
+throw away input that is not read yet, as isocline asks with `TCSAFLUSH`.
+rline leaves raw mode when `ReadLine` returns and enters it again for the
+next line, as isocline does. Each time, the rest of the paste in the queue
+of the terminal was thrown away.
+
+1. rline sets the terminal with `TCSETSW` and `TIOCSETAW`. These wait for
+   the output to drain and keep the input, as readline does with
+   `TCSADRAIN`. This holds for raw mode and for the mode that reads a
+   password. What is typed or pasted while a program runs reaches the next
+   prompt, as in bash.
+2. rline reads a paste in bracketed paste mode. In this mode the terminal
+   sends `ESC [ 200 ~` before a paste and `ESC [ 201 ~` after it. The mode
+   is on unless an inputrc file sets `enable-bracketed-paste` off, as in
+   readline 8.1 and later. rline turns it on with `ESC [ ? 2004 h` while a
+   line is read, and off with `ESC [ ? 2004 l` on every path that takes the
+   terminal out of raw mode, a signal among them. It stays off when the
+   output is not a terminal. The Windows console gives keys as events, so
+   rline turns no mode on there.
+3. The decoder reads `ESC [ 200 ~` as the start of a paste. readline binds
+   it to `bracketed-paste-begin` in emacs and in vi insert mode. That command
+   reads the bytes up to `ESC [ 201 ~` and puts them into the line as text,
+   so an escape sequence, Tab or Ctrl-C in the paste runs nothing. A carriage
+   return becomes a line feed. The mark goes to the start of the paste and
+   the cursor to its end, and undo takes the paste back in one step. This is
+   recorded from readline 8.3 in `testdata/readline-emacs.txt`, and from bash
+   5.3 for vi insert mode. vi command mode binds nothing to the sequence, so
+   the keys of a paste there run as commands, as they do in readline.
+4. This amends point 4 of D65. rline writes the two sequences that readline
+   writes, and does not read `BE` and `BD` from terminfo, because bash 5.3
+   writes those sequences under xterm.
+
+readline also shows a paste as the active region, in standout, until the
+next key. rline does not draw the active region yet (backlog 80).
 
 ## Open questions for Ken
 

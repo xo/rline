@@ -895,7 +895,7 @@ waiting waits forever. Typing `abc\n` instead finished ken-mba's probe in
 0.31s, and the terminal echoed five bytes rather than four — the line
 discipline adds the carriage return.
 
-`TestRawModeDiscardsWhatWasTypedBeforeIt` covers it now, and it is built
+`TestRawModeDiscardsWhatWasTypedBeforeIt` covered it then, and it was built
 against this section's own rule rather than trusting the green. It waits for
 the terminal's echo instead of sleeping, because the echo coming back is what
 proves the bytes reached the queue, and a test that flushes an empty queue
@@ -910,6 +910,16 @@ halves were then broken on purpose:
 the mutation fails it twice over, the second failure reading `b` where `z`
 was sent because a kept queue shifts every later key, and removing the typed
 line fails it with the message saying nothing was waiting.
+
+The promise itself was the fault, and a test that held it well kept it in
+place. readline keeps what is typed ahead, and the flush threw away every
+line of a paste after the first, because each line leaves raw mode and
+enters it again. usql found it on 2026-11-04, from a script that Ken pasted.
+D66 turned the test round, to
+`TestRawModeKeepsWhatWasTypedBeforeIt`. The lesson is narrow. A mutation
+that no test catches shows that a promise is untested. It does not show that
+the promise is right, and the C was no evidence of that, because the C has
+the same fault.
 
 Reading a green exit code from a command that does not answer the question.
 Three times in one afternoon, by two different sessions, and the same shape

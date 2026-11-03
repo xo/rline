@@ -168,9 +168,9 @@ alt-tab; none named a pager.
 ### New features, never in isocline either
 
 **472**, which wants both halves: bracketed paste so a paste does not trigger
-completion, and a quoted-insert binding so a tab can be typed. `key.CtrlV`
-exists as a code with nothing behind it, and bracketed paste is in neither
-implementation. Nobody dropped these in the port.
+completion, and a quoted-insert binding so a tab can be typed. Neither was
+in isocline, so nobody dropped them in the port. rline has both now. Ctrl-V
+runs readline's `quoted-insert`, and D66 added bracketed paste.
 
 **236 and 552**, vi bindings, filed five years apart. Worth knowing before a
 mode abstraction is designed rather than after. rline has readline's vi

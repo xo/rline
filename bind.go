@@ -196,6 +196,11 @@ func (ev *env) command(e *editor.Editor, l *readline.Line, name string, c key.Co
 		ev.generateCompletions(e, false)
 		l.Edit(e.Input.String(), e.Pos)
 		return true
+	case "bracketed-paste-begin":
+		// The decoder reads the paste as bytes, so that what is in it stays
+		// text.
+		l.Paste(ev.keys.readPaste())
+		return true
 	case "re-read-init-file":
 		// The file is read again only when the program asked for one.
 		if ev.inputrc == nil {
@@ -438,15 +443,17 @@ func rlineOnly() []string {
 // rlineVars are the variables of readline that rline reads itself, rather
 // than the line. keyseq-timeout is the wait of the decoder, which already
 // waits for the rest of an escape sequence. The mode strings are drawn in
-// front of the prompt (D53). The two bell variables are the terminal's.
+// front of the prompt (D53). The two bell variables are the terminal's, and
+// so is bracketed paste mode (D66).
 var rlineVars = map[string]bool{
-	"bell-style":          true,
-	"prefer-visible-bell": true,
-	"keyseq-timeout":      true,
-	"show-mode-in-prompt": true,
-	"emacs-mode-string":   true,
-	"vi-ins-mode-string":  true,
-	"vi-cmd-mode-string":  true,
+	"bell-style":             true,
+	"enable-bracketed-paste": true,
+	"prefer-visible-bell":    true,
+	"keyseq-timeout":         true,
+	"show-mode-in-prompt":    true,
+	"emacs-mode-string":      true,
+	"vi-ins-mode-string":     true,
+	"vi-cmd-mode-string":     true,
 }
 
 // readInputrc reads the inputrc file that c names, or the user's, and builds

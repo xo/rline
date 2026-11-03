@@ -6,6 +6,7 @@
 package rline
 
 import (
+	"bytes"
 	"fmt"
 	"runtime"
 	"time"
@@ -765,6 +766,10 @@ func (t *keyDecoder) readCSI(c1, peek byte, mods key.Code, timeout time.Duration
 
 	code := key.None
 	switch {
+	case final == '~' && num1 == 200 && c1 == '[':
+		// The start of a paste, in bracketed paste mode. The paste itself is
+		// read by readPaste, when the command bound to this key asks for it.
+		code = keyPaste
 	case final == '~':
 		code = decodeVT(num1)
 	case c1 == '[' && final == 'u':
@@ -782,6 +787,45 @@ func (t *keyDecoder) readCSI(c1, peek byte, mods key.Code, timeout time.Duration
 		return key.None
 	}
 	return code | modifiers
+}
+
+// keyPaste is the key that ESC [ 200 ~ decodes to: the start of a paste, in
+// bracketed paste mode. readline binds it to bracketed-paste-begin. It is
+// rline's own, and the key package does not export it.
+const keyPaste = key.Virt + 0x200
+
+// pasteEnd is what a terminal sends after a paste, in bracketed paste mode.
+const pasteEnd = "\x1b[201~"
+
+// paster is a terminalController that can turn on bracketed paste mode while
+// it is in raw mode.
+type paster interface {
+	setPaste(on bool)
+}
+
+// setPaste says whether startRaw turns on bracketed paste mode. It does
+// nothing when the terminal has no such mode, as the Windows console has
+// none.
+func (t *keyDecoder) setPaste(on bool) {
+	if p, ok := t.ctrl.(paster); ok {
+		p.setPaste(on)
+	}
+}
+
+// readPaste reads the text of a paste, after keyPaste, up to pasteEnd. It
+// reads bytes and not keys, so that an escape sequence in the paste stays
+// text. It waits for as long as the paste takes, and returns what it has
+// when the input ends.
+func (t *keyDecoder) readPaste() string {
+	var buf []byte
+	for !bytes.HasSuffix(buf, []byte(pasteEnd)) {
+		b, ok := t.readByte(-1)
+		if !ok {
+			return string(buf)
+		}
+		buf = append(buf, b)
+	}
+	return string(buf[:len(buf)-len(pasteEnd)])
 }
 
 // readOSC reads an operating system command to its end and throws it away.

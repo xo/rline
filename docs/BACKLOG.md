@@ -40,13 +40,6 @@ something from rline before usql can fix them.
 
 ## New features
 
-7. Bracketed paste, so that a paste does not trigger completion. rline sends
-   `ESC[?2004h` in raw mode and `ESC[?2004l` when it leaves it and in
-   `Release`, decodes `CSI 200~`, and reads raw bytes up to `ESC[201~`
-   rather than keys, so that an escape in the paste survives. The stub of
-   `bracketed-paste-begin` in `internal/readline` rings the bell until
-   then. Ctrl-V now runs readline's `quoted-insert`. From: usql issue 472,
-   and isocline pull request 43 for the decoding.
 9. History that filters by prefix on the up arrow, and a walk through the
    history by query. Nobody has examined either yet. From: usql issues 72
    and 320.
@@ -248,6 +241,14 @@ These come from 2026-10-30, when rline gained the 45 commands of readline
     that the terminal kills between the two leaves the temporary file. A
     signal handler that removes it, or a name that the next save cleans up,
     would stop it. From: the `uitest` runs of D54 and D60.
+
+## Found while bracketed paste was built
+
+80. readline shows the active region in standout, from
+    `active-region-start-color` to `active-region-end-color`, while
+    `enable-active-region` is on. A paste is the active region until the next
+    key, and bash 5.3 draws it so. rline sets the mark as readline does but
+    draws no region. From: D66.
 
 ## Found while vi mode was written
 

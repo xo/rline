@@ -646,6 +646,26 @@ static const struct probe_case cases[] = {
 #undef HS
 #undef H3
 
+  /* Bracketed paste. The terminal sends ESC [ 200 ~ before a paste and
+     ESC [ 201 ~ after it, and readline inserts what is between as text. */
+#define PS "\x1b[200~"
+#define PE "\x1b[201~"
+  {"paste", {0}, {"abc", "\x02", PS "xy z" PE, "\x1f"}},
+  {"paste-lines", {0}, {"abc", PS "one\rtwo\nthree\r" PE, "\r"}},
+  {"paste-crlf", {0}, {"abc", PS "one\r\ntwo" PE}},
+  {"paste-controls", {0}, {"abc", PS "a\tb\x03" "c\x04" "d\x7f" "e\x15" "f" PE}},
+  {"paste-escape", {0}, {"abc", PS "a\x1b[Ab\x1b" "c" PE}},
+  {"paste-multibyte", {0}, {"abc", PS "h\xc3\xa9llo \xe2\x82\xac" PE}},
+  {"paste-empty", {0}, {"abc", "\x02", PS PE, "x"}},
+  {"paste-then-key", {0}, {"abc", "\x01", PS "xy" PE, "z"}},
+  {"paste-arg", {0}, {"abc", "\x1b" "3", PS "xy" PE}},
+  {"paste-kill", {0}, {"abc", PS "xy" PE, "\x0b", "\x01", "\x19"}},
+  {"paste-twice", {0}, {"abc", PS "xy" PE, PS "zw" PE, "\x1f"}},
+  {"paste-on-empty", {0}, {"ab", "\x15", PS "xy" PE}},
+  {"paste-eof", {0}, {"ab", "\x15", PS "\x04" PE}},
+#undef PE
+#undef PS
+
   /* Ending the line. */
   {"accept-line", {0}, {"abc", "\r"}},
   {"eof-on-empty", {0}, {"\x04"}},

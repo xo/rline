@@ -88,8 +88,11 @@ spread over rows is the case most likely to put the cursor in the wrong place,
 and `uitest` now has two sessions for it — but nothing at L3 asserts the bytes,
 and nothing at L0 asserts the arithmetic.
 
-**Bracketed paste.** Untested. Pasting a hundred lines with semicolons in them
-must arrive as text and not as a hundred decisions to execute something.
+**Bracketed paste.** Tested since D66. The corpus records what readline 8.3
+does with a paste, and `TestSessionMatchesReadline` replays it through the
+decoder. `TestReadLineKeepsAPaste` pastes into a pseudo-terminal, with and
+without the mode. A paste must arrive as text and not as decisions to
+execute something.
 
 **History search.** Ctrl-R, a query typed into it, backspacing inside the
 query, cycling matches, cancelling and having the original line back. Covered
@@ -229,9 +232,10 @@ probably incomplete.
 **#472, which needs two things neither implementation has.** Tab is bound to
 completion, so a literal tab cannot be typed or pasted: `select 'a<TAB>b'` is
 impossible. `key.CtrlV` exists as a code and nothing implements literal-next,
-and bracketed paste is absent from rline and from isocline both. Paste wants
-bracketed paste, because pasted text should not trigger completion at all;
-typing wants a quoted-insert binding. Both are new work rather than port gaps.
+and bracketed paste is absent from isocline. Paste wants bracketed paste,
+because pasted text should not trigger completion at all; typing wants a
+quoted-insert binding. rline has both now: Ctrl-V runs `quoted-insert`, and
+D66 added bracketed paste.
 
 **#236 and #552, vi bindings**, filed five years apart, with chzyer/readline's
 vi mode named as prior art. Not urgent, and worth knowing before a mode

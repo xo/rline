@@ -5,9 +5,9 @@ package rline
 import "golang.org/x/sys/unix"
 
 // The ioctl requests that read and write the terminal settings, in the System
-// V spelling. The flush variant waits for output to drain and throws away
-// input that has not been read, which is what the C code asks for with
-// TCSAFLUSH.
+// V spelling. The drain variant waits for output to drain and keeps input
+// that has not been read, as readline asks for with TCSADRAIN, so that what
+// is typed or pasted ahead of a prompt reaches it (D66).
 //
 // This file is named for the axis it splits on rather than for a system on
 // it. The names come in two families and nothing else about a system decides
@@ -15,7 +15,7 @@ import "golang.org/x/sys/unix"
 // that linux and solaris agree here by family rather than by coincidence.
 const (
 	termiosGet      = unix.TCGETS
-	termiosSetFlush = unix.TCSETSF
+	termiosSetDrain = unix.TCSETSW
 )
 
 // outputSpeed returns the output speed of a terminal in bits a second. The
