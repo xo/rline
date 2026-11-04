@@ -37,7 +37,7 @@ that holds it.
 | [D1](#d1-the-port-is-one-go-package-named-rline-decided-amended-by-d8) | The port is one Go package named rline | Decided. Amended by D8 |
 | [D2](#d2-the-port-does-not-use-cgo-at-any-stage-decided) | The port does not use cgo at any stage | Decided |
 | [D3](#d3-a-c-module-is-the-unit-of-work-and-the-modules-are-ported-from-the-leaves-up-decided) | A C module is the unit of work, and the modules are ported from the leaves up | Decided |
-| [D4](#d4-output-recorded-from-the-c-build-is-the-test-corpus-decided) | Output recorded from the C build is the test corpus | Decided |
+| [D4](#d4-output-recorded-from-the-c-build-is-the-test-corpus-decided-amended-by-d68) | Output recorded from the C build is the test corpus | Decided. Amended by D68 |
 | [D5](#d5-each-file-derived-from-the-c-carries-isoclines-mit-notice-decided) | Each file derived from the C carries isocline's MIT notice | Decided |
 | [D6](#d6-rline-runs-on-linux-macos-and-windows-and-on-windows-in-cmdexe-and-powershell-decided-amended-by-d62) | rline runs on Linux, macOS and Windows, and on Windows in cmd.exe and PowerShell | Decided. Amended by D62 |
 | [D7](#d7-character-width-comes-from-go-runewidth-and-the-terminal-settings-from-xsysunix-decided-amended-by-d39-and-d55) | Character width comes from go-runewidth, and the terminal settings from x/sys/unix | Decided. Amended by D39 and D55 |
@@ -100,7 +100,8 @@ that holds it.
 | [D64](#d64-a-programs-command-is-a-command-that-gets-a-line-and-its-name-cannot-be-one-that-readline-or-rline-has-proposed) | A program's command is a Command that gets a Line, and its name cannot be one that readline or rline has | Proposed |
 | [D65](#d65-rline-takes-the-colors-of-the-active-region-from-terminfo-and-moves-none-of-isoclines-sequences-proposed-amended-by-d66) | rline takes the colors of the active region from terminfo, and moves none of isocline's sequences | Proposed. Amended by D66 |
 | [D66](#d66-rline-keeps-what-is-typed-ahead-and-reads-a-paste-in-bracketed-paste-mode-as-readline-does-decided-amends-d65) | rline keeps what is typed ahead, and reads a paste in bracketed paste mode, as readline does | Decided. Amends D65 |
-| [D67](#d67-rline-reads-every-history-line-draws-nothing-while-keys-wait-and-draws-the-prompt-as-plain-text-after-the-programs-output-proposed) | rline reads every history line, draws nothing while keys wait, and draws the prompt as plain text after the program's output | Proposed |
+| [D67](#d67-rline-reads-every-history-line-draws-nothing-while-keys-wait-and-draws-the-prompt-as-plain-text-after-the-programs-output-decided) | rline reads every history line, draws nothing while keys wait, and draws the prompt as plain text after the program's output | Decided |
+| [D68](#d68-the-port-of-isocline-is-done-and-rline-no-longer-keeps-the-behavior-of-the-c-decided-amends-d4) | The port of isocline is done, and rline no longer keeps the behavior of the C | Decided. Amends D4 |
 
 ## Purpose
 
@@ -200,7 +201,7 @@ Ken's first commit also sets the order: "The C headers give an acyclic
 order. Port the modules from the leaves up." The order and the state of each
 module are in "Port order" in [PORT.md](PORT.md).
 
-### D4. Output recorded from the C build is the test corpus. Decided.
+### D4. Output recorded from the C build is the test corpus. Decided. Amended by D68.
 
 Commits: `39330c6` (2026-09-19), `9aeab74` (2026-09-19), `2418caf`
 (2026-09-19).
@@ -1357,12 +1358,14 @@ of the terminal was thrown away.
 readline also shows a paste as the active region, in standout, until the
 next key. rline does not draw the active region yet (backlog 80).
 
-### D67. rline reads every history line, draws nothing while keys wait, and draws the prompt as plain text after the program's output. Proposed.
+### D67. rline reads every history line, draws nothing while keys wait, and draws the prompt as plain text after the program's output. Decided.
 
 On 2026-11-04 the usql session swept the open issues of usql and found five
 faults in rline v0.5.0. It said that Ken asked for each one to be fixed in
 rline. This decision holds how rline fixes four of them. The fifth is not in
 rline. Each fix departs from the C, and [PORT.md](PORT.md) lists each one.
+Ken accepted the fixes on 2026-11-04, released them as v0.6.0, and accepted
+this decision on 2026-11-05.
 
 1. The history reads a backslash that starts no escape as text, with the
    rest of the line after it (usql issue 414). A history file that another
@@ -1403,7 +1406,32 @@ terminal answers no query at start. rline sends no query. usql sends
 `ESC [ 0 c` through `github.com/kenshaw/rasterm`, which waits 1/16 of a
 second, sends a query for the position of the cursor, and then blocks in a
 read of standard input. When neither query is answered, that read takes the
-keys that the user types next. The fix is in rasterm or in usql.
+keys that the user types next. The fix is in rasterm or in usql. The
+rasterm session fixed it in rasterm on 2026-11-05.
+
+### D68. The port of isocline is done, and rline no longer keeps the behavior of the C. Decided. Amends D4.
+
+Ken said on 2026-11-05 that the port of isocline is done, that rline ports
+no later change of isocline, and that rline has moved far from what isocline
+does and supports. He said the same on 2026-11-04 for D66, and this makes it
+hold everywhere.
+
+1. rline ports nothing more from isocline, its open pull requests included.
+   An item in [BACKLOG.md](BACKLOG.md) that came from isocline stays only
+   as work on rline itself.
+2. This amends D4. rline no longer keeps a behavior of the C because the C
+   has it. readline 8.3 is the reference for what rline does (D44, D47), and
+   a fault that rline took from the C is fixed as any other fault is.
+3. The corpora recorded from the C stay, as tests of what rline does where
+   it still does what the C does. A change that departs from one says so in
+   the test that replays it, as the rentry cases of `testdata/history.txt`
+   and `testdata/tty-delta.txt` do. A corpus is still never edited by hand.
+4. A departure still carries a comment where the code makes it, and
+   [PORT.md](PORT.md) still lists it, so that a reader can tell what rline
+   took from isocline from what it changed.
+5. D5 still holds. Each file that came from the C keeps isocline's MIT notice
+   and names the C file in its header. `isocline/` stays, because `-update`
+   needs it to record a corpus again.
 
 ## Open questions for Ken
 

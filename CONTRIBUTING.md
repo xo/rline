@@ -7,12 +7,13 @@ them hold for a person too.
 
 ## What a change must do
 
-The port keeps the behavior of the C, even where the C is wrong, because the
-output recorded from the C is the test corpus. If a change makes rline do
-something different from isocline, it needs a comment where the code does
-it, an entry in "Known departures from the C code" in
-[docs/PORT.md](docs/PORT.md), and a decision in
-[docs/PLAN.md](docs/PLAN.md).
+The port of isocline is done, and nothing more is ported from it (D68).
+readline is the reference for what rline does, not the C. If a change makes
+rline do something different from isocline, it needs a comment where the
+code does it, a note in the test that replays the corpus of the C, and an
+entry in "Known departures from the C code" in
+[docs/PORT.md](docs/PORT.md). If it changes what a program or a user sees,
+it also needs a decision in [docs/PLAN.md](docs/PLAN.md).
 
 Something that isocline does not have, such as `Password`, has no corpus to
 compare against. Test it at the layers that [docs/TESTING.md](docs/TESTING.md)

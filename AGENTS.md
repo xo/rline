@@ -199,9 +199,11 @@ The code:
 
 - The header comment of a file says what it holds, and which isocline file
   it was ported from: "Ported from isocline/src/completions.c".
-- The port keeps the behavior of the C, even where it is wrong, because the
-  C's recorded output is the corpus (D4). A departure carries a comment where
-  the code makes it, and is listed in [docs/PORT.md](docs/PORT.md).
+- The port of isocline is done, and nothing more is ported from it (D68).
+  rline does not keep a behavior of the C because the C has it, and readline
+  is the reference for what rline does. A departure from a corpus of the C
+  says so in the test that replays the corpus, carries a comment where the
+  code makes it, and is listed in [docs/PORT.md](docs/PORT.md).
 - A receiver is one or two letters from its type name, the same on every
   method. Two types break this, and [docs/BACKLOG.md](docs/BACKLOG.md) holds
   them.

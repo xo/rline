@@ -262,9 +262,12 @@ port bug.
 
 ## Known departures from the C code
 
-The port keeps the behavior of the C code, even where that behavior is wrong,
-because recorded output from the C build is the test corpus. Each departure
-carries a comment where the code makes it.
+The port kept the behavior of the C code, even where that behavior was wrong,
+because recorded output from the C build is the test corpus (D4). Since D68
+the port of isocline is done, and rline no longer keeps a behavior because
+the C has it. The corpora stay as tests, and this list records each place
+where rline now does something else. Each departure carries a comment where
+the code makes it.
 
 One departure is over a behaviour rather than a fault, and is the only one.
 `ReadLine` answers `ErrInterrupted` when the user presses Ctrl-C or Ctrl-G,
