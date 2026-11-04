@@ -3,10 +3,12 @@ package rline
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -96,8 +98,16 @@ func checkHistoryLine(t *testing.T, line string) (string, string) {
 		h := newTestHistory(8, true)
 		var buf text.Buffer
 		r := bufio.NewReader(strings.NewReader(line + "\n"))
-		if got := h.readEntry(r, &buf); got != wantOK {
-			return f[0], fmt.Sprintf("readEntry(%q) reported %v, want %v", line, got, wantOK)
+		h.readEntry(r, &buf)
+		if !wantOK {
+			// The C refuses a line with a backslash that starts no escape it
+			// knows, and stops the file there. The port keeps the line as it
+			// is, backslash and all (D67). No line the C refused also holds
+			// an escape that it reads, so the whole line comes back.
+			if got, ok := h.get(0); h.count() != 1 || !ok || got != line {
+				return f[0], fmt.Sprintf("readEntry(%q) read %q, want the line as it is", line, h.entries)
+			}
+			return f[0], ""
 		}
 		return f[0], diffEntries(h, p)
 	case "push":
@@ -294,33 +304,116 @@ func TestHistorySaveWithoutAFileDoesNothing(t *testing.T) {
 	}
 }
 
-// TestHistoryLoadStopsAtABadLine checks that a line the reader cannot make
-// sense of stops the file, so that nothing after it is taken as real.
-func TestHistoryLoadStopsAtABadLine(t *testing.T) {
+// TestHistoryLoadKeepsALineItCannotDecode checks that a backslash that
+// starts no escape is kept as text, and that the lines after it are read, so
+// that a history file that another line editor wrote still loads and saves
+// (D67). usql found this with a psql command in an old file.
+func TestHistoryLoadKeepsALineItCannotDecode(t *testing.T) {
 	t.Parallel()
 	name := filepath.Join(t.TempDir(), "history.txt")
-	content := "first\nsecond\n\\q\nthird\n"
+	// The last line has no newline, so its backslash ends the file.
+	content := "select 1;\n\\dt\nselect 2;\n\\x\n\\x 1\n\\x4g\na\\\nb\\"
 	if err := os.WriteFile(name, []byte(content), 0o600); err != nil {
 		t.Fatalf("writing the file: %v", err)
 	}
 	h := &history{}
-	err := h.loadFrom(name, 8)
-	if got, want := h.entries, []string{"first", "second"}; !equalStrings(got, want) {
-		t.Errorf("loaded %q, want %q", got, want)
+	if err := h.loadFrom(name, 16); err != nil {
+		t.Fatalf("loading gave %v, want no error", err)
 	}
-	// Stopping is reported as well as done. This is the third of the three
-	// ways loading can fail, and the only one reachable with a file that
-	// opens and reads perfectly well, so nothing else can reach it: the
-	// error was thrown away here until a mutation that swallowed it came
-	// back uncaught.
-	if err == nil {
-		t.Fatal("a line that could not be read was passed over without a word")
+	want := []string{"select 1;", `\dt`, "select 2;", `\x`, `\x 1`, `\x4g`, `a\`, `b\`}
+	if !equalStrings(h.entries, want) {
+		t.Errorf("loaded %q, want %q", h.entries, want)
 	}
-	if !strings.Contains(err.Error(), name) {
-		t.Errorf("the error is %v, which does not name the file", err)
+	h.push("select 3;")
+	if err := h.save(); err != nil {
+		t.Fatalf("saving gave %v, want no error", err)
 	}
-	if !strings.Contains(err.Error(), "could not be read") {
-		t.Errorf("the error is %v, which does not say what went wrong", err)
+	back := &history{}
+	if err := back.loadFrom(name, 16); err != nil {
+		t.Fatalf("loading again gave %v, want no error", err)
+	}
+	if want := slices.Concat(want, []string{"select 3;"}); !equalStrings(back.entries, want) {
+		t.Errorf("after a save the file holds %q, want %q", back.entries, want)
+	}
+}
+
+// TestHistoryReadsAnEscapeCutShortByTheEnd checks that an escape that the end
+// of the file cuts short is kept as text, as one that a newline cuts short is
+// (D67).
+func TestHistoryReadsAnEscapeCutShortByTheEnd(t *testing.T) {
+	t.Parallel()
+	for _, line := range []string{`a\`, `a\x`, `a\x4`} {
+		h := newTestHistory(8, true)
+		var buf text.Buffer
+		h.readEntry(bufio.NewReader(strings.NewReader(line)), &buf)
+		if got, ok := h.get(0); !ok || h.count() != 1 || got != line {
+			t.Errorf("reading %q with no newline after it gave %q, want the line as it is", line, h.entries)
+		}
+	}
+}
+
+// TestHistoryErrReportsTheLastReadOrWrite checks that HistoryErr holds the
+// error of the last load or save, and goes back to nil when one works (D67).
+func TestHistoryErrReportsTheLastReadOrWrite(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	h := &history{}
+	s := &Session{env: &env{history: h}}
+	if err := s.HistoryErr(); err != nil {
+		t.Fatalf("a history that was never read reports %v", err)
+	}
+	_ = h.loadFrom(filepath.Join(dir, "no-such-directory", "h.txt"), 8)
+	if err := s.HistoryErr(); err != nil {
+		t.Fatalf("a file that is not there yet reports %v, want nil", err)
+	}
+	h.push("select 1;")
+	saveErr := h.save()
+	if saveErr == nil {
+		t.Fatal("saving into a directory that is not there gave no error")
+	}
+	if err := s.HistoryErr(); !errors.Is(err, saveErr) {
+		t.Errorf("after a failed save HistoryErr is %v, want %v", err, saveErr)
+	}
+	_ = h.loadFrom(filepath.Join(dir, "h.txt"), 8)
+	h.push("select 1;")
+	if err := h.save(); err != nil {
+		t.Fatalf("saving: %v", err)
+	}
+	if err := s.HistoryErr(); err != nil {
+		t.Errorf("after a save that worked HistoryErr is %v, want nil", err)
+	}
+	_ = h.loadFrom(filepath.Join(dir, "a\x00b.txt"), 8)
+	if err := s.HistoryErr(); err == nil {
+		t.Error("after a load that failed HistoryErr is nil")
+	}
+	// A history that is turned off reads nothing, so nothing went wrong.
+	_ = h.loadFrom(filepath.Join(dir, "a\x00b.txt"), 0)
+	if err := s.HistoryErr(); err != nil {
+		t.Errorf("after the history was turned off HistoryErr is %v, want nil", err)
+	}
+}
+
+// TestHistoryKeepsMoreThanTheC checks that the list holds what it is asked to,
+// and is not held at the 200 lines of the C, and that the default is the 500
+// lines that psql keeps (D67).
+func TestHistoryKeepsMoreThanTheC(t *testing.T) {
+	t.Parallel()
+	if DefaultHistoryEntries != 500 {
+		t.Errorf("DefaultHistoryEntries is %d, want 500, which psql keeps", DefaultHistoryEntries)
+	}
+	for _, limit := range []int{-1, 1000} {
+		h := &history{}
+		_ = h.loadFrom("", limit)
+		for i := range 2000 {
+			h.push(fmt.Sprintf("select %d;", i))
+		}
+		want := limit
+		if limit < 0 {
+			want = DefaultHistoryEntries
+		}
+		if h.count() != want {
+			t.Errorf("with a limit of %d the list holds %d entries, want %d", limit, h.count(), want)
+		}
 	}
 }
 

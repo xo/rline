@@ -1043,3 +1043,27 @@ func TestDecoderReadsAPaste(t *testing.T) {
 		}
 	}
 }
+
+// TestDecoderPendingKeepsWhatItReads checks that asking whether input is
+// waiting loses nothing, a zero byte included, and that the answer is no once
+// the input is all read (D67).
+func TestDecoderPendingKeepsWhatItReads(t *testing.T) {
+	t.Parallel()
+	d := newDecoder(&bytesReader{b: []byte("a\x00b")})
+	var got []key.Code
+	for d.pending() {
+		// Asking twice reads nothing more.
+		if !d.pending() {
+			t.Fatal("a second question lost what the first one read")
+		}
+		c, ok := d.readTimeout(0)
+		if !ok {
+			t.Fatal("pending said yes and nothing could be read")
+		}
+		got = append(got, c)
+	}
+	want := []key.Code{'a', key.Space | key.ModCtrl, 'b'}
+	if !slices.Equal(got, want) {
+		t.Errorf("read %v, want %v", got, want)
+	}
+}

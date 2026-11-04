@@ -100,6 +100,7 @@ that holds it.
 | [D64](#d64-a-programs-command-is-a-command-that-gets-a-line-and-its-name-cannot-be-one-that-readline-or-rline-has-proposed) | A program's command is a Command that gets a Line, and its name cannot be one that readline or rline has | Proposed |
 | [D65](#d65-rline-takes-the-colors-of-the-active-region-from-terminfo-and-moves-none-of-isoclines-sequences-proposed-amended-by-d66) | rline takes the colors of the active region from terminfo, and moves none of isocline's sequences | Proposed. Amended by D66 |
 | [D66](#d66-rline-keeps-what-is-typed-ahead-and-reads-a-paste-in-bracketed-paste-mode-as-readline-does-decided-amends-d65) | rline keeps what is typed ahead, and reads a paste in bracketed paste mode, as readline does | Decided. Amends D65 |
+| [D67](#d67-rline-reads-every-history-line-draws-nothing-while-keys-wait-and-draws-the-prompt-as-plain-text-after-the-programs-output-proposed) | rline reads every history line, draws nothing while keys wait, and draws the prompt as plain text after the program's output | Proposed |
 
 ## Purpose
 
@@ -1355,6 +1356,54 @@ of the terminal was thrown away.
 
 readline also shows a paste as the active region, in standout, until the
 next key. rline does not draw the active region yet (backlog 80).
+
+### D67. rline reads every history line, draws nothing while keys wait, and draws the prompt as plain text after the program's output. Proposed.
+
+On 2026-11-04 the usql session swept the open issues of usql and found five
+faults in rline v0.5.0. It said that Ken asked for each one to be fixed in
+rline. This decision holds how rline fixes four of them. The fifth is not in
+rline. Each fix departs from the C, and [PORT.md](PORT.md) lists each one.
+
+1. The history reads a backslash that starts no escape as text, with the
+   rest of the line after it (usql issue 414). A history file that another
+   line editor wrote holds lines such as `\dt`. rline stopped reading the
+   file at the first such line. It then refused to save the file, so that
+   it would not destroy the lines that it did not read, and nothing told
+   the user. The C stops at the same line and truncates the file when it
+   saves. Only a failure to read the file now stops a load.
+2. `Session.HistoryErr` returns the error of the last read or write of the
+   history file, or nil when it worked. `New` and `ReadLine` both use the
+   file and cannot return its error, because each still has a result to
+   give. `LoadHistory` and `SaveHistory` return the same error.
+3. `DefaultHistoryEntries` is 500, which psql keeps. The list holds as many
+   entries as it is asked to hold. The C holds every limit at 200, the size
+   of its fixed array.
+4. rline draws the line only when no more keys wait, as readline skips its
+   redisplay while typeahead is pending (usql issue 66). The highlighter
+   runs in the draw, so it runs once for a paste and not once for each
+   character. usql measured a paste of 26,583 bytes without bracketed paste
+   at 128 seconds before this. The C draws after every key. This matters
+   most on the Windows console, which has no bracketed paste.
+5. The first row of a line starts in the column that the program's output
+   left the cursor in (usql issue 215, backlog 1). rline counts the columns
+   of what the program writes through the `Session`, its markup writer and
+   its error writer, when the errors go to a terminal. A redraw goes back to
+   that column, not to the left edge. readline leaves such text in place,
+   because it moves the cursor from where it is. When the prompt does not
+   fit on the row, the line starts on the next row.
+   Output that does not go through the `Session` is not counted.
+6. The prompt text and the two markers are plain text, as everything else
+   that a `Session` writes is (D14). A bracket in them is not a tag, so
+   `[x]` in the prompt of usql stays. `Password` and the plain read already
+   wrote them as plain text. Only the line editor read them as markup, as
+   the C does.
+
+The fifth fault was the first line that the user types, lost when the
+terminal answers no query at start. rline sends no query. usql sends
+`ESC [ 0 c` through `github.com/kenshaw/rasterm`, which waits 1/16 of a
+second, sends a query for the position of the cursor, and then blocks in a
+read of standard input. When neither query is answered, that read takes the
+keys that the user types next. The fix is in rasterm or in usql.
 
 ## Open questions for Ken
 

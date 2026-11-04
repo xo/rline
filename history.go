@@ -28,9 +28,6 @@ import (
 //
 // Ported from isocline/src/history.c.
 
-// maxHistory is the most entries the list will hold, whatever is asked for.
-const maxHistory = 200
-
 // history is the list of lines the user typed before.
 type history struct {
 	// entries holds the lines, oldest first.
@@ -55,6 +52,10 @@ type history struct {
 
 	// allowDuplicates says whether the same line may appear twice.
 	allowDuplicates bool
+
+	// err is what went wrong the last time the file was read or written,
+	// and nil when that worked.
+	err error
 }
 
 // count returns how many entries the list holds.
@@ -183,19 +184,25 @@ func (h *history) search(from int, needle string, backward bool) (int, int, bool
 // reads what is already in the file.
 //
 // A maxEntries of zero leaves the list unusable, and every push is refused. A
-// negative number, or one above maxHistory, is held at maxHistory.
+// negative number is held at DefaultHistoryEntries.
+//
+// The C holds every number at 200, the size of its fixed array. The port has
+// no such array, and holds what it is asked to, so that the default can be the
+// 500 lines that psql keeps (D67).
 func (h *history) loadFrom(name string, maxEntries int) error {
 	h.clear()
 	h.name = name
+	h.err = nil
 	if maxEntries == 0 {
 		h.max = 0
 		return nil
 	}
-	if maxEntries < 0 || maxEntries > maxHistory {
-		maxEntries = maxHistory
+	if maxEntries < 0 {
+		maxEntries = DefaultHistoryEntries
 	}
 	h.max = maxEntries
-	return h.load()
+	h.err = h.load()
+	return h.err
 }
 
 // load reads the file into the list. A file that is not there, or that cannot
@@ -223,17 +230,13 @@ func (h *history) load() error {
 			if errors.Is(err, io.EOF) {
 				return nil
 			}
+			// What was read before the failure is kept, and the rest is
+			// still in the file, which is why saving is refused until it
+			// is read or replaced.
 			h.partial = true
 			return fmt.Errorf("reading the history file %s: %w", h.name, err)
 		}
-		if !h.readEntry(r, &buf) {
-			// A line that cannot be read stops the whole file, because
-			// anything after it is as likely to be wrong. What was read
-			// before it is kept, and the rest is still in the file, which
-			// is why saving is refused until it is read or replaced.
-			h.partial = true
-			return fmt.Errorf("reading the history file %s: a line could not be read", h.name)
-		}
+		h.readEntry(r, &buf)
 	}
 }
 
@@ -244,6 +247,12 @@ func (h *history) load() error {
 // the read-only attribute, so who can read the file depends on the access
 // control list of its directory. docs/PORT.md records that.
 func (h *history) save() error {
+	h.err = h.write()
+	return h.err
+}
+
+// write does the work of save.
+func (h *history) write() error {
 	if h.name == "" {
 		return nil
 	}
@@ -255,7 +264,9 @@ func (h *history) save() error {
 		// The C does exactly that. It truncates on open and writes what it
 		// has, so one line it cannot parse costs a user every line after
 		// it — measured at fifty bytes becoming nineteen. This refuses
-		// instead, which is a departure and the reason for it.
+		// instead, which is a departure and the reason for it. The port
+		// reads every line now (D67), so only a failure to read the file
+		// gets here.
 		return fmt.Errorf("not saving the history file %s: it was not read in full, "+
 			"so saving would write over the part that was not read", h.name)
 	}
@@ -339,12 +350,11 @@ func (h *history) save() error {
 	return nil
 }
 
-// readEntry reads one line and adds it to the list. It reports false when the
-// line holds an escape it cannot read, which stops the whole file.
+// readEntry reads one line and adds it to the list.
 //
 // An empty line, and a line that starts with '#', are skipped without being
 // added.
-func (h *history) readEntry(r *bufio.Reader, buf *text.Buffer) bool {
+func (h *history) readEntry(r *bufio.Reader, buf *text.Buffer) {
 	buf.Clear()
 	for {
 		c, err := r.ReadByte()
@@ -353,9 +363,7 @@ func (h *history) readEntry(r *bufio.Reader, buf *text.Buffer) bool {
 		}
 		switch c {
 		case '\\':
-			if !readEscape(r, buf) {
-				return false
-			}
+			readEscape(r, buf)
 		case '\r':
 			// Dropped, so that a file written on Windows still reads.
 		default:
@@ -363,20 +371,28 @@ func (h *history) readEntry(r *bufio.Reader, buf *text.Buffer) bool {
 		}
 	}
 	if buf.Length() == 0 || buf.CharAt(0) == '#' {
-		return true
+		return
 	}
-	return h.push(buf.String())
+	h.push(buf.String())
 }
 
-// readEscape reads what follows a backslash. It reports false for an escape
-// that is not one of the four, or for a hexadecimal escape without two digits
-// after it.
-func readEscape(r *bufio.Reader, buf *text.Buffer) bool {
-	c, err := r.ReadByte()
-	if err != nil {
-		return false
+// readEscape reads what follows a backslash. A backslash that does not start
+// one of the four escapes, or a hexadecimal escape without two digits, is kept
+// as text, and what follows it is read as the rest of the line.
+//
+// The C stops reading the file at such a line, and the port then refused to
+// save the file, so that nothing more was saved. A history file that another
+// line editor wrote holds lines such as "\dt", which a psql user types all
+// day, and the history of usql stopped being saved without a word. The port
+// reads these lines as they were typed, which is a departure (D67).
+func readEscape(r *bufio.Reader, buf *text.Buffer) {
+	// Peek returns what there is when there is less than it asked for.
+	b, _ := r.Peek(3)
+	if len(b) == 0 {
+		buf.AppendByte('\\')
+		return
 	}
-	switch c {
+	switch b[0] {
 	case 'n':
 		buf.AppendString("\n")
 	case 'r':
@@ -387,18 +403,20 @@ func readEscape(r *bufio.Reader, buf *text.Buffer) bool {
 	case '\\':
 		buf.AppendString("\\")
 	case 'x':
-		c1, err1 := r.ReadByte()
-		c2, err2 := r.ReadByte()
-		if err1 != nil || err2 != nil || !isHexDigit(c1) || !isHexDigit(c2) {
-			return false
+		if len(b) < 3 || !isHexDigit(b[1]) || !isHexDigit(b[2]) {
+			buf.AppendByte('\\')
+			return
 		}
 		// A zero byte appends nothing, because a buffer cannot hold one, so
 		// "\x00" on a line by itself reads as an empty line.
-		buf.AppendByte(fromHexDigit(c1)*16 + fromHexDigit(c2))
+		buf.AppendByte(fromHexDigit(b[1])*16 + fromHexDigit(b[2]))
+		_, _ = r.Discard(3)
+		return
 	default:
-		return false
+		buf.AppendByte('\\')
+		return
 	}
-	return true
+	_, _ = r.Discard(1)
 }
 
 // escapeEntry returns entry in the form the file holds it in.

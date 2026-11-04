@@ -51,6 +51,12 @@ type env struct {
 	promptMarker  string
 	cpromptMarker string
 
+	// outCol is the column that the program's own output left the cursor
+	// in, and indent the column that the line being read starts in, so
+	// that a prompt drawn after "\echo -n foo" does not draw over foo (D67).
+	outCol int
+	indent int
+
 	// modeString is what show-mode-in-prompt puts in front of the prompt for
 	// the editing mode, with readline's \1 and \2 around what the terminal
 	// does not show (D53). It is empty when the variable is off.
@@ -142,15 +148,17 @@ func (ev *env) promptWidth(e *editor.Editor, inExtra bool) (int, int) {
 	if inExtra {
 		return 0, 0
 	}
-	textw := ev.modeWidth() + ev.bb.columnWidth(e.PromptText)
-	markerw := ev.bb.columnWidth(ev.promptMarker)
-	cmarkerw := ev.bb.columnWidth(ev.cpromptMarker)
+	textw := ev.modeWidth() + text.StrWidth([]byte(e.PromptText))
+	markerw := text.StrWidth([]byte(ev.promptMarker))
+	cmarkerw := text.StrWidth([]byte(ev.cpromptMarker))
 	promptw := markerw + textw
 	cpromptw := promptw
 	if !ev.multilineIndent || promptw < cmarkerw {
 		cpromptw = cmarkerw
 	}
-	return promptw, cpromptw
+	// The first row starts where the program's output left the cursor. The
+	// rows after it start at the left edge, as psql's do.
+	return ev.indent + promptw, cpromptw
 }
 
 // rowCol returns how many rows the line takes and where the cursor sits.
@@ -173,16 +181,19 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	if row == 0 {
 		ev.writeModeString()
 	}
+	// The prompt and its markers are plain text, as everything a Session
+	// writes is, so a bracket in them is not a tag (D67). An escape sequence
+	// in them goes to the terminal as it is.
 	ev.bb.styleOpen("rline-prompt")
 	switch {
 	case row == 0:
-		ev.bb.print(e.PromptText)
+		ev.term.write(e.PromptText)
 	case ev.multilineIndent:
 		// Pad the continuation marker out so the text lines up under the
 		// first row.
-		textw := ev.modeWidth() + ev.bb.columnWidth(e.PromptText)
-		markerw := ev.bb.columnWidth(ev.promptMarker)
-		cmarkerw := ev.bb.columnWidth(ev.cpromptMarker)
+		textw := ev.modeWidth() + text.StrWidth([]byte(e.PromptText))
+		markerw := text.StrWidth([]byte(ev.promptMarker))
+		cmarkerw := text.StrWidth([]byte(ev.cpromptMarker))
 		if cmarkerw < markerw+textw {
 			ev.term.writeRepeat(" ", markerw+textw-cmarkerw)
 		}
@@ -191,7 +202,7 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	if row == 0 {
 		marker = ev.promptMarker
 	}
-	ev.bb.print(marker)
+	ev.term.write(marker)
 	ev.bb.styleClose("")
 }
 
@@ -345,9 +356,13 @@ func (ev *env) refresh(e *editor.Editor) {
 
 	was := ev.term.setBufferMode(buffered)
 
-	// Go back to the first row of what was drawn last time.
+	// Go back to the first row of what was drawn last time, and to the
+	// column it starts in.
 	ev.term.startOfLine()
 	ev.term.up(min(e.CurRow, termh-1))
+	if firstRow == 0 {
+		ev.term.right(ev.indent)
+	}
 
 	ev.refreshRows(e, &e.Input, &e.Attrs, promptw, cpromptw, false, firstRow, lastRow)
 	if rowsExtra > 0 {
@@ -399,6 +414,9 @@ func (ev *env) clear(e *editor.Editor) {
 
 // clearScreen wipes the screen and draws the line again.
 func (ev *env) clearScreen(e *editor.Editor) {
+	// The clear wipes what the program wrote in front of the prompt, so the
+	// prompt moves to the left edge.
+	ev.indent = 0
 	rows := e.CurRows
 	e.CurRows = ev.term.height - 1
 	ev.clear(e)
@@ -619,6 +637,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 	}()
 	bells := 0
 	asked := false
+	stale := false
 	// A prompt of the line's own, such as that of incremental search, is
 	// drawn in place of the program's (D45).
 	promptText, marker, shownPrompt := e.PromptText, ev.promptMarker, ""
@@ -702,7 +721,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 			shownPrompt = p
 			e.PromptText, ev.promptMarker = promptText, marker
 			if p != "" {
-				e.PromptText, ev.promptMarker = "[!pre]"+p+"[/pre]", ""
+				e.PromptText, ev.promptMarker = p, ""
 			}
 			changed = true
 		}
@@ -715,11 +734,18 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		if m != ev.modeString {
 			ev.modeString, changed = m, true
 		}
+		// Nothing is drawn while more keys are waiting, and the line is drawn
+		// once they are all read (D67). This is a departure, because the C
+		// draws after every key.
+		stale = stale || changed || hadHint
 		switch {
+		case !stale || ev.keys.pending():
 		case l.Last() == "self-insert" && changed:
 			ev.refreshHint(e)
-		case changed, hadHint:
+			stale = false
+		default:
 			ev.refresh(e)
+			stale = false
 		}
 		if n := l.Bells(); n > bells {
 			bells = n
@@ -731,6 +757,50 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 			}
 			return key.Enter
 		}
+	}
+}
+
+// startAfterOutput sets the column that the line starts in to the one that
+// the program's output left the cursor in (D67). readline leaves such text in
+// place, because it moves the cursor from where it is, and psql shows it in
+// front of its prompt. The C goes back to the left edge to draw, and the
+// prompt drew over the text at the first key. When the prompt would not fit
+// on the row, the line starts on the next row. A row that is full needs
+// nothing, because the terminal takes the next character to the next row.
+func (ev *env) startAfterOutput(e *editor.Editor) {
+	col := ev.outCol
+	ev.outCol, ev.indent = 0, 0
+	if col == 0 || e.TermW <= 0 {
+		return
+	}
+	promptw, _ := ev.promptWidth(e, false)
+	if col%e.TermW+promptw >= e.TermW {
+		ev.term.writeln("")
+		return
+	}
+	ev.indent = col % e.TermW
+}
+
+// noteOutput follows the column that the program's own output leaves the
+// cursor in, so that the next line can start there (D67). An escape sequence
+// takes no column. A tab goes to the next stop of eight.
+func (ev *env) noteOutput(b []byte) {
+	for pos := 0; pos < len(b); {
+		ofs, w := text.NextOfs(b, pos)
+		if ofs <= 0 {
+			break
+		}
+		switch b[pos] {
+		case '\n', '\r':
+			ev.outCol = 0
+		case '\t':
+			ev.outCol += 8 - ev.outCol%8
+		case '\b':
+			ev.outCol = max(ev.outCol-1, 0)
+		default:
+			ev.outCol += w
+		}
+		pos += ofs
 	}
 }
 
@@ -750,6 +820,7 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 		mode = "vi-insert"
 	}
 	ev.modeString = ev.modeStringFor(mode)
+	ev.startAfterOutput(e)
 	ev.writePrompt(e, 0, false)
 
 	// The line being typed is always the newest history entry, so that walking

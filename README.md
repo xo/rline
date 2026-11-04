@@ -121,7 +121,18 @@ fmt.Fprintf(p.Markup(), "[rline-error]%s[/]\n", err) // styled
 
 Write through the `Prompt` rather than to `os.Stdout`, because the terminal it
 writes through is the one that knows where the prompt is. A `Prompt` is an
-`io.Writer`, so hand it straight to anything that wants one.
+`io.Writer`, so hand it straight to anything that wants one. Output that does
+not end its row, such as `fmt.Fprint(p, "foo")`, stays on the screen, and the
+next prompt starts after it, as in psql.
+
+The prompt that `ReadLine` is given, and the markers of `WithPrompt`, are
+plain text. A bracket in them is not a tag, and an escape sequence in them
+goes to the terminal as it is.
+
+The history keeps 500 lines by default, as psql does. `ReadLine` writes the
+history file after every line, and cannot return an error for it, because it
+has a line to return. Call `p.HistoryErr()` after `New` and after a line to
+learn whether the last read or write of the file failed.
 
 `ReadLine` answers `io.EOF` when the input ends and `ErrInterrupted` when the
 user gave the line up with Ctrl-C. Those are different answers on purpose: the

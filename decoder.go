@@ -259,6 +259,34 @@ func (t *keyDecoder) readTimeout(timeout time.Duration) (key.Code, bool) {
 	return modifyCode(code), true
 }
 
+// pending reports whether input is already waiting to be read. It reads a byte
+// if there is one and puts it back, so nothing is lost.
+//
+// The edit loop asks this before it draws the line, and draws nothing while
+// more keys are waiting, as readline skips its redisplay while typeahead is
+// pending. A paste without bracketed paste otherwise draws the whole entry
+// again after each of its characters (D67).
+func (t *keyDecoder) pending() bool {
+	if len(t.pushedCodes) > 0 || len(t.pushedBytes) > 0 {
+		return true
+	}
+	if t.src == nil {
+		return false
+	}
+	b, ok := t.src.readByte(0)
+	if !ok {
+		return false
+	}
+	if b == 0 {
+		// pushByte drops a zero byte, so it goes back as the key that
+		// readTimeout makes of it.
+		t.pushCode(modifyCode(key.Space | key.ModCtrl))
+		return true
+	}
+	t.pushByte(b)
+	return true
+}
+
 // read waits for one key and returns it. It returns key.EventStop when the
 // input ended, as it does when the terminal is closed, and key.None when
 // nothing arrived for some other reason.

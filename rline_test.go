@@ -1141,17 +1141,14 @@ func TestLoadHistoryReportsWhatItCannotRead(t *testing.T) {
 		dir := t.TempDir()
 		if f, err := os.Open(dir); err != nil {
 			t.Skipf("this system refuses to open a directory (%v), so the reading half "+
-				"of history.load is not reached here. It is reached on Linux and macOS, "+
-				"and the line that cannot be read is covered everywhere by "+
-				"TestHistoryLoadStopsAtABadLine.", err)
+				"of history.load is not reached here. It is reached on Linux and macOS.", err)
 		} else {
 			_, readErr := f.Read(make([]byte, 64))
 			_ = f.Close()
 			if readErr == nil {
 				t.Skipf("this system reads a directory as data, so opening and reading " +
 					"one both succeed and the reading half of history.load is not " +
-					"reached here. It is reached on Linux and macOS, and the line that " +
-					"cannot be read is covered everywhere by TestHistoryLoadStopsAtABadLine.")
+					"reached here. It is reached on Linux and macOS.")
 			}
 		}
 
@@ -1576,25 +1573,27 @@ func TestHistorySaveReportsAWriteFailure(t *testing.T) {
 
 // TestHistoryIsNotTruncatedWhenItWasNotFullyRead is the fault Ken spotted.
 //
-// save rewrites the file from the list held in memory, and load stops at a
-// line it cannot read. So one malformed line used to cost every line after
-// it: measured at fifty bytes becoming nineteen, on the next line the user
-// typed, because editLine saves after every read.
+// save rewrites the file from the list held in memory, and load used to stop
+// at a line it could not read. So one malformed line used to cost every line
+// after it: measured at fifty bytes becoming nineteen, on the next line the
+// user typed, because editLine saves after every read.
+//
+// Every line reads now (D67), and only a failure of the read itself leaves
+// the file read in part. A test cannot make a read of an ordinary file fail
+// part way through, so this sets what such a failure leaves behind.
 func TestHistoryIsNotTruncatedWhenItWasNotFullyRead(t *testing.T) {
 	t.Parallel()
 	name := filepath.Join(t.TempDir(), "h.txt")
-	body := "one\ntwo\nthree\nfour\nbad\\q\nsix\nseven\neight\nnine\nten\n"
+	body := "one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\nten\n"
 	if err := os.WriteFile(name, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	h := &history{}
-	if err := h.loadFrom(name, DefaultHistoryEntries); err == nil {
-		t.Fatal("loading a file with an unreadable line gave no error")
+	if err := h.loadFrom(name, DefaultHistoryEntries); err != nil {
+		t.Fatal(err)
 	}
-	if len(h.entries) == 0 {
-		t.Fatal("nothing was read at all, so this is not the case being tested")
-	}
+	h.partial = true
 
 	h.push("eleven")
 	if err := h.save(); err == nil {

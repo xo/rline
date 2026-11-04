@@ -302,6 +302,23 @@ first (D66). For the same reason the decoder reads `ESC [ 200 ~` as the start
 of a paste, where the C reads no key, and `testdata/tty-delta.txt` holds the
 two cases of the corpus that differ.
 
+isocline draws the whole line after every key. The port draws it only when no
+more keys wait, as readline skips its redisplay while typeahead is pending
+(D67). The highlighter runs in the draw, so a paste without bracketed paste
+calls it once, not once for each character. The recorded sessions send one
+key at a time, so none of them changes.
+
+isocline goes back to the left edge of the row for each draw, so a prompt
+drawn after output that did not end its row draws over that output at the
+first key. The port counts the columns of what the program writes through the
+`Session`, and starts the first row of the line in the column where that
+output stopped, as readline and psql leave it (D67).
+
+isocline reads the prompt text and the two markers as markup, so `[x]` in a
+prompt is a tag and is not shown. The port writes them as plain text, as
+everything else that a `Session` writes is, and as `Password` and the plain
+read already wrote them (D67).
+
 The keys are GNU readline's, and isocline's `switch` over key codes is gone
 (D41, D44). A key goes through a keymap built from readline's defaults to a
 command that `internal/readline` runs. So isocline's key behaviours are gone
@@ -727,6 +744,20 @@ fault of the C's own logic.
 Saving is refused when the file was not read in full, because the list held
 is then shorter than the file and writing it would destroy the rest. The
 caller is told, which is what `SaveHistory` returning an error is for.
+
+Since D67, the port also reads every line. A backslash that starts no escape
+of the four, or a hexadecimal escape without two digits, is kept as text, and
+the rest of the line is read after it. A history file that another line
+editor wrote holds lines such as `\dt`, and the refusal to save then stopped
+the history of usql without a word (usql issue 414). So the refusal is now
+reached only when the file itself cannot be read. The rentry cases of
+`testdata/history.txt` that the C refuses are checked against this departure,
+and `Session.HistoryErr` gives the error of the last read or write to the
+program.
+
+The C holds every limit on the list at 200 entries, the size of its fixed
+array. The port holds as many as it is asked to, and keeps 500 by default,
+which psql keeps (D67).
 
 Saving writes a temporary file beside the history file and renames it over.
 A rename is atomic on every system this builds for, so the file is either the

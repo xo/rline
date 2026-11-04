@@ -142,7 +142,10 @@ drawing the next prompt. The redraw opens with `term.startOfLine()`, an
 unconditional carriage return, so whatever a caller deliberately left on that
 row is written over. Nothing in the API expresses "the cursor is where I meant
 to leave it". This is the one Ken kept as a numbered backlog item, and it is
-the clearest case of the shape: usql cannot fix it from its side.
+the clearest case of the shape: usql cannot fix it from its side. D67 fixes
+it: rline counts the columns of what usql writes through the `Prompt`, its
+markup writer and its error writer, and starts the line where that output
+stopped. Output that usql writes to `os.Stdout` directly is not counted.
 
 **508, a child process reading the same terminal.** Measured here with a
 control: ten keys, no child, the editor reads ten; with a child holding the
@@ -185,6 +188,18 @@ is escaped before writing, so an embedded newline becomes two characters, and
 each entry is followed by a real one. The file is renamed over rather than
 truncated, and one that was not read in full is refused. Keep it as a
 regression test rather than as work.
+
+The refusal made a fault of its own, which usql found on 2026-11-04. A
+history file that the old line editor of usql wrote holds lines such as
+`\dt`, which rline read as an escape that it did not know. It stopped at the
+line, refused every save after it, and said nothing. D67 reads such a line as
+text, and `Session.HistoryErr` gives usql the error of the last read or write
+of the file. psql's `\t` and `\r` in an old file are escapes for rline, so
+they still read as a tab and as nothing.
+
+**66**, a paste without bracketed paste that took 128 seconds. rline drew the
+line, and ran the highlighter on the whole entry, after each character. D67
+draws only when no more keys wait.
 
 ### Probably not this package, stated narrowly
 

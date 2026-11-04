@@ -16,11 +16,6 @@ usql labels its line editor issues `readline`, and fourteen are open on
 repository. [USQL.md](USQL.md) sorts the issues, and these items need
 something from rline before usql can fix them.
 
-1. Draw the prompt after text that a caller left in the middle of a row.
-   The redraw starts with an unconditional carriage return, so `\echo -n`
-   output is written over. rline has no way for a caller to say that the
-   cursor is where it meant to leave it. From: usql issue 215, which Ken
-   kept as a numbered backlog item. usql said on 2026-10-30 that it still needs this, at a low priority, because it only shows after `\echo -n` and `\warn -n`. Ken will consider it later (2026-10-30).
 2. Explain why the first pager after startup behaves and later ones do not.
    D48 added `Session.Release`, which gives the terminal to a child process
    and takes it back, and usql/pager uses it. Check usql issue 508 again
@@ -249,6 +244,21 @@ These come from 2026-10-30, when rline gained the 45 commands of readline
     `enable-active-region` is on. A paste is the active region until the next
     key, and bash 5.3 draws it so. rline sets the mark as readline does but
     draws no region. From: D66.
+
+## Found while the faults of v0.5.0 were fixed
+
+81. Wait longer for the rest of an escape sequence. The decoder waits 10 ms
+    for each byte after the first two of a sequence (`defaultEscTimeout` in
+    `decoder.go`). usql found on 2026-11-04 that the Delete key, `ESC [ 3 ~`,
+    with its bytes 30 ms apart was read as other keys, so that
+    `select abc def` became `select abc DEf`. readline waits for
+    `keyseq-timeout`, 500 ms by default, while the keys so far start a
+    sequence that is bound. From: the usql session.
+82. Count the columns of output that a program writes to `os.Stdout`
+    directly, or say more loudly that it must write through the `Prompt`.
+    D67 counts only what goes through the `Session`, so the first redraw
+    of a prompt after other output still writes over that output. From:
+    D67.
 
 ## Found while vi mode was written
 

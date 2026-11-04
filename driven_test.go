@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/xo/inputrc"
 	"github.com/xo/terminfo"
@@ -87,6 +88,11 @@ type feedKeys struct {
 	// pauses are the places in keys where the reader answers nothing once
 	// before it goes on, as a pause in typing does.
 	pauses map[int]bool
+
+	// typeahead says the keys are all waiting at once, as a paste is. When
+	// it is false, the user types one key at a time, so nothing is waiting
+	// when the decoder asks, and the line is drawn after every key.
+	typeahead bool
 }
 
 // readByte satisfies byteReader.
@@ -94,7 +100,14 @@ type feedKeys struct {
 // When the keys run out it gives one Ctrl-C, which ends the line. Without that
 // a sequence that never finishes the line would hang the whole suite rather
 // than failing, and the empty answer it produces instead is easy to read.
-func (f *feedKeys) readByte(_ time.Duration) (byte, bool) {
+//
+// A wait of zero is how the decoder asks whether more is waiting (D67). No
+// test that uses this reader sets the wait for an escape to zero, so a wait
+// of zero means that question and nothing else.
+func (f *feedKeys) readByte(timeout time.Duration) (byte, bool) {
+	if timeout == 0 && !f.typeahead {
+		return 0, false
+	}
 	if f.pauses[f.pos] {
 		delete(f.pauses, f.pos)
 		return 0, false
@@ -147,6 +160,10 @@ type feedOpts struct {
 	// AutoTab completes again after the menu completes.
 	CompletionMenu bool
 	AutoTab        bool
+
+	// Typeahead sends the keys all at once, as a paste without bracketed
+	// paste arrives, rather than one at a time as a user types them.
+	Typeahead bool
 }
 
 // feed runs the keys through a fresh editor and returns the line and where the
@@ -191,7 +208,7 @@ func feedEnv(t *testing.T, keys string, opt feedOpts) (*env, *bytes.Buffer) {
 	_ = h.loadFrom("", DefaultHistoryEntries)
 	ev := &env{
 		term:          tm,
-		keys:          newDecoder(&feedKeys{keys: keys, zeroIsKey: opt.ZeroIsKey, pauses: opt.Pauses}),
+		keys:          newDecoder(&feedKeys{keys: keys, zeroIsKey: opt.ZeroIsKey, pauses: opt.Pauses, typeahead: opt.Typeahead}),
 		bb:            newBBCode(tm),
 		history:       h,
 		completions:   &completions{},
@@ -1262,9 +1279,13 @@ func TestAKeyThatChangesNothingDrawsNothing(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
+			// No Enter ends the line: the Ctrl-C that the reader sends when
+			// the keys run out ends it without a draw. An Enter would draw
+			// the line once more when the one before the key left it to be
+			// drawn, and the key under test would hide that by drawing it.
 			const typed = "abc"
-			_, _, _, without := feedSession(t, typed+test.typed+kEnter, feedOpts{})
-			_, _, _, with := feedSession(t, typed+test.typed+test.key+kEnter, feedOpts{})
+			_, _, _, without := feedSession(t, typed+test.typed, feedOpts{})
+			_, _, _, with := feedSession(t, typed+test.typed+test.key, feedOpts{})
 			switch {
 			case test.draws && with == without:
 				t.Errorf("the key drew nothing, so the screen never followed it.\nBoth drew:\n%q", without)
@@ -2201,5 +2222,323 @@ func TestInputrcSetsTheBellStyle(t *testing.T) {
 	p.env.readInputrc(&config{inputrcFile: visible, beep: false})
 	if tm.beep {
 		t.Errorf("WithBeep(false) did not keep the bell off")
+	}
+}
+
+// TestAPasteIsDrawnOnceItIsAllRead checks that the line is not drawn, and the
+// highlighter not called, while more keys are waiting, as readline skips its
+// redisplay while typeahead is pending (D67). usql measured a paste of 26,583
+// bytes at 128 seconds before this, because each character drew the whole
+// entry again.
+func TestAPasteIsDrawnOnceItIsAllRead(t *testing.T) {
+	t.Parallel()
+	row := "insert into t values (1, 'one'); "
+	paste := strings.Repeat(row, 20)
+	for _, tc := range []struct {
+		name      string
+		typeahead bool
+		most      int
+		least     int
+	}{
+		{"typed one key at a time", false, len(paste) * 2, len(paste)},
+		{"pasted", true, 3, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			calls := 0
+			h := HighlighterFunc(func(*LineStyle) { calls++ })
+			// editLine draws the line once more when it is finished, which
+			// is the draw that shows a paste.
+			ev, sink := feedEnv(t, paste+kEnter, feedOpts{
+				Highlighter: h,
+				Typeahead:   tc.typeahead,
+			})
+			line, _, _ := ev.editLine("")
+			ev.term.flush()
+			drawn := sink.String()
+			if line != paste {
+				t.Fatalf("the line came back as %q, want %q", line, paste)
+			}
+			if calls < tc.least || calls > tc.most {
+				t.Errorf("the highlighter ran %d times, want from %d to %d", calls, tc.least, tc.most)
+			}
+			if !strings.Contains(drawn, "(1, 'one');") {
+				t.Errorf("the paste was never drawn: %q", drawn)
+			}
+		})
+	}
+}
+
+// screenOf draws out on a screen of the given width and returns its rows, with
+// the spaces at their ends taken off. It reads printable text, a carriage
+// return, a line feed, a tab, a backspace, and the sequences that move the
+// cursor and clear a row, and leaves out every other sequence. A row wraps the way xterm wraps
+// one: the character after the last column goes to the next row.
+func screenOf(out string, width int) []string {
+	rows, _, _ := screenAt(out, width)
+	return rows
+}
+
+// screenAt is screenOf with the row and the column the cursor ends in.
+func screenAt(out string, width int) ([]string, int, int) {
+	var rows [][]rune
+	row, col := 0, 0
+	put := func(r rune) {
+		if col >= width {
+			row, col = row+1, 0
+		}
+		for len(rows) <= row {
+			rows = append(rows, nil)
+		}
+		for len(rows[row]) <= col {
+			rows[row] = append(rows[row], ' ')
+		}
+		rows[row][col] = r
+		col++
+	}
+	for i := 0; i < len(out); {
+		switch c := out[i]; {
+		case c == '\r':
+			col = 0
+			i++
+		case c == '\n':
+			row, col = row+1, 0
+			i++
+		case c == '\t':
+			col = min(col+8-col%8, width-1)
+			i++
+		case c == '\b':
+			col = max(col-1, 0)
+			i++
+		case c == 0x1b && i+1 < len(out) && out[i+1] == '[':
+			j := i + 2
+			for j < len(out) && (out[j] < 0x40 || out[j] > 0x7e) {
+				j++
+			}
+			if j >= len(out) {
+				return trimRows(rows), row, col
+			}
+			n, err := strconv.Atoi(out[i+2 : j])
+			if err != nil || n == 0 {
+				n = 1
+			}
+			switch out[j] {
+			case 'A':
+				row = max(row-n, 0)
+			case 'B':
+				row += n
+			case 'C':
+				col = min(col+n, width-1)
+			case 'D':
+				col = max(col-n, 0)
+			case 'K':
+				if row < len(rows) && col < len(rows[row]) {
+					rows[row] = rows[row][:min(col, width)]
+				}
+			}
+			i = j + 1
+		case c == 0x1b:
+			i += 2
+		case c < ' ':
+			i++
+		default:
+			r, size := utf8.DecodeRuneInString(out[i:])
+			put(r)
+			i += size
+		}
+	}
+	return trimRows(rows), row, col
+}
+
+// trimRows turns the rows of screenOf into strings without trailing spaces.
+func trimRows(rows [][]rune) []string {
+	out := make([]string, len(rows))
+	for i, r := range rows {
+		out[i] = strings.TrimRight(string(r), " ")
+	}
+	return out
+}
+
+// TestThePromptStartsAfterTheProgramsOutput checks that a prompt drawn after
+// output that did not end its row starts where that output stopped, and that
+// no redraw goes over it, as readline and psql leave it (D67). usql found
+// this with "\echo -n foo".
+func TestThePromptStartsAfterTheProgramsOutput(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name   string
+		output string
+		keys   string
+		want   []string
+	}{
+		{"after a newline", "foo\n", "xy" + kEnter, []string{"foo", "> xy"}},
+		{"in the middle of a row", "foo", "xy" + kLeft + kLeft + "w" + kEnter, []string{"foo> wxy"}},
+		{"after a color", "\x1b[31mfoo\x1b[0m", "x" + kBackspace + "yz" + kEnter, []string{"foo> yz"}},
+		{"after a tab", "a\tb", "x" + kEnter, []string{"a       b> x"}},
+		{"after a backspace", "fooo\b", "x" + kEnter, []string{"foo> x"}},
+		{"through the markup", "[rline-error]foo[/]", "x" + kEnter, []string{"foo> x"}},
+		{"after a cleared screen", "foo", "x" + "\x0c" + "y" + kEnter, []string{"> xy"}},
+		{
+			"when the line wraps", "foo", strings.Repeat("a", 30) + kCtrlA + "b" + kEnter,
+			// rline wraps a row itself, and starts each row after the first
+			// with the marker, at the left edge.
+			[]string{"foo> b" + strings.Repeat("a", 12), "> " + strings.Repeat("a", 16), "> aa"},
+		},
+		{
+			"when the prompt does not fit", strings.Repeat("o", 18), "x" + kEnter,
+			[]string{strings.Repeat("o", 18), "> x"},
+		},
+		{
+			"when the row is full", strings.Repeat("o", 20), "x" + kEnter,
+			[]string{strings.Repeat("o", 20), "> x"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ev, _ := feedEnv(t, tc.keys, feedOpts{})
+			sink := &bytes.Buffer{}
+			ev.term = newTerm(sink, termOptions{Sizer: fixedSize{cols: 20, rows: 24}})
+			ev.bb = newBBCode(ev.term)
+			// The wrap mark is not what this checks.
+			ev.keys.isUTF8 = false
+			p := &Prompt{Session: &Session{env: ev}, markup: &MarkupWriter{env: ev}}
+			w := io.Writer(p)
+			if strings.HasPrefix(tc.output, "[") {
+				w = p.Markup()
+			}
+			// Write, rather than WriteString, which the password case below
+			// uses.
+			if _, err := w.Write([]byte(tc.output)); err != nil {
+				t.Fatal(err)
+			}
+			ev.editLine("")
+			ev.term.flush()
+			got := screenOf(sink.String(), 20)
+			if tc.name == "after a cleared screen" {
+				// The clear moves the line to the top of the screen, which
+				// this screen does not follow, so only the row the line is
+				// on is checked.
+				got = got[len(got)-1:]
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("the screen shows\n%q\nwant\n%q\nfrom %q", got, tc.want, sink.String())
+			}
+		})
+	}
+}
+
+// TestThePromptIsPlainText checks that a bracket in the prompt or its markers
+// is drawn as it is, and is not read as a tag, as Password and the plain read
+// already draw it (D67). usql found this with "[x]" in its prompt.
+func TestThePromptIsPlainText(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, prompt, marker string
+		want                 string
+	}{
+		{"a bracket in the prompt", "[x] db", "> ", "[x] db> x"},
+		{"a tag of rline in the prompt", "[b]db[/b]", "> ", "[b]db[/b]> x"},
+		{"a backslash in the prompt", `\[db\]`, "> ", `\[db\]> x`},
+		{"a bracket in the marker", "db", "[ok]> ", "db[ok]> x"},
+		{"a color in the prompt", "\x1b[32mdb\x1b[0m", "> ", "db> x"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ev, sink := feedEnv(t, "x"+kLeft+kEnter, feedOpts{})
+			ev.promptMarker, ev.cpromptMarker = tc.marker, tc.marker
+			ev.editLine(tc.prompt)
+			ev.term.flush()
+			got, row, col := screenAt(sink.String(), 80)
+			if !slices.Equal(got, []string{tc.want}) {
+				t.Errorf("the screen shows %q, want %q, from %q", got, tc.want, sink.String())
+			}
+			// The finished line leaves the cursor at its end, which is where
+			// the prompt is measured to end.
+			if want := len(tc.want); row != 0 || col != want {
+				t.Errorf("the cursor is at row %d column %d, want row 0 column %d", row, col, want)
+			}
+		})
+	}
+}
+
+// TestThePromptFollowsEveryWriteOfTheProgram checks the writes that move the
+// column the next prompt starts in: the errors, which share the screen when
+// they go to a terminal, and a password, whose line ends its row (D67).
+func TestThePromptFollowsEveryWriteOfTheProgram(t *testing.T) {
+	t.Parallel()
+	t.Run("the errors", func(t *testing.T) {
+		t.Parallel()
+		ev, sink := feedEnv(t, "x"+kEnter, feedOpts{})
+		// A writer that is not a file counts as a terminal, and this one is
+		// the same screen as the output.
+		s := &Session{env: ev, canEdit: true, stderr: sink}
+		if _, err := io.WriteString(s.Stderr(), "foo"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.ReadLine(""); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := screenOf(sink.String(), 80), []string{"foo> x"}; !slices.Equal(got, want) {
+			t.Errorf("the screen shows %q, want %q", got, want)
+		}
+	})
+	t.Run("a password", func(t *testing.T) {
+		t.Parallel()
+		ev, sink := feedEnv(t, "secret"+kEnter+"x"+kEnter, feedOpts{})
+		s := &Session{env: ev, canEdit: true}
+		if _, err := io.WriteString(s, "foo"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.Password("pw: "); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.ReadLine(""); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := screenOf(sink.String(), 80), []string{"foopw:", "> x"}; !slices.Equal(got, want) {
+			t.Errorf("the screen shows %q, want %q", got, want)
+		}
+	})
+}
+
+// TestAPasteIsDrawnWhenTheKeysStop checks that the keys of a paste are drawn
+// when the input stops, even when the last of them changed nothing, so that
+// the line on the screen is never behind what was typed (D67).
+func TestAPasteIsDrawnWhenTheKeysStop(t *testing.T) {
+	t.Parallel()
+	const paste = "abc" + kEnd
+	var seen []string
+	h := HighlighterFunc(func(l *LineStyle) { seen = append(seen, l.Text()) })
+	ev, _ := feedEnv(t, paste+"x"+kEnter, feedOpts{
+		Highlighter: h,
+		Typeahead:   true,
+		// The keys stop after the paste.
+		Pauses: map[int]bool{len(paste): true},
+	})
+	if line, _, _ := ev.editLine(""); line != "abcx" {
+		t.Fatalf("the line came back as %q, want %q", line, "abcx")
+	}
+	// One draw when the keys stopped, and the one that editLine makes of the
+	// finished line. The keys after the pause came all at once.
+	if want := []string{"abc", "abcx"}; !slices.Equal(seen, want) {
+		t.Errorf("the highlighter saw %q, want %q", seen, want)
+	}
+}
+
+// TestAWidePromptWithNoOutputStartsAtTheTop checks that a prompt wider than
+// the row starts where it is when nothing was written in front of it, rather
+// than a row lower, which is only for a prompt that follows output (D67).
+func TestAWidePromptWithNoOutputStartsAtTheTop(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "x"+kEnter, feedOpts{})
+	sink := &bytes.Buffer{}
+	ev.term = newTerm(sink, termOptions{Sizer: fixedSize{cols: 20, rows: 24}})
+	ev.bb = newBBCode(ev.term)
+	ev.keys.isUTF8 = false
+	prompt := strings.Repeat("p", 25)
+	ev.editLine(prompt)
+	ev.term.flush()
+	if got := screenOf(sink.String(), 20); len(got) == 0 || !strings.HasPrefix(got[0], "pppp") {
+		t.Errorf("the screen shows %q, want the prompt on the first row", got)
 	}
 }

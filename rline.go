@@ -164,8 +164,9 @@ const (
 	// file, unless WithAppName sets another.
 	DefaultAppName = "rline"
 
-	// DefaultHistoryEntries is how many lines are remembered.
-	DefaultHistoryEntries = 200
+	// DefaultHistoryEntries is how many lines are remembered: 500, which is
+	// what psql keeps. The C keeps 200 and cannot keep more (D67).
+	DefaultHistoryEntries = 500
 
 	// DefaultHistoryFileMode is the permission a history file is created
 	// with: readable and writable by its owner and by nobody else.
@@ -673,7 +674,7 @@ func New(opts ...Option) (*Prompt, error) {
 	// A history that cannot be read is not a reason to refuse to run: the
 	// file may not exist yet, or may belong to someone else, and a program
 	// that cannot prompt because of it is worse than one with no history.
-	// LoadHistory is how a caller that wants to know asks.
+	// HistoryErr is how a caller that wants to know asks (D67).
 	_ = h.loadFrom(c.historyFile, c.historyLimit)
 	cs := &completions{}
 	if c.completer != nil {
@@ -882,6 +883,7 @@ func (s *Session) Write(p []byte) (int, error) {
 	if s.env == nil {
 		return len(p), nil
 	}
+	s.env.noteOutput(p)
 	s.env.term.writeOutput(p)
 	s.env.term.flush()
 	return len(p), nil
@@ -920,6 +922,11 @@ func (w errWriter) Write(p []byte) (int, error) {
 	}
 	if w.s.env != nil && w.s.env.term != nil {
 		w.s.env.term.flush()
+		// The errors share the screen with the prompt when they go to a
+		// terminal, as "\warn -n" in usql does.
+		if writesToTerminal(w.s.stderr) {
+			w.s.env.noteOutput(p)
+		}
 	}
 	n, err := w.s.stderr.Write(p)
 	if err != nil {
@@ -935,6 +942,7 @@ func (s *Session) WriteString(text string) (int, error) {
 	if s.env == nil {
 		return len(text), nil
 	}
+	s.env.noteOutput([]byte(text))
 	s.env.term.writeOutput([]byte(text))
 	s.env.term.flush()
 	return len(text), nil
@@ -993,6 +1001,9 @@ func (w *MarkupWriter) WriteString(s string) (int, error) {
 // written inside the run before this as well, and matching what was there is
 // the point.
 func (w *MarkupWriter) writeMarkup(s string) {
+	var shown text.Buffer
+	w.env.bb.appendTo(s, &shown, nil)
+	w.env.noteOutput(shown.Bytes())
 	if after, ok := strings.CutSuffix(s, "\n"); ok {
 		w.env.bb.println(after)
 	} else {
@@ -1140,6 +1151,21 @@ func (s *Session) SaveHistory() error {
 		return fmt.Errorf("saving the history: %w", err)
 	}
 	return nil
+}
+
+// HistoryErr returns what went wrong the last time the history file was read
+// or written, or nil when that worked (D67).
+//
+// New reads the file, and ReadLine writes it after every line, and neither
+// can return an error for it: New still returns a Session that can read lines,
+// and ReadLine still has a line to return. A program asks here, after New and
+// after each line, and tells the user that the history is not being saved.
+// LoadHistory and SaveHistory return the same error.
+func (s *Session) HistoryErr() error {
+	if s.env == nil || s.env.history == nil {
+		return nil
+	}
+	return s.env.history.err
 }
 
 // Notices returns what rline does not support in the inputrc file that the
@@ -1405,6 +1431,7 @@ func (s *Session) password(prompt string) (string, error) {
 	// by hand or the next thing written lands beside the prompt.
 	s.env.term.writeln("")
 	s.env.term.flush()
+	s.env.outCol = 0
 	return line, err
 }
 
