@@ -1,6 +1,7 @@
 package rline
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -2581,4 +2582,87 @@ func TestAFocusNotificationCanBeBound(t *testing.T) {
 			t.Errorf("%q in an inputrc file decodes to %v, %v, want %08x", seq, keys, ok, want)
 		}
 	}
+}
+
+// TestPushInputIsReadFirst checks that what PushInput gives is read before the
+// terminal, in order, as keys, and by every way of reading a line (D70). usql
+// found that the keys a user types while it waits for the terminal to answer
+// a query were lost: "select 1;" ran as "elect 1;".
+func TestPushInputIsReadFirst(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		input []string
+		keys  string
+		want  string
+	}{
+		{"before the keys", []string{"sel"}, "ect 1;" + kEnter, "select 1;"},
+		{"two calls in order", []string{"sel", "ect "}, "1;" + kEnter, "select 1;"},
+		{"an escape sequence", []string{"ab" + kLeft}, "X" + kEnter, "aXb"},
+		{"a whole line", []string{"select 1;" + kEnter}, "", "select 1;"},
+		{"a bracketed paste", []string{"\x1b[200~a\rb\x1b[201~"}, kEnter, "a\nb"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ev, _ := feedEnv(t, tc.keys, feedOpts{})
+			s := &Session{env: ev, canEdit: true}
+			for _, in := range tc.input {
+				b := []byte(in)
+				s.PushInput(b)
+				// The Session keeps a copy, so the caller may reuse its slice.
+				for i := range b {
+					b[i] = 'z'
+				}
+			}
+			line, err := s.ReadLine("")
+			if err != nil || line != tc.want {
+				t.Errorf("ReadLine gave %q, %v, want %q", line, err, tc.want)
+			}
+		})
+	}
+	t.Run("a password", func(t *testing.T) {
+		t.Parallel()
+		ev, _ := feedEnv(t, "et"+kEnter, feedOpts{})
+		s := &Session{env: ev, canEdit: true}
+		s.PushInput([]byte("secr"))
+		if pw, err := s.Password("pw: "); err != nil || pw != "secret" {
+			t.Errorf("Password gave %q, %v, want %q", pw, err, "secret")
+		}
+	})
+	t.Run("a plain read", func(t *testing.T) {
+		t.Parallel()
+		s := &Session{plain: bufio.NewReader(strings.NewReader("ect 1;\nselect 2;\n"))}
+		b := []byte("sel")
+		s.PushInput(b)
+		copy(b, "zzz")
+		for _, want := range []string{"select 1;", "select 2;"} {
+			if line, err := s.ReadLine(""); err != nil || line != want {
+				t.Errorf("ReadLine gave %q, %v, want %q", line, err, want)
+			}
+		}
+	})
+	t.Run("drawn once", func(t *testing.T) {
+		t.Parallel()
+		// The keys that PushInput gave are all waiting, so the line is
+		// drawn once they are read, as for a paste (D67).
+		calls := 0
+		ev, _ := feedEnv(t, kEnter, feedOpts{Highlighter: HighlighterFunc(func(*LineStyle) { calls++ })})
+		s := &Session{env: ev, canEdit: true}
+		s.PushInput([]byte("select 1;"))
+		if _, err := s.ReadLine(""); err != nil {
+			t.Fatal(err)
+		}
+		if calls > 3 {
+			t.Errorf("the highlighter ran %d times for 9 keys that were all waiting", calls)
+		}
+	})
+	t.Run("a closed session", func(t *testing.T) {
+		t.Parallel()
+		ev, _ := feedEnv(t, "", feedOpts{})
+		s := &Session{env: ev, canEdit: true, closed: true}
+		s.PushInput([]byte("x"))
+		if len(ev.keys.input) != 0 {
+			t.Errorf("a closed Session kept %q", ev.keys.input)
+		}
+	})
 }

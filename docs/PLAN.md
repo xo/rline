@@ -103,6 +103,7 @@ that holds it.
 | [D67](#d67-rline-reads-every-history-line-draws-nothing-while-keys-wait-and-draws-the-prompt-as-plain-text-after-the-programs-output-decided) | rline reads every history line, draws nothing while keys wait, and draws the prompt as plain text after the program's output | Decided |
 | [D68](#d68-the-port-of-isocline-is-done-and-rline-no-longer-keeps-the-behavior-of-the-c-decided-amends-d4) | The port of isocline is done, and rline no longer keeps the behavior of the C | Decided. Amends D4 |
 | [D69](#d69-rline-removes-isoclines-file-name-completer-decided) | rline removes isocline's file name completer | Decided |
+| [D70](#d70-sessionpushinput-gives-the-session-input-that-something-else-read-from-the-terminal-decided) | Session.PushInput gives the Session input that something else read from the terminal | Decided |
 
 ## Purpose
 
@@ -1449,6 +1450,30 @@ completer, its colors, `testdata/filenames.txt`, `tools/probe-filenames.c`
 and `tools/build-probe-filenames.sh` are gone. A program that wants file
 names completes them in its own `Completer`, as readline leaves completion to
 the program.
+
+### D70. Session.PushInput gives the Session input that something else read from the terminal. Decided.
+
+usql asked on 2026-11-05, for Ken, for a way to give rline the keys that
+something else read first. At start, usql asks the terminal through rasterm
+whether it draws images, and the keys that the user types before the answer
+are read by rasterm. The rasterm session is to return them to usql, and usql
+gives them to rline, so that `select 1;` typed at once no longer runs as
+`elect 1;`. usql asks after `New`, so the way in is a method, not an option.
+
+1. `PushInput(input []byte)` puts the bytes in front of the input. The next
+   read takes them first, as though they came from the terminal, so that a
+   key sequence or a bracketed paste in them is read as it would be.
+   `ReadLine` and `Password` both read them.
+2. A second call adds its bytes after those of the first. The bytes are
+   copied, so the caller can reuse its slice.
+3. When there is no terminal to edit on, `ReadLine` reads plain lines, and
+   reads the bytes first there too.
+4. The bytes count as input that waits, so a line in them is drawn once, as
+   a paste is (D67). They do not reach the log of `WithLogger`, because the
+   Session did not read them.
+5. A closed Session ignores them.
+
+Ken accepted the decision and the name on 2026-11-05.
 
 ## Open questions for Ken
 

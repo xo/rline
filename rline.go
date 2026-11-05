@@ -52,6 +52,7 @@ package rline
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -1182,6 +1183,30 @@ func (s *Session) Notices() []string {
 // not, ReadLine reads a plain line.
 func (s *Session) Interactive() bool {
 	return s.canEdit
+}
+
+// PushInput gives the Session input that something else read from the
+// terminal before the Session could, such as the keys that a user typed while
+// a program waited for the terminal to answer a query (D70). The next read,
+// by ReadLine or by Password, takes the bytes before anything from the
+// terminal, as though they came from it, so that an escape sequence or a
+// bracketed paste in them is read as it would be. A second call adds its
+// bytes after those of the first. The bytes are copied.
+//
+// When there is no terminal to edit on, ReadLine reads plain lines, and reads
+// the bytes first there too. What PushInput gives does not reach the log of
+// WithLogger, because the Session did not read it.
+func (s *Session) PushInput(input []byte) {
+	if s.closed || len(input) == 0 {
+		return
+	}
+	if s.canEdit && s.env != nil && s.env.keys != nil {
+		s.env.keys.input = append(s.env.keys.input, input...)
+		return
+	}
+	if s.plain != nil {
+		s.plain = bufio.NewReader(io.MultiReader(bytes.NewReader(slices.Clone(input)), s.plain))
+	}
 }
 
 // Release gives the terminal to fn, and takes it back when fn returns. It is

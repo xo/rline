@@ -104,6 +104,10 @@ type keyDecoder struct {
 	pushedBytes []byte
 	pushedCodes []key.Code
 
+	// input is what PushInput gave, to be read in order after the pushed
+	// back bytes and before anything from src (D70).
+	input []byte
+
 	// ctrl is the terminal the bytes come from, when they come from one. It
 	// is nil when they come from somewhere else, such as a test, and every
 	// method that uses it checks for that.
@@ -168,6 +172,11 @@ func (t *keyDecoder) readByte(timeout time.Duration) (byte, bool) {
 	if n := len(t.pushedBytes); n > 0 {
 		b := t.pushedBytes[n-1]
 		t.pushedBytes = t.pushedBytes[:n-1]
+		return b, true
+	}
+	if len(t.input) > 0 {
+		b := t.input[0]
+		t.input = t.input[1:]
 		return b, true
 	}
 	if t.src == nil {
@@ -267,7 +276,7 @@ func (t *keyDecoder) readTimeout(timeout time.Duration) (key.Code, bool) {
 // pending. A paste without bracketed paste otherwise draws the whole entry
 // again after each of its characters (D67).
 func (t *keyDecoder) pending() bool {
-	if len(t.pushedCodes) > 0 || len(t.pushedBytes) > 0 {
+	if len(t.pushedCodes) > 0 || len(t.pushedBytes) > 0 || len(t.input) > 0 {
 		return true
 	}
 	if t.src == nil {
