@@ -581,10 +581,15 @@ func checkWinKeyLine(t *testing.T, line string) (string, string) {
 		want = append(want, rlineKey(c))
 	}
 	// The probe pushes every letter, and Windows sends neither of these for
-	// a key. ESC [ 1 ; 1 I and ESC [ 1 ; 1 O are no key for rline, as the
-	// focus notifications are (D68).
-	if f[0] == "pushxterm" && (f[2] == "49" || f[2] == "4f") && mustCode(t, f[1]) == 0 {
-		want = []key.Code{key.None}
+	// a key. ESC [ 1 ; 1 I and ESC [ 1 ; 1 O are the focus notifications for
+	// rline (D68).
+	if f[0] == "pushxterm" && mustCode(t, f[1]) == 0 {
+		switch f[2] {
+		case "49":
+			want = []key.Code{keyFocusIn}
+		case "4f":
+			want = []key.Code{keyFocusOut}
+		}
 	}
 	if len(got) != len(want) {
 		return f[0], fmt.Sprintf("%s decoded to %s, want %s", what, showCodes(got), showCodes(want))
@@ -862,8 +867,8 @@ func rlineKey(c key.Code) key.Code {
 }
 
 // focusOrLock reports whether the input holds ESC [ and then I or O, which
-// may be a focus notification that rline reads as no key and the C as PageUp
-// or F3, or an escape and then a number of 65 or more, which may carry Caps
+// may be a focus notification that rline reads as a key of its own and the C
+// as PageUp or F3, or an escape and then a number of 65 or more, which may carry Caps
 // Lock or Num Lock in the modifiers of a sequence (D68). isoclineKeys cannot
 // map either answer onto the C's.
 func focusOrLock(in []byte) bool {

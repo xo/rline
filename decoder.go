@@ -825,11 +825,15 @@ func (t *keyDecoder) readCSI(c1, peek byte, mods key.Code, timeout time.Duration
 		// when it loses it, once a program asks with ESC [ ? 1004 h and does
 		// not turn it off again. The C read them as PageUp, as the FreeBSD
 		// console sends it, and as F3, so that a switch of windows ran a
-		// command. rline asks for no focus report, and a notification is no
-		// key, so it reads nothing (D68). readline rings the bell for each,
-		// because it binds neither. The FreeBSD console is a dumb terminal
-		// for rline, which reads lines from it without editing.
-		code = key.None
+		// command. Each is a key of its own here, which nothing binds, so it
+		// rings the bell, as readline rings it for the two sequences that it
+		// binds to nothing (D68). An inputrc file can bind them. The FreeBSD
+		// console is a dumb terminal for rline, which reads lines from it
+		// without editing.
+		code = keyFocusIn
+		if final == 'O' {
+			code = keyFocusOut
+		}
 	}
 	if code == key.None {
 		return key.None
@@ -841,6 +845,14 @@ func (t *keyDecoder) readCSI(c1, peek byte, mods key.Code, timeout time.Duration
 // bracketed paste mode. readline binds it to bracketed-paste-begin. It is
 // rline's own, and the key package does not export it.
 const keyPaste = key.Virt + 0x200
+
+// keyFocusIn and keyFocusOut are the keys that ESC [ I and ESC [ O decode to:
+// the notifications that a terminal sends when its window gets and loses the
+// focus. Nothing binds them. They are rline's own, as keyPaste is.
+const (
+	keyFocusIn  = key.Virt + 0x201
+	keyFocusOut = key.Virt + 0x202
+)
 
 // pasteEnd is what a terminal sends after a paste, in bracketed paste mode.
 const pasteEnd = "\x1b[201~"

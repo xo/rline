@@ -61,7 +61,7 @@ files (D15):
 - `bind.go`: the keymaps, built from readline's defaults, the commands that
   rline runs itself, the commands that a program adds (D58), and the list of
   completions that readline shows.
-- `comp.go`: completion and file name completion.
+- `comp.go`: completion, and the words and quoting that a completer sees.
 - `menu.go`: isocline's numbered completion menu, which
   `WithCompletionMenu` binds to Tab (D51).
 - `history.go`: the history list and its file. Walking and searching it are

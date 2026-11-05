@@ -23,14 +23,6 @@ something from rline before usql can fix them.
    terminal" in [USQL.md](USQL.md).
 ## Faults of rline's own
 
-6. File name completion uses `/` as the only path separator, so it is wrong
-   on Windows. From: the comment on `dirSeparator` in `comp.go`, found while
-   this file was written. The comment said that the old `PLAN.md` recorded
-   it, and it did not. No program reaches the file name completer today:
-   `completeFilename` is not exported, and only a test calls it. The colors
-   that it takes from `LS_COLORS` reach the terminal unchecked, as in the C,
-   whose check `ls_valid_esc` is never called. Ken decides whether the
-   completer is exported or removed (found on 2026-11-05, under D68).
 83. On a terminal that does not send UTF-8, two bytes that happen to form a
     UTF-8 character become one character in the line, and the line then
     loses them on the way back (`TestBytesThatLookLikeUTF8AreMergedIntoOne`).

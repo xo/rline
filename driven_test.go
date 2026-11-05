@@ -2543,24 +2543,42 @@ func TestAWidePromptWithNoOutputStartsAtTheTop(t *testing.T) {
 	}
 }
 
-// TestAFocusNotificationIsNoKey checks that the notifications a terminal
-// sends when its window gets or loses the focus change nothing and ring no
-// bell. The C read them as PageUp and F3 (D68), which usql issues 93, 122, 483
-// and 490 may be.
-func TestAFocusNotificationIsNoKey(t *testing.T) {
+// TestAFocusNotificationRingsTheBell checks that the notifications a terminal
+// sends when its window gets or loses the focus change nothing and ring the
+// bell once each, as readline 8.3 does in bash 5.3, which binds neither
+// sequence. The C read them as PageUp and F3 (D68), which usql issues 93, 122,
+// 483 and 490 may be.
+func TestAFocusNotificationRingsTheBell(t *testing.T) {
 	t.Parallel()
 	// A notification comes when the window changes, long before the next
 	// key, so a pause follows each. Without one, a byte straight after
 	// ESC [ O is read as part of a sequence.
 	ev, sink := feedEnv(t, "ab\x1b[I"+kPause+"cd\x1b[O"+kPause+"ef"+kEnter, feedOpts{})
 	// The bell goes to the error stream of the terminal.
-	ev.term.beep, ev.term.stderr = true, sink
+	bells := &bytes.Buffer{}
+	ev.term.beep, ev.term.stderr = true, bells
 	line, _, _ := ev.editLine("")
 	ev.term.flush()
 	if line != "abcdef" {
-		t.Errorf("the line came back as %q, want %q", line, "abcdef")
+		t.Errorf("the line came back as %q, want %q, from %q", line, "abcdef", sink.String())
 	}
-	if strings.Contains(sink.String(), "\a") {
-		t.Errorf("a notification rang the bell: %q", sink.String())
+	if got := bells.String(); got != "\a\a" {
+		t.Errorf("the bell rang %q, want once for each notification", got)
+	}
+}
+
+// TestAFocusNotificationCanBeBound checks that an inputrc file can bind the
+// sequence of a focus notification, as it can in readline.
+func TestAFocusNotificationCanBeBound(t *testing.T) {
+	t.Parallel()
+	for _, seq := range []string{"\x1b[I", "\x1b[O"} {
+		keys, ok := decodeSeq(seq)
+		want := keyFocusIn
+		if seq == "\x1b[O" {
+			want = keyFocusOut
+		}
+		if !ok || len(keys) != 1 || keys[0] != want {
+			t.Errorf("%q in an inputrc file decodes to %v, %v, want %08x", seq, keys, ok, want)
+		}
 	}
 }

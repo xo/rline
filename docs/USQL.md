@@ -243,9 +243,9 @@ outside — 93, 122, 483 and 490, two of them naming alt-tab. See TESTING.md.
 The mis-decode is measured; that it is what those four reporters saw is a
 hypothesis.
 
-D68 fixed it on 2026-11-05. rline reads `CSI I` and `CSI O` as no key, and
-`TestAFocusNotificationIsNoKey` holds it. readline rings the bell for each,
-because it binds neither.
+D68 fixed it on 2026-11-05. rline reads `CSI I` and `CSI O` as keys of their
+own, which nothing binds, so each rings the bell, as readline rings it in bash
+5.3. `TestAFocusNotificationRingsTheBell` holds it.
 
 A fifth issue, 508, was first recorded here as the other end of this and is
 not. It is a second seam and the two are unrelated: see the section below.

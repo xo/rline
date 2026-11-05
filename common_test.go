@@ -136,17 +136,3 @@ func (p *fieldReader) nullableStr() string {
 	}
 	return string(mustHex(p.t, s))
 }
-
-// envStr reads a field that names an environment variable's value, where a
-// null pointer means the variable was not set at all.
-func (p *fieldReader) envStr() string {
-	p.t.Helper()
-	s := p.next()
-	if s == "!" {
-		return "\x00unset"
-	}
-	if s == "-" {
-		return ""
-	}
-	return string(mustHex(p.t, s))
-}

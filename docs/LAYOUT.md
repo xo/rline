@@ -77,7 +77,7 @@ now, with the paragraph explaining why those seven and not SIGSEGV.
 
 Checked for others with go/ast rather than by eye, and there are none. The
 seventeen composite literals with one reader are all data — the 172 colour
-names, the LS_COLORS table, the recorded test cases — where the name is how
+names, the recorded test cases — where the name is how
 a reader finds a hundred lines of values. The twelve tiny functions with one
 caller are almost all predicates, where `isHexDigit(c)` plainly says more
 than the three comparisons it stands for, and several are named after the C
@@ -193,7 +193,7 @@ in one Go file and the header of each says which.
   prompt.go      reading one line: drawing, the hint, resize, the loop, help
   bind.go        the keymaps, rline's own commands, a program's commands,
                  the list of completions
-  comp.go        completions, completers and file names
+  comp.go        completions and completers
   history.go     the history list, its file, walking and searching
   bbcode.go      markup and the highlighting built on it
   term.go        writing to a terminal

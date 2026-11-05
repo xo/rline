@@ -105,20 +105,10 @@ The C headers give an acyclic order. Port the modules from the leaves up:
    word completion over every combination of quote, escape and character
    class.
 
-   Completing a file name is done as well, in `comp.go`: reading a
-   directory, matching an extension, working out the type of an entry, and
-   colouring it from `LS_COLORS` or `LSCOLORS`.
-
-   That is the first part of the port that reads the world rather than a
-   string, so the shape of its test is new. `tools/probe-filenames.c` builds
-   a fixed tree in a temporary directory, changes into it, and completes
-   against it, so nothing it prints holds the temporary path. The Go test
-   builds the same tree and does the same.
-   `testdata/filenames.txt` records 540 cases. Two things cannot go in it:
-   directory order, which the file system decides and which both sides sort
-   away, and the type of a real entry, which the corpus passes in rather than
-   works out. `TestTypeOfRealEntries` covers that against a real tree, and
-   skips the file types the system will not let a test make.
+   Completing a file name was ported as well, with its colors from
+   `LS_COLORS` and `LSCOLORS`, and `testdata/filenames.txt` recorded 540
+   cases. No program could reach it, and D69 removed it with its corpus and
+   its probe.
 10. `highlight.c`. Done. `bbcode.go` holds the environment a highlighter
    marks a line through, and the brace matching that colors the brace under
    the cursor and its partner. `tools/build-probe-highlight.sh` builds the
@@ -353,10 +343,11 @@ The decoder departs from `tty.c` in seven places, and
    reads them. isocline reads both as the start of an SS3 sequence, as Eterm
    sends it, and `ESC o` adds ctrl. So M-?, typed fast with the next key,
    joined the two into one sequence (D59).
-5. `ESC [ I` and `ESC [ O` are no key. A terminal sends them when its window
-   gets and loses the focus, once a program asked for focus reports and did
-   not turn them off. isocline reads them as PageUp and F3, so a switch of
-   windows ran a command (D68). readline rings the bell for each.
+5. `ESC [ I` and `ESC [ O` are keys of their own, which nothing binds, so
+   each rings the bell, as readline rings it for both. A terminal sends them
+   when its window gets and loses the focus, once a program asked for focus
+   reports and did not turn them off. isocline reads them as PageUp and F3,
+   so a switch of windows ran a command (D68). An inputrc file can bind them.
 6. Ctrl and a letter is the control character, without Shift. A terminal
    that reports keys as CSI u sends `ESC [ 97 ; 5 u` for Ctrl-A, which
    isocline reads as `a` with ctrl, which nothing binds (D68).
@@ -381,16 +372,6 @@ There is no `setlocale` in Go, so `localeIsUTF8` reads `LC_ALL`, `LC_CTYPE`
 and `LANG` in the order that `setlocale` reads them, and applies the same
 test. An environment that sets none of them leaves the locale at `C`, which
 the C code counts as UTF-8.
-
-File name completion reads the colour settings from the environment each
-time rather than once. The C code keeps the first answer for the life of the
-program, so a program that sets `CLICOLOR` after the first completion never
-sees it. Reading each time is the same for any program that sets them before
-it starts, and it is what makes the behaviour testable.
-
-File name completion carries its settings in a closure. The C code puts them
-in the field that holds the program's own argument, and leaves that field
-pointing at a dead stack value once it returns.
 
 A completion with an empty display shows its replacement. The C code keeps an
 absent display apart from an empty one, and shows the empty one, which draws a
@@ -741,7 +722,8 @@ give it a second meaning.
 `ls_valid_esc` is defined and never called. It looks like it was meant to
 check that a colour setting holds only the escape codes that are safe to send
 on, which nothing does, so a setting from the environment reaches the terminal
-unchecked.
+unchecked. The port removed the file name completer that used the setting
+(D69), so this no longer applies.
 
 ### editline_history.c
 

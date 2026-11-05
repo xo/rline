@@ -102,6 +102,7 @@ that holds it.
 | [D66](#d66-rline-keeps-what-is-typed-ahead-and-reads-a-paste-in-bracketed-paste-mode-as-readline-does-decided-amends-d65) | rline keeps what is typed ahead, and reads a paste in bracketed paste mode, as readline does | Decided. Amends D65 |
 | [D67](#d67-rline-reads-every-history-line-draws-nothing-while-keys-wait-and-draws-the-prompt-as-plain-text-after-the-programs-output-decided) | rline reads every history line, draws nothing while keys wait, and draws the prompt as plain text after the program's output | Decided |
 | [D68](#d68-the-port-of-isocline-is-done-and-rline-no-longer-keeps-the-behavior-of-the-c-decided-amends-d4) | The port of isocline is done, and rline no longer keeps the behavior of the C | Decided. Amends D4 |
+| [D69](#d69-rline-removes-isoclines-file-name-completer-decided) | rline removes isocline's file name completer | Decided |
 
 ## Purpose
 
@@ -1432,6 +1433,22 @@ hold everywhere.
 5. D5 still holds. Each file that came from the C keeps isocline's MIT notice
    and names the C file in its header. `isocline/` stays, because `-update`
    needs it to record a corpus again.
+
+### D69. rline removes isocline's file name completer. Decided.
+
+The port held isocline's file name completer, `ic_complete_filename`, as
+`completeFilename` in `comp.go`, with the colors that it took from
+`LS_COLORS` and `LSCOLORS`. It was never exported, and once completion moved
+to readline's commands nothing called it but its test. Two faults of the C sat
+in it: it split a path only at `/`, so it was wrong on Windows (backlog 6),
+and it sent the colors from the environment to the terminal unchecked. usql
+completes file names with a completer of its own.
+
+Ken decided on 2026-11-05 to remove it rather than to export it. The
+completer, its colors, `testdata/filenames.txt`, `tools/probe-filenames.c`
+and `tools/build-probe-filenames.sh` are gone. A program that wants file
+names completes them in its own `Completer`, as readline leaves completion to
+the program.
 
 ## Open questions for Ken
 
