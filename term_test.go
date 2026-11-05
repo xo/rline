@@ -18,6 +18,12 @@ const (
 
 	// termProbePath is where tools/build-probe-term.sh puts the probe.
 	termProbePath = ".build/probe-term"
+
+	// termDeltaPath holds the lines of the corpus where the port does what
+	// the C means rather than what it does (D68): a piece of the name of a
+	// dumb terminal, such as "umb", is not taken for the whole name. Each
+	// entry is the line of the port and then the line of the C.
+	termDeltaPath = "testdata/term-delta.txt"
 )
 
 // termEnvVars are every variable that term_new and term_is_interactive read.
@@ -50,23 +56,14 @@ func TestTermMatchesC(t *testing.T) {
 	if len(got) != len(want) {
 		t.Errorf("the replay produced %d lines and the corpus holds %d", len(got), len(want))
 	}
-	bad := 0
+	var delta strings.Builder
 	for i := range max(len(got), len(want)) {
 		g, w := lineAt(got, i), lineAt(want, i)
-		if g == w {
-			continue
-		}
-		bad++
-		if bad <= 20 {
-			t.Errorf("%s:%d\n  got:  %s\n  want: %s", termCorpusPath, i+1, g, w)
+		if g != w {
+			fmt.Fprintf(&delta, "%d: %s\n  C: %s\n", i+1, g, w)
 		}
 	}
-	if bad > 20 {
-		t.Errorf("%d differences in total, 20 shown", bad)
-	}
-	if bad == 0 {
-		t.Logf("checked %d lines", len(want))
-	}
+	compareDelta(t, termDeltaPath, "TestTermMatchesC", delta.String())
 }
 
 // termReplay runs the same script as the C probe and returns the lines it
@@ -98,8 +95,7 @@ func termReplay(t *testing.T) []string {
 	// term_is_interactive.
 	for _, name := range termInteractiveCases {
 		// The probe always sets TERM here, including to the empty string,
-		// which is a case of its own: an empty string is part of every
-		// string, so the reversed test inside isInteractive answers yes.
+		// which is a case of its own.
 		for _, k := range termEnvVars {
 			_ = os.Unsetenv(k)
 		}

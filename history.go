@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/xo/rline/internal/text"
@@ -116,16 +117,12 @@ func (h *history) push(entry string) bool {
 		return false
 	}
 	if !h.allowDuplicates {
-		// This walk does not step back after it removes something, so when
-		// two neighbours both match, only the first one goes. The C code
-		// walks the same way, and the port keeps it so that the two agree.
-		// Reaching it needs duplicates already in the list, which only
-		// happens when they were allowed earlier or came from the file.
-		for i := 0; i < len(h.entries); i++ {
-			if h.entries[i] == entry {
-				h.deleteAt(i)
-			}
-		}
+		// Every earlier copy goes. The C walks on after it removes one without
+		// looking again at the index, so when two neighbours both matched,
+		// only the first went. The port removes them all (D68). Reaching it
+		// needs duplicates already in the list, which only happens when they
+		// were allowed earlier or came from the file.
+		h.entries = slices.DeleteFunc(h.entries, func(e string) bool { return e == entry })
 	}
 	if len(h.entries) == h.max {
 		h.deleteAt(0)

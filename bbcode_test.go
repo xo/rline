@@ -209,6 +209,12 @@ const (
 
 	// bbProbePath is where tools/build-probe-bbcode.sh puts the probe.
 	bbProbePath = ".build/probe-bbcode"
+
+	// bbDeltaPath holds the lines of the corpus where the port does what the
+	// C means rather than what it does (D68): a switch such as bold reads its
+	// value, and a closing tag closes the tag of its name. Each entry is the
+	// line of the port and then the line of the C.
+	bbDeltaPath = "testdata/bbcode-delta.txt"
 )
 
 // bbStyleNames are the style names the probe resolves on their own.
@@ -264,23 +270,15 @@ func TestBBCodeMatchesC(t *testing.T) {
 	if len(got) != len(want) {
 		t.Errorf("the replay produced %d lines and the corpus holds %d", len(got), len(want))
 	}
-	bad := 0
+	var delta strings.Builder
 	for i := range max(len(got), len(want)) {
 		g, w := lineAt(got, i), lineAt(want, i)
-		if g == w {
-			continue
-		}
-		bad++
-		if bad <= 20 {
-			t.Errorf("%s:%d\n  got:  %s\n  want: %s", bbCorpusPath, i+1, g, w)
+		if g != w {
+			fmt.Fprintf(&delta, "%d: %s\n  C: %s\n", i+1, g, w)
 		}
 	}
-	if bad > 20 {
-		t.Errorf("%d differences in total, 20 shown", bad)
-	}
-	if bad == 0 {
-		t.Logf("checked %d lines over %d pieces of markup", len(want), len(bbCorpus))
-	}
+	compareDelta(t, bbDeltaPath, "TestBBCodeMatchesC", delta.String())
+	t.Logf("checked %d lines over %d pieces of markup", len(want), len(bbCorpus))
 }
 
 // bbReplay runs the same script as the C probe.
@@ -851,4 +849,38 @@ func TestStyleNamesResolveInOrder(t *testing.T) {
 			t.Errorf("the color is %08x, want none: the colour name was applied as well", got.Fg)
 		}
 	})
+}
+
+// TestMarkupDoesWhatTheCMeans checks the three faults of the C markup that the
+// port fixes (D68), from what the C means to do: a switch reads its value, a
+// closing tag closes the tag of its name and the tags inside it, and an
+// unquoted value takes every letter.
+func TestMarkupDoesWhatTheCMeans(t *testing.T) {
+	t.Parallel()
+	blue, _ := ansi.ColorByName("blue")
+	bold, italic := ansi.Attr{Bold: ansi.FlagOn}, ansi.Attr{Italic: ansi.FlagOn}
+	for _, tc := range []struct {
+		markup string
+		text   string
+		want   []ansi.Attr
+	}{
+		{"[b]a[bold=off]b[/]c[/b]", "abc", []ansi.Attr{bold, {Bold: ansi.FlagOff}, bold}},
+		{"[b]a[bold=nonsense]b[/]", "ab", []ansi.Attr{bold, bold}},
+		{"[b][i]x[/b]y", "xy", []ansi.Attr{bold.Merge(italic), {}}},
+		{"[b]a[i]b[/b]c[/i]d", "abcd", []ansi.Attr{bold, bold.Merge(italic), {}, {}}},
+		{"[b]a[/i]b[/b]c", "abc", []ansi.Attr{bold, bold, {}}},
+		{"[color=BLUE]x[/]", "x", []ansi.Attr{{Fg: blue}}},
+	} {
+		bb := newBBCode(newTerm(&bytes.Buffer{}, termOptions{}))
+		var out text.Buffer
+		var attrs ansi.AttrBuf
+		bb.appendTo(tc.markup, &out, &attrs)
+		if out.String() != tc.text {
+			t.Errorf("%q reads as %q, want %q", tc.markup, out.String(), tc.text)
+			continue
+		}
+		if got := attrs.Extend(out.Length()); !slices.Equal(got, tc.want) {
+			t.Errorf("%q gives the attributes %v, want %v", tc.markup, got, tc.want)
+		}
+	}
 }

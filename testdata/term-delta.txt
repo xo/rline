@@ -1,0 +1,10 @@
+71: interactive b|DUMB 1
+  C: interactive b|DUMB 0
+73: interactive umb 1
+  C: interactive umb 0
+75: interactive 25|CONS 1
+  C: interactive 25|CONS 0
+77: interactive | 1
+  C: interactive | 0
+79: interactive dum 1
+  C: interactive dum 0

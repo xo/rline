@@ -149,14 +149,14 @@ func newDecoder(src byteReader) *keyDecoder {
 
 // pushByte puts a byte back, to be read before anything from src.
 //
-// A zero byte is dropped rather than pushed. The C code builds a string of
-// one character and hands it to a function that measures it with strlen, so a
-// zero byte measures as nothing and no byte is pushed at all. That matters:
-// the UTF-8 assembly pushes back whatever it did not use, so a zero byte in
-// the middle of an invalid sequence is lost rather than read as a key. The
-// differential fuzzer found this on the input f5 00 30.
+// The C cannot push a zero byte back. It builds a string of one character and
+// hands it to a function that measures it with strlen, so a zero byte
+// measures as nothing. The UTF-8 assembly pushes back whatever it did not use,
+// so a zero byte in the middle of an invalid sequence was lost rather than
+// read as Ctrl-Space. The differential fuzzer found this on the input f5 00
+// 30. The port pushes the zero byte back (D68).
 func (t *keyDecoder) pushByte(b byte) {
-	if b == 0 || len(t.pushedBytes) >= ttyPushMax {
+	if len(t.pushedBytes) >= ttyPushMax {
 		return
 	}
 	t.pushedBytes = append(t.pushedBytes, b)
@@ -277,12 +277,6 @@ func (t *keyDecoder) pending() bool {
 	if !ok {
 		return false
 	}
-	if b == 0 {
-		// pushByte drops a zero byte, so it goes back as the key that
-		// readTimeout makes of it.
-		t.pushCode(modifyCode(key.Space | key.ModCtrl))
-		return true
-	}
 	t.pushByte(b)
 	return true
 }
@@ -339,6 +333,15 @@ func modifyCode(code key.Code) key.Code {
 		code = key.PageDown
 	case code == key.Up|key.ModAlt, code == '<'|key.ModAlt, code == key.Home|key.ModCtrl:
 		code = key.PageUp
+	}
+	// Ctrl and a letter is the control character, as a terminal sends it
+	// as a byte. A terminal that reports keys as CSI u, as kitty does, sends
+	// ESC [ 97 ; 5 u for Ctrl-A, and the C read it as 'a' with the control
+	// key, which nothing binds (D68). A control character has no case, so
+	// Shift goes too, as it does from a terminal that sends the byte.
+	if mods&key.ModCtrl != 0 && ((k >= 'a' && k <= 'z') || (k >= 'A' && k <= 'Z')) {
+		k &= 0x1F
+		code = k | mods&^key.ModShift
 	}
 	// A control character already carries the control key, so do not say so
 	// twice.
@@ -776,6 +779,12 @@ func (t *keyDecoder) readCSI(c1, peek byte, mods key.Code, timeout time.Duration
 	}
 
 	// The second number carries the modifiers, as a bit set of one less.
+	// Caps Lock adds 64 to the set and Num Lock 128, as kitty sends them. The
+	// C then read no modifier at all, so Ctrl-A with Caps Lock on was 'a'.
+	// The port takes the two locks out of the set (D68).
+	if num2 > 1 {
+		num2 = (num2-1)&^(64|128) + 1
+	}
 	if num2 > 1 && num2 <= 9 {
 		if num2 == 9 {
 			num2 = 3 // iTerm2 in xterm mode
@@ -809,6 +818,17 @@ func (t *keyDecoder) readCSI(c1, peek byte, mods key.Code, timeout time.Duration
 	case c1 == '[' && final == 'R':
 		// A report of where the cursor is, which term.c asks for and reads
 		// back itself. It is not a key.
+		code = key.None
+	}
+	if c1 == '[' && (final == 'I' || final == 'O') && num1 == 1 && num2 == 1 && modifiers == 0 {
+		// A terminal sends ESC [ I when its window gets the focus and ESC [ O
+		// when it loses it, once a program asks with ESC [ ? 1004 h and does
+		// not turn it off again. The C read them as PageUp, as the FreeBSD
+		// console sends it, and as F3, so that a switch of windows ran a
+		// command. rline asks for no focus report, and a notification is no
+		// key, so it reads nothing (D68). readline rings the bell for each,
+		// because it binds neither. The FreeBSD console is a dumb terminal
+		// for rline, which reads lines from it without editing.
 		code = key.None
 	}
 	if code == key.None {

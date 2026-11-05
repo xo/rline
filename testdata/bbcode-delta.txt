@@ -1,0 +1,32 @@
+35: append 9 ab 2 00000000/00000000/1/0/0/0 00000000/00000000/1/0/0/0
+  C: append 9 ab 2 00000000/00000000/1/0/0/0 00000000/00000000/0/0/0/0
+79: append 31 x 1 00000000/00000000/-1/0/0/0
+  C: append 31 x 1 00000000/00000000/1/0/0/0
+83: append 33 x 1 00000000/00000000/-1/0/0/0
+  C: append 33 x 1 00000000/00000000/1/0/0/0
+87: append 35 x 1 00000000/00000000/-1/0/0/0
+  C: append 35 x 1 00000000/00000000/1/0/0/0
+89: append 36 x 1 00000000/00000000/0/0/0/0
+  C: append 36 x 1 00000000/00000000/1/0/0/0
+93: append 38 x 1 00000000/00000000/0/-1/0/0
+  C: append 38 x 1 00000000/00000000/0/1/0/0
+95: append 39 x 1 00000000/00000000/0/0/0/-1
+  C: append 39 x 1 00000000/00000000/0/0/0/1
+97: append 40 x 1 00000000/00000000/0/0/-1/0
+  C: append 40 x 1 00000000/00000000/0/0/1/0
+184: print 9 out  \e[1mab\e[22m
+  C: print 9 out  \e[1ma\e[22mb
+206: print 31 out  x
+  C: print 31 out  \e[1mx\e[22m
+208: print 33 out  x
+  C: print 33 out  \e[1mx\e[22m
+210: print 35 out  x
+  C: print 35 out  \e[1mx\e[22m
+211: print 36 out  x
+  C: print 36 out  \e[1mx\e[22m
+213: print 38 out  x
+  C: print 38 out  \e[3mx\e[23m
+214: print 39 out  x
+  C: print 39 out  \e[4mx\e[24m
+215: print 40 out  x
+  C: print 40 out  \e[7mx\e[27m

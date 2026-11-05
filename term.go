@@ -225,21 +225,24 @@ func containsAny(s string, parts ...string) bool {
 	return false
 }
 
-// isInteractive reports whether the terminal can be edited on.
+// isInteractive reports whether the terminal can be edited on. It cannot when
+// TERM names a terminal that the C knows to be dumb, or is empty, as readline
+// takes an empty TERM to be dumb. An unset TERM can be edited on, as in the C.
 //
 // The C passes its two arguments to strstr the wrong way round, so it asks
 // whether TERM is part of the list rather than whether the list holds TERM.
-// The names it means to catch do answer yes, but so does any piece of one,
-// such as "umb" or "25|CONS", and so does an empty TERM, because an empty
-// string is part of every string. The port keeps this, because changing it
-// would change which terminals the editor refuses to run on.
+// So any piece of a name answered no as well, such as "umb" or "25|CONS". The
+// port compares whole names (D68).
 func isInteractive() bool {
 	eterm, ok := os.LookupEnv("TERM")
 	if !ok {
 		return true
 	}
-	//nolint:gocritic // the reversed order is the fault being reproduced
-	return !strings.Contains("dumb|DUMB|cons25|CONS25|emacs|EMACS", eterm)
+	switch eterm {
+	case "", "dumb", "DUMB", "cons25", "CONS25", "emacs", "EMACS":
+		return false
+	}
+	return true
 }
 
 // updateDim works out the size of the terminal and reports whether it changed.

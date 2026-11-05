@@ -83,13 +83,12 @@ type widthSpec struct {
 
 // bbTag is one open tag.
 type bbTag struct {
-	// name is what the tag was called.
+	// name is what the tag was called: the first name in it, in lower case.
 	//
-	// It is always empty. The C means to record the name here, but it guards
-	// the assignment with a test on the field it is about to write rather
-	// than on the value it is writing, and the field starts as a null
-	// pointer, so the assignment never happens. See closeTag for what that
-	// costs.
+	// The C means to record the name here, but it guards the assignment with
+	// a test on the field it is about to write rather than on the value it is
+	// writing, and the field starts as a null pointer, so the name is never
+	// stored. The port stores it (D68). See closeTag for what it is for.
 	name string
 
 	// attr is what was in force before this tag opened.
@@ -178,17 +177,27 @@ func (bb *bbCode) openTag(outPos int, t bbTag, current ansi.Attr) ansi.Attr {
 	return current.Merge(t.attr)
 }
 
-// closeTag takes the innermost tag off the stack, so long as one was opened
-// after base. It returns that tag and whether there was one.
+// closeTag closes the tag called name, and every tag opened inside it, so long
+// as it was opened after base. It returns the tag and whether there was one.
+// An empty name, as "[/]" has, closes the innermost tag. A name that no open
+// tag has closes nothing, and the closing tag is ignored.
 //
-// The C looks for a tag whose name matches the closing tag, and keeps a whole
-// branch for the unbalanced case. None of it runs, because every tag name is
-// empty, so the first tag it pops always matches. A closing tag therefore
-// closes whatever is innermost, whatever it is called, and "[b][i]x[/b][/i]"
-// behaves the same as "[b][i]x[/i][/b]".
-func (bb *bbCode) closeTag(base int) (bbTag, bool) {
+// This is what the C means to do. Its tags lose their names (see bbTag), so
+// the first tag it pops always matches, and a closing tag closed whatever was
+// innermost: "[b][i]x[/b]y" left y bold, not italic. The port matches by name
+// (D68).
+func (bb *bbCode) closeTag(base int, name string) (bbTag, bool) {
 	if len(bb.tags) <= base {
 		return bbTag{}, false
+	}
+	if name != "" {
+		open := slices.IndexFunc(bb.tags[base:], func(t bbTag) bool { return t.name == name })
+		if open < 0 {
+			return bbTag{}, false
+		}
+		for len(bb.tags) > base+open+1 {
+			bb.popTag()
+		}
 	}
 	return bb.popTag(), true
 }
@@ -250,27 +259,38 @@ func updateWidth(out *widthSpec, defaultFill byte, value string) {
 	}
 }
 
+// switchFlag reads the value of a switch such as bold. No value, "on", "true"
+// and "1" turn it on, and "off", "false" and "0" turn it off. Any other value
+// leaves was as it is.
+//
+// This is what the C means to do. It uses each strcmp as a truth value rather
+// than testing it against zero, and strcmp answers zero when the two strings
+// are equal, so every value turned the switch on, and [bold=off] turned bold
+// on. The port reads the value (D68).
+func switchFlag(value string, was ansi.Flag) ansi.Flag {
+	switch value {
+	case "", "on", "true", "1":
+		return ansi.FlagOn
+	case "off", "false", "0":
+		return ansi.FlagOff
+	}
+	return was
+}
+
 // updateProperty sets one named property on a tag. It returns the name the
 // property is known by, or an empty string when the name is not a property at
 // all.
 func updateProperty(t *bbTag, name, value string) string {
-	// A switch is turned on whatever the value says. The C means to compare
-	// the value against "on", "true" and "1", but it uses each strcmp as a
-	// truth value rather than testing it against zero, and strcmp answers zero
-	// when the two are equal. So the first branch is taken for every value
-	// that is not equal to all three at once, which no value is. [bold=off]
-	// therefore turns bold on.
-	//
 	// A color of ansi.None names no color, and leaves what is there alone.
 	switch name {
 	case "bold":
-		t.attr.Bold = ansi.FlagOn
+		t.attr.Bold = switchFlag(value, t.attr.Bold)
 	case "italic":
-		t.attr.Italic = ansi.FlagOn
+		t.attr.Italic = switchFlag(value, t.attr.Italic)
 	case "underline":
-		t.attr.Underline = ansi.FlagOn
+		t.attr.Underline = switchFlag(value, t.attr.Underline)
 	case "reverse":
-		t.attr.Reverse = ansi.FlagOn
+		t.attr.Reverse = switchFlag(value, t.attr.Reverse)
 	case "color":
 		if c := ansi.ParseColor(value); c != ansi.None {
 			t.attr.Fg = c
@@ -393,20 +413,19 @@ func isNameByte(c byte) bool {
 		(c >= '0' && c <= '9') || c == '_' || c == '-'
 }
 
-// isValueByte reports whether c may appear in an unquoted value. The upper
-// case range stops at F, unlike every other class here, so a value such as
-// "RIGHT" reads as empty.
+// isValueByte reports whether c may appear in an unquoted value.
+//
+// The C stops the upper case range at F, unlike every other class here, so
+// "[color=RED]" read as an empty value. The port takes every letter (D68).
 func isValueByte(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'F') ||
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
 		(c >= '0' && c <= '9') || c == '-' || c == '_'
 }
 
 // parseValue steps over the value at i and returns where it starts and ends,
 // and where to carry on from.
 //
-// An unquoted value takes upper case letters only as far as F, so a value such
-// as "RIGHT" reads as empty. A quoted value takes anything up to the closing
-// quote.
+// A quoted value takes anything up to the closing quote.
 func parseValue(s string, i int) (int, int, int) {
 	switch {
 	case i < len(s) && s[i] == '"':
@@ -533,14 +552,15 @@ func (bb *bbCode) parseTagContent(s string) bbTag {
 // styleOpen opens a style on the terminal.
 func (bb *bbCode) styleOpen(spec string) {
 	t := bb.parseTagContent(spec)
+	t.name, _ = bb.parseTagValues(&bbTag{}, spec, 0)
 	bb.term.setAttr(bb.openTag(0, t, bb.term.attr))
 }
 
 // styleClose closes the innermost style on the terminal.
 func (bb *bbCode) styleClose(spec string) {
 	base := len(bb.tags) - 1
-	bb.parseTagContent(spec)
-	if prev, ok := bb.closeTag(base); ok {
+	name, _ := bb.parseTagValues(&bbTag{}, spec, 0)
+	if prev, ok := bb.closeTag(base, name); ok {
 		bb.term.setAttr(prev.attr)
 	}
 }
@@ -625,6 +645,7 @@ func (bb *bbCode) processTag(s string, i, nestingBase int, out *text.Buffer, out
 	name, open, isPre, end := bb.parseTag(&t, s, i)
 	switch {
 	case open && !isPre:
+		t.name = name
 		*cur = bb.openTag(out.Length(), t, *cur)
 	case open:
 		// A "[!name]" tag holds everything up to its closing tag unread, so
@@ -639,7 +660,7 @@ func (bb *bbCode) processTag(s string, i, nestingBase int, out *text.Buffer, out
 			end += at + len(closing)
 		}
 	default:
-		if prev, ok := bb.closeTag(nestingBase); ok {
+		if prev, ok := bb.closeTag(nestingBase, name); ok {
 			*cur = prev.attr
 			if prev.width.w > 0 {
 				restrictWidth(prev.pos, prev.width, out, outAttrs)

@@ -368,3 +368,37 @@ func menuRegenerate(t *testing.T) {
 	}
 	t.Logf("wrote %s: %d bytes", path, len(out))
 }
+
+// TestMenuPreviewsOnlyAnEntryItShows checks that a selection one past the last
+// entry the menu shows, which a resize that narrows the menu leaves, is not
+// previewed in the line. The C previews it (D68).
+func TestMenuPreviewsOnlyAnEntryItShows(t *testing.T) {
+	t.Parallel()
+	names := make([]string, 12)
+	for i := range names {
+		names[i] = fmt.Sprintf("c%02d", i)
+	}
+	ev, sink := feedEnv(t, "", feedOpts{
+		CompletionMenu: true,
+		Completer: CompleterFunc(func(c *Completion, _ string) {
+			for _, n := range names {
+				c.AddCandidate(Candidate{Replacement: n})
+			}
+		}),
+	})
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	ev.completions.generate("", 0, 100)
+	ev.openMenu(e, false)
+	m := ev.menu
+	if m.displayed <= 0 || m.displayed >= len(names) {
+		t.Fatalf("the menu shows %d of %d entries, so nothing is past its end", m.displayed, len(names))
+	}
+	m.selected = m.displayed
+	ev.term.flush()
+	sink.Reset()
+	ev.drawMenu(e)
+	ev.term.flush()
+	if hidden := names[m.displayed]; strings.Contains(sink.String(), hidden) {
+		t.Errorf("the line previews %s, which the menu does not show: %q", hidden, sink.String())
+	}
+}

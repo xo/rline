@@ -231,10 +231,10 @@ func (ev *env) drawMenu(e *editor.Editor) {
 				"\n[rline-info](press page-down (or ctrl-j) to see all %d completions)[/]", m.count)
 		}
 	}
-	// The "or equal" is in the C, and reaches one past the last entry
-	// shown. Applying that entry fails harmlessly, so it only means the
-	// line is drawn again rather than previewed.
-	if ev.completePreview && m.selected >= 0 && m.selected <= m.displayed {
+	// The C tests "or equal" here, which reaches one past the last entry
+	// shown, so that after a resize the line previewed an entry the menu did
+	// not show. The port previews only an entry that is shown (D68).
+	if ev.completePreview && m.selected >= 0 && m.selected < m.displayed {
 		// Show what picking this entry would do by actually doing it, and
 		// then take it straight back out again. The line on screen and
 		// the line in the buffer are the same thing, so the undo stack is

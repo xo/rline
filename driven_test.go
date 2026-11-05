@@ -2542,3 +2542,25 @@ func TestAWidePromptWithNoOutputStartsAtTheTop(t *testing.T) {
 		t.Errorf("the screen shows %q, want the prompt on the first row", got)
 	}
 }
+
+// TestAFocusNotificationIsNoKey checks that the notifications a terminal
+// sends when its window gets or loses the focus change nothing and ring no
+// bell. The C read them as PageUp and F3 (D68), which usql issues 93, 122, 483
+// and 490 may be.
+func TestAFocusNotificationIsNoKey(t *testing.T) {
+	t.Parallel()
+	// A notification comes when the window changes, long before the next
+	// key, so a pause follows each. Without one, a byte straight after
+	// ESC [ O is read as part of a sequence.
+	ev, sink := feedEnv(t, "ab\x1b[I"+kPause+"cd\x1b[O"+kPause+"ef"+kEnter, feedOpts{})
+	// The bell goes to the error stream of the terminal.
+	ev.term.beep, ev.term.stderr = true, sink
+	line, _, _ := ev.editLine("")
+	ev.term.flush()
+	if line != "abcdef" {
+		t.Errorf("the line came back as %q, want %q", line, "abcdef")
+	}
+	if strings.Contains(sink.String(), "\a") {
+		t.Errorf("a notification rang the bell: %q", sink.String())
+	}
+}

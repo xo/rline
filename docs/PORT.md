@@ -336,7 +336,7 @@ search, with its prompt in place of the program's, in place of isocline's
 search below the line (D45). The help screen is the command `rline-help`, which no key is
 bound to.
 
-The decoder departs from `tty.c` in four places, and
+The decoder departs from `tty.c` in seven places, and
 `testdata/tty-delta.txt` lists each line of `testdata/tty.txt` that changes:
 
 1. An escape before a byte that starts no sequence is the Escape key, and
@@ -353,9 +353,19 @@ The decoder departs from `tty.c` in four places, and
    reads them. isocline reads both as the start of an SS3 sequence, as Eterm
    sends it, and `ESC o` adds ctrl. So M-?, typed fast with the next key,
    joined the two into one sequence (D59).
+5. `ESC [ I` and `ESC [ O` are no key. A terminal sends them when its window
+   gets and loses the focus, once a program asked for focus reports and did
+   not turn them off. isocline reads them as PageUp and F3, so a switch of
+   windows ran a command (D68). readline rings the bell for each.
+6. Ctrl and a letter is the control character, without Shift. A terminal
+   that reports keys as CSI u sends `ESC [ 97 ; 5 u` for Ctrl-A, which
+   isocline reads as `a` with ctrl, which nothing binds (D68).
+7. Caps Lock and Num Lock, which add 64 and 128 to the modifiers of a
+   sequence, take no other modifier away. isocline then reads no modifier at
+   all (D68).
 
 `FuzzEscapeDecoder` joins rline's keys back by isocline's rule before it
-compares them with the C, and leaves out four shapes that the rule cannot
+compares them with the C, and leaves out five shapes that the rule cannot
 join back. The test says which.
 
 isocline names its styles `ic-info`, `ic-hint` and so on. rline names them
@@ -474,8 +484,10 @@ does not matter in practice.
 ## Bugs found in the C code
 
 These came out of writing the probes. The port does what each function means
-to do, and says so in a comment. All but one are unreachable or invisible, so
-they change no recorded session. The exception is the deletion fault in
+to do, and says so in a comment. Until D68 the port kept the faults that
+reach output, so that it matched the corpus. Since D68 it fixes them as well,
+and each section below says so. All but one of the rest are unreachable or
+invisible, so they change no recorded session. The exception is the deletion fault in
 `attr.c`, which has a live caller, and `testdata/attr-delta.txt` records what
 the C does there.
 
@@ -541,9 +553,11 @@ Three faults, and the first two both reach real output.
 `attr_update_bool` uses each `strcmp` as a truth value instead of testing it
 against zero, and `strcmp` answers zero when the two strings are equal. The
 first branch is therefore taken for every value, so `[bold=off]` turns bold on,
-and so does `[bold=false]` and `[bold=0]`. The port keeps this, because the
-banner in the demo is written in this markup and the recorded sessions hold
-what it produces.
+and so does `[bold=false]` and `[bold=0]`. The port kept this until D68. It
+now reads the value: no value, `on`, `true` and `1` turn the switch on,
+`off`, `false` and `0` turn it off, and any other value leaves it alone.
+`testdata/bbcode-delta.txt` lists the lines of `testdata/bbcode.txt` that
+change, and no recorded session holds such a value.
 
 Every tag name is thrown away. `attr_update_with_styles` means to record the
 name on the tag, but it guards the assignment with a test on the field it is
@@ -551,11 +565,15 @@ about to write rather than on the value it is writing, and the field starts as
 a null pointer. So the name is never stored, `bbcode_close` matches the first
 tag it pops whatever it is called, and the whole unbalanced-tag branch below it
 is unreachable. `[b][i]x[/b][/i]` therefore behaves the same as
-`[b][i]x[/i][/b]`.
+`[b][i]x[/i][/b]`. Since D68 the port stores the name. A closing tag closes
+the tag of its name and every tag opened inside it, `[/]` closes the
+innermost, and a closing tag that names no open tag is ignored, as the
+unbalanced branch of the C means.
 
 The character classes for a name and for a value disagree about upper case. A
 name takes A to Z, and an unquoted value stops at F, so `[color=RED]` reads as
-an empty value while `[RED]` reads as the color. Quoting the value avoids it.
+an empty value while `[RED]` reads as the color. Since D68 an unquoted value
+takes every letter.
 
 ### term.c
 
@@ -565,9 +583,10 @@ Two faults and one thing that only looks like one.
 so it asks whether `TERM` is part of the list rather than whether the list
 holds `TERM`. The names it means to catch do answer yes, but so does any piece
 of one, such as `umb` or `25|CONS`, and so does an empty `TERM`, because an
-empty string is part of every string. The port keeps this, because changing it
-would change which terminals the editor refuses to run on. `gocritic` finds it
-on the Go side too, so the line carries a `nolint` that says why.
+empty string is part of every string. The port kept this until D68. It now
+compares whole names, so a piece of a name is not taken for a dumb terminal.
+An empty `TERM` is still dumb, as readline takes it. `testdata/term-delta.txt`
+lists the lines of `testdata/term.txt` that change.
 
 `term_update_ansi16` reads the sixteen palette colors from the Linux console
 with `GIO_CMAP` and then writes them to `ansi256[i]` where `i` steps by three,
@@ -616,8 +635,8 @@ recorded cases hold that.
 that moves the selection keeps it below that count, so the extra entry is
 unreachable within one drawing of the menu; the only way to reach it is a
 resize between two reads that makes the menu narrower than the selection it
-already holds, and then the menu previews an entry it is not showing. The
-port keeps the comparison as the C has it.
+already holds, and then the menu previews an entry it is not showing. Since
+D68 the port previews only an entry that the menu shows.
 
 The same function clears the completions in the Escape branch and again at
 the end, and nothing between the two reads them, so the first call does
@@ -830,10 +849,12 @@ its own. That is right only because isocline reads from standard input.
 and hands it to `tty_cpush`, which measures it with `strlen`, so a zero byte
 measures as nothing and no byte is pushed at all. This is reachable: the UTF-8
 assembly pushes back whatever it did not use, so a zero byte in the middle of
-an invalid sequence is dropped rather than read as a key. The port drops it
-too, because the recorded sessions come from a build that does. The
-differential fuzzer found it on the input `f5 00 30`, which is kept as a
-regression seed in `testdata/fuzz`.
+an invalid sequence is dropped rather than read as a key. The port dropped it
+too until D68, and now pushes it back, so that it is read as ctrl+space, as a
+zero byte alone is. The differential fuzzer found it on the input `f5 00 30`,
+which is kept as a seed in `testdata/fuzz`. The fuzz test now leaves out
+UTF-8 input with a zero byte and a byte above 0x7f, and leaves ctrl+space out
+of both answers for other input with a zero byte.
 
 `tty_read_timeout` returns its `code_t*` argument where its result type is
 `bool`. The pointer is never null, so it always means true, which is the
@@ -857,7 +878,7 @@ answers that it found nothing.
 
 The walk that removes an older duplicate does not step back after it removes
 one, so when two neighbours both match the new entry only the first goes. The
-port keeps the same walk, so that the two agree. Reaching it needs duplicates
+port kept the same walk until D68, and now removes every copy. Reaching it needs duplicates
 already in the list, which happens only when they were allowed earlier or came
 from the file.
 

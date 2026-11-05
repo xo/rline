@@ -107,19 +107,27 @@ func TestDecoderPort(t *testing.T) {
 const ttyDeltaPath = "testdata/tty-delta.txt"
 
 // ttyCompareDelta checks that the decodes that differ from the C are the ones
-// that ttyDeltaPath lists, no more and no fewer. With -update it writes them,
-// and the change to the file is then read before it is kept.
+// that ttyDeltaPath lists, no more and no fewer.
 func ttyCompareDelta(t *testing.T, got string) {
 	t.Helper()
+	compareDelta(t, ttyDeltaPath, "TestDecoderPort", got)
+}
+
+// compareDelta checks that the lines where the port differs from a corpus of
+// the C are the ones that the delta file at path lists, no more and no fewer.
+// With -update it writes them, and the change to the file is then read before
+// it is kept. test names the test that -update runs.
+func compareDelta(t *testing.T, path, test, got string) {
+	t.Helper()
 	if *update {
-		if err := os.WriteFile(ttyDeltaPath, []byte(got), 0o644); err != nil {
-			t.Fatalf("writing %s: %v", ttyDeltaPath, err)
+		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
+			t.Fatalf("writing %s: %v", path, err)
 		}
 		return
 	}
-	want, err := os.ReadFile(ttyDeltaPath)
+	want, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("reading %s: %v (run go test -run TestDecoderPort -update)", ttyDeltaPath, err)
+		t.Fatalf("reading %s: %v (run go test -run %s -update)", path, err, test)
 	}
 	gotLines := strings.SplitAfter(got, "\n")
 	wantLines := strings.SplitAfter(string(want), "\n")
@@ -133,7 +141,7 @@ func ttyCompareDelta(t *testing.T, got string) {
 			w = wantLines[i]
 		}
 		if g != w {
-			t.Errorf("the decodes that differ from the C changed. See %s.\n got %q\nwant %q", ttyDeltaPath, g, w)
+			t.Errorf("the lines that differ from the C changed. See %s.\n got %q\nwant %q", path, g, w)
 			shown++
 		}
 	}
@@ -570,7 +578,13 @@ func checkWinKeyLine(t *testing.T, line string) (string, string) {
 		if f[0] == "pushuni" && f[2] == "7f" && c.NoMods() == key.Backspace {
 			c = key.Rubout | c.Mods()
 		}
-		want = append(want, c)
+		want = append(want, rlineKey(c))
+	}
+	// The probe pushes every letter, and Windows sends neither of these for
+	// a key. ESC [ 1 ; 1 I and ESC [ 1 ; 1 O are no key for rline, as the
+	// focus notifications are (D68).
+	if f[0] == "pushxterm" && (f[2] == "49" || f[2] == "4f") && mustCode(t, f[1]) == 0 {
+		want = []key.Code{key.None}
 	}
 	if len(got) != len(want) {
 		return f[0], fmt.Sprintf("%s decoded to %s, want %s", what, showCodes(got), showCodes(want))
@@ -751,7 +765,8 @@ func FuzzEscapeDecoder(f *testing.F) {
 			// compare rather than something to disagree about.
 			t.Skip()
 		}
-		if bytes.Contains(in, []byte("\x1b\x1b\x1b")) || escAndBroken(utf8, in) || etermStart(in) {
+		if bytes.Contains(in, []byte("\x1b\x1b\x1b")) || escAndBroken(utf8, in) || etermStart(in) ||
+			zeroAndBroken(utf8, in) || focusOrLock(in) {
 			// isoclineKeys cannot turn rline's answer into the C's for these.
 			// Three escapes and a sequence are an Escape key and alt with
 			// the sequence here, and alt with Escape and loose bytes in the
@@ -769,7 +784,19 @@ func FuzzEscapeDecoder(f *testing.F) {
 			// apart.
 			t.Skip()
 		}
+		for i, c := range want {
+			want[i] = rlineKey(c)
+		}
 		got := isoclineKeys(goDecode(utf8, in))
+		if bytes.IndexByte(in, 0) >= 0 {
+			// The C cannot push a zero byte back, so it loses one that it
+			// read ahead, as after ESC [. rline reads it as ctrl+space
+			// (D68). The zero bytes that the C does not lose it answers as
+			// 0, which is skipped above.
+			ctrlSpace := func(c key.Code) bool { return c == key.Space|key.ModCtrl }
+			got = slices.DeleteFunc(got, ctrlSpace)
+			want = slices.DeleteFunc(want, ctrlSpace)
+		}
 		if len(got) != len(want) {
 			t.Fatalf("input %x utf8=%v decoded to %d keys, want %d\n got  %s\n want %s",
 				in, utf8, len(got), len(want), showCodes(got), showCodes(want))
@@ -802,6 +829,19 @@ func escAndBroken(isUTF8 bool, in []byte) bool {
 	return false
 }
 
+// zeroAndBroken reports whether UTF-8 input holds a zero byte and also a byte
+// above 0x7f. A broken character puts back the bytes it did not use, and the C
+// cannot push a zero byte back, so it loses it, and the bytes on either side
+// of it can then join into a character that was never typed. rline keeps the
+// zero byte, as ctrl+space (D68), so the two answers differ in kind and
+// isoclineKeys cannot map one onto the other.
+func zeroAndBroken(isUTF8 bool, in []byte) bool {
+	if !isUTF8 || bytes.IndexByte(in, 0) < 0 {
+		return false
+	}
+	return slices.ContainsFunc(in, func(b byte) bool { return b >= utf8.RuneSelf })
+}
+
 // etermStart reports whether the input holds ESC ? or ESC o. The C reads
 // either as the start of an SS3 sequence, as Eterm sends it, and takes the
 // bytes after it as that sequence. rline reads the Escape key and then the
@@ -809,6 +849,44 @@ func escAndBroken(isUTF8 bool, in []byte) bool {
 // in kind.
 func etermStart(in []byte) bool {
 	return bytes.Contains(in, []byte("\x1b?")) || bytes.Contains(in, []byte("\x1bo"))
+}
+
+// rlineKey moves a key that the C decodes onto rline's rule for it: Ctrl and
+// a letter is the control character, without Shift (D68).
+func rlineKey(c key.Code) key.Code {
+	k, mods := c.NoMods(), c.Mods()
+	if mods&key.ModCtrl != 0 && ((k >= 'a' && k <= 'z') || (k >= 'A' && k <= 'Z')) {
+		return k&0x1F | mods&^(key.ModCtrl|key.ModShift)
+	}
+	return c
+}
+
+// focusOrLock reports whether the input holds ESC [ and then I or O, which
+// may be a focus notification that rline reads as no key and the C as PageUp
+// or F3, or an escape and then a number of 65 or more, which may carry Caps
+// Lock or Num Lock in the modifiers of a sequence (D68). isoclineKeys cannot
+// map either answer onto the C's.
+func focusOrLock(in []byte) bool {
+	if i := bytes.Index(in, []byte("\x1b[")); i >= 0 && bytes.ContainsAny(in[i:], "IO") {
+		return true
+	}
+	i := bytes.IndexByte(in, 0x1b)
+	if i < 0 {
+		return false
+	}
+	rest := in[i:]
+	n := 0
+	for _, b := range rest {
+		if b >= '0' && b <= '9' {
+			n = n*10 + int(b-'0')
+			if n >= 65 {
+				return true
+			}
+			continue
+		}
+		n = 0
+	}
+	return false
 }
 
 // isoclineKeys joins keys back together as the C decodes them, so that the
@@ -1065,5 +1143,45 @@ func TestDecoderPendingKeepsWhatItReads(t *testing.T) {
 	want := []key.Code{'a', key.Space | key.ModCtrl, 'b'}
 	if !slices.Equal(got, want) {
 		t.Errorf("read %v, want %v", got, want)
+	}
+}
+
+// TestDecoderKeepsAZeroByteAfterABrokenCharacter checks that a zero byte that
+// a broken UTF-8 character put back is read as ctrl+space, as a zero byte
+// alone is. The C loses it, which the differential fuzzer found on this input
+// (D68).
+func TestDecoderKeepsAZeroByteAfterABrokenCharacter(t *testing.T) {
+	t.Parallel()
+	got := goDecode(true, []byte("\xf5\x000"))
+	if len(got) != 3 || got[1] != key.Space|key.ModCtrl || got[2] != '0' {
+		t.Errorf("f5 00 30 decoded to %s, want a key for f5, ctrl+space and 0", showCodes(got))
+	}
+}
+
+// TestDecoderReadsCtrlAndALetterAsCSIu checks the keys that a terminal which
+// reports keys as CSI u sends, as kitty does: Ctrl and a letter is the control
+// character, and Caps Lock and Num Lock take no modifier away (D68).
+func TestDecoderReadsCtrlAndALetterAsCSIu(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		in   string
+		want key.Code
+	}{
+		{"\x1b[97;5u", key.CtrlA},
+		{"\x1b[65;5u", key.CtrlA},
+		{"\x1b[97;6u", key.CtrlA},
+		{"\x1b[97;7u", key.CtrlA | key.ModAlt},
+		{"\x1b[97;69u", key.CtrlA},
+		{"\x1b[97;133u", key.CtrlA},
+		{"\x1b[97;197u", key.CtrlA},
+		{"\x1b[97;65u", 'a'},
+		{"\x1b[1;65A", key.Up},
+		{"\x1b[1;66A", key.Up | key.ModShift},
+		{"\x1b[49;5u", '1' | key.ModCtrl},
+	} {
+		got := goDecode(true, []byte(tc.in))
+		if len(got) != 1 || got[0] != tc.want {
+			t.Errorf("%q decoded to %s, want %08x", tc.in, showCodes(got), tc.want)
+		}
 	}
 }

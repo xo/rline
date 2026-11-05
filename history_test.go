@@ -462,3 +462,19 @@ func equalStrings(a, b []string) bool {
 	}
 	return true
 }
+
+// TestHistoryPushRemovesEveryCopy checks that adding an entry takes out every
+// earlier copy of it, two side by side included, where the C took out only
+// the first of two neighbours (D68).
+func TestHistoryPushRemovesEveryCopy(t *testing.T) {
+	t.Parallel()
+	h := newTestHistory(8, true)
+	for _, e := range []string{"a", "a", "b", "a", "a"} {
+		h.push(e)
+	}
+	h.enableDuplicates(false)
+	h.push("a")
+	if want := []string{"b", "a"}; !equalStrings(h.entries, want) {
+		t.Errorf("the list holds %q, want %q", h.entries, want)
+	}
+}
