@@ -57,6 +57,14 @@ type env struct {
 	outCol int
 	indent int
 
+	// While a prompt of the line's own is shown, such as that of a search,
+	// the rows after the first line up under the program's prompt, as they
+	// do when the entry is recalled with Up, and not under the prompt of the
+	// search. holdWidth says so, and heldWidth is the width of the
+	// program's prompt.
+	holdWidth bool
+	heldWidth int
+
 	// modeString is what show-mode-in-prompt puts in front of the prompt for
 	// the editing mode, with readline's \1 and \2 around what the terminal
 	// does not show (D53). It is empty when the variable is off.
@@ -148,17 +156,31 @@ func (ev *env) promptWidth(e *editor.Editor, inExtra bool) (int, int) {
 	if inExtra {
 		return 0, 0
 	}
-	textw := ev.modeWidth() + text.StrWidth([]byte(e.PromptText))
-	markerw := text.StrWidth([]byte(ev.promptMarker))
+	promptw := ev.firstWidth(e)
 	cmarkerw := text.StrWidth([]byte(ev.cpromptMarker))
-	promptw := markerw + textw
-	cpromptw := promptw
-	if !ev.multilineIndent || promptw < cmarkerw {
+	cpromptw := ev.alignWidth(e)
+	if !ev.multilineIndent || cpromptw < cmarkerw {
 		cpromptw = cmarkerw
 	}
 	// The first row starts where the program's output left the cursor. The
 	// rows after it start at the left edge, as psql's do.
 	return ev.indent + promptw, cpromptw
+}
+
+// firstWidth returns how many columns the prompt takes in front of the first
+// row: the mode string, the prompt text and the marker.
+func (ev *env) firstWidth(e *editor.Editor) int {
+	return ev.modeWidth() + text.StrWidth([]byte(e.PromptText)) + text.StrWidth([]byte(ev.promptMarker))
+}
+
+// alignWidth returns the width that the rows after the first line up under:
+// that of the first row's prompt, or that of the program's prompt while a
+// prompt of the line's own is shown.
+func (ev *env) alignWidth(e *editor.Editor) int {
+	if ev.holdWidth {
+		return ev.heldWidth
+	}
+	return ev.firstWidth(e)
 }
 
 // rowCol returns how many rows the line takes and where the cursor sits.
@@ -191,11 +213,9 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	case ev.multilineIndent:
 		// Pad the continuation marker out so the text lines up under the
 		// first row.
-		textw := ev.modeWidth() + text.StrWidth([]byte(e.PromptText))
-		markerw := text.StrWidth([]byte(ev.promptMarker))
 		cmarkerw := text.StrWidth([]byte(ev.cpromptMarker))
-		if cmarkerw < markerw+textw {
-			ev.term.writeRepeat(" ", markerw+textw-cmarkerw)
+		if w := ev.alignWidth(e); cmarkerw < w {
+			ev.term.writeRepeat(" ", w-cmarkerw)
 		}
 	}
 	marker := ev.cpromptMarker
@@ -641,7 +661,10 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 	// A prompt of the line's own, such as that of incremental search, is
 	// drawn in place of the program's (D45).
 	promptText, marker, shownPrompt := e.PromptText, ev.promptMarker, ""
-	defer func() { e.PromptText, ev.promptMarker = promptText, marker }()
+	defer func() {
+		e.PromptText, ev.promptMarker = promptText, marker
+		ev.holdWidth = false
+	}()
 	for {
 		ev.term.flush()
 		c := ev.readKey(e)
@@ -720,7 +743,13 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		if p := l.Prompt(); p != shownPrompt {
 			shownPrompt = p
 			e.PromptText, ev.promptMarker = promptText, marker
+			ev.holdWidth = false
 			if p != "" {
+				// The rows after the first stay where they were, under the
+				// program's prompt. Before, they lined up under the prompt
+				// of the search, which is wider, so that a row moved right
+				// as the search found an entry of several rows.
+				ev.heldWidth, ev.holdWidth = ev.firstWidth(e), true
 				e.PromptText, ev.promptMarker = p, ""
 			}
 			changed = true

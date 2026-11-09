@@ -2666,3 +2666,59 @@ func TestPushInputIsReadFirst(t *testing.T) {
 		}
 	})
 }
+
+// TestASearchDrawsLaterRowsUnderTheProgramsPrompt checks that an entry of
+// several rows that a search finds is drawn with its rows after the first
+// where they are when the entry is recalled with Up: under the program's
+// prompt, and not under the wider prompt of the search. usql found the second
+// row moved right by the difference.
+func TestASearchDrawsLaterRowsUnderTheProgramsPrompt(t *testing.T) {
+	t.Parallel()
+	draw := func(keys string) []string {
+		ev, sink := feedEnv(t, keys, feedOpts{Continue: func(string) bool { return true }})
+		ev.promptMarker, ev.cpromptMarker = "(nc)=> ", "-> "
+		for _, h := range []string{"select 2\n;", "select * from blah;"} {
+			ev.history.push(h)
+		}
+		// The edit loop alone, so that the screen holds what it drew last
+		// rather than the line that Ctrl-C at the end of the keys erased.
+		e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+		ev.runEditLoop(e)
+		ev.term.flush()
+		return screenOf(sink.String(), 80)
+	}
+	// The continuation marker is padded to the width of "(nc)=> ".
+	const second = "    -> ;"
+	up := draw(kUp + kUp)
+	if want := []string{"(nc)=> select 2", second}; !slices.Equal(up, want) {
+		t.Fatalf("Up draws %q, want %q", up, want)
+	}
+	for _, tc := range []struct {
+		keys  string
+		first string
+	}{
+		{"\x12sele\x12", "(reverse-i-search)`sele': select 2"},
+		// No older entry matches, so the search fails and keeps the last
+		// match, as readline does.
+		{"\x12sele\x12\x12", "(failed reverse-i-search)`sele': select 2"},
+	} {
+		if got, want := draw(tc.keys), []string{tc.first, second}; !slices.Equal(got, want) {
+			t.Errorf("%q draws %q, want %q", tc.keys, got, want)
+		}
+	}
+	if got, want := draw("\x12sele"), []string{"(reverse-i-search)`sele': select * from blah;"}; !slices.Equal(got, want) {
+		t.Errorf("the first match draws %q, want %q", got, want)
+	}
+	// A match on the second row puts the cursor on it, after the padded
+	// marker.
+	ev, sink := feedEnv(t, "\x12;\x12", feedOpts{Continue: func(string) bool { return true }})
+	ev.promptMarker, ev.cpromptMarker = "(nc)=> ", "-> "
+	for _, h := range []string{"select 2\n;", "select * from blah;"} {
+		ev.history.push(h)
+	}
+	ev.runEditLoop(&editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1})
+	ev.term.flush()
+	if _, row, col := screenAt(sink.String(), 80); row != 1 || col != len(second)-1 {
+		t.Errorf("the cursor is at row %d column %d, want row 1 column %d", row, col, len(second)-1)
+	}
+}
