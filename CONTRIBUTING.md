@@ -5,6 +5,14 @@ exists for. This file is for a person who changes the project.
 [AGENTS.md](AGENTS.md) holds the full rules for a coding agent, and most of
 them hold for a person too.
 
+## Questions, faults and ideas
+
+This repository takes no issues and no pull requests. To ask a question,
+report a fault or propose a change, start a discussion in
+[GitHub Discussions][discussions]. For a fault, give the version of rline,
+the system and the terminal, the keys you pressed, and what you saw. The
+maintainers make the changes.
+
 ## What a change must do
 
 The port of isocline is done, and nothing more is ported from it (D68).
@@ -33,7 +41,7 @@ names, and never widen a C corpus to cover it.
 - On Windows, a C compiler for `go test -race`, because the race detector
   needs cgo there. Nothing else needs one.
 
-## Before you open a pull request
+## The checks a change must pass
 
 Run these in the repository root. Each must pass, and `gofmt -l .` must
 print nothing:
@@ -100,3 +108,4 @@ file, and Claude Code then loads no skill and says nothing.
 differ, and on a skill folder that `skills-lock.json` does not name.
 
 [usql]: https://github.com/xo/usql
+[discussions]: https://github.com/xo/rline/discussions
