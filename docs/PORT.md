@@ -312,6 +312,12 @@ prompt is a tag and is not shown. The port writes them as plain text, as
 everything else that a `Session` writes is, and as `Password` and the plain
 read already wrote them (D67).
 
+isocline measures every byte of the prompt that is not part of an escape
+sequence it knows, and measures a prompt with a newline as one row. The port
+gives no width to what is between the bytes 1 and 2, as readline does with
+the markers that bash makes from `\[` and `\]`. It writes the lines of the
+prompt before the last one once, and redraws only the last line (D71).
+
 The keys are GNU readline's, and isocline's `switch` over key codes is gone
 (D41, D44). A key goes through a keymap built from readline's defaults to a
 command that `internal/readline` runs. So isocline's key behaviours are gone

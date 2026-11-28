@@ -340,6 +340,13 @@ func (ev *env) showAllCompletions(e *editor.Editor, count *int, moreAvailable bo
 	for range rc.Row + 1 {
 		ev.term.write(" \n")
 	}
+	if ev.promptLines != "" {
+		// The whole prompt is drawn again below the list, as readline draws
+		// it below its own (D71).
+		ev.term.up(e.CurRow)
+		ev.writePromptLines()
+		e.CurRow = 0
+	}
 	e.CurRows = 0
 	ev.refresh(e)
 }

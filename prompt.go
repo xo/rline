@@ -51,6 +51,11 @@ type env struct {
 	promptMarker  string
 	cpromptMarker string
 
+	// promptLines is what comes before the last line of a prompt text with
+	// newlines in it. It is written once in front of the line and is not
+	// part of what the editor redraws, as in readline (D71).
+	promptLines string
+
 	// outCol is the column that the program's own output left the cursor
 	// in, and indent the column that the line being read starts in, so
 	// that a prompt drawn after "\echo -n foo" does not draw over foo (D67).
@@ -157,7 +162,7 @@ func (ev *env) promptWidth(e *editor.Editor, inExtra bool) (int, int) {
 		return 0, 0
 	}
 	promptw := ev.firstWidth(e)
-	cmarkerw := text.StrWidth([]byte(ev.cpromptMarker))
+	cmarkerw := shownWidth(ev.cpromptMarker)
 	cpromptw := ev.alignWidth(e)
 	if !ev.multilineIndent || cpromptw < cmarkerw {
 		cpromptw = cmarkerw
@@ -170,7 +175,7 @@ func (ev *env) promptWidth(e *editor.Editor, inExtra bool) (int, int) {
 // firstWidth returns how many columns the prompt takes in front of the first
 // row: the mode string, the prompt text and the marker.
 func (ev *env) firstWidth(e *editor.Editor) int {
-	return ev.modeWidth() + text.StrWidth([]byte(e.PromptText)) + text.StrWidth([]byte(ev.promptMarker))
+	return shownWidth(ev.modeString) + shownWidth(e.PromptText) + shownWidth(ev.promptMarker)
 }
 
 // alignWidth returns the width that the rows after the first line up under:
@@ -209,11 +214,11 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	ev.bb.styleOpen("rline-prompt")
 	switch {
 	case row == 0:
-		ev.term.write(e.PromptText)
+		ev.writeShown(e.PromptText)
 	case ev.multilineIndent:
 		// Pad the continuation marker out so the text lines up under the
 		// first row.
-		cmarkerw := text.StrWidth([]byte(ev.cpromptMarker))
+		cmarkerw := shownWidth(ev.cpromptMarker)
 		if w := ev.alignWidth(e); cmarkerw < w {
 			ev.term.writeRepeat(" ", w-cmarkerw)
 		}
@@ -222,8 +227,41 @@ func (ev *env) writePrompt(e *editor.Editor, row int, inExtra bool) {
 	if row == 0 {
 		marker = ev.promptMarker
 	}
-	ev.term.write(marker)
+	ev.writeShown(marker)
 	ev.bb.styleClose("")
+}
+
+// writePromptLines writes the lines of the prompt that come before its last
+// line, when it has more than one. readline writes them again whenever it
+// draws the whole prompt again, as after a list of completions or a clear of
+// the screen, and so does rline (D71).
+func (ev *env) writePromptLines() {
+	if ev.promptLines == "" {
+		return
+	}
+	ev.bb.styleOpen("rline-prompt")
+	ev.writeShown(ev.promptLines)
+	ev.bb.styleClose("")
+}
+
+// splitPrompt splits a prompt text at its last newline that the terminal
+// shows. It returns the lines before it, with the newline, and the last line.
+// A newline between the bytes 1 and 2 is not shown, so it does not split.
+func splitPrompt(s string) (string, string) {
+	end, shown := 0, true
+	for i := range len(s) {
+		switch s[i] {
+		case '\x01':
+			shown = false
+		case '\x02':
+			shown = true
+		case '\n':
+			if shown {
+				end = i + 1
+			}
+		}
+	}
+	return s[:end], s[end:]
 }
 
 // modeStringFor returns what show-mode-in-prompt puts in front of the prompt
@@ -250,12 +288,13 @@ func (ev *env) modeStringFor(mode string) string {
 	return inputrc.Unescape(s)
 }
 
-// modeParts calls fn with each part of the mode string, in order, and says
-// whether the terminal shows it. What is between the bytes 1 and 2 is not
-// shown, as readline marks the escape sequences of a prompt, and the two
-// bytes themselves are dropped.
-func (ev *env) modeParts(fn func(part string, shown bool)) {
-	s, shown := ev.modeString, true
+// promptParts calls fn with each part of s, in order, and says whether the
+// terminal shows it. What is between the bytes 1 and 2 takes no columns, as
+// readline marks the escape sequences of a prompt, and the two bytes
+// themselves are dropped. This holds for the mode string (D53), the prompt
+// text and the markers (D71).
+func promptParts(s string, fn func(part string, shown bool)) {
+	shown := true
 	for s != "" {
 		i := strings.IndexAny(s, "\x01\x02")
 		if i < 0 {
@@ -270,10 +309,11 @@ func (ev *env) modeParts(fn func(part string, shown bool)) {
 	}
 }
 
-// modeWidth returns how many columns the mode string takes on the screen.
-func (ev *env) modeWidth() int {
+// shownWidth returns how many columns s takes on the screen, leaving out what
+// is between the bytes 1 and 2.
+func shownWidth(s string) int {
 	w := 0
-	ev.modeParts(func(part string, shown bool) {
+	promptParts(s, func(part string, shown bool) {
 		if shown {
 			w += text.StrWidth([]byte(part))
 		}
@@ -281,14 +321,19 @@ func (ev *env) modeWidth() int {
 	return w
 }
 
+// writeShown writes s straight to the terminal, without the bytes 1 and 2.
+func (ev *env) writeShown(s string) {
+	promptParts(s, func(part string, _ bool) {
+		ev.term.write(part)
+	})
+}
+
 // writeModeString writes the mode string in front of the prompt. It goes
 // straight to the terminal and not through the markup, because a bracket in
 // an escape sequence is not a tag. rline sends no sequence of its own, so a
 // cursor shape set here stays until the mode string changes it (D53).
 func (ev *env) writeModeString() {
-	ev.modeParts(func(part string, _ bool) {
-		ev.term.write(part)
-	})
+	ev.writeShown(ev.modeString)
 }
 
 // refreshRows draws the rows of text between firstRow and lastRow.
@@ -441,6 +486,12 @@ func (ev *env) clearScreen(e *editor.Editor) {
 	e.CurRows = ev.term.height - 1
 	ev.clear(e)
 	e.CurRows = rows
+	if ev.promptLines != "" {
+		// readline draws the whole prompt again at the top (D71).
+		ev.term.up(e.CurRow)
+		ev.writePromptLines()
+		e.CurRow = 0
+	}
 	ev.refresh(e)
 }
 
@@ -838,17 +889,27 @@ func (ev *env) noteOutput(b []byte) {
 // finished it, which is how the caller tells an abandoned line from an empty
 // one.
 func (ev *env) editLine(promptText string) (string, bool, key.Code) {
+	// Only the last line of the prompt shares a row with the line, and only
+	// it is redrawn. The lines before it are written once, here (D71).
+	lines, last := splitPrompt(promptText)
 	e := &editor.Editor{
 		Opts:       ev.opts,
 		TermW:      ev.term.width,
 		CurRows:    1,
-		PromptText: promptText,
+		PromptText: last,
 	}
 	mode := "emacs"
 	if ev.viMode {
 		mode = "vi-insert"
 	}
 	ev.modeString = ev.modeStringFor(mode)
+	ev.promptLines = lines
+	if lines != "" {
+		// The prompt starts where the program's output left the cursor, as
+		// readline's does, and its last line starts at the left edge.
+		ev.writePromptLines()
+		ev.outCol = 0
+	}
 	ev.startAfterOutput(e)
 	ev.writePrompt(e, 0, false)
 

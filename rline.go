@@ -750,6 +750,13 @@ func outputSizer(w io.Writer) sizer {
 
 // ReadLine reads one line.
 //
+// The prompt is drawn in front of the line, followed by the marker of
+// WithPrompt. In the prompt and the markers, what is between the bytes 1 and 2
+// is written but takes no width, as readline counts what bash marks with \[
+// and \] in PS1, and the two bytes are not written. When the prompt has
+// newlines, the lines before the last one are written once, and only the last
+// line shares a row with the input. See D71 in docs/PLAN.md.
+//
 // It returns io.EOF when the user ended the input, which is Ctrl-D on an empty
 // line, and which is what the C answers with a null pointer.
 //

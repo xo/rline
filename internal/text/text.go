@@ -454,8 +454,8 @@ func skipEsc(s []byte) (int, bool) {
 		// OSC (ESC ]) run until a terminator. CSI ends on a byte from 0x40 to
 		// 0x7F. The rest end on a bell, or on ESC backslash.
 		//
-		// ESC ] is not in the set, so OSC reaches this branch only through
-		// the zero byte rule above. The C code has the same gap.
+		// The brackets around the set are members of it, in the C's set as
+		// in this one, so ESC ] for OSC reaches this branch too.
 		finalCSI := s[1] == '['
 		for n := 2; n < len(s); {
 			c := s[n]

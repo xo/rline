@@ -30,6 +30,12 @@ something from rline before usql can fix them.
     read into a code point and then back into the same byte in the buffer.
     A fix changes how the buffer holds such bytes. From: "common.c" in
     [PORT.md](PORT.md), left out of the fixes under D68.
+84. A prompt that is wider than the terminal breaks the redraw. rline does
+    not count the rows that the prompt itself wraps onto, so each draw
+    starts one row lower and leaves the old rows on the screen. The prompt of
+    reverse-i-search is 22 columns before the search text, so a terminal 20
+    columns wide shows it on every key. readline counts those rows. From:
+    the tests of D71.
 
 ## New features
 

@@ -376,6 +376,7 @@ func (ev *env) showListing(e *editor.Editor, cands []readline.Candidate) {
 		ev.bb.println(sb.String())
 		shown++
 	}
+	ev.writePromptLines()
 	e.CurRows, e.CurRow = 1, 0
 	ev.refresh(e)
 }
@@ -389,6 +390,7 @@ func (ev *env) showOutput(e *editor.Editor, out string) {
 		ev.term.write(line)
 		ev.term.writeln("")
 	}
+	ev.writePromptLines()
 	e.CurRows, e.CurRow = 1, 0
 	ev.refresh(e)
 }

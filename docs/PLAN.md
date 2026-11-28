@@ -104,6 +104,7 @@ that holds it.
 | [D68](#d68-the-port-of-isocline-is-done-and-rline-no-longer-keeps-the-behavior-of-the-c-decided-amends-d4) | The port of isocline is done, and rline no longer keeps the behavior of the C | Decided. Amends D4 |
 | [D69](#d69-rline-removes-isoclines-file-name-completer-decided) | rline removes isocline's file name completer | Decided |
 | [D70](#d70-sessionpushinput-gives-the-session-input-that-something-else-read-from-the-terminal-decided) | Session.PushInput gives the Session input that something else read from the terminal | Decided |
+| [D71](#d71-the-prompt-follows-readlines-markers-for-text-that-takes-no-width-and-its-rules-for-a-prompt-of-several-lines-decided) | The prompt follows readline's markers for text that takes no width, and its rules for a prompt of several lines | Decided |
 
 ## Purpose
 
@@ -1474,6 +1475,42 @@ gives them to rline, so that `select 1;` typed at once no longer runs as
 5. A closed Session ignores them.
 
 Ken accepted the decision and the name on 2026-11-05.
+
+### D71. The prompt follows readline's markers for text that takes no width, and its rules for a prompt of several lines. Decided.
+
+hail asked on 2026-11-28, for its D15, for a prompt that it expands from
+bash's PS1. bash marks the bytes of a prompt that take no width, such as an
+escape sequence that sets a color or the window title, with `\[` and `\]`.
+It gives them to readline as the bytes 1 and 2. readline writes what is
+between them, drops the two bytes, and counts no width for that text. hail
+gives rline the whole prompt with an empty marker, as `WithPrompt("", "")`
+allows today.
+
+Before this, rline dropped the bytes 1 and 2 and gave no width to an escape
+sequence that it knows. It counted the rest. An OSC sequence, such as
+`\e]0;title\a`, was counted as the width of most of its text. A prompt with
+a newline was measured as one row, so the cursor was in the wrong place.
+
+1. In the prompt text that `ReadLine` is given, and in the two markers, what
+   is between the bytes 1 and 2 takes no width. rline writes it and drops
+   the two bytes. The mode string already works this way (D53).
+2. When the prompt text has a newline that is not between the bytes 1 and
+   2, only the line after the last newline shares a row with the input.
+   rline writes the lines before it once, before the input, and the editor
+   redraws only the last line.
+3. rline writes the whole prompt again where readline does: after a clear
+   of the screen, after a list of completions, after the output of a
+   command such as `dump-variables`, and after the list of the completion
+   menu. Bash 5.3 with a PS1 of two lines does this.
+4. A search writes its own prompt in place of the last line only, and the
+   lines before it stay on the screen, as in bash.
+5. When there is no terminal to edit on, the prompt is written as it was.
+   The writer already drops the bytes 1 and 2.
+
+isocline has neither rule, so this is a departure from the C, and
+[PORT.md](PORT.md) lists it.
+
+Ken accepted the decision on 2026-11-28.
 
 ## Open questions for Ken
 

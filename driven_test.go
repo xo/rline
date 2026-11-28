@@ -2273,7 +2273,7 @@ func TestAPasteIsDrawnOnceItIsAllRead(t *testing.T) {
 // screenOf draws out on a screen of the given width and returns its rows, with
 // the spaces at their ends taken off. It reads printable text, a carriage
 // return, a line feed, a tab, a backspace, and the sequences that move the
-// cursor and clear a row, and leaves out every other sequence. A row wraps the way xterm wraps
+// cursor and clear a row, and leaves out every other sequence, OSC included. A row wraps the way xterm wraps
 // one: the character after the last column goes to the next row.
 func screenOf(out string, width int) []string {
 	rows, _, _ := screenAt(out, width)
@@ -2338,8 +2338,29 @@ func screenAt(out string, width int) ([]string, int, int) {
 				}
 			}
 			i = j + 1
+		case c == 0x1b && i+1 < len(out) && out[i+1] == ']':
+			// An OSC sequence, such as the one that sets the title, shows
+			// nothing. It ends at a bell or at ESC backslash.
+			j := i + 2
+			for j < len(out) && out[j] != '\a' && (out[j] != 0x1b || j+1 >= len(out) || out[j+1] != '\\') {
+				j++
+			}
+			switch {
+			case j >= len(out):
+				i = j
+			case out[j] == '\a':
+				i = j + 1
+			default:
+				i = j + 2
+			}
 		case c == 0x1b:
-			i += 2
+			// Any other sequence is ESC, the bytes from 0x20 to 0x2F, and
+			// one final byte, as "\x1b(B" that tput sgr0 writes.
+			j := i + 1
+			for j < len(out) && out[j] >= 0x20 && out[j] <= 0x2f {
+				j++
+			}
+			i = j + 1
 		case c < ' ':
 			i++
 		default:
@@ -2720,5 +2741,252 @@ func TestASearchDrawsLaterRowsUnderTheProgramsPrompt(t *testing.T) {
 	ev.term.flush()
 	if _, row, col := screenAt(sink.String(), 80); row != 1 || col != len(second)-1 {
 		t.Errorf("the cursor is at row %d column %d, want row 1 column %d", row, col, len(second)-1)
+	}
+}
+
+// drawPrompt reads one line with the prompt text on a screen width columns
+// wide, after the program wrote output, and returns the screen and where the
+// cursor ends.
+func drawPrompt(t *testing.T, width int, output, prompt, marker, keys string, opt feedOpts) ([]string, int, int) {
+	t.Helper()
+	return drawPromptVars(t, nil, width, output, prompt, marker, keys, opt)
+}
+
+// drawPromptVars is drawPrompt with the variables of an inputrc file set.
+func drawPromptVars(t *testing.T, vars map[string]any, width int, output, prompt, marker, keys string, opt feedOpts) ([]string, int, int) {
+	t.Helper()
+	ev, _ := feedEnv(t, keys, opt)
+	if vars != nil {
+		ev.vars = vars
+	}
+	sink := &bytes.Buffer{}
+	ev.term = newTerm(sink, termOptions{Sizer: fixedSize{cols: width, rows: 24}})
+	ev.bb = newBBCode(ev.term)
+	ev.promptMarker, ev.cpromptMarker = marker, marker
+	// The wrap mark is not what this checks.
+	ev.keys.isUTF8 = false
+	for _, h := range []string{"select 1;"} {
+		ev.history.push(h)
+	}
+	if output != "" {
+		p := &Prompt{Session: &Session{env: ev}, markup: &MarkupWriter{env: ev}}
+		if _, err := p.Write([]byte(output)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ev.editLine(prompt)
+	ev.term.flush()
+	return screenAt(sink.String(), width)
+}
+
+// TestThePromptMarksTextThatTakesNoWidth checks that what is between the
+// bytes 1 and 2 in the prompt text or a marker takes no width, as readline
+// counts what bash marks with \[ and \] (D71). hail asked for this, for a PS1
+// that sets the title of the window.
+func TestThePromptMarksTextThatTakesNoWidth(t *testing.T) {
+	t.Parallel()
+	// rline already measures an escape sequence that it knows as no width,
+	// so these alone do not tell the markers from what it did before.
+	const title = "\x01\x1b]0;user@host: ~\x07\x02"
+	const green, reset = "\x01\x1b[32m\x02", "\x01\x1b[0m\x02"
+	// tput sgr0 writes "\x1b(B\x1b[m", and rline counts the B of the first
+	// sequence as a column. Between the markers it takes none.
+	const sgr0 = "\x01\x1b(B\x1b[m\x02"
+	// The line wraps, and the cursor goes back into the first row, so that
+	// both widths decide where the rows break and where the cursor goes.
+	keys := strings.Repeat("a", 30) + kEnter
+	moved := strings.Repeat("a", 30) + kCtrlA + kRight + "b"
+	for _, tc := range []struct {
+		name, prompt, marker string
+	}{
+		{"a title in the prompt", title + "db", "> "},
+		{"a title in the marker", "db", title + "> "},
+		{"a color around the prompt", green + "db" + reset, "> "},
+		{"a title and a color", title + green + "d" + reset + "b", "> "},
+		{"a title at the end", "db", "> " + title},
+		{"two markers together", "\x01\x02d\x01\x02b", "> "},
+		{"tput sgr0 in the prompt", green + "db" + sgr0, "> "},
+		{"tput sgr0 in the marker", "db", ">" + sgr0 + " "},
+		// With no prompt text, the rows after the first line up under the
+		// marker alone, so its width decides where they start.
+		{"tput sgr0 in the marker alone", "", ">" + sgr0 + " "},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			plain := strings.Map(func(r rune) rune {
+				if r == 1 || r == 2 {
+					return -1
+				}
+				return r
+			}, tc.prompt)
+			if plain != "" {
+				plain = "db"
+			}
+			for _, k := range []string{keys, moved} {
+				want, wantRow, wantCol := drawPrompt(t, 20, "", plain, "> ", k, feedOpts{})
+				got, row, col := drawPrompt(t, 20, "", tc.prompt, tc.marker, k, feedOpts{})
+				if !slices.Equal(got, want) || row != wantRow || col != wantCol {
+					t.Errorf("%q: the screen shows\n%q\nwith the cursor at row %d column %d, want\n%q\nat row %d column %d",
+						k, got, row, col, want, wantRow, wantCol)
+				}
+			}
+		})
+	}
+}
+
+// TestTheModeStringMarksTextThatTakesNoWidth checks that what is between the
+// bytes 1 and 2 in the mode string takes no width (D53), as in the prompt.
+func TestTheModeStringMarksTextThatTakesNoWidth(t *testing.T) {
+	t.Parallel()
+	keys := strings.Repeat("a", 30) + kEnter
+	mode := func(s string) map[string]any {
+		return map[string]any{"show-mode-in-prompt": true, "emacs-mode-string": s}
+	}
+	want, wantRow, wantCol := drawPromptVars(t, mode("@"), 20, "", "db", "> ", keys, feedOpts{})
+	got, row, col := drawPromptVars(t, mode(`@\1\e(B\e[m\2`), 20, "", "db", "> ", keys, feedOpts{})
+	if !slices.Equal(got, want) || row != wantRow || col != wantCol {
+		t.Errorf("the screen shows\n%q\nwith the cursor at row %d column %d, want\n%q\nat row %d column %d",
+			got, row, col, want, wantRow, wantCol)
+	}
+}
+
+// TestThePromptWritesWhatTakesNoWidth checks that what is between the bytes 1
+// and 2 reaches the terminal, and that the two bytes do not (D71).
+func TestThePromptWritesWhatTakesNoWidth(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "x"+kEnter, feedOpts{})
+	// With color on, so that the writer keeps the SGR sequences.
+	sink := &bytes.Buffer{}
+	ev.term = newTerm(sink, termOptions{Color: true, Sizer: fixedSize{cols: 80, rows: 24}})
+	ev.bb = newBBCode(ev.term)
+	ev.promptMarker, ev.cpromptMarker = "\x01\x1b(B\x1b[m\x02> ", "> "
+	ev.editLine("\x01\x1b]0;title\x07\x02top\n\x01\x1b[1m\x02last")
+	ev.term.flush()
+	out := sink.String()
+	for _, want := range []string{"\x1b]0;title\x07top\n", "\x1b[1mlast", "\x1b(B\x1b[m> "} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the output does not hold %q:\n%q", want, out)
+		}
+	}
+	if strings.ContainsAny(out, "\x01\x02") {
+		t.Errorf("the output holds the byte 1 or 2:\n%q", out)
+	}
+}
+
+// TestAPromptOfSeveralLines checks that only the last line of a prompt with
+// newlines shares a row with the input and is redrawn, and that the lines
+// before it are written once and again wherever readline draws the whole
+// prompt again (D71). bash 5.3 with a PS1 of two lines draws these.
+func TestAPromptOfSeveralLines(t *testing.T) {
+	t.Parallel()
+	complete := feedOpts{Completer: wordsCompleter([]string{"alpha", "alpine"})}
+	words := make([]string, 12)
+	for i := range words {
+		words[i] = fmt.Sprintf("w%02d", i)
+	}
+	menu := feedOpts{Completer: wordsCompleter(words), CompletionMenu: true}
+	for _, tc := range []struct {
+		name, output, prompt, keys string
+		opt                        feedOpts
+		width                      int
+		want                       []string
+		row, col                   int
+	}{
+		{
+			"two lines", "", "top\nlast", "ab" + kLeft + "x" + kEnter, feedOpts{}, 20,
+			[]string{"top", "last$ axb"}, 1, 9,
+		},
+		{
+			"three lines", "", "one\ntwo\nthree", "x" + kEnter, feedOpts{}, 20,
+			[]string{"one", "two", "three$ x"}, 2, 8,
+		},
+		{
+			"after output that did not end its row", "foo", "top\nlast", "x" + kEnter, feedOpts{}, 20,
+			[]string{"footop", "last$ x"}, 1, 7,
+		},
+		{
+			"a title in the first line", "", "\x01\x1b]0;t\x07\x02top\nlast", "x" + kEnter, feedOpts{}, 20,
+			[]string{"top", "last$ x"}, 1, 7,
+		},
+		{
+			// The rows after the first line up under "last$ ".
+			"the last line wraps", "", "top\nlast", strings.Repeat("a", 20) + kEnter, feedOpts{}, 20,
+			[]string{"top", "last$ " + strings.Repeat("a", 12), "    $ " + strings.Repeat("a", 8)}, 2, 14,
+		},
+		{
+			"a list of completions", "", "top\nlast", "alp" + kTab + kTab + kEnter, complete, 20,
+			[]string{"top", "last$ alp", "alpha   alpine", "top", "last$ alp"}, 4, 9,
+		},
+		{
+			// Page Down in the menu lists every completion above the line.
+			"the list of the completion menu", "", "top\nlast", "w" + kTab + kPageDown + kEnter, menu, 40,
+			append(append([]string{"top", "last$"}, words...), "(12 possible completions)", "", "top", "last$ w"), 17, 7,
+		},
+		{
+			// The search writes its prompt in place of the last line only, so
+			// the first line stays where it was.
+			"a search", "", "top\nlast", "\x12sel" + kEnter, feedOpts{}, 80,
+			[]string{"top", "last$ select 1;"}, 1, 15,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, row, col := drawPrompt(t, tc.width, tc.output, tc.prompt, "$ ", tc.keys, tc.opt)
+			if !slices.Equal(got, tc.want) || row != tc.row || col != tc.col {
+				t.Errorf("the screen shows\n%q\nwith the cursor at row %d column %d, want\n%q\nat row %d column %d",
+					got, row, col, tc.want, tc.row, tc.col)
+			}
+		})
+	}
+}
+
+// TestAPromptOfSeveralLinesAfterOutput checks that the whole prompt is drawn
+// again below what a command such as dump-variables prints (D71).
+func TestAPromptOfSeveralLinesAfterOutput(t *testing.T) {
+	t.Parallel()
+	got, row, col := drawPrompt(t, 40, "", "top\nlast", "$ ", "\x1bxdump-variables\r"+kEnter, feedOpts{})
+	if len(got) < 4 || got[0] != "top" || !strings.Contains(got[2], " is set to ") {
+		t.Fatalf("dump-variables did not print below the prompt:\n%q", got)
+	}
+	if tail := got[len(got)-2:]; !slices.Equal(tail, []string{"top", "last$"}) || row != len(got)-1 || col != 6 {
+		t.Errorf("the screen ends with %q with the cursor at row %d column %d, want %q at row %d column 6",
+			tail, row, col, []string{"top", "last$"}, len(got)-1)
+	}
+}
+
+// TestAPromptOfSeveralLinesAfterAClear checks that a clear of the screen
+// draws the whole prompt again at the top, as readline does (D71).
+func TestAPromptOfSeveralLinesAfterAClear(t *testing.T) {
+	t.Parallel()
+	got, row, col := drawPrompt(t, 20, "", "top\nlast", "$ ", "x\x0cy"+kEnter, feedOpts{})
+	// The screen here does not scroll, so the clear leaves the line where it
+	// was, and the old rows above it stay. Only the rows from the line down
+	// are what a terminal shows after the clear.
+	want := []string{"top", "top", "last$ xy"}
+	if !slices.Equal(got, want) || row != 2 || col != 8 {
+		t.Errorf("the screen shows\n%q\nwith the cursor at row %d column %d, want\n%q\nat row 2 column 8", got, row, col, want)
+	}
+}
+
+// TestSplitPrompt checks where a prompt text is split into the lines written
+// once and the line that shares a row with the input (D71).
+func TestSplitPrompt(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		prompt, lines, last string
+	}{
+		{"", "", ""},
+		{"one", "", "one"},
+		{"one\n", "one\n", ""},
+		{"one\ntwo\nthree", "one\ntwo\n", "three"},
+		{"one\x01\n\x02two", "", "one\x01\n\x02two"},
+		{"\x01\x1b[1m\x02one\n\x01\x1b[0m\x02two", "\x01\x1b[1m\x02one\n", "\x01\x1b[0m\x02two"},
+		// A 1 with no 2 hides the rest, newlines too.
+		{"one\ntwo\x01\nthree", "one\n", "two\x01\nthree"},
+	} {
+		lines, last := splitPrompt(tc.prompt)
+		if lines != tc.lines || last != tc.last {
+			t.Errorf("splitPrompt(%q) = %q, %q, want %q, %q", tc.prompt, lines, last, tc.lines, tc.last)
+		}
 	}
 }
