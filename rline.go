@@ -326,6 +326,10 @@ type config struct {
 	// terminal is a terminal that the program gives, in place of standard
 	// input and output (D79).
 	terminal Terminal
+
+	// wrapMark draws a mark at the end of a row that filled the terminal
+	// (D86).
+	wrapMark bool
 }
 
 // Option changes a setting on a Session being made.
@@ -406,6 +410,16 @@ func WithPrompt(marker, continuation string) Option {
 // UTF-8. WithStdin and WithStdout are not used when it is set.
 func WithTerminal(terminal Terminal) Option {
 	return func(c *config) { c.terminal = terminal }
+}
+
+// WithWrapMark draws a mark at the end of a row that filled the terminal, so
+// that it reads differently from a row that the line breaks itself. It is on
+// by default, as isocline draws it. WithWrapMark(false) leaves the row plain,
+// as readline leaves it, and with WithMultilineIndent(false) and empty
+// markers the rows after the first start at the left edge, as bash shows
+// them (D86).
+func WithWrapMark(wrapMark bool) Option {
+	return func(c *config) { c.wrapMark = wrapMark }
 }
 
 // WithHistoryFile keeps the history in the named file, so that it outlives
@@ -662,6 +676,7 @@ func New(opts ...Option) (*Prompt, error) {
 		braceMatching:   true,
 		hints:           true,
 		inlineHelp:      true,
+		wrapMark:        true,
 		appName:         DefaultAppName,
 		opts: editor.EditOptions{
 			MatchPairs:   DefaultMatchPairs,
@@ -778,6 +793,7 @@ func New(opts ...Option) (*Prompt, error) {
 		completionMenu:  c.completionMenu,
 		keepInterrupted: c.keepInterrupted,
 		manualHistory:   c.manualHistory,
+		noWrapMark:      !c.wrapMark,
 		commands:        c.commands,
 		appName:         c.appName,
 		beep:            c.beep,
@@ -1002,6 +1018,24 @@ func (s *Session) ReadInputrc(name string) error {
 	return s.env.readInputrcFile(name)
 }
 
+// RunAtPrompt runs fn at the prompt, as bash runs a trap or writes a job
+// notice while readline waits for a key (D87). It is safe to call from any
+// goroutine, as from a signal handler.
+//
+// While ReadLine waits for a key, it wakes, takes the line off the screen,
+// and calls fn on its own goroutine, with w writing where the line was. It
+// then draws the last line of the prompt and the line again below what fn
+// wrote, with the text and the cursor as they were. When no line is being
+// read, fn runs when ReadLine next starts, before the prompt is drawn. A
+// terminal that cannot be woken, which is none of those rline knows, runs fn
+// after the next key.
+func (s *Session) RunAtPrompt(fn func(w io.Writer)) {
+	if fn == nil || s.env == nil {
+		return
+	}
+	s.env.queueAtPrompt(fn)
+}
+
 // ReadLineWith reads one line, as ReadLine does, and starts the line with
 // text, with the cursor at its end, as bash's read -e -i does. The text goes
 // in as one change, so an undo takes it back out. When there is no terminal
@@ -1022,6 +1056,9 @@ func (s *Session) ReadLineWith(prompt, text string) (string, error) {
 // there is nobody to prompt and the prompt would only dirty the output, so it
 // is left out. That is what the C does as well.
 func (s *Session) readPlain(prompt string) (string, error) {
+	if s.env != nil {
+		s.env.runQueued()
+	}
 	if s.env != nil && s.env.keys != nil {
 		s.env.term.write(prompt)
 		s.env.term.write(s.env.promptMarker)

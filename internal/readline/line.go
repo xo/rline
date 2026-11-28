@@ -175,6 +175,11 @@ func (l *Line) Count() (int, bool) { return l.call.count, l.call.explicit }
 // Last returns the name of the command that ran last.
 func (l *Line) Last() string { return l.last }
 
+// SetLast makes name the command that ran last, so that the next command
+// acts as though name ran just before it: a second complete lists, and
+// menu-complete goes on to the next completion.
+func (l *Line) SetLast(name string) { l.last = name }
+
 // Edit makes the line text and puts the cursor at point. It records the
 // change for undo, as part of the command that is running, or as a change of
 // its own outside a command. Only the part of the line that differs is

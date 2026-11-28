@@ -252,3 +252,52 @@ func TestWithTerminalTakesItsColors(t *testing.T) {
 		_ = p.Close()
 	}
 }
+
+// TestRunAtPromptWhileTheLineWaits checks that RunAtPrompt, called from
+// another goroutine while ReadLine waits for a key, runs at once, writes
+// where the line was, and draws the line again below with what was typed
+// (D87).
+func TestRunAtPromptWhileTheLineWaits(t *testing.T) {
+	f := newFakeTerminal()
+	p := newHostSession(t, f)
+	done := make(chan string, 1)
+	go func() {
+		line, _ := p.ReadLine("$ ")
+		done <- line
+	}()
+	f.typed(t, "ab")
+	p.RunAtPrompt(func(w io.Writer) { _, _ = io.WriteString(w, "[1]+  Done\n") })
+	deadline := time.Now().Add(5 * time.Second)
+	// The line is drawn again below the notice before the next key.
+	for screen := screenOf(f.output(), 80); len(screen) < 2 || screen[0] != "[1]+  Done" || screen[1] != "$ > ab"; screen = screenOf(f.output(), 80) {
+		if time.Now().After(deadline) {
+			t.Fatalf("RunAtPrompt did not run and draw the line again while the line waited:\n%q", screen)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	f.typed(t, "c\r")
+	if line := <-done; line != "abc" {
+		t.Errorf("the line is %q, want %q", line, "abc")
+	}
+	if screen := screenOf(f.output(), 80); len(screen) < 2 || screen[0] != "[1]+  Done" || screen[1] != "$ > abc" {
+		t.Errorf("the terminal shows %q, want %q and then %q", screen, "[1]+  Done", "$ > abc")
+	}
+}
+
+// TestRunAtPromptBeforeTheLine checks that what RunAtPrompt asked for while
+// no line was read runs before the next prompt is drawn (D87).
+func TestRunAtPromptBeforeTheLine(t *testing.T) {
+	f := newFakeTerminal()
+	p := newHostSession(t, f)
+	p.RunAtPrompt(func(w io.Writer) { _, _ = io.WriteString(w, "notice\n") })
+	if line, err := readLineFrom(t, p, f, "x\r"); err != nil || line != "x" {
+		t.Fatalf("the line is %q, %v, want %q", line, err, "x")
+	}
+	if screen := screenOf(f.output(), 80); len(screen) < 2 || screen[0] != "notice" || screen[1] != "$ > x" {
+		t.Errorf("the terminal shows %q, want %q and then %q", screen, "notice", "$ > x")
+	}
+	// It ran before the prompt was drawn, not over a prompt drawn first.
+	if out := f.output(); strings.Index(out, "notice") > strings.Index(out, "$ ") {
+		t.Errorf("the prompt was drawn before the notice:\n%q", out)
+	}
+}

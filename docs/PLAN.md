@@ -117,6 +117,12 @@ that holds it.
 | [D81](#d81-a-program-command-can-have-the-terminal-while-it-runs-decided) | A program command can have the terminal while it runs | Decided |
 | [D82](#d82-a-program-command-sees-the-mark-and-whether-a-count-was-typed-decided) | A program command sees the mark and whether a count was typed | Decided |
 | [D83](#d83-a-program-command-can-kill-text-onto-the-kill-ring-decided) | A program command can kill text onto the kill ring | Decided |
+| [D84](#d84-a-queued-command-sees-the-command-before-the-programs-and-a-list-comes-after-the-typed-line-decided) | A queued command sees the command before the program's, and a list comes after the typed line | Decided |
+| [D85](#d85-a-program-command-can-print-below-the-line-and-can-finish-the-line-and-have-the-terminal-decided) | A program command can print below the line, and can finish the line and have the terminal | Decided |
+| [D86](#d86-withwrapmark-turns-off-the-mark-at-the-end-of-a-row-that-wraps-decided) | WithWrapMark turns off the mark at the end of a row that wraps | Decided |
+| [D87](#d87-runatprompt-runs-work-at-the-prompt-decided) | RunAtPrompt runs work at the prompt | Decided |
+| [D88](#d88-raw-mode-reads-the-terminals-settings-each-time-decided) | Raw mode reads the terminal's settings each time | Decided |
+| [D89](#d89-the-end-of-a-line-draws-nothing-more-when-the-line-is-drawn-as-it-stands-decided) | The end of a line draws nothing more when the line is drawn as it stands | Decided |
 
 ## Purpose
 
@@ -1727,6 +1733,96 @@ would not join kills as readline does.
 The methods of `Line` that change the line, the mark or the kill ring now
 act at once, inside the undo step of the command. `Replace` used to wait
 until the command returned. Undo takes back the same changes as before.
+
+### D84. A queued command sees the command before the program's, and a list comes after the typed line. Decided.
+
+hail found on 2026-11-28 that a second press of bash's `\e/` did not list,
+and that menu-complete through `Line.Complete` never went on to the next
+completion. readline's complete lists on a second press, and menu-complete
+goes on, only when the command that ran last was the same command. The
+command that ran last was the program's own. Ken accepted the fix on
+2026-11-28.
+
+1. The first command that `Line.Run` or `Line.Complete` queued sees the
+   command that ran before the program's command as the command that ran
+   last, as bash's commands see rl_last_func.
+2. The line is drawn before a list of completions or the output of a
+   command, so that the line above the list is the one that was typed even
+   when the keys came faster than the line was drawn.
+
+### D85. A program command can print below the line, and can finish the line and have the terminal. Decided.
+
+bash's display-shell-version writes below the line and keeps the line, and
+its edit-and-execute-command finishes the line and runs the editor with no
+new prompt. `Line.Release` takes the line off the screen and draws a prompt
+again, which neither does. Ken accepted the shape on 2026-11-28.
+
+1. `Line.Print(text string)` writes text below the line, keeps the line
+   above it, and draws the prompt and the line again below the text, as
+   rline does for `dump-variables`.
+2. `Line.AcceptAndRelease(fn func(rw io.ReadWriter) error) error` draws the
+   line as it stands, moves below it, leaves raw mode and calls fn.
+   `ReadLine` then hands the line back with what the command made of it,
+   whatever the continue function of the program says, and draws nothing
+   more: no newline and no prompt follow what fn wrote.
+
+### D86. WithWrapMark turns off the mark at the end of a row that wraps. Decided.
+
+isocline draws a mark at the end of a row that filled the terminal, and
+bash draws none. Ken chose on 2026-11-28 an option over a new default.
+`WithWrapMark(false)` leaves the mark out. With `WithMultilineIndent(false)`
+and empty markers, the rows after the first then start at the left edge.
+rline still ends such a row one column before the edge, where readline
+fills it, and backlog 87 holds that.
+
+### D87. RunAtPrompt runs work at the prompt. Decided.
+
+bash runs a trap, or writes a job notice under `set -b`, while readline
+waits for a key, and draws the line again afterwards. hail could do such
+work only after the next Enter. Ken accepted the shape on 2026-11-28.
+
+1. `Session.RunAtPrompt(fn func(w io.Writer))` is safe to call from any
+   goroutine.
+2. While `ReadLine` waits for a key, the wait ends, the line goes off the
+   screen, and fn runs on the goroutine of `ReadLine`, with w writing where
+   the line was. The last line of the prompt and the line are drawn again
+   below, with the text and the cursor as they were, as bash draws them with
+   rl_redraw_prompt_last_line.
+3. When no line is read, fn runs when `ReadLine` next starts, before the
+   prompt.
+4. The wait ends through a pipe that the read polls beside the terminal on
+   Unix, an event that the wait watches beside the console on Windows, and
+   a channel under `WithTerminal`. The stop that ends the input is not used,
+   because that would end the line.
+
+### D88. Raw mode reads the terminal's settings each time. Decided.
+
+hail found on 2026-11-29, against bash 5.3 on a pseudo-terminal, that a
+change that `stty` made at the prompt lasted only until the next prompt.
+rline read the settings once, when it opened the terminal, built raw mode
+from them, and put them back after every line. readline reads the settings
+each time it takes the terminal. rline now reads them each time raw mode
+starts on Unix, puts those back when it ends, and builds raw mode from
+them. Windows read the console mode each time already.
+
+Ken accepted the decision on 2026-11-29.
+
+### D89. The end of a line draws nothing more when the line is drawn as it stands. Decided.
+
+rline drew the whole line once more at the end of each line, with the prompt
+in front, even when nothing had changed. readline only moves the cursor to
+the end of the line and writes the newline. hail found that a harness that
+waits for the prompt matched the line drawn again, and sent its next key
+while rline was out of raw mode.
+
+1. When the line on the screen is the finished line, the cursor moves to its
+   end, below the last row, and nothing is written again.
+2. The line is drawn once more when it is not drawn as it stands, because
+   keys came faster than it was drawn or Ctrl-C emptied it, and when it
+   shows a brace that brace matching highlighted, which the last draw takes
+   away.
+
+Ken accepted the decision on 2026-11-29.
 
 ## Open questions for Ken
 

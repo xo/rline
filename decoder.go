@@ -394,6 +394,21 @@ func (t *keyDecoder) resizeEvent() bool {
 	return t.ctrl.resizeEvent()
 }
 
+// waker is a terminal whose wait for a key can be ended from another
+// goroutine without ending the input, so that the edit loop can run what
+// RunAtPrompt asked for (D87).
+type waker interface {
+	wake() bool
+}
+
+// wake makes a read that waits for a key return with no key, so that the
+// edit loop looks at what RunAtPrompt asked for. It reports false when the
+// terminal cannot be woken, and is safe to call from any goroutine.
+func (t *keyDecoder) wake() bool {
+	w, ok := t.ctrl.(waker)
+	return ok && w.wake()
+}
+
 // asyncStop makes a read that is waiting for a key return.
 func (t *keyDecoder) asyncStop() bool {
 	if t.ctrl == nil {

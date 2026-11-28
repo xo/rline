@@ -3863,3 +3863,169 @@ func TestACommandHasTheTerminal(t *testing.T) {
 	})
 	runCommandKeys(t, "\x18x"+kEnter, failing, feedOpts{})
 }
+
+// TestAQueuedCompletionSeesTheKeyBefore checks that a command run with
+// Line.Complete sees the command that ran before the program's command, as
+// bash's commands see rl_last_func: a second press lists, and menu-complete
+// goes on to the next completion (D84).
+func TestAQueuedCompletionSeesTheKeyBefore(t *testing.T) {
+	t.Parallel()
+	words := wordsCompleter([]string{"zebra", "zulu"})
+	list := CommandFunc(func(l *Line) { l.Complete("complete", words) })
+	_, out := runCommandKeys(t, "z\x18x\x18x"+kEnter, list, feedOpts{})
+	if screen := strings.Join(screenOf(out, 80), "\n"); !strings.Contains(screen, "zebra") || !strings.Contains(screen, "zulu") {
+		t.Errorf("the second press did not list the completions:\n%s", screen)
+	}
+	menu := CommandFunc(func(l *Line) { l.Complete("menu-complete", words) })
+	// The completer adds a space after each completion.
+	if got, _ := runCommandKeys(t, "z\x18x\x18x"+kEnter, menu, feedOpts{}); got != "zulu " {
+		t.Errorf("two presses of menu-complete gave %q, want %q", got, "zulu ")
+	}
+}
+
+// TestAListComesAfterTheTypedLine checks that the line is drawn before a
+// list of completions, so that the line above the list is the one that was
+// typed even when the keys came all at once (D84).
+func TestAListComesAfterTheTypedLine(t *testing.T) {
+	t.Parallel()
+	_, _, _, out := feedSession(t, "s"+kTab+kTab+kEnter,
+		feedOpts{Completer: wordsCompleter([]string{"select", "show"}), Typeahead: true})
+	if screen := screenOf(out, 80); len(screen) < 2 || screen[0] != "> s" {
+		t.Errorf("the screen shows %q, want the first row to be %q", screen, "> s")
+	}
+}
+
+// TestACommandPrintsBelowTheLine checks Line.Print: the text goes below the
+// line, which stays, and the prompt and the line are drawn again below the
+// text, as bash's display-shell-version does (D85).
+func TestACommandPrintsBelowTheLine(t *testing.T) {
+	t.Parallel()
+	cmd := CommandFunc(func(l *Line) { l.Print("version 1\n") })
+	// With the keys all at once, the line is not drawn before the command,
+	// and Print draws it first.
+	for _, typeahead := range []bool{false, true} {
+		_, out := runCommandKeys(t, "ab\x18x"+kEnter, cmd, feedOpts{Typeahead: typeahead})
+		if screen := screenOf(out, 80); !slices.Equal(screen, []string{"$ ab", "version 1", "$ ab"}) {
+			t.Errorf("typeahead %t: the screen shows %q, want %q", typeahead, screen, []string{"$ ab", "version 1", "$ ab"})
+		}
+	}
+}
+
+// TestACommandAcceptsAndReleases checks Line.AcceptAndRelease: the line stays
+// as it stands, the command writes below it, ReadLine hands the line back
+// with what the command made of it, and nothing more is drawn, as bash's
+// edit-and-execute-command does (D85).
+func TestACommandAcceptsAndReleases(t *testing.T) {
+	t.Parallel()
+	// The program's continue function says that no line is finished, and
+	// the line is handed back all the same.
+	ev, sink := feedEnv(t, "ab\x18x", feedOpts{Continue: func(string) bool { return true }})
+	ev.promptMarker = "$ "
+	s := &Session{env: ev}
+	err := s.AddCommand("test-command", CommandFunc(func(l *Line) {
+		l.Insert("!")
+		if err := l.AcceptAndRelease(func(rw io.ReadWriter) error {
+			if _, err := io.WriteString(rw, "editor\n"); err != nil {
+				return fmt.Errorf("writing to the terminal: %w", err)
+			}
+			return nil
+		}); err != nil {
+			t.Error(err)
+		}
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Bind("emacs", `\C-xx`, "test-command"); err != nil {
+		t.Fatal(err)
+	}
+	lines, out := readLines(t, ev, sink, 1)
+	if !slices.Equal(lines, []string{"ab!"}) {
+		t.Errorf("ReadLine gave %q, want %q", lines, []string{"ab!"})
+	}
+	screen, row, col := screenAt(out, 80)
+	if !slices.Equal(screen, []string{"$ ab!", "editor"}) || row != 2 || col != 0 {
+		t.Errorf("the screen shows %q with the cursor at row %d column %d, want %q at row 2 column 0",
+			screen, row, col, []string{"$ ab!", "editor"})
+	}
+}
+
+// TestTheWrapMarkCanBeLeftOut checks WithWrapMark(false): a row that fills
+// the terminal ends with no mark (D86).
+func TestTheWrapMarkCanBeLeftOut(t *testing.T) {
+	t.Parallel()
+	for _, mark := range []bool{true, false} {
+		ev, _ := feedEnv(t, strings.Repeat("a", 30)+kEnter, feedOpts{})
+		sink := &bytes.Buffer{}
+		ev.term = newTerm(sink, termOptions{Sizer: fixedSize{cols: 20, rows: 24}})
+		ev.bb = newBBCode(ev.term)
+		ev.noWrapMark = !mark
+		ev.editLine("")
+		ev.term.flush()
+		screen := strings.Join(screenOf(sink.String(), 20), "\n")
+		if got := strings.ContainsAny(screen, "←↵"); got != mark {
+			t.Errorf("with the mark %t, the screen holds a mark %t:\n%s", mark, got, screen)
+		}
+	}
+	p, err := New(WithWrapMark(false), WithStdin(strings.NewReader("")), WithStdout(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = p.Close() }()
+	if !p.env.noWrapMark {
+		t.Error("WithWrapMark(false) did not reach the editor")
+	}
+}
+
+// TestTheEndOfALineDrawsNothingMore checks that a finished line is not drawn
+// again when the screen shows it as it stands: the cursor moves to its end,
+// as readline moves it, and the newline follows (D89). It is drawn again
+// when it is not drawn as it stands, or shows a highlighted brace.
+func TestTheEndOfALineDrawsNothingMore(t *testing.T) {
+	t.Parallel()
+	draws := func(keys string, opt feedOpts, setup func(*env)) (string, []string, int, int) {
+		ev, sink := feedEnv(t, keys, opt)
+		ev.promptMarker, ev.cpromptMarker = "$ ", "> "
+		if setup != nil {
+			setup(ev)
+		}
+		readLines(t, ev, sink, 1)
+		screen, row, col := screenAt(sink.String(), 80)
+		return sink.String(), screen, row, col
+	}
+	out, screen, row, col := draws("ab"+kEnter, feedOpts{}, nil)
+	if n := strings.Count(out, "$ ab"); n != 1 || !slices.Equal(screen, []string{"$ ab"}) || row != 1 || col != 0 {
+		t.Errorf("a finished line was drawn %d times, with %q and the cursor at row %d column %d, want once, %q, row 1 column 0:\n%q",
+			n, screen, row, col, []string{"$ ab"}, out)
+	}
+	// The cursor is on the first of two rows when Enter comes, and the
+	// newline goes below the second.
+	first := func(text string) bool { return !strings.Contains(text, "\n") }
+	_, screen, row, col = draws("ab"+kEnter+"cd"+kLeft+kLeft+kLeft+kEnter, feedOpts{Continue: first}, nil)
+	if !slices.Equal(screen, []string{"$ ab", "> cd"}) || row != 2 || col != 0 {
+		t.Errorf("a line of two rows ended with %q and the cursor at row %d column %d, want %q at row 2 column 0",
+			screen, row, col, []string{"$ ab", "> cd"})
+	}
+	// Keys that came all at once leave the line not drawn, so it is drawn.
+	_, screen, _, _ = draws("ab"+kEnter, feedOpts{Typeahead: true}, nil)
+	if !slices.Equal(screen, []string{"$ ab"}) {
+		t.Errorf("a line typed ahead shows %q, want %q", screen, []string{"$ ab"})
+	}
+	// Ctrl-C empties the line, and the empty line is drawn.
+	_, screen, _, _ = draws("ab\x03", feedOpts{}, nil)
+	if !slices.Equal(screen, []string{"$"}) {
+		t.Errorf("a line that Ctrl-C gave up shows %q, want %q", screen, []string{"$"})
+	}
+	// A highlighted brace goes, so the line is drawn once more.
+	// Brace insertion is off, so that ")" is typed and not stepped over, and
+	// the styles are defined, as New defines them.
+	out, _, _, _ = draws("(a)"+kEnter, feedOpts{}, func(ev *env) {
+		ev.braceMatching, ev.opts.AutoPair = true, false
+		for _, st := range defaultStyles {
+			ev.bb.styleDef(st[0], st[1])
+		}
+	})
+	if n := strings.Count(out, "$ (a)"); n != 2 {
+		t.Errorf("a line with a highlighted brace was drawn %d times, want twice, the last without the highlight:\n%q", n, out)
+	}
+}

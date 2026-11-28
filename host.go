@@ -72,8 +72,10 @@ type hostTerminal struct {
 	resized    <-chan struct{}
 	cols, rows int
 
-	// stop makes a waiting read return.
-	stop chan struct{}
+	// stop makes a waiting read return, and so does woken, which RunAtPrompt
+	// uses (D87).
+	stop  chan struct{}
+	woken chan struct{}
 
 	// paste says whether startRaw turns on bracketed paste mode, and
 	// pasting whether it is on.
@@ -83,7 +85,7 @@ type hostTerminal struct {
 
 // newHostTerminal returns a hostTerminal that reads t.
 func newHostTerminal(t Terminal) *hostTerminal {
-	h := &hostTerminal{t: t, stop: make(chan struct{}, 1)}
+	h := &hostTerminal{t: t, stop: make(chan struct{}, 1), woken: make(chan struct{}, 1)}
 	if r, ok := t.(resizer); ok {
 		h.resized = r.Resized()
 	}
@@ -155,6 +157,7 @@ func (h *hostTerminal) readByte(timeout time.Duration) (byte, bool) {
 		// The edit loop asks resizeEvent after the read, which finds the
 		// new size.
 	case <-h.stop:
+	case <-h.woken:
 	case <-expire:
 	}
 	return 0, false
@@ -214,6 +217,15 @@ func (h *hostTerminal) resizeEvent() bool {
 	changed := cols != h.cols || rows != h.rows
 	h.cols, h.rows = cols, rows
 	return changed
+}
+
+// wake makes a read that is waiting for a key return with no key (D87).
+func (h *hostTerminal) wake() bool {
+	select {
+	case h.woken <- struct{}{}:
+	default:
+	}
+	return true
 }
 
 // asyncStop makes a read that is waiting for a key return.

@@ -12,6 +12,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/xo/inputrc"
@@ -159,6 +160,23 @@ type env struct {
 	// the commands that one of them asked to run after it returns (D80).
 	commands map[string]Command
 	pending  []pendingRun
+
+	// released says that a command handed the line off with
+	// AcceptAndRelease, so that ReadLine draws nothing more of it (D85).
+	released bool
+
+	// noWrapMark leaves out the mark at the end of a row that filled the
+	// terminal, as WithWrapMark(false) asks (D86).
+	noWrapMark bool
+
+	// lineStale says that the edit loop ended with the line not drawn as it
+	// stands (D89).
+	lineStale bool
+
+	// atPrompt holds what RunAtPrompt asked to run, which another goroutine
+	// can add to, so promptMu guards it (D87).
+	promptMu sync.Mutex
+	atPrompt []func(io.Writer)
 
 	// completePreview shows in the line what picking the selected entry would
 	// do, and takes it straight back out again. It is on by default. The C
@@ -375,7 +393,7 @@ func (ev *env) refreshRows(e *editor.Editor, input *text.Buffer, attrs *ansi.Att
 			ev.term.writeFormatted(text, all[rowStart:rowStart+rowLen])
 		}
 		if row < lastRow {
-			if isWrap && ev.ttyIsUTF8() {
+			if isWrap && ev.ttyIsUTF8() && !ev.noWrapMark {
 				// A row that ended because it filled the terminal is marked,
 				// so that it reads differently from a row the user ended.
 				ev.bb.print(wrapMark)
@@ -537,6 +555,112 @@ func (ev *env) release(e *editor.Editor, rl *readline.Line, fn func(io.ReadWrite
 	ev.startAfterOutput(e)
 	ev.refresh(e)
 	return err
+}
+
+// acceptAndRelease draws the line, moves below it and gives the terminal to
+// fn, out of raw mode, as AcceptAndRelease does (D85). The terminal stays
+// out of raw mode, because the line is finished.
+func (ev *env) acceptAndRelease(e *editor.Editor, rl *readline.Line, fn func(io.ReadWriter) error) error {
+	showLine(e, rl)
+	e.CursorToEnd()
+	ev.refresh(e)
+	ev.term.writeln("")
+	ev.term.flush()
+	ev.outCol = 0
+	ev.released = true
+	ev.term.endRaw(false)
+	ev.keys.endRaw()
+	err := fn(releasedTerminal{ev: ev})
+	ev.term.flush()
+	return err
+}
+
+// bracesShown reports whether the line, drawn with the cursor at pos, shows a
+// brace highlighted by brace matching, which the last draw of a line takes
+// away (D89).
+func (ev *env) bracesShown(e *editor.Editor, pos int) bool {
+	if !ev.braceMatching {
+		return false
+	}
+	s := e.Input.String()
+	var attrs ansi.AttrBuf
+	highlightMatchBraces(s, &attrs, pos, ev.opts.MatchPairs,
+		ev.bb.style("rline-bracematch"), ev.bb.style("rline-error"))
+	for _, a := range attrs.Extend(len(s)) {
+		if !a.IsZero() {
+			return true
+		}
+	}
+	return false
+}
+
+// moveToEnd puts the cursor at the end of the line that is drawn, without
+// drawing it again, as readline does when a line is finished (D89).
+func (ev *env) moveToEnd(e *editor.Editor) {
+	promptw, cpromptw := ev.promptWidth(e, false)
+	_, rc := e.Input.RowColAtPos(e.TermW, promptw, cpromptw, e.Pos)
+	ev.term.down(rc.Row - e.CurRow)
+	ev.term.startOfLine()
+	pw := cpromptw
+	if rc.Row == 0 {
+		pw = promptw
+	}
+	ev.term.right(rc.Col + pw)
+	e.CurRow = rc.Row
+	ev.term.flush()
+}
+
+// queueAtPrompt adds fn to what runs at the prompt, and wakes a read that
+// waits for a key, as RunAtPrompt does (D87). It is safe to call from any
+// goroutine.
+func (ev *env) queueAtPrompt(fn func(io.Writer)) {
+	ev.promptMu.Lock()
+	ev.atPrompt = append(ev.atPrompt, fn)
+	ev.promptMu.Unlock()
+	if ev.keys != nil {
+		ev.keys.wake()
+	}
+}
+
+// takeAtPrompt returns what RunAtPrompt asked for, and empties the queue.
+func (ev *env) takeAtPrompt() []func(io.Writer) {
+	ev.promptMu.Lock()
+	defer ev.promptMu.Unlock()
+	fns := ev.atPrompt
+	ev.atPrompt = nil
+	return fns
+}
+
+// runQueued runs what RunAtPrompt asked for, writing where the cursor is.
+func (ev *env) runQueued() {
+	for _, fn := range ev.takeAtPrompt() {
+		fn(releasedTerminal{ev: ev})
+	}
+	ev.term.flush()
+}
+
+// runAtPrompt runs what RunAtPrompt asked for while the line waits for a key:
+// the line goes off the screen, each function writes where it was, and the
+// last line of the prompt and the line are drawn again below, as bash draws
+// them after a trap with rl_redraw_prompt_last_line (D87).
+func (ev *env) runAtPrompt(e *editor.Editor, rl *readline.Line) {
+	fns := ev.takeAtPrompt()
+	if len(fns) == 0 {
+		return
+	}
+	showLine(e, rl)
+	ev.clear(e)
+	ev.term.up(e.CurRow)
+	ev.term.startOfLine()
+	ev.term.flush()
+	ev.outCol = 0
+	for _, fn := range fns {
+		fn(releasedTerminal{ev: ev})
+	}
+	ev.term.flush()
+	e.CurRows, e.CurRow = 1, 0
+	ev.startAfterOutput(e)
+	ev.refresh(e)
 }
 
 // releasedTerminal is the terminal while a command has it: it reads what the
@@ -744,9 +868,10 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 	// bash writes "exit" after the prompt (D74). With bracketed paste on,
 	// readline moves below the line there too, after it turns paste mode
 	// off, and so does rline (D78).
-	if ok || paste {
+	if (ok || paste) && !ev.released {
 		ev.term.writeln("")
 	}
+	ev.released = false
 	ev.term.flush()
 	if c == key.CtrlC {
 		// The user abandoned the line rather than finishing it. See
@@ -808,6 +933,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 	bells := 0
 	asked := false
 	stale := false
+	defer func() { ev.lineStale = stale }()
 	// A prompt of the line's own, such as that of incremental search, is
 	// drawn in place of the program's (D45).
 	promptText, marker, shownPrompt := e.PromptText, ev.promptMarker, ""
@@ -816,6 +942,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		ev.holdWidth = false
 	}()
 	for {
+		ev.runAtPrompt(e, l)
 		ev.term.flush()
 		c := ev.readKey(e)
 		if ev.keys.resizeEvent() {
@@ -829,6 +956,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		// A command of rline's copies the line into the editor itself, so
 		// what changed is measured against the line before the key.
 		before, beforePoint := l.Text(), l.Point()
+		lastBefore := l.Last()
 		promptw, _ := ev.promptWidth(e, false)
 		l.SetScreen(e.TermW, promptw)
 		switch {
@@ -872,7 +1000,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		default:
 			l.Key(c)
 		}
-		ev.runPending(l, c)
+		ev.runPending(l, c, lastBefore)
 		showLine(e, l)
 		changed := l.Text() != before || l.Point() != beforePoint
 		// A question, such as whether to list many completions, is shown
@@ -885,10 +1013,17 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 			asked = q != ""
 			changed = true
 		}
-		if list := l.Listing(); len(list) > 0 {
+		list, out := l.Listing(), l.Output()
+		if len(list) > 0 || out != "" {
+			// The line is drawn first, so that the line above the list is
+			// the one that was typed, even when keys came faster than the
+			// line was drawn.
+			ev.refresh(e)
+		}
+		if len(list) > 0 {
 			ev.showListing(e, list)
 		}
-		if out := l.Output(); out != "" {
+		if out != "" {
 			ev.showOutput(e, out)
 		}
 		if p := l.Prompt(); p != shownPrompt {
@@ -919,6 +1054,9 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		// draws after every key.
 		stale = stale || changed || hadHint
 		switch {
+		case ev.released:
+			// The line was handed off with AcceptAndRelease, and what the
+			// command wrote is below it (D85).
 		case !stale || ev.keys.pending():
 		case l.Last() == "self-insert" && changed:
 			ev.refreshHint(e)
@@ -1004,6 +1142,9 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 	}
 	ev.modeString = ev.modeStringFor(mode)
 	ev.promptLines = lines
+	// What RunAtPrompt asked for while no line was read runs before the
+	// prompt is drawn (D87).
+	ev.runQueued()
 	if lines != "" {
 		// The prompt starts where the program's output left the cursor, as
 		// readline's does, and its last line starts at the left edge.
@@ -1019,13 +1160,27 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 
 	c := ev.runEditLoop(e)
 
+	drawnPos := e.Pos
 	e.CursorToEnd()
-	// One last draw, without brace matching, so no brace is left highlighted
-	// on the finished line.
-	was := ev.braceMatching
-	ev.braceMatching = false
-	ev.refresh(e)
-	ev.braceMatching = was
+	switch {
+	case ev.released:
+		// A line that a command handed off with AcceptAndRelease is drawn
+		// already, above what the command wrote (D85).
+	case ev.lineStale || c == key.CtrlC || ev.bracesShown(e, drawnPos):
+		// One last draw, without brace matching, so no brace is left
+		// highlighted on the finished line. A line that is not drawn as it
+		// stands, because keys came faster or Ctrl-C emptied it, is drawn
+		// too.
+		was := ev.braceMatching
+		ev.braceMatching = false
+		ev.refresh(e)
+		ev.braceMatching = was
+	default:
+		// The line on the screen is the finished line, so the cursor only
+		// moves to its end, as readline moves it, and nothing is written
+		// again (D89).
+		ev.moveToEnd(e)
+	}
 	if c == key.CtrlC && ev.keepInterrupted && ev.echoControlCharacters() {
 		// readline echoes the key that gave the line up after it.
 		ev.term.write("^C")

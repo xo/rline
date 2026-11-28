@@ -206,7 +206,12 @@ readline or rline already has.
 A command can do more through its `Line`. `Kill` puts text on the kill ring,
 `Mark`, `SetMark` and `CountGiven` give what bash gives `bind -x`, `Run` and
 `Complete` run another command after it, and `Release` gives it the terminal
-while the line is off the screen.
+while the line is off the screen. `Print` writes below the line and keeps
+it, and `AcceptAndRelease` finishes the line and gives the command the
+terminal, with no prompt after it.
+
+`RunAtPrompt` runs work while `ReadLine` waits for a key, as bash runs a trap
+or writes a job notice at the prompt. It is safe to call from any goroutine.
 
 A program can also change the bindings and the variables while it runs, as
 bash's `bind` builtin does. `AddCommand` adds a command after `New`, `Bind`

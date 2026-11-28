@@ -710,3 +710,100 @@ func TestReadLineWithStartsTheLine(t *testing.T) {
 		}
 	}
 }
+
+// TestRunAtPromptWakesTheTerminal checks that RunAtPrompt wakes a ReadLine
+// that waits for a key on a real terminal, through the pipe that the read
+// waits on beside it (D87).
+func TestRunAtPromptWakesTheTerminal(t *testing.T) {
+	t.Setenv("TERM", "xterm")
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available, so the wake was not checked: %v", err)
+	}
+	defer func() { _ = leader.Close() }()
+	defer func() { _ = follower.Close() }()
+	s, err := New(WithStdin(follower), WithStdout(follower))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = s.Close() }()
+	out := readPTY(leader)
+	done := make(chan string, 1)
+	go func() {
+		line, _ := s.ReadLine("$ ")
+		done <- line
+	}()
+	if !out.waitFor("$ ", 2*time.Second) {
+		t.Fatal("no prompt was drawn")
+	}
+	s.RunAtPrompt(func(w io.Writer) { _, _ = io.WriteString(w, "woken\n") })
+	if !out.waitFor("woken", 2*time.Second) {
+		t.Fatalf("RunAtPrompt did not wake the read, and the terminal got %q", out.String())
+	}
+	if _, err := leader.WriteString("x\r"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case line := <-done:
+		if line != "x" {
+			t.Errorf("the line is %q, want %q", line, "x")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the line never came back")
+	}
+}
+
+// TestRawModeKeepsAChangeOfSettings checks that a change to the terminal's
+// settings made between two lines, as stty makes one at the prompt, is what
+// the terminal goes back to after the next line, as readline reads the
+// settings each time it takes the terminal (D88). bash's case "A background
+// program stops on writing to the terminal, with tostop set" needs it.
+func TestRawModeKeepsAChangeOfSettings(t *testing.T) {
+	t.Setenv("TERM", "xterm")
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available, so the settings were not checked: %v", err)
+	}
+	defer func() { _ = leader.Close() }()
+	defer func() { _ = follower.Close() }()
+	s, err := New(WithStdin(follower), WithStdout(follower))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = s.Close() }()
+	_ = readPTY(leader)
+	fd := int(follower.Fd())
+	for i, keys := range []string{"x\r", "y\r"} {
+		if i == 1 {
+			mode, err := unix.IoctlGetTermios(fd, termiosGet)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mode.Lflag |= unix.TOSTOP
+			if err := unix.IoctlSetTermios(fd, termiosSetDrain, mode); err != nil {
+				t.Fatal(err)
+			}
+		}
+		done := make(chan string, 1)
+		go func() {
+			line, _ := s.ReadLine("$ ")
+			done <- line
+		}()
+		time.Sleep(50 * time.Millisecond)
+		if _, err := leader.WriteString(keys); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatalf("line %d never came back", i)
+		}
+	}
+	mode, err := unix.IoctlGetTermios(fd, termiosGet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mode.Lflag&unix.TOSTOP == 0 {
+		t.Error("tostop, set between the lines, was taken away after the next line")
+	}
+}

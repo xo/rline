@@ -153,7 +153,9 @@ func (ev *env) command(e *editor.Editor, l *readline.Line, name string, c key.Co
 	showLine(e, l)
 	switch name {
 	case "accept-line":
-		if !ev.multiline {
+		if !ev.multiline || ev.released {
+			// A line that AcceptAndRelease handed off is finished, whatever
+			// the program's continue function says (D85).
 			return false
 		}
 		// A line continuation character at the end of a row turns into a
@@ -340,6 +342,27 @@ func (l *Line) Release(fn func(rw io.ReadWriter) error) error {
 	return l.ev.release(l.e, l.rl, fn)
 }
 
+// Print writes text below the line and keeps the line on the screen above
+// it, and draws the prompt and the line again below the text, as bash's
+// display-shell-version does (D85).
+func (l *Line) Print(text string) {
+	showLine(l.e, l.rl)
+	l.ev.refresh(l.e)
+	l.ev.showOutput(l.e, text)
+}
+
+// AcceptAndRelease finishes the line as it stands, with the cursor moved
+// below it and the line kept on the screen, and gives the terminal to fn, as
+// bash's edit-and-execute-command does before it runs the editor. ReadLine
+// then hands the line back, with what the command made of it, and draws no
+// more of it: no prompt follows what fn wrote. It returns the error of fn
+// (D85).
+func (l *Line) AcceptAndRelease(fn func(rw io.ReadWriter) error) error {
+	err := l.ev.acceptAndRelease(l.e, l.rl, fn)
+	l.accept = true
+	return err
+}
+
 // runCommand runs a command of the program's own, and does what it asked for
 // once it returns.
 func (ev *env) runCommand(e *editor.Editor, rl *readline.Line, cmd Command, c key.Code) {
@@ -356,8 +379,14 @@ func (ev *env) runCommand(e *editor.Editor, rl *readline.Line, cmd Command, c ke
 
 // runPending runs the commands that a Command asked for with Run and
 // Complete, each as though its key were pressed after the key that ran the
-// Command (D80).
-func (ev *env) runPending(l *readline.Line, c key.Code) {
+// Command (D80). The first of them sees last, the command that ran before
+// the Command, as the command that ran last, as bash's commands see
+// rl_last_func: a second press of a key whose command completes then lists,
+// and menu-complete goes on to the next completion (D84).
+func (ev *env) runPending(l *readline.Line, c key.Code, last string) {
+	if len(ev.pending) > 0 {
+		l.SetLast(last)
+	}
 	for len(ev.pending) > 0 {
 		p := ev.pending[0]
 		ev.pending = ev.pending[1:]

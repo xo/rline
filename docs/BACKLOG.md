@@ -44,6 +44,14 @@ something from rline before usql can fix them.
     CI. D79 was checked by hand with TinyGo 0.44, and CI has no TinyGo, so a
     change that TinyGo cannot build would go unseen until hail builds it.
     From: D79.
+87. Fill a row that wraps to the edge of the terminal, as readline does.
+    rline ends such a row one column early, which leaves room for the
+    cursor and for the wrap mark, so that with `WithWrapMark(false)` a long
+    line still wraps one column before bash wraps it. readline fills the row
+    and moves the cursor to the next row when it reaches the edge. From:
+    D86.
+88. Test the wake of D87 on Windows. It waits on an event beside the
+    console, and only `go vet` for windows checked it here. From: D87.
 
 ## New features
 

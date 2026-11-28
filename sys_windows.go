@@ -112,6 +112,11 @@ type tty struct {
 
 	// resized is set when the window changes size.
 	resized atomic.Bool
+
+	// woken is an event that a wait for a key watches beside the console,
+	// so that wake can end the wait from another goroutine (D87). It is 0
+	// when the event could not be made.
+	woken windows.Handle
 }
 
 // isTerminal reports whether the standard input is a console.
@@ -173,13 +178,38 @@ func openTTY(fd int) (*tty, error) {
 	if err := windows.GetConsoleMode(h, &mode); err != nil {
 		return nil, fmt.Errorf("reading the console mode: %w", errNotATerminal)
 	}
-	return &tty{handle: h, origMode: mode}, nil
+	d := &tty{handle: h, origMode: mode}
+	// An event that resets itself once a wait sees it.
+	if ev, err := windows.CreateEvent(nil, 0, 0, nil); err == nil {
+		d.woken = ev
+	}
+	return d, nil
 }
 
 // close puts the console back the way it was.
 func (d *tty) close() error {
 	d.endRaw()
+	if d.woken != 0 {
+		_ = windows.CloseHandle(d.woken)
+		d.woken = 0
+	}
 	return nil
+}
+
+// wake makes a wait for a key return with no key (D87).
+func (d *tty) wake() bool {
+	return d.woken != 0 && windows.SetEvent(d.woken) == nil
+}
+
+// waitConsole waits up to ms milliseconds for a console event or a wake. It
+// reports whether an event is there to read.
+func (d *tty) waitConsole(ms uint32) bool {
+	if d.woken == 0 {
+		res, err := windows.WaitForSingleObject(d.handle, ms)
+		return err == nil && res == windows.WAIT_OBJECT_0
+	}
+	res, err := windows.WaitForMultipleObjects([]windows.Handle{d.handle, d.woken}, false, ms)
+	return err == nil && res == windows.WAIT_OBJECT_0
 }
 
 // startRaw puts the console into the mode that delivers keys one at a time.
@@ -310,6 +340,13 @@ func (d *tty) waitForKey(timeout time.Duration) {
 		if timeout >= 0 && !d.inputWaiting(&timeout) {
 			return
 		}
+		if timeout < 0 {
+			// The wait watches for a wake too, which returns with no key
+			// (D87).
+			if count, err := pendingConsoleEvents(d.handle); err == nil && count == 0 && !d.waitConsole(windows.INFINITE) {
+				return
+			}
+		}
 		var record inputRecord
 		var read uint32
 		if err := readConsoleInput(d.handle, &record, 1, &read); err != nil || read != 1 {
@@ -334,8 +371,7 @@ func (d *tty) inputWaiting(timeout *time.Duration) bool {
 	}
 	start := time.Now()
 	ms := uint32(*timeout / time.Millisecond)
-	res, err := windows.WaitForSingleObject(d.handle, ms)
-	if err != nil || res != windows.WAIT_OBJECT_0 {
+	if !d.waitConsole(ms) {
 		return false
 	}
 	*timeout -= time.Since(start)

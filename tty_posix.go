@@ -58,6 +58,12 @@ type tty struct {
 	stopCh   chan os.Signal
 	done     chan struct{}
 	stopOnce sync.Once
+
+	// wakeR and wakeW are a pipe that a read waits on beside the terminal,
+	// so that wake can end the wait from another goroutine (D87). hasWake
+	// says that the pipe was made, and is false in a tty made by hand.
+	wakeR, wakeW int
+	hasWake      bool
 }
 
 // isTerminal reports whether fd is a terminal. Reading the terminal settings
@@ -87,10 +93,17 @@ func openTTY(fd int) (*tty, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading the settings of file descriptor %d: %w", fd, errNotATerminal)
 	}
-	d := &tty{fd: fd, origMode: *mode, done: make(chan struct{})}
+	d := &tty{fd: fd, origMode: *mode, rawMode: rawModeOf(*mode), done: make(chan struct{})}
+	d.openWake()
 
-	// Raw mode, following the termios manual page.
-	raw := *mode
+	d.watchSignals()
+	return d, nil
+}
+
+// rawModeOf returns raw mode built from mode, following the termios manual
+// page.
+func rawModeOf(mode unix.Termios) unix.Termios {
+	raw := mode
 	// Input: no break signal, no carriage return to newline, no parity
 	// check, no stripping to seven bits, no flow control.
 	raw.Iflag &^= unix.BRKINT | unix.ICRNL | unix.INPCK | unix.ISTRIP | unix.IXON
@@ -102,10 +115,7 @@ func openTTY(fd int) (*tty, error) {
 	// One byte at a time, with no delay.
 	raw.Cc[unix.VTIME] = 0
 	raw.Cc[unix.VMIN] = 1
-	d.rawMode = raw
-
-	d.watchSignals()
-	return d, nil
+	return raw
 }
 
 // stopSignals are the signals that mean the program is stopping. While the
@@ -188,8 +198,36 @@ func (d *tty) close() error {
 		signal.Stop(d.stopCh)
 		close(d.done)
 		d.watching.Store(false)
+		if d.hasWake {
+			_ = unix.Close(d.wakeR)
+			_ = unix.Close(d.wakeW)
+		}
 	})
 	return nil
+}
+
+// openWake makes the pipe that wake writes to. Without it, a read cannot be
+// woken, and what RunAtPrompt asked for waits for the next key.
+func (d *tty) openWake() {
+	var p [2]int
+	if err := unix.Pipe(p[:]); err != nil {
+		return
+	}
+	for _, fd := range p {
+		unix.CloseOnExec(fd)
+		_ = unix.SetNonblock(fd, true)
+	}
+	d.wakeR, d.wakeW, d.hasWake = p[0], p[1], true
+}
+
+// wake makes a read that waits for a key return with no key (D87).
+func (d *tty) wake() bool {
+	if !d.hasWake {
+		return false
+	}
+	_, err := unix.Write(d.wakeW, []byte{0})
+	// A full pipe holds a wake already.
+	return err == nil || errors.Is(err, unix.EAGAIN)
 }
 
 // startRaw puts the terminal into raw mode, so that a key arrives as soon as
@@ -199,6 +237,12 @@ func (d *tty) startRaw() error {
 	defer d.mu.Unlock()
 	if d.rawEnabled {
 		return nil
+	}
+	// The settings are read again each time, as readline reads them, so that
+	// a change that stty made since the last line is what endRaw puts back,
+	// and what raw mode is built from (D88).
+	if mode, err := unix.IoctlGetTermios(d.fd, termiosGet); err == nil {
+		d.origMode, d.rawMode = *mode, rawModeOf(*mode)
 	}
 	if err := unix.IoctlSetTermios(d.fd, termiosSetDrain, &d.rawMode); err != nil {
 		return fmt.Errorf("putting the terminal into raw mode: %w", err)
@@ -251,16 +295,32 @@ func (d *tty) endRaw() {
 // decoder needs: it keeps the byte it already had and reads that as alt and
 // that character.
 func (d *tty) readByte(timeout time.Duration) (byte, bool) {
-	if timeout < 0 {
-		return d.readNow()
+	ms := -1
+	if timeout >= 0 {
+		ms = max(int(timeout/time.Millisecond), 0)
 	}
-	ms := max(int(timeout/time.Millisecond), 0)
 	fds := []unix.PollFd{{Fd: int32(d.fd), Events: unix.POLLIN}}
+	if d.hasWake {
+		fds = append(fds, unix.PollFd{Fd: int32(d.wakeR), Events: unix.POLLIN})
+	}
 	n, err := unix.Poll(fds, ms)
 	if err != nil || n < 1 {
 		// An interrupted wait counts as nothing arriving. A resize signal
 		// interrupts it, and the edit loop looks for that separately.
 		return 0, false
+	}
+	if len(fds) > 1 && fds[1].Revents != 0 {
+		// A wake: what is in the pipe goes, and the read returns with no
+		// key unless one is there too (D87).
+		var buf [64]byte
+		for {
+			if n, err := unix.Read(d.wakeR, buf[:]); n <= 0 || err != nil {
+				break
+			}
+		}
+		if fds[0].Revents == 0 {
+			return 0, false
+		}
 	}
 	return d.readNow()
 }
