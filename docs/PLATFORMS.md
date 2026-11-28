@@ -21,6 +21,11 @@ The Unix file is tagged `unix && !aix` and the ioctl numbers they need sit in
 asks anything of the system that `golang.org/x/sys/unix` does not answer per
 system.
 
+In a web page, GOOS=js has no terminal of its own. A program there gives
+rline one with `WithTerminal`, such as xterm.js, and rline edits lines on it
+(D79). That is built with Go and with TinyGo, and is not tested in a browser
+here. hail is the program that runs it.
+
 Compiling is not support, and this list says which is which rather than
 leaving a user of FreeBSD to guess. DeepSeek argued for keeping the narrow
 tag on exactly that ground. It also named the risk that would justify it,

@@ -322,6 +322,10 @@ type config struct {
 	// stdin reads the keys when it is not a terminal, which is what a pipe or a
 	// test gives.
 	stdin io.Reader
+
+	// terminal is a terminal that the program gives, in place of standard
+	// input and output (D79).
+	terminal Terminal
 }
 
 // Option changes a setting on a Session being made.
@@ -393,6 +397,15 @@ func WithPrompt(marker, continuation string) Option {
 			c.cpromptMarker = marker
 		}
 	}
+}
+
+// WithTerminal reads keys from terminal and draws on it, in place of standard
+// input and output, where there is no file descriptor to read keys from:
+// xterm.js in a web page under GOOS=js, or a test (D79). The Session edits
+// lines on it whatever $TERM says, takes no terminfo entry, and reads it as
+// UTF-8. WithStdin and WithStdout are not used when it is set.
+func WithTerminal(terminal Terminal) Option {
+	return func(c *config) { c.terminal = terminal }
 }
 
 // WithHistoryFile keeps the history in the named file, so that it outlives
@@ -666,6 +679,9 @@ func New(opts ...Option) (*Prompt, error) {
 		}
 	}
 
+	if c.terminal != nil {
+		c.stdout = c.terminal
+	}
 	in := io.Reader(os.Stdin)
 	if c.stdin != nil {
 		in = c.stdin
@@ -684,7 +700,13 @@ func New(opts ...Option) (*Prompt, error) {
 	// editing. The terminal is built either way, because the output is still
 	// worth writing even when there is nothing to edit on. Losing it was the
 	// bug this shape fixes.
-	t, ttyErr := openDecoder(c.inFd)
+	var t *keyDecoder
+	var ttyErr error
+	if c.terminal != nil {
+		t = newHostDecoder(c.terminal)
+	} else {
+		t, ttyErr = openDecoder(c.inFd)
+	}
 	isUTF8 := true
 	if ttyErr == nil {
 		isUTF8 = t.isUTF8
@@ -701,6 +723,10 @@ func New(opts ...Option) (*Prompt, error) {
 			t.src = logReader{src: t.src, logger: sl}
 		}
 	}
+	sz := outputSizer(c.stdout)
+	if c.terminal != nil {
+		sz = hostSizer{t: c.terminal}
+	}
 	tm := newTerm(out, termOptions{
 		// Color goes off when the output is not a terminal, so that a program
 		// whose output is redirected writes plain text rather than escape
@@ -708,10 +734,14 @@ func New(opts ...Option) (*Prompt, error) {
 		Color:  c.color && writesToTerminal(c.stdout),
 		Beep:   c.beep,
 		IsUTF8: isUTF8,
-		Sizer:  outputSizer(c.stdout),
+		Sizer:  sz,
 		// A pipe or a file gets the program's bytes unchanged (D57).
 		PassThrough: !writesToTerminal(c.stdout),
 	})
+	if c.terminal != nil && tm.color {
+		// The host says which colors it shows, and not $COLORTERM (D79).
+		tm.palette = hostPalette(c.terminal)
+	}
 	bb := newBBCode(tm)
 	for _, s := range defaultStyles {
 		bb.styleDef(s[0], s[1])
@@ -755,7 +785,7 @@ func New(opts ...Option) (*Prompt, error) {
 		hintDelay:       c.hintDelay,
 	}
 	r.env.viMode = c.viMode
-	if writesToTerminal(c.stdout) {
+	if writesToTerminal(c.stdout) && c.terminal == nil {
 		tm.ti = loadTerminfo(os.Getenv("TERM"))
 		r.env.termVars = terminfoVarsOf(tm.ti)
 	}
@@ -766,7 +796,7 @@ func New(opts ...Option) (*Prompt, error) {
 		r.env.readInputrc(c)
 	}
 	r.logger = sl
-	r.canEdit = ttyErr == nil && isInteractive()
+	r.canEdit = ttyErr == nil && (c.terminal != nil || isInteractive())
 	return &Prompt{Session: r, markup: &MarkupWriter{env: r.env}}, nil //nolint:nilerr // a missing keyboard is a mode, not a failure
 }
 
@@ -808,9 +838,10 @@ func outputSizer(w io.Writer) sizer {
 // line shares a row with the input. See D71 in docs/PLAN.md.
 //
 // It returns io.EOF when the user ended the input, which is Ctrl-D on an empty
-// line, and which is what the C answers with a null pointer. The cursor then
-// stays on the line, as readline leaves it, so that a shell can write "exit"
-// after the prompt (D74).
+// line, and which is what the C answers with a null pointer. Where readline
+// leaves the cursor then, so does rline: below the line when bracketed paste
+// mode was on, and on the line when it was off, so that a shell can write
+// "exit" after the prompt (D74, D78).
 //
 // It returns ErrInterrupted when the user abandoned the line, which is Ctrl-C
 // or Ctrl-G. This is a deliberate departure: the C clears the line and hands

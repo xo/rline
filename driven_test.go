@@ -3609,3 +3609,70 @@ func TestParseAndBindSetsOnlyTheLine(t *testing.T) {
 		t.Errorf("the variables set are %v, want %v", ev.vars, want)
 	}
 }
+
+// pasteTerminal is a terminal with bracketed paste mode for the tests. It
+// writes the sequences that turn the mode on and off, as tty_posix.go writes
+// them, into the same buffer that the Session writes to, as a real terminal
+// gets both. They are written out here because tty_posix.go builds only on
+// Unix.
+type pasteTerminal struct {
+	*feedKeys
+
+	out   *bytes.Buffer
+	paste bool
+}
+
+func (p *pasteTerminal) startRaw() error {
+	if p.paste {
+		p.out.WriteString("\x1b[?2004h")
+	}
+	return nil
+}
+
+func (p *pasteTerminal) endRaw() {
+	if p.paste {
+		p.out.WriteString("\x1b[?2004l\r")
+	}
+}
+
+func (p *pasteTerminal) setPaste(on bool)  { p.paste = on }
+func (p *pasteTerminal) resizeEvent() bool { return false }
+func (p *pasteTerminal) asyncStop() bool   { return false }
+func (p *pasteTerminal) close() error      { return nil }
+
+// TestTheEndOfInputWithBracketedPaste checks that at the end of the input
+// the cursor moves below the line when bracketed paste mode was on, after
+// the mode is turned off, as readline does, and stays on the line when it
+// was off (D74, D78). bash 5.3 then writes "exit" on the next row, or on the
+// prompt line.
+func TestTheEndOfInputWithBracketedPaste(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name     string
+		vars     map[string]any
+		want     []string
+		row, col int
+	}{
+		// The screen holds no row for the empty one the cursor moved to.
+		{"with paste mode", nil, []string{"$ ab", "$"}, 2, 0},
+		{"without paste mode", map[string]any{"enable-bracketed-paste": false}, []string{"$ ab", "$"}, 1, 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ev, sink := feedEnv(t, "ab"+kEnter+kCtrlD, feedOpts{})
+			ev.keys.ctrl = &pasteTerminal{feedKeys: ev.keys.src.(*feedKeys), out: sink}
+			ev.vars = tc.vars
+			ev.promptMarker = "$ "
+			_, out := readLines(t, ev, sink, 2)
+			screen, row, col := screenAt(out, 80)
+			if !slices.Equal(screen, tc.want) || row != tc.row || col != tc.col {
+				t.Errorf("the screen shows %q with the cursor at row %d column %d, want %q at row %d column %d\n%q",
+					screen, row, col, tc.want, tc.row, tc.col, out)
+			}
+			// The bytes that bash 5.3 writes, recorded on a pseudo-terminal.
+			if tc.vars == nil && !strings.HasSuffix(out, "\x1b[?2004l\r\n") {
+				t.Errorf("the output ends %q, want the mode turned off, a carriage return and then a newline", out)
+			}
+		})
+	}
+}

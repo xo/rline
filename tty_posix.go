@@ -214,15 +214,6 @@ func (d *tty) startRaw() error {
 	return nil
 }
 
-// pasteOn and pasteOff turn bracketed paste mode on and off. readline writes
-// these, and not what terminfo gives, and so does rline (D66). They go to the
-// terminal that the keys come from, beside the settings that raw mode
-// changes, so the log of WithLogger does not hold them.
-const (
-	pasteOn  = "\x1b[?2004h"
-	pasteOff = "\x1b[?2004l"
-)
-
 // setPaste says whether startRaw turns on bracketed paste mode. endRaw turns
 // it off again, on every path that puts the terminal back, a signal among
 // them.

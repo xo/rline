@@ -654,7 +654,7 @@ func (ev *env) readKey(e *editor.Editor) key.Code {
 // because the terminal rewrites it on the way in, and the editor never sees
 // the key that ends a line.
 func (ev *env) readLine(promptText string) (string, bool, error) {
-	ev.keys.setPaste(ev.bracketedPaste())
+	paste := ev.keys.setPaste(ev.bracketedPaste())
 	if err := ev.keys.startRaw(); err != nil {
 		return "", false, fmt.Errorf("switching the terminal to raw mode: %w", err)
 	}
@@ -665,8 +665,10 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 	// The finished line stays on screen and the cursor moves below it, and
 	// a line that Ctrl-C gave up counts as finished here. At the end of the
 	// input the cursor stays on the line, as readline leaves it, so that
-	// bash writes "exit" after the prompt (D74).
-	if ok {
+	// bash writes "exit" after the prompt (D74). With bracketed paste on,
+	// readline moves below the line there too, after it turns paste mode
+	// off, and so does rline (D78).
+	if ok || paste {
 		ev.term.writeln("")
 	}
 	ev.term.flush()

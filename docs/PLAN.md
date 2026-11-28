@@ -107,10 +107,12 @@ that holds it.
 | [D71](#d71-the-prompt-follows-readlines-markers-for-text-that-takes-no-width-and-its-rules-for-a-prompt-of-several-lines-decided) | The prompt follows readline's markers for text that takes no width, and its rules for a prompt of several lines | Decided |
 | [D72](#d72-the-program-can-keep-every-copy-of-a-line-in-the-history-and-can-keep-the-history-itself-decided) | The program can keep every copy of a line in the history, and can keep the history itself | Decided |
 | [D73](#d73-readlinewith-starts-the-line-with-text-decided) | ReadLineWith starts the line with text | Decided |
-| [D74](#d74-readline-leaves-the-cursor-on-the-line-at-the-end-of-the-input-decided) | ReadLine leaves the cursor on the line at the end of the input | Decided |
+| [D74](#d74-readline-leaves-the-cursor-on-the-line-at-the-end-of-the-input-decided-amended-by-d78) | ReadLine leaves the cursor on the line at the end of the input | Decided. Amended by D78 |
 | [D75](#d75-a-completer-can-keep-the-order-of-its-completions-decided) | A completer can keep the order of its completions | Decided |
 | [D76](#d76-a-program-can-change-the-bindings-and-the-variables-while-the-session-runs-decided) | A program can change the bindings and the variables while the Session runs | Decided |
 | [D77](#d77-parseandbind-applies-one-line-of-an-inputrc-file-decided) | ParseAndBind applies one line of an inputrc file | Decided |
+| [D78](#d78-with-bracketed-paste-on-the-end-of-the-input-moves-below-the-line-decided-amends-d74) | With bracketed paste on, the end of the input moves below the line | Decided. Amends D74 |
+| [D79](#d79-withterminal-takes-the-terminal-from-the-program-decided) | WithTerminal takes the terminal from the program | Decided |
 
 ## Purpose
 
@@ -1545,7 +1547,7 @@ no terminal to edit on, the text is not used, as bash does not use it.
 `PushInput` is not the way, because it reads its bytes as keys, so a Tab in
 the text would complete.
 
-### D74. ReadLine leaves the cursor on the line at the end of the input. Decided.
+### D74. ReadLine leaves the cursor on the line at the end of the input. Decided. Amended by D78.
 
 When Ctrl-D on an empty line, or the end of the input, ends a read, `ReadLine`
 returns `io.EOF` and writes no newline. readline writes none either, and bash
@@ -1613,6 +1615,62 @@ not split the line itself. Ken asked for it on 2026-11-28.
    and the error of the parser for a line that is not one of an inputrc
    file.
 4. `SetVariable` reads its line the same way.
+
+### D78. With bracketed paste on, the end of the input moves below the line. Decided. Amends D74.
+
+hail found on 2026-11-28 that D74 matches readline only when
+`enable-bracketed-paste` is off. bash 5.3.20 with readline 8.3 was recorded
+on a pseudo-terminal:
+
+- With bracketed paste on, which is readline's default, Ctrl-D on an empty
+  line writes `\e[?2004l\r` and then a newline, so bash writes "exit" on
+  the next row. `read -e` ends the same way.
+- With it off, Ctrl-D writes nothing, and bash writes "exit" on the prompt
+  line, as D74 says.
+- After Enter, readline writes the newline and then `\e[?2004l\r`.
+
+rline wrote `\e[?2004l` with no carriage return, and no newline at the end
+of the input.
+
+1. The sequence that turns bracketed paste mode off is followed by a
+   carriage return, as readline writes it.
+2. At the end of the input, `ReadLine` moves the cursor below the line when
+   bracketed paste mode was on for that read, and leaves it on the line when
+   the mode was off or the terminal has none, as the Windows console has
+   none.
+
+A program that writes its own newline at the end of the input, as usql does
+since v0.10.0, now gets a blank row when bracketed paste is on.
+
+Ken accepted the decision on 2026-11-28.
+
+### D79. WithTerminal takes the terminal from the program. Decided.
+
+hail asked on 2026-11-28 for a terminal in a web page. hail runs there as
+GOOS=js, in a Web Worker, built with Go or TinyGo, and xterm.js draws the
+terminal. There is no file descriptor and no ioctl, so rline read plain
+lines there. Ken accepted this shape on 2026-11-28.
+
+1. `WithTerminal(terminal Terminal)` reads keys from the program's terminal
+   and draws on it, in place of standard input and output.
+2. `Terminal` is `io.Reader`, `io.Writer` and `Size() (cols, rows int)`.
+   Read gives the raw bytes that the user types, and io.EOF ends the input.
+3. A Terminal can have three more methods, which rline uses when they are
+   there: `Resized() <-chan struct{}` for a change of size, which wakes a
+   read that waits for a key, as SIGWINCH does; `SetRaw(on bool) error`,
+   called where raw mode starts and stops; and `Palette() ansi.Palette` for
+   the colors. Without `Resized`, rline asks `Size` after each key. Without
+   `Palette`, rline writes 256 colors, which xterm.js shows.
+4. A goroutine reads the Terminal, so that the decoder still waits a short
+   time for the rest of an escape sequence. Bracketed paste mode is turned
+   on and off on the Terminal's writer.
+5. The Session edits lines whatever `$TERM` says, takes no terminfo entry,
+   and reads the input as UTF-8.
+6. The file `host.go` has no build tag. Go builds it for js and wasm, and so
+   does TinyGo 0.44, which was checked by hand. CI has no TinyGo, and
+   backlog 86 holds that check.
+
+The same option lets a test drive a whole Session without a pseudo-terminal.
 
 ## Open questions for Ken
 

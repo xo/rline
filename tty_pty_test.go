@@ -293,11 +293,15 @@ func TestRawModeTurnsOnBracketedPaste(t *testing.T) {
 		t.Fatalf("raw mode wrote %q, and no %q", out.String(), pasteOn)
 	}
 	term.endRaw()
-	if !out.waitFor(pasteOn+pasteOff, 2*time.Second) {
-		t.Fatalf("leaving raw mode wrote %q, and no %q after %q", out.String(), pasteOff, pasteOn)
+	// The bytes that bash 5.3 writes around a line, recorded on a
+	// pseudo-terminal: readline writes a carriage return after it turns the
+	// mode off (D78).
+	const want = "\x1b[?2004h\x1b[?2004l\r"
+	if !out.waitFor(want, 2*time.Second) {
+		t.Fatalf("leaving raw mode wrote %q, want %q", out.String(), want)
 	}
-	if got := out.String(); got != pasteOn+pasteOff {
-		t.Errorf("the terminal got %q, want %q", got, pasteOn+pasteOff)
+	if got := out.String(); got != want {
+		t.Errorf("the terminal got %q, want %q", got, want)
 	}
 }
 

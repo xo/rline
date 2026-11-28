@@ -40,6 +40,10 @@ something from rline before usql can fix them.
     gives no notice. inputrc's parser reads on past it and keeps the fault,
     and `ParseFile` returns nil, so `Notices` does not say why a binding
     does nothing. `ReadInputrc` returns those faults. From: D76.
+86. Build a program that uses `WithTerminal` with TinyGo for js and wasm in
+    CI. D79 was checked by hand with TinyGo 0.44, and CI has no TinyGo, so a
+    change that TinyGo cannot build would go unseen until hail builds it.
+    From: D79.
 
 ## New features
 

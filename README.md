@@ -342,6 +342,11 @@ highlighting, backspace, statements over three and four rows, the completion
 menu, the arrow keys within and between rows, the password read, and leaving.
 Those runs found no fault.
 
+In a web page, where GOOS=js has no terminal, a program gives `rline` one
+with `WithTerminal`: a reader of the keys, a writer for the screen, and the
+size, such as xterm.js gives them. Go and TinyGo both build it for js and
+wasm.
+
 On Windows, `rline` is tested on Windows 11 and nothing older (D62). It asks
 the console to read escape sequences rather than driving the console through
 its API, so a console that cannot read them is not supported: Windows 10

@@ -71,6 +71,8 @@ files (D15):
 - `decoder.go`: decoding bytes and escape sequences into keys, and turning
   Windows key events into sequences. It has no build tag, so every system
   tests it.
+- `host.go`: a terminal that the program gives with `WithTerminal`, such as
+  xterm.js in a web page (D79). It has no build tag.
 - `tty_*.go`: the terminal device. `tty_posix.go` is `unix && !aix`.
   `tty_sysv.go` and `tty_bsd.go` hold the ioctl numbers of each family,
   and read the output speed as that family keeps it.

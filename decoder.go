@@ -866,19 +866,33 @@ const (
 // pasteEnd is what a terminal sends after a paste, in bracketed paste mode.
 const pasteEnd = "\x1b[201~"
 
+// pasteOn and pasteOff turn bracketed paste mode on and off. readline writes
+// these, and not what terminfo gives, and so does rline (D66). readline
+// writes a carriage return after the sequence that turns it off, and so does
+// rline (D78). They go to the terminal that the keys come from, beside the
+// settings that raw mode changes, so the log of WithLogger does not hold
+// them.
+const (
+	pasteOn  = "\x1b[?2004h"
+	pasteOff = "\x1b[?2004l\r"
+)
+
 // paster is a terminalController that can turn on bracketed paste mode while
 // it is in raw mode.
 type paster interface {
 	setPaste(on bool)
 }
 
-// setPaste says whether startRaw turns on bracketed paste mode. It does
-// nothing when the terminal has no such mode, as the Windows console has
-// none.
-func (t *keyDecoder) setPaste(on bool) {
-	if p, ok := t.ctrl.(paster); ok {
-		p.setPaste(on)
+// setPaste says whether startRaw turns on bracketed paste mode, and reports
+// whether it will. It does nothing when the terminal has no such mode, as the
+// Windows console has none.
+func (t *keyDecoder) setPaste(on bool) bool {
+	p, ok := t.ctrl.(paster)
+	if !ok {
+		return false
 	}
+	p.setPaste(on)
+	return on
 }
 
 // readPaste reads the text of a paste, after keyPaste, up to pasteEnd. It
