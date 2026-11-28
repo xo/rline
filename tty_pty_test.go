@@ -659,3 +659,50 @@ func TestReadLineEndsWhenTheTerminalCloses(t *testing.T) {
 		t.Fatal("ReadLine did not return after the terminal closed")
 	}
 }
+
+// TestReadLineWithStartsTheLine checks that ReadLineWith starts the line with
+// its text on a real terminal, and that the next ReadLine starts empty (D73).
+func TestReadLineWithStartsTheLine(t *testing.T) {
+	t.Setenv("TERM", "xterm")
+	leader, follower, err := capture.OpenPTY()
+	if err != nil {
+		t.Skipf("no pseudo-terminal available, so ReadLineWith was not checked: %v", err)
+	}
+	defer leader.Close()
+	defer follower.Close()
+	s, err := New(WithStdin(follower), WithStdout(follower))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = s.Close() }()
+	out := readPTY(leader)
+	lines := make(chan string, 2)
+	go func() {
+		for _, text := range []string{"hello", ""} {
+			line, err := s.ReadLineWith("$ ", text)
+			if err != nil {
+				t.Errorf("ReadLineWith: %v", err)
+			}
+			lines <- line
+		}
+	}()
+	for i, want := range []string{"hello!", "x"} {
+		// The prompt of this line is the (i+1)th that the terminal got.
+		for end := time.Now().Add(2 * time.Second); strings.Count(out.String(), "$ ") <= i; time.Sleep(10 * time.Millisecond) {
+			if time.Now().After(end) {
+				t.Fatalf("line %d: no prompt was drawn, and the terminal got %q", i, out.String())
+			}
+		}
+		if _, err := leader.WriteString(want[len(want)-1:] + "\r"); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case got := <-lines:
+			if got != want {
+				t.Errorf("line %d is %q, want %q", i, got, want)
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatalf("line %d never came back, and the terminal got %q", i, out.String())
+		}
+	}
+}

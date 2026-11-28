@@ -310,7 +310,7 @@ func (ev *env) acceptHint(e *editor.Editor) {
 
 // candidates returns the completions of the program's completer for the
 // readline commands that complete.
-func (ev *env) candidates(line string, point int) []readline.Candidate {
+func (ev *env) candidates(line string, point int) ([]readline.Candidate, bool) {
 	n := ev.completions.generate(line, point, maxCompletionsToShow)
 	out := make([]readline.Candidate, 0, n)
 	for i := range n {
@@ -330,7 +330,7 @@ func (ev *env) candidates(line string, point int) []readline.Candidate {
 			Suffix:  cm.suffix,
 		})
 	}
-	return out
+	return out, ev.completions.keepOrder
 }
 
 // showListing prints completions below the line, in columns that run down and

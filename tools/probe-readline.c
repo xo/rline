@@ -638,11 +638,21 @@ static const struct probe_case cases[] = {
 #undef SL
 #undef L200
   {"print-last-kbd-macro", {0}, {"\x18" "(", "a", "b", "\x02", "\x18" ")", "\x18" "q"}, {"\\C-xq", "print-last-kbd-macro"}, .out = 1},
+  {"print-last-kbd-macro-high-bytes", {0}, {"\x18" "(", "\xc3\xa9", "\x1b" "b", "\x18" ")", "\x18" "q"},
+   {"\\C-xq", "print-last-kbd-macro"}, .out = 1},
   {"print-last-kbd-macro-none", {0}, {"\x18" "q", "x"}, {"\\C-xq", "print-last-kbd-macro"}, .out = 1},
   {"dump-macros", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-macros"},
    .rc = {"\"\\C-xy\": \"hello\"", "\"\\ez\": \"a\\tb\""}, .out = 1},
   {"dump-variables", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-variables"}, .out = 1},
   {"dump-functions", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-functions"}, .out = 1},
+  /* A key, a macro and a variable that hold UTF-8 and bytes above 0x7f.
+     readline prints each of the three in its own way. */
+  {"dump-macros-high-bytes", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-macros"},
+   .rc = {"\"\\C-xy\": \"\xc3\xa9\\201\\233\\377\"", "\"\xc3\xa9\": \"x\""}, .out = 1},
+  {"dump-variables-high-bytes", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-variables"},
+   .rc = {"set comment-begin \xc3\xa9\\201"}, .out = 1},
+  {"dump-functions-high-bytes", {0}, {"\x18" "q", "\x1b" "1", "\x18" "q"}, {"\\C-xq", "dump-functions"},
+   .rc = {"\"\xc3\xa9\": backward-char", "\"\\201\": forward-char"}, .out = 1},
 #undef HS
 #undef H3
 

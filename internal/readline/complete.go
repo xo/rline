@@ -25,8 +25,10 @@ type Candidate struct {
 	Suffix string
 }
 
-// A Completer returns the completions of the text before point in line.
-type Completer func(line string, point int) []Candidate
+// A Completer returns the completions of the text before point in line, and
+// whether they keep the order it gives them, as bash's complete -o nosort
+// asks. Otherwise they are sorted by their text, as readline sorts them.
+type Completer func(line string, point int) (cands []Candidate, keepOrder bool)
 
 // queryItems is how many completions readline lists without asking first,
 // the default of its completion-query-items.
@@ -64,14 +66,17 @@ func (l *Line) Listing() []Candidate {
 // is not waiting.
 func (l *Line) Asking() string { return l.asking }
 
-// candidates returns the completions at the cursor, without duplicates and
-// sorted, as readline sorts them.
+// candidates returns the completions at the cursor, sorted as readline sorts
+// them unless the completer keeps its own order, and without a completion
+// that repeats the one before it.
 func (l *Line) candidates() []Candidate {
 	if l.completer == nil {
 		return nil
 	}
-	cands := l.completer(string(l.buf), l.point)
-	slices.SortStableFunc(cands, func(a, b Candidate) int { return strings.Compare(a.Text, b.Text) })
+	cands, keepOrder := l.completer(string(l.buf), l.point)
+	if !keepOrder {
+		slices.SortStableFunc(cands, func(a, b Candidate) int { return strings.Compare(a.Text, b.Text) })
+	}
 	return slices.CompactFunc(cands, func(a, b Candidate) bool { return a.Text == b.Text })
 }
 

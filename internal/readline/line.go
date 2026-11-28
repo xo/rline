@@ -236,6 +236,18 @@ func (l *Line) ding() { l.bell++ }
 // Ding rings the bell, as a command does when it can do nothing.
 func (l *Line) Ding() { l.ding() }
 
+// Insert puts text into the line at the cursor and moves the cursor to its
+// end. It is one change that undo takes back out, as the text that bash's
+// read -e -i puts in.
+func (l *Line) Insert(text string) {
+	if l.undo.open == nil {
+		l.undo.begin()
+		defer l.undo.end()
+	}
+	l.insert(l.point, []byte(text))
+	l.point += len(text)
+}
+
 // insert puts text into the line at pos, and records it for undo.
 func (l *Line) insert(pos int, text []byte) {
 	if len(text) == 0 {

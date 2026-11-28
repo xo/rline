@@ -1,6 +1,11 @@
 package readline
 
-import "github.com/xo/rline/key"
+import (
+	"unicode/utf8"
+
+	rtext "github.com/xo/rline/internal/text"
+	"github.com/xo/rline/key"
+)
 
 // Keymap maps sequences of keys to the names of commands.
 type Keymap struct {
@@ -132,4 +137,21 @@ func (k *Keymap) find(seq []key.Code) (*node, bool) {
 		return nil, true
 	}
 	return n, false
+}
+
+// textKeys turns s into the keys that typing it gives, one for each character
+// of UTF-8. A byte that starts no character is a key of its own, as rline's
+// decoder reads it, because inputrc gives a key sequence as bytes since its
+// v0.9.0.
+func textKeys(s string) []key.Code {
+	out := make([]key.Code, 0, len(s))
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError && size == 1 {
+			r = rtext.RawRune(s[i])
+		}
+		out = append(out, key.Code(r))
+		i += size
+	}
+	return out
 }

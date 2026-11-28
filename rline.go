@@ -257,6 +257,11 @@ type config struct {
 	historyFileMode fs.FileMode
 	historyLimit    int
 
+	// historyDuplicates keeps every copy of a line, and manualHistory leaves
+	// the history to the program (D72).
+	historyDuplicates bool
+	manualHistory     bool
+
 	// What marks up a line, what completes a word, and what decides whether a
 	// line is finished.
 	highlighter Highlighter
@@ -389,6 +394,26 @@ func WithHistoryFileMode(historyFileMode fs.FileMode) Option {
 // nothing to walk through.
 func WithHistoryLimit(historyLimit int) Option {
 	return func(c *config) { c.historyLimit = max(historyLimit, 0) }
+}
+
+// WithHistoryDuplicates keeps every copy of a line in the history, as
+// readline does. By default, a line that is already in the history moves to
+// the end, and its earlier copy goes, so that Up does not show it twice
+// (D72).
+func WithHistoryDuplicates(historyDuplicates bool) Option {
+	return func(c *config) { c.historyDuplicates = historyDuplicates }
+}
+
+// WithManualHistory leaves the history to the program, as readline does.
+// ReadLine then adds no line itself, and the program adds what it keeps with
+// AddHistory, as a shell does for HISTCONTROL and HISTIGNORE. By default,
+// ReadLine adds each line of two characters or more (D72).
+//
+// ReadLine still writes the history file after each line, so a line that the
+// program adds is in the file after the next line is read, or after
+// SaveHistory.
+func WithManualHistory(manualHistory bool) Option {
+	return func(c *config) { c.manualHistory = manualHistory }
 }
 
 // WithHistory turns the history on or off, keeping whatever file and limit
@@ -672,6 +697,7 @@ func New(opts ...Option) (*Prompt, error) {
 	}
 	h := &history{}
 	h.mode = c.historyFileMode
+	h.allowDuplicates = c.historyDuplicates
 	// A history that cannot be read is not a reason to refuse to run: the
 	// file may not exist yet, or may belong to someone else, and a program
 	// that cannot prompt because of it is worse than one with no history.
@@ -700,6 +726,7 @@ func New(opts ...Option) (*Prompt, error) {
 		completeAutoTab: c.autoTab,
 		completionMenu:  c.completionMenu,
 		keepInterrupted: c.keepInterrupted,
+		manualHistory:   c.manualHistory,
 		commands:        c.commands,
 		completePreview: true,
 		hintDelay:       c.hintDelay,
@@ -758,7 +785,9 @@ func outputSizer(w io.Writer) sizer {
 // line shares a row with the input. See D71 in docs/PLAN.md.
 //
 // It returns io.EOF when the user ended the input, which is Ctrl-D on an empty
-// line, and which is what the C answers with a null pointer.
+// line, and which is what the C answers with a null pointer. The cursor then
+// stays on the line, as readline leaves it, so that a shell can write "exit"
+// after the prompt (D74).
 //
 // It returns ErrInterrupted when the user abandoned the line, which is Ctrl-C
 // or Ctrl-G. This is a deliberate departure: the C clears the line and hands
@@ -784,6 +813,18 @@ func (s *Session) ReadLine(prompt string) (string, error) {
 	}
 	s.logger.note(LogLine, slog.String(LogText, line))
 	return line, nil
+}
+
+// ReadLineWith reads one line, as ReadLine does, and starts the line with
+// text, with the cursor at its end, as bash's read -e -i does. The text goes
+// in as one change, so an undo takes it back out. When there is no terminal
+// to edit on, the text is not used, as bash leaves it unused (D73).
+func (s *Session) ReadLineWith(prompt, text string) (string, error) {
+	if s.env != nil && s.canEdit && text != "" {
+		s.env.initial, s.env.hasInitial = text, true
+		defer func() { s.env.initial, s.env.hasInitial = "", false }()
+	}
+	return s.ReadLine(prompt)
 }
 
 // readPlain reads a line with no editing, for when there is no terminal to
@@ -1123,8 +1164,8 @@ func (s *Session) AddHistory(entry string) {
 
 // RemoveLastHistory forgets the most recent entry.
 //
-// ReadLine adds every line it returns, so this is how a caller says that one
-// should not have been kept: a command that leaves the program, or a line
+// ReadLine adds every line it returns, unless WithManualHistory is on, so this
+// is how a caller says that one should not have been kept: a command that leaves the program, or a line
 // that turned out to hold a secret. The C offers the same thing as
 // ic_history_remove_last, and the port had it inside and never exposed it,
 // which the example noticed by remembering every \q anyone ever typed.

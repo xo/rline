@@ -138,6 +138,15 @@ type env struct {
 	// ^C after it (D52).
 	keepInterrupted bool
 
+	// manualHistory leaves every entry of the history to the program, as
+	// readline does, so that ReadLine adds no line itself (D72).
+	manualHistory bool
+
+	// initial is the text that the next line starts with, and hasInitial
+	// says that there is one (D73).
+	initial    string
+	hasInitial bool
+
 	// commands are the program's own commands, by name (D58).
 	commands map[string]Command
 
@@ -647,8 +656,13 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 	line, ok, c := ev.editLine(promptText)
 	ev.term.endRaw(false)
 	ev.keys.endRaw()
-	// The finished line stays on screen and the cursor moves below it.
-	ev.term.writeln("")
+	// The finished line stays on screen and the cursor moves below it, and
+	// a line that Ctrl-C gave up counts as finished here. At the end of the
+	// input the cursor stays on the line, as readline leaves it, so that
+	// bash writes "exit" after the prompt (D74).
+	if ok {
+		ev.term.writeln("")
+	}
 	ev.term.flush()
 	if c == key.CtrlC {
 		// The user abandoned the line rather than finishing it. See
@@ -695,6 +709,15 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		// operate-and-get-next asked for this line to start with a history
 		// line.
 		l.StartWith(ev.next)
+		showLine(e, l)
+		ev.refresh(e)
+	}
+	if ev.hasInitial {
+		// The program asked for the line to start with text, as bash's
+		// read -e -i does. It goes in as though it were typed, so that an
+		// undo takes it back out (D73).
+		l.Insert(ev.initial)
+		ev.initial, ev.hasInitial = "", false
 		showLine(e, l)
 		ev.refresh(e)
 	}
@@ -938,11 +961,18 @@ func (ev *env) editLine(promptText string) (string, bool, key.Code) {
 		line = string(e.Input.DecodeFromLocale())
 	}
 
-	ev.history.update(e.Input.String())
-	if !ok || c == key.CtrlC || e.Input.Length() <= 1 {
-		// Neither an empty line nor a single character is worth keeping,
-		// nor a line that Ctrl-C gave up.
+	switch {
+	case ev.manualHistory:
+		// Only the entry that stood for the line goes. Replacing it first,
+		// as below, would take out an earlier copy of the line (D72).
 		ev.history.removeLast()
+	default:
+		ev.history.update(e.Input.String())
+		if !ok || c == key.CtrlC || e.Input.Length() <= 1 {
+			// Neither an empty line nor a single character is worth
+			// keeping, nor a line that Ctrl-C gave up.
+			ev.history.removeLast()
+		}
 	}
 	_ = ev.history.save()
 	return line, ok, c

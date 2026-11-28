@@ -138,6 +138,19 @@ type Completion struct {
 	// length of the prefix that the completer was handed, less what a
 	// wrapper of add already takes away for it.
 	replace int
+
+	// keepOrder says that the completions keep the order they were added
+	// in (D75).
+	keepOrder bool
+}
+
+// KeepOrder shows the completions in the order they were added, rather than
+// sorted, as bash's complete -o nosort asks. It holds for this one request
+// for completions (D75).
+func (c *Completion) KeepOrder() {
+	if c != nil {
+		c.keepOrder = true
+	}
 }
 
 // Add offers one completion, which replaces the prefix that was handed to the
@@ -189,6 +202,10 @@ type completions struct {
 
 	completer    Completer
 	completerArg any
+
+	// keepOrder says that the completer asked for its order to be kept,
+	// the last time it was asked (D75).
+	keepOrder bool
 
 	// completerMax is how many more completions will be accepted. It counts
 	// down, and every offer past zero is refused, which is how a completer
@@ -331,6 +348,10 @@ func applyCompletion(cm *completion, buf *text.Buffer, pos int) int {
 // leaves them wherever its sort puts them, which is not defined, so nothing
 // depends on it either way.
 func (c *completions) sort() {
+	if c.keepOrder {
+		// The completer asked for its own order (D75).
+		return
+	}
 	slices.SortStableFunc(c.items, func(a, b completion) int {
 		return text.CompareFold(a.replacement, b.replacement)
 	})
@@ -394,6 +415,7 @@ func (c *completions) applyLongestPrefix(buf *text.Buffer, pos int) int {
 // returns how many it offered. max is how many will be accepted.
 func (c *completions) generate(input string, pos, maxOffers int) int {
 	c.clear()
+	c.keepOrder = false
 	if c.completer == nil || pos < 0 || len(input) < pos {
 		return 0
 	}
@@ -401,6 +423,7 @@ func (c *completions) generate(input string, pos, maxOffers int) int {
 	cenv.add = c.add
 	c.completerMax = maxOffers
 	c.completer.Complete(cenv, input[:pos])
+	c.keepOrder = cenv.keepOrder
 	return c.count()
 }
 

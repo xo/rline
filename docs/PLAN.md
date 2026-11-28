@@ -105,6 +105,10 @@ that holds it.
 | [D69](#d69-rline-removes-isoclines-file-name-completer-decided) | rline removes isocline's file name completer | Decided |
 | [D70](#d70-sessionpushinput-gives-the-session-input-that-something-else-read-from-the-terminal-decided) | Session.PushInput gives the Session input that something else read from the terminal | Decided |
 | [D71](#d71-the-prompt-follows-readlines-markers-for-text-that-takes-no-width-and-its-rules-for-a-prompt-of-several-lines-decided) | The prompt follows readline's markers for text that takes no width, and its rules for a prompt of several lines | Decided |
+| [D72](#d72-the-program-can-keep-every-copy-of-a-line-in-the-history-and-can-keep-the-history-itself-decided) | The program can keep every copy of a line in the history, and can keep the history itself | Decided |
+| [D73](#d73-readlinewith-starts-the-line-with-text-decided) | ReadLineWith starts the line with text | Decided |
+| [D74](#d74-readline-leaves-the-cursor-on-the-line-at-the-end-of-the-input-decided) | ReadLine leaves the cursor on the line at the end of the input | Decided |
+| [D75](#d75-a-completer-can-keep-the-order-of-its-completions-decided) | A completer can keep the order of its completions | Decided |
 
 ## Purpose
 
@@ -1511,6 +1515,49 @@ isocline has neither rule, so this is a departure from the C, and
 [PORT.md](PORT.md) lists it.
 
 Ken accepted the decision on 2026-11-28.
+
+### D72. The program can keep every copy of a line in the history, and can keep the history itself. Decided.
+
+hail asked on 2026-11-28 for a history that it keeps as bash keeps one.
+`ReadLine` added each line of two characters or more, and took out an
+earlier copy of the line, as isocline does. readline adds no line: the
+program calls `add_history`, and bash decides what goes in from
+`HISTCONTROL`, `HISTIGNORE` and `history -s`.
+
+1. `WithHistoryDuplicates(true)` keeps every copy of a line, in `ReadLine`
+   and in `AddHistory`. Without it, a line that is already there moves to
+   the end, as before.
+2. `WithManualHistory(true)` stops `ReadLine` from adding any line. The
+   program adds what it keeps with `AddHistory`. The name says what it turns
+   on, so its zero value is the old behavior (D26).
+3. `ReadLine` still writes the history file after each line, with or without
+   the option.
+
+### D73. ReadLineWith starts the line with text. Decided.
+
+hail asked on 2026-11-28 for bash's `read -e -i TEXT`.
+`ReadLineWith(prompt, text string)` reads one line as `ReadLine` does, and
+the line starts with the text, with the cursor at its end. The text goes in
+as one change, so an undo takes it back out, as bash 5.3 does. When there is
+no terminal to edit on, the text is not used, as bash does not use it.
+`PushInput` is not the way, because it reads its bytes as keys, so a Tab in
+the text would complete.
+
+### D74. ReadLine leaves the cursor on the line at the end of the input. Decided.
+
+When Ctrl-D on an empty line, or the end of the input, ends a read, `ReadLine`
+returns `io.EOF` and writes no newline. readline writes none either, and bash
+then writes "exit" after the prompt. Before, rline moved the cursor to the
+next row. A program that wants the cursor below the line writes the newline
+itself. usql was told before the release.
+
+### D75. A completer can keep the order of its completions. Decided.
+
+hail asked on 2026-11-28 for bash's `complete -o nosort`. readline sorts the
+completions by their text, and the completion menu of D51 sorts them by
+length first. `Completion.KeepOrder()` keeps the order in which the completer
+added them, in both. It holds for the one request for completions in which
+the completer calls it, as `-o nosort` holds for the one compspec.
 
 ## Open questions for Ken
 

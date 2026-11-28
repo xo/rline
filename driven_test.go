@@ -2990,3 +2990,228 @@ func TestSplitPrompt(t *testing.T) {
 		}
 	}
 }
+
+// readLines reads one line for each Enter in keys, the way ReadLine reads
+// them one after another, and returns what came back and what the terminal
+// was sent.
+func readLines(t *testing.T, ev *env, sink *bytes.Buffer, n int) ([]string, string) {
+	t.Helper()
+	var lines []string
+	for range n {
+		line, ok, err := ev.readLine("")
+		if errors.Is(err, ErrInterrupted) {
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			lines = append(lines, line)
+		}
+	}
+	return lines, sink.String()
+}
+
+// TestReadLineKeepsHistoryAsAsked checks which lines ReadLine adds to the
+// history: by default each line of two characters or more, with no copy of
+// an earlier one, and with WithManualHistory none, as readline adds none
+// (D72).
+func TestReadLineKeepsHistoryAsAsked(t *testing.T) {
+	t.Parallel()
+	keys := "one" + kEnter + "x" + kEnter + "two" + kEnter + "one" + kEnter
+	for _, tc := range []struct {
+		name       string
+		manual     bool
+		duplicates bool
+		want       []string
+	}{
+		// The second "one" moves to the end, and its first copy goes.
+		{"by default", false, false, []string{"two", "one"}},
+		{"with duplicates", false, true, []string{"one", "two", "one"}},
+		{"by hand", true, false, nil},
+		{"by hand with duplicates", true, true, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ev, sink := feedEnv(t, keys, feedOpts{})
+			ev.manualHistory = tc.manual
+			ev.history.allowDuplicates = tc.duplicates
+			// A program that keeps its own history adds an entry before the
+			// lines are read, and ReadLine must leave it alone.
+			if tc.manual {
+				ev.history.push("one")
+				tc.want = []string{"one"}
+			}
+			lines, _ := readLines(t, ev, sink, 4)
+			if want := []string{"one", "x", "two", "one"}; !slices.Equal(lines, want) {
+				t.Fatalf("the lines are %q, want %q", lines, want)
+			}
+			got := ev.history.all()
+			slices.Reverse(got)
+			if !slices.Equal(got, tc.want) {
+				t.Errorf("the history holds %q, oldest first, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestHistoryDuplicatesKeepEveryCopy checks that AddHistory keeps every copy
+// of a line with WithHistoryDuplicates, and only the newest without it (D72).
+func TestHistoryDuplicatesKeepEveryCopy(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		opts []Option
+		want []string
+	}{
+		// The second "a" moves to the front, and its first copy goes.
+		{nil, []string{"a", "b"}},
+		{[]Option{WithHistoryDuplicates(true)}, []string{"a", "b", "a"}},
+	} {
+		p, err := New(append([]Option{WithStdin(strings.NewReader("")), WithStdout(io.Discard)}, tc.opts...)...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range []string{"a", "b", "a"} {
+			p.AddHistory(e)
+		}
+		if got := p.History(); !slices.Equal(got, tc.want) {
+			t.Errorf("%d options: the history is %q, newest first, want %q", len(tc.opts), got, tc.want)
+		}
+		_ = p.Close()
+	}
+}
+
+// TestManualHistoryReachesTheEditor checks that WithManualHistory reaches the
+// editor that ReadLine uses (D72).
+func TestManualHistoryReachesTheEditor(t *testing.T) {
+	t.Parallel()
+	for _, manual := range []bool{false, true} {
+		p, err := New(WithStdin(strings.NewReader("")), WithStdout(io.Discard), WithManualHistory(manual))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p.env.manualHistory != manual {
+			t.Errorf("WithManualHistory(%t) left the editor at %t", manual, p.env.manualHistory)
+		}
+		_ = p.Close()
+	}
+}
+
+// TestTheLineStartsWithText checks that a line can start with text, with the
+// cursor at its end and an undo that takes it out, as bash's read -e -i
+// starts it (D73).
+func TestTheLineStartsWithText(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, keys, want string
+	}{
+		{"as it is", kEnter, "hello"},
+		{"with the cursor at its end", "!" + kEnter, "hello!"},
+		{"moved before", kCtrlA + "Q" + kEnter, "Qhello"},
+		{"taken out by undo", "\x1f" + "Z" + kEnter, "Z"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ev, sink := feedEnv(t, tc.keys+"next"+kEnter, feedOpts{})
+			ev.initial, ev.hasInitial = "hello", true
+			lines, _ := readLines(t, ev, sink, 2)
+			// The text is for one line only.
+			if want := []string{tc.want, "next"}; !slices.Equal(lines, want) {
+				t.Errorf("the lines are %q, want %q", lines, want)
+			}
+		})
+	}
+}
+
+// TestReadLineWithWithoutATerminal checks that the text is not used when
+// there is no terminal to edit on, as bash does not use it (D73).
+func TestReadLineWithWithoutATerminal(t *testing.T) {
+	t.Parallel()
+	p, err := New(WithStdin(strings.NewReader("typed\n")), WithStdout(io.Discard))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = p.Close() }()
+	line, err := p.ReadLineWith("", "hello")
+	if err != nil || line != "typed" {
+		t.Errorf("ReadLineWith gave %q, %v, want %q", line, err, "typed")
+	}
+	if p.env.hasInitial {
+		t.Error("the text stayed for the next line")
+	}
+}
+
+// TestTheEndOfInputStaysOnTheLine checks that Ctrl-D on an empty line leaves
+// the cursor on the line, as readline leaves it, so that bash can write
+// "exit" after the prompt, and that a finished line still moves below it
+// (D74).
+func TestTheEndOfInputStaysOnTheLine(t *testing.T) {
+	t.Parallel()
+	// Ctrl-C gives a line up and moves below it, as the terminal does when
+	// it turns Ctrl-C into a signal for readline.
+	ev, sink := feedEnv(t, "ab"+kEnter+"cd"+"\x03"+kCtrlD, feedOpts{})
+	ev.promptMarker = "$ "
+	_, out := readLines(t, ev, sink, 3)
+	screen, row, col := screenAt(out, 80)
+	if want := []string{"$ ab", "$", "$"}; !slices.Equal(screen, want) || row != 2 || col != 2 {
+		t.Errorf("the screen shows %q with the cursor at row %d column %d, want %q at row 2 column 2",
+			screen, row, col, want)
+	}
+}
+
+// TestCompletionsCanKeepTheirOrder checks that a completer can keep the order
+// it gives, as bash's complete -o nosort asks, in readline's list and in the
+// completion menu, and that both sort it otherwise (D75).
+func TestCompletionsCanKeepTheirOrder(t *testing.T) {
+	t.Parallel()
+	// Each starts with the q that is typed before Tab.
+	words := []string{"qzeta", "qalpha", "qmu"}
+	completer := func(keep bool) Completer {
+		return CompleterFunc(func(c *Completion, prefix string) {
+			if keep {
+				c.KeepOrder()
+			}
+			for _, w := range words {
+				c.AddCandidate(Candidate{Replacement: w, DeleteBefore: len(prefix)})
+			}
+		})
+	}
+	for _, tc := range []struct {
+		name string
+		keep bool
+		menu bool
+		want []string
+	}{
+		{"readline's list, sorted", false, false, []string{"qalpha", "qmu", "qzeta"}},
+		{"readline's list, kept", true, false, words},
+		// The menu sorts by length first.
+		{"the menu, sorted", false, true, []string{"qmu", "qzeta", "qalpha"}},
+		{"the menu, kept", true, true, words},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			opt := feedOpts{Completer: completer(tc.keep), CompletionMenu: tc.menu}
+			if tc.menu {
+				// The menu numbers its entries, and a digit picks one. A
+				// word is typed first, because Tab on an empty line opens no
+				// menu.
+				for i, want := range tc.want {
+					if got, _, _ := feedWith(t, "q"+kTab+strconv.Itoa(i+1)+kEnter, opt); got != want {
+						t.Errorf("entry %d of the menu is %q, want %q", i+1, got, want)
+					}
+				}
+				return
+			}
+			// readline lists them on the second Tab.
+			_, _, _, out := feedSession(t, "q"+kTab+kTab+kEnter, opt)
+			screen := strings.Join(screenOf(out, 80), "\n")
+			var at []int
+			for _, w := range tc.want {
+				at = append(at, strings.Index(screen, w))
+			}
+			if slices.Contains(at, -1) || !slices.IsSorted(at) {
+				t.Errorf("the completions are not shown in the order %q:\n%s", tc.want, screen)
+			}
+		})
+	}
+}

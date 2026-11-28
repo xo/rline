@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/xo/inputrc"
+
 	rtext "github.com/xo/rline/internal/text"
 	"github.com/xo/rline/key"
 )
@@ -34,38 +36,63 @@ func (l *Line) printf(format string, args ...any) {
 	l.output = fmt.Appendf(l.output, format, args...)
 }
 
-// escapeSeq writes s as an inputrc file writes a key sequence or the text of
-// a macro, as readline prints them: Esc is \e, a control character is \C-
-// and its letter in lower case, DEL is \C-?, a backslash or a double quote
-// has a backslash in front, and a byte from 0x80 to 0xff, which inputrc reads
-// as the character of that number, is three octal digits after a backslash.
+// escapeSeq writes the key sequence s as readline prints one: each byte of
+// it as escapeByte writes it, and a byte from 0x80 to 0xff as three octal
+// digits after a backslash. inputrc gives a key sequence as bytes since its
+// v0.9.0, so a character of UTF-8 comes out as the octal of each of its
+// bytes, as readline 8.3 prints it.
 func escapeSeq(s string) string {
 	var sb strings.Builder
-	for _, r := range s {
-		switch {
-		case r == '\\' || r == '"':
-			sb.WriteByte('\\')
-			sb.WriteRune(r)
-		case r == 0x1b:
-			sb.WriteString(`\e`)
-		case r == 0x7f:
-			sb.WriteString(`\C-?`)
-		case r == 0x1c:
-			sb.WriteString(`\C-\\`)
-		case r < 0x20:
-			c := byte(r) + 0x40
-			if c >= 'A' && c <= 'Z' {
-				c += 'a' - 'A'
-			}
-			sb.WriteString(`\C-`)
-			sb.WriteByte(c)
-		case r >= 0x80 && r <= 0xff:
-			fmt.Fprintf(&sb, "\\%03o", r)
-		default:
-			sb.WriteRune(r)
+	for i := range len(s) {
+		if b := s[i]; b >= 0x80 {
+			fmt.Fprintf(&sb, "\\%03o", b)
+		} else {
+			escapeByte(&sb, b)
 		}
 	}
 	return sb.String()
+}
+
+// escapeMacro writes the text of a macro as readline prints one: each byte as
+// escapeByte writes it, and a byte from 0x80 to 0xff as \M- and the byte
+// without its top bit, so that 0xc3 is \M-C and 0x81 is \M-\C-a.
+func escapeMacro(s string) string {
+	var sb strings.Builder
+	for i := range len(s) {
+		b := s[i]
+		if b >= 0x80 {
+			sb.WriteString(`\M-`)
+			b &= 0x7f
+		}
+		escapeByte(&sb, b)
+	}
+	return sb.String()
+}
+
+// escapeByte writes a byte below 0x80 as an inputrc file writes it: Esc is
+// \e, a control character is \C- and its letter in lower case, DEL is \C-?,
+// and a backslash or a double quote has a backslash in front.
+func escapeByte(sb *strings.Builder, b byte) {
+	switch {
+	case b == '\\' || b == '"':
+		sb.WriteByte('\\')
+		sb.WriteByte(b)
+	case b == 0x1b:
+		sb.WriteString(`\e`)
+	case b == 0x7f:
+		sb.WriteString(`\C-?`)
+	case b == 0x1c:
+		sb.WriteString(`\C-\\`)
+	case b < 0x20:
+		c := b + 0x40
+		if c >= 'A' && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		sb.WriteString(`\C-`)
+		sb.WriteByte(c)
+	default:
+		sb.WriteByte(b)
+	}
 }
 
 // virtualSeqs are the sequences that the keys which are no character send,
@@ -173,7 +200,7 @@ func dumpFunctions(l *Line, c call) {
 func dumpMacros(l *Line, c call) {
 	_, macros := l.keymap.boundSeqs()
 	for _, seq := range macros {
-		text := escapeSeq(l.keymap.sources[seq].macro)
+		text := escapeMacro(l.keymap.sources[seq].macro)
 		if c.explicit {
 			l.printf("\"%s\": \"%s\"\n", escapeSeq(seq), text)
 			continue
@@ -221,7 +248,14 @@ func dumpVariables(l *Line, c call) {
 		case int:
 			value = strconv.Itoa(v)
 		case string:
-			value = escapeSeq(v)
+			// readline writes the strings that hold keys or escape sequences
+			// as the text of a macro, and every other string as it is,
+			// control bytes and all, as readline 8.3 and bash 5.3 print them.
+			value = v
+			switch name {
+			case "isearch-terminators", "active-region-start-color", "active-region-end-color":
+				value = escapeMacro(inputrc.Unescape(v))
+			}
 		default:
 			value = fmt.Sprint(v)
 		}
@@ -240,7 +274,7 @@ func printLastKbdMacro(l *Line, _ call) {
 		l.ding()
 		return
 	}
-	l.printf("%s\n", escapeSeq(keysText(l.lastMacro)))
+	l.printf("%s\n", escapeMacro(keysText(l.lastMacro)))
 }
 
 // exportCompletions prints the completions of the word before the cursor

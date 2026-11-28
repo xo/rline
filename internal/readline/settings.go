@@ -67,10 +67,7 @@ func (l *Line) Configure(vars map[string]any) []string {
 			// The value is a key sequence as an inputrc file writes one, such
 			// as \C-a, and readline reads it as one.
 			if s, ok := v.(string); ok && s != "" {
-				l.vars.isearchTerminators = nil
-				for _, r := range inputrc.Unescape(s) {
-					l.vars.isearchTerminators = append(l.vars.isearchTerminators, key.Code(r))
-				}
+				l.vars.isearchTerminators = textKeys(inputrc.Unescape(s))
 			}
 		case "editing-mode":
 			l.SetEditingMode(v == "vi")

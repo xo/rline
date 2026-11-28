@@ -96,14 +96,9 @@ func defaultBindings(t *testing.T, name string) []binding {
 	return out
 }
 
-// keysOf turns text into the keys that typing it gives, one for each
-// character.
+// keysOf turns text into the keys that typing it gives, as textKeys does.
 func keysOf(text string) []key.Code {
-	out := make([]key.Code, 0, utf8.RuneCountInString(text))
-	for _, r := range text {
-		out = append(out, key.Code(r))
-	}
-	return out
+	return textKeys(text)
 }
 
 // step is one key of a recorded case, and the state readline was in after
@@ -382,7 +377,7 @@ func readInputrc(t *testing.T, km map[string]*Keymap, lines []string) map[string
 // probe's completion function does, and adds a space after a single one, as
 // readline does by default.
 func wordCompleter(words []string) Completer {
-	return func(line string, point int) []Candidate {
+	return func(line string, point int) ([]Candidate, bool) {
 		start := strings.LastIndexAny(line[:point], completerWordBreaks) + 1
 		var out []Candidate
 		for _, w := range words {
@@ -390,7 +385,7 @@ func wordCompleter(words []string) Completer {
 				out = append(out, Candidate{Start: start, End: point, Text: w, Suffix: " "})
 			}
 		}
-		return out
+		return out, false
 	}
 }
 

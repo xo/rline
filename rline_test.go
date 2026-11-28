@@ -108,6 +108,8 @@ func TestOptions(t *testing.T) {
 		{"hint delay", WithHintDelay(time.Second), func(c *config) bool { return c.hintDelay == time.Second }},
 		{"match braces", WithMatchPairs("<>"), func(c *config) bool { return c.opts.MatchPairs == "<>" }},
 		{"auto braces", WithAutoPairs("<>"), func(c *config) bool { return c.opts.AutoPairs == "<>" }},
+		{"history duplicates", WithHistoryDuplicates(true), func(c *config) bool { return c.historyDuplicates }},
+		{"manual history", WithManualHistory(true), func(c *config) bool { return c.manualHistory }},
 		{"input reader", WithStdin(strings.NewReader("x")), func(c *config) bool {
 			return c.stdin != nil
 		}},
