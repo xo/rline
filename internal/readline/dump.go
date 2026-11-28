@@ -53,6 +53,14 @@ func escapeSeq(s string) string {
 	return sb.String()
 }
 
+// EscapeSeq writes the key sequence s as readline prints one, as escapeSeq
+// does.
+func EscapeSeq(s string) string { return escapeSeq(s) }
+
+// EscapeMacro writes the text of a macro as readline prints one, as
+// escapeMacro does.
+func EscapeMacro(s string) string { return escapeMacro(s) }
+
 // escapeMacro writes the text of a macro as readline prints one: each byte as
 // escapeByte writes it, and a byte from 0x80 to 0xff as \M- and the byte
 // without its top bit, so that 0xc3 is \M-C and 0x81 is \M-\C-a.

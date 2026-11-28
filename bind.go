@@ -8,11 +8,13 @@
 package rline
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"os"
 	"os/user"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -424,6 +426,15 @@ var rlineCommands = map[string]bool{
 	"rline-help": true, "rline-menu-complete": true,
 }
 
+// Commands returns the name of every command that a key can be bound to,
+// readline's and rline's, sorted, as bash's bind -l lists them. A command of
+// the program's own is not among them (D76).
+func Commands() []string {
+	names := append(readline.Names(), rlineOnly()...)
+	slices.Sort(names)
+	return slices.Compact(names)
+}
+
 // hasCommand reports whether readline or rline has a command called name.
 func hasCommand(name string) bool {
 	return readline.Has(name) || rlineCommands[name]
@@ -465,26 +476,44 @@ var rlineVars = map[string]bool{
 func (ev *env) readInputrc(c *config) {
 	ev.inputrc = c
 	ev.notices = nil
+	ev.appName, ev.beep = c.appName, c.beep
 	// An empty configuration, so that what the file sets can be told from the
 	// defaults. It reads files for UserDefault and for $include.
 	cfg := inputrc.NewConfig()
 	cfg.ReadFileFunc = os.ReadFile
-	opts := []inputrc.Option{
-		inputrc.WithApp(c.appName),
-		inputrc.WithTerm(os.Getenv("TERM")),
-		inputrc.WithMode("emacs"),
-	}
 	var err error
 	if c.inputrcFile != "" {
-		err = inputrc.ParseFile(c.inputrcFile, cfg, opts...)
+		err = inputrc.ParseFile(c.inputrcFile, cfg, ev.parseOptions()...)
 	} else {
-		err = inputrc.UserDefault(homeUser(), cfg, opts...)
+		err = inputrc.UserDefault(homeUser(), cfg, ev.parseOptions()...)
 	}
 	if err != nil {
 		ev.notices = append(ev.notices, fmt.Sprintf("reading the inputrc file: %v", err))
 	}
+	ev.vars = nil
+	ev.keymap, ev.viInsert, ev.viCommand = ev.defaultKeymaps()
+	ev.apply(cfg)
+}
 
-	// The file's bindings go over the defaults, after them, because two
+// parseOptions are what the parser of an inputrc file is told: the name of
+// the program and of the terminal, which $if tests, and the editing mode.
+func (ev *env) parseOptions() []inputrc.Option {
+	mode := "emacs"
+	if ev.viMode {
+		mode = "vi"
+	}
+	return []inputrc.Option{
+		inputrc.WithApp(ev.appName),
+		inputrc.WithTerm(os.Getenv("TERM")),
+		inputrc.WithMode(mode),
+	}
+}
+
+// apply puts what cfg holds over the keymaps and the variables that are in
+// place. What rline does not support goes into the notices.
+func (ev *env) apply(cfg *inputrc.Config) {
+	ev.ensureKeymaps()
+	// The file's bindings go over what is there, after it, because two
 	// sequences can decode to one key: \e[A and \eOA are both Up.
 	binds := map[string]map[string]inputrc.Bind{
 		"emacs":      {},
@@ -494,34 +523,22 @@ func (ev *env) readInputrc(c *config) {
 	for _, km := range slices.Sorted(maps.Keys(cfg.Binds)) {
 		// The meta and Ctrl-X keymaps are the keys after Esc and after
 		// Ctrl-X, and vi and vi-move are other names of vi-command.
-		name, prefix := km, ""
-		switch km {
-		case "emacs-standard":
-			name = "emacs"
-		case "emacs-meta":
-			name, prefix = "emacs", "\x1b"
-		case "emacs-ctlx":
-			name, prefix = "emacs", "\x18"
-		case "vi", "vi-move":
-			name = "vi-command"
-		}
+		name, prefix := keymapAlias(km)
 		if binds[name] == nil {
 			ev.notices = append(ev.notices, fmt.Sprintf("the keymap %s is not supported", km))
 			continue
 		}
 		for seq, b := range cfg.Binds[km] {
-			if !b.Macro && !readline.Has(b.Action) && !rlineCommands[b.Action] && ev.commands[b.Action] == nil {
+			if !b.Macro && !ev.hasCommand(b.Action) {
 				ev.notices = append(ev.notices, fmt.Sprintf("the command %s is not supported", b.Action))
 			}
 			binds[name][prefix+seq] = b
 		}
 	}
-	ev.keymap, ev.viInsert, ev.viCommand = ev.defaultKeymaps()
 	bindAll(ev.keymap, binds["emacs"])
 	bindAll(ev.viInsert, binds["vi-insert"])
 	bindAll(ev.viCommand, binds["vi-command"])
 
-	ev.vars = cfg.Vars
 	var unknown []string
 	for name := range cfg.Vars {
 		if !rlineVars[name] {
@@ -535,14 +552,92 @@ func (ev *env) readInputrc(c *config) {
 	for _, name := range readline.New(nil, nil).Configure(vars) {
 		ev.notices = append(ev.notices, fmt.Sprintf("the variable %s is not supported", name))
 	}
-	style := bellStyleOf(cfg.Vars)
-	ev.term.beep = c.beep && style != bellNone
-	ev.term.visible = style == bellVisible
-	if s, ok := cfg.Vars["editing-mode"].(string); ok {
-		ev.viMode = s == "vi"
-	}
+	ev.setVars(cfg.Vars)
 	slices.Sort(ev.notices)
 	ev.notices = slices.Compact(ev.notices)
+}
+
+// setVars puts vars over the variables that are set, and does what each of
+// them asks of the terminal and of the editing mode.
+func (ev *env) setVars(vars map[string]any) {
+	if len(vars) == 0 {
+		return
+	}
+	if ev.vars == nil {
+		ev.vars = make(map[string]any, len(vars))
+	}
+	maps.Copy(ev.vars, vars)
+	style := bellStyleOf(ev.vars)
+	ev.term.beep = ev.beep && style != bellNone
+	ev.term.visible = style == bellVisible
+	// Only a variable that was set now changes the mode, because
+	// vi-editing-mode and emacs-editing-mode change it too, and leave the
+	// variable as it was.
+	if s, ok := vars["editing-mode"].(string); ok {
+		ev.viMode = s == "vi"
+	}
+}
+
+// keymapAlias returns the keymap that rline keeps for the keymap that an
+// inputrc file calls name, and the keys in front of each of its sequences:
+// Esc for emacs-meta and Ctrl-X for emacs-ctlx. vi and vi-move are other
+// names of vi-command. A name that readline does not have comes back as it
+// is.
+func keymapAlias(name string) (string, string) {
+	switch name {
+	case "emacs-standard":
+		return "emacs", ""
+	case "emacs-meta":
+		return "emacs", "\x1b"
+	case "emacs-ctlx":
+		return "emacs", "\x18"
+	case "vi", "vi-move":
+		return "vi-command", ""
+	}
+	return name, ""
+}
+
+// keymapNamed returns the keymap that an inputrc file calls name, and the
+// keys in front of each of its sequences. An empty name is the keymap of the
+// editing mode, as bash's bind uses when it is given none.
+func (ev *env) keymapNamed(name string) (*readline.Keymap, string, error) {
+	ev.ensureKeymaps()
+	if name == "" {
+		name = "emacs"
+		if ev.viMode {
+			name = "vi-insert"
+		}
+	}
+	alias, prefix := keymapAlias(name)
+	switch alias {
+	case "emacs":
+		return ev.keymap, prefix, nil
+	case "vi-insert":
+		return ev.viInsert, prefix, nil
+	case "vi-command":
+		return ev.viCommand, prefix, nil
+	}
+	return nil, "", fmt.Errorf("finding the keymap %s: %w", name, ErrUnknownKeymap)
+}
+
+// ensureKeymaps makes readline's default keymaps where there are none yet.
+func (ev *env) ensureKeymaps() {
+	if ev.keymap != nil && ev.viInsert != nil {
+		return
+	}
+	km, vi, vc := ev.defaultKeymaps()
+	if ev.keymap == nil {
+		ev.keymap = km
+	}
+	if ev.viInsert == nil {
+		ev.viInsert, ev.viCommand = vi, vc
+	}
+}
+
+// hasCommand reports whether readline, rline or the program has a command
+// called name.
+func (ev *env) hasCommand(name string) bool {
+	return hasCommand(name) || ev.commands[name] != nil
 }
 
 // bellStyle is what readline's bell-style asks the bell to do.
@@ -580,4 +675,198 @@ func homeUser() *user.User {
 		return nil
 	}
 	return u
+}
+
+// bind binds seq in keymap to the command called name, or to a macro when
+// name is in double quotes, as Session.Bind does (D76).
+func (ev *env) bind(keymap, seq, name string) error {
+	km, prefix, err := ev.keymapNamed(keymap)
+	if err != nil {
+		return fmt.Errorf("binding %s: %w", seq, err)
+	}
+	b := inputrc.Bind{Action: name}
+	switch {
+	case len(name) >= 2 && name[0] == '"' && name[len(name)-1] == '"':
+		b = inputrc.Bind{Action: inputrc.Unescape(name[1 : len(name)-1]), Macro: true}
+		if _, ok := decodeSeq(b.Action); !ok {
+			return fmt.Errorf("binding %s to the macro %s: %w", seq, name, ErrInvalidSequence)
+		}
+	case !ev.hasCommand(name):
+		return fmt.Errorf("binding %s to %s: %w", seq, name, ErrUnknownCommand)
+	}
+	keys := prefix + inputrc.Unescape(seq)
+	if _, ok := decodeSeq(keys); !ok {
+		return fmt.Errorf("binding %s: %w", seq, ErrInvalidSequence)
+	}
+	bindAll(km, map[string]inputrc.Bind{keys: b})
+	return nil
+}
+
+// unbind takes away what seq is bound to in keymap, as Session.Unbind does
+// (D76).
+func (ev *env) unbind(keymap, seq string) error {
+	km, prefix, err := ev.keymapNamed(keymap)
+	if err != nil {
+		return fmt.Errorf("unbinding %s: %w", seq, err)
+	}
+	keys, ok := decodeSeq(prefix + inputrc.Unescape(seq))
+	if !ok {
+		return fmt.Errorf("unbinding %s: %w", seq, ErrInvalidSequence)
+	}
+	km.Unbind(keys)
+	return nil
+}
+
+// bindings returns what keymap binds, as Session.Bindings does (D76).
+func (ev *env) bindings(keymap string) ([]Binding, error) {
+	km, prefix, err := ev.keymapNamed(keymap)
+	if err != nil {
+		return nil, fmt.Errorf("listing the bindings: %w", err)
+	}
+	var out []Binding
+	for _, b := range km.Bindings() {
+		seq, ok := strings.CutPrefix(b.Seq, prefix)
+		if !ok || seq == "" {
+			continue
+		}
+		binding := Binding{Keys: readline.EscapeSeq(seq), Command: b.Name}
+		if b.Name == "" {
+			binding.Macro = readline.EscapeMacro(b.Macro)
+		}
+		out = append(out, binding)
+	}
+	return out, nil
+}
+
+// allVars returns every variable of readline with the value it has now:
+// readline's default, under what the terminal's terminfo entry sets, under
+// what an inputrc file or SetVariable set. The editing mode is the one in
+// use.
+func (ev *env) allVars() map[string]any {
+	vars := inputrc.DefaultVars()
+	maps.Copy(vars, ev.termVars)
+	maps.Copy(vars, ev.vars)
+	vars["editing-mode"] = "emacs"
+	if ev.viMode {
+		vars["editing-mode"] = "vi"
+	}
+	return vars
+}
+
+// setVariable sets one variable, as a line of an inputrc file sets it, as
+// Session.SetVariable does (D76).
+func (ev *env) setVariable(name, value string) error {
+	if _, ok := inputrc.DefaultVars()[name]; !ok {
+		return fmt.Errorf("setting %s: %w", name, ErrUnknownVariable)
+	}
+	if strings.ContainsAny(value, "\r\n") {
+		return fmt.Errorf("setting %s: %w", name, ErrInvalidValue)
+	}
+	if err := ev.parseAndBind("set " + name + " " + value); err != nil {
+		return fmt.Errorf("setting %s: %w", name, err)
+	}
+	return nil
+}
+
+// parseAndBind reads one line of an inputrc file and applies it, as
+// Session.ParseAndBind does (D77). Nothing of the line applies when any of
+// it is at fault.
+func (ev *env) parseAndBind(line string) error {
+	if strings.ContainsAny(line, "\r\n") {
+		return ErrInvalidValue
+	}
+	// The variables in place tell the parser the type of each one, so that
+	// a value is read as on or off, or as a number, as readline reads it.
+	cfg := inputrc.NewConfig()
+	cfg.ReadFileFunc = os.ReadFile
+	cfg.Vars = ev.allVars()
+	rec := &setRecorder{Config: cfg, set: make(map[string]any)}
+	// A binding goes to the keymap of the editing mode unless the line names
+	// one, as bash's bind uses it.
+	text := line + "\n"
+	if ev.viMode {
+		text = "set keymap vi-insert\n" + text
+	}
+	opts := append(ev.parseOptions(), inputrc.WithHaltOnErr(true), inputrc.WithStrict(true))
+	if err := inputrc.ParseBytes([]byte(text), rec, opts...); err != nil {
+		return fmt.Errorf("parsing %q: %w", line, err)
+	}
+	for name := range rec.set {
+		if _, ok := inputrc.DefaultVars()[name]; !ok {
+			return fmt.Errorf("setting %s: %w", name, ErrUnknownVariable)
+		}
+	}
+	for km, binds := range cfg.Binds {
+		_, prefix := keymapAlias(km)
+		for seq, b := range binds {
+			if !b.Macro && !ev.hasCommand(b.Action) {
+				return fmt.Errorf("binding %s to %s: %w", readline.EscapeSeq(seq), b.Action, ErrUnknownCommand)
+			}
+			if _, ok := decodeSeq(prefix + seq); !ok {
+				return fmt.Errorf("binding %s: %w", readline.EscapeSeq(seq), ErrInvalidSequence)
+			}
+			if _, ok := decodeSeq(b.Action); b.Macro && !ok {
+				return fmt.Errorf("binding %s to a macro: %w", readline.EscapeSeq(seq), ErrInvalidSequence)
+			}
+		}
+	}
+	// Only what the line set goes over the variables, not the ones that
+	// were handed to the parser for their types.
+	ev.apply(&inputrc.Config{Vars: rec.set, Binds: cfg.Binds})
+	return nil
+}
+
+// setRecorder is an inputrc configuration that also keeps what was set, so
+// that only that goes over the variables of the Session.
+type setRecorder struct {
+	*inputrc.Config
+
+	set map[string]any
+}
+
+// Set satisfies inputrc.Handler.
+func (r *setRecorder) Set(name string, value any) error {
+	r.set[name] = value
+	if err := r.Config.Set(name, value); err != nil {
+		return fmt.Errorf("setting %s: %w", name, err)
+	}
+	return nil
+}
+
+// readInputrcFile reads the inputrc file called name over the bindings and
+// the variables in place, as Session.ReadInputrc does (D76).
+func (ev *env) readInputrcFile(name string) error {
+	f, err := os.Open(name)
+	if err != nil {
+		return fmt.Errorf("reading the inputrc file: %w", err)
+	}
+	defer f.Close()
+	cfg := inputrc.NewConfig()
+	cfg.ReadFileFunc = os.ReadFile
+	// The parser reads on past a line it cannot parse, as readline does, and
+	// keeps the faults.
+	p := inputrc.New(append(ev.parseOptions(), inputrc.WithName(name))...)
+	err = p.Parse(f, cfg)
+	ev.apply(cfg)
+	if err = errors.Join(append([]error{err}, p.Errs()...)...); err != nil {
+		return fmt.Errorf("reading the inputrc file %s: %w", name, err)
+	}
+	return nil
+}
+
+// varString writes the value of a variable as readline prints it: on or off,
+// a number, or the text.
+func varString(v any) string {
+	switch v := v.(type) {
+	case bool:
+		if v {
+			return "on"
+		}
+		return "off"
+	case int:
+		return strconv.Itoa(v)
+	case string:
+		return v
+	}
+	return fmt.Sprint(v)
 }

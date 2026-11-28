@@ -109,6 +109,8 @@ that holds it.
 | [D73](#d73-readlinewith-starts-the-line-with-text-decided) | ReadLineWith starts the line with text | Decided |
 | [D74](#d74-readline-leaves-the-cursor-on-the-line-at-the-end-of-the-input-decided) | ReadLine leaves the cursor on the line at the end of the input | Decided |
 | [D75](#d75-a-completer-can-keep-the-order-of-its-completions-decided) | A completer can keep the order of its completions | Decided |
+| [D76](#d76-a-program-can-change-the-bindings-and-the-variables-while-the-session-runs-decided) | A program can change the bindings and the variables while the Session runs | Decided |
+| [D77](#d77-parseandbind-applies-one-line-of-an-inputrc-file-decided) | ParseAndBind applies one line of an inputrc file | Decided |
 
 ## Purpose
 
@@ -1558,6 +1560,59 @@ completions by their text, and the completion menu of D51 sorts them by
 length first. `Completion.KeepOrder()` keeps the order in which the completer
 added them, in both. It holds for the one request for completions in which
 the completer calls it, as `-o nosort` holds for the one compspec.
+
+### D76. A program can change the bindings and the variables while the Session runs. Decided.
+
+hail asked on 2026-11-28 for bash's `bind`, its `bind -x`, the bindings of
+its own configuration file over the user's inputrc, and `set -o vi` after
+the start. rline read the bindings and the variables once, in `New`. Ken
+approved this set of methods on 2026-11-28, with plain strings in the API
+rather than the types of inputrc.
+
+1. `Session.Bind(keymap, seq, name string) error` binds a key sequence to a
+   command, or to a macro when the name is in double quotes, as a line of an
+   inputrc file does. The sequence is written as an inputrc file writes it.
+   The keymap is one that an inputrc file names, and an empty keymap is the
+   one of the editing mode. The binding takes effect at once.
+2. `Session.Unbind(keymap, seq string) error` takes the binding away, as
+   `bind -r` does, so that the keys ring the bell.
+3. `Session.AddCommand(name string, cmd Command) error` adds a command of
+   the program's after `New`, as `WithCommand` adds one before it. With
+   `Bind`, this is `bind -x`. A command of the program's can be replaced.
+4. `Session.SetVariable(name, value string) error` sets a variable as the
+   line "set name value" of an inputrc file sets it. `editing-mode` switches
+   between emacs and vi. `Session.Variables() map[string]string` gives every
+   variable as `bind -v` prints it.
+5. `Session.ReadInputrc(name string) error` reads a file over what is in
+   place, as `bind -f` does.
+6. `Session.Bindings(keymap string) ([]Binding, error)` lists what a keymap
+   binds, with each sequence and macro as readline prints them, for
+   `bind -p` and `bind -s`. The package function `Commands() []string`
+   lists every command that a key can be bound to, for `bind -l`.
+7. A fault is one of the new errors: `ErrUnknownCommand`,
+   `ErrUnknownKeymap`, `ErrUnknownVariable`, `ErrInvalidSequence` and
+   `ErrInvalidValue`.
+
+`Unbind` returns an error, which the request did not have, so that a keymap
+that readline does not have is not passed over without a word.
+
+### D77. ParseAndBind applies one line of an inputrc file. Decided.
+
+bash's `bind` takes a line of an inputrc file, such as `"\C-a": end-of-line`
+or `set bell-style none`, and hands it to readline's `rl_parse_and_bind`.
+`Session.ParseAndBind(line string) error` does the same, so that hail does
+not split the line itself. Ken asked for it on 2026-11-28.
+
+1. The line is read by inputrc's parser, as a line of a file is read. A
+   variable takes the type that readline gives it, so the text "1" for
+   `comment-begin` stays text.
+2. A binding goes to the keymap of the editing mode, unless the line names
+   one, as bash's `bind` uses it.
+3. Nothing of the line applies when any of it is at fault. The errors are
+   those of `Bind` and `SetVariable`, `ErrInvalidValue` for a line break,
+   and the error of the parser for a line that is not one of an inputrc
+   file.
+4. `SetVariable` reads its line the same way.
 
 ## Open questions for Ken
 

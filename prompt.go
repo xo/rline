@@ -93,6 +93,12 @@ type env struct {
 	notices []string
 	inputrc *config
 
+	// appName is the name of the program that $if tests in an inputrc file,
+	// and beep says whether the program turned the bell on, which bell-style
+	// can then turn off.
+	appName string
+	beep    bool
+
 	// termVars are the variables that readline takes from the terminfo entry
 	// of the terminal, which the variables of an inputrc file go over (D55).
 	termVars map[string]any
@@ -686,15 +692,7 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 // the history being kept, so that a test can drive it over a fixed set of keys
 // and look at the line afterwards.
 func (ev *env) runEditLoop(e *editor.Editor) key.Code {
-	if ev.keymap == nil || ev.viInsert == nil {
-		km, vi, vc := ev.defaultKeymaps()
-		if ev.keymap == nil {
-			ev.keymap = km
-		}
-		if ev.viInsert == nil {
-			ev.viInsert, ev.viCommand = vi, vc
-		}
-	}
+	ev.ensureKeymaps()
 	ev.menu, ev.menuAutoTab = nil, false
 	hist := ev.readlineHistory()
 	l := readline.New(ev.keymap, hist)

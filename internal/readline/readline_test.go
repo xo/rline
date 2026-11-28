@@ -493,3 +493,31 @@ func TestInputrcDefaultsAreReadlines(t *testing.T) {
 		}
 	}
 }
+
+// TestUnbindLeavesNoPrefix checks that Unbind takes a binding away, that the
+// keys before it are no longer the start of a sequence when nothing else
+// follows them, and that they stay the start of one that is still bound
+// (D76).
+func TestUnbindLeavesNoPrefix(t *testing.T) {
+	t.Parallel()
+	a, b, c := key.Code('a'), key.Code('b'), key.Code('c')
+	km := NewKeymap()
+	km.Bind([]key.Code{a}, "first")
+	km.Bind([]key.Code{a, b}, "second")
+	km.Unbind([]key.Code{a, b})
+	if name, prefix := km.lookup([]key.Code{a}); name != "first" || prefix {
+		t.Errorf("a looks up as %q, prefix %t, want first and no prefix", name, prefix)
+	}
+	if name, prefix := km.lookup([]key.Code{a, b}); name != "" || prefix {
+		t.Errorf("a b looks up as %q, prefix %t, want nothing", name, prefix)
+	}
+	km.Bind([]key.Code{a, b, c}, "third")
+	km.Unbind([]key.Code{a, b})
+	if name, prefix := km.lookup([]key.Code{a, b}); name != "" || !prefix {
+		t.Errorf("a b looks up as %q, prefix %t, want the start of a b c", name, prefix)
+	}
+	if name, _ := km.lookup([]key.Code{a, b, c}); name != "third" {
+		t.Errorf("a b c looks up as %q, want third", name)
+	}
+	km.Unbind([]key.Code{c})
+}

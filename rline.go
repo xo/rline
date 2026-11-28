@@ -124,6 +124,27 @@ const (
 	// give to another program.
 	ErrNotAFile Error = "not a file"
 
+	// ErrUnknownCommand is returned by Bind when it is given a name that no
+	// command has (D76).
+	ErrUnknownCommand Error = "unknown command"
+
+	// ErrUnknownKeymap is returned when a keymap is named that readline does
+	// not have (D76).
+	ErrUnknownKeymap Error = "unknown keymap"
+
+	// ErrUnknownVariable is returned by SetVariable when it is given a name
+	// that readline has no variable for (D76).
+	ErrUnknownVariable Error = "unknown variable"
+
+	// ErrInvalidSequence is returned when a key sequence holds a byte that
+	// stands for no key (D76).
+	ErrInvalidSequence Error = "invalid sequence"
+
+	// ErrInvalidValue is returned by SetVariable and ParseAndBind when the
+	// value or the line holds a line break, which no line of an inputrc file
+	// can hold (D76, D77).
+	ErrInvalidValue Error = "invalid value"
+
 	// errNotATerminal is returned when the file descriptor a Session was
 	// given is not a terminal, which is how a program reading a pipe or a
 	// file ends up reading plain lines with no editing.
@@ -728,6 +749,8 @@ func New(opts ...Option) (*Prompt, error) {
 		keepInterrupted: c.keepInterrupted,
 		manualHistory:   c.manualHistory,
 		commands:        c.commands,
+		appName:         c.appName,
+		beep:            c.beep,
 		completePreview: true,
 		hintDelay:       c.hintDelay,
 	}
@@ -813,6 +836,139 @@ func (s *Session) ReadLine(prompt string) (string, error) {
 	}
 	s.logger.note(LogLine, slog.String(LogText, line))
 	return line, nil
+}
+
+// A Binding is a key sequence of a keymap and what it runs, as bash's bind -p
+// and bind -s print them (D76).
+type Binding struct {
+	// Keys is the key sequence as readline prints it, which is how an inputrc
+	// file writes it, such as \C-a or \e[A.
+	Keys string
+
+	// Command is the command that the keys run. It is empty for a macro.
+	Command string
+
+	// Macro is the text of a macro, as readline prints it. It is empty for a
+	// command.
+	Macro string
+}
+
+// Bind binds the key sequence seq in keymap to the command called name, as a
+// line of an inputrc file or bash's bind does (D76).
+//
+// seq is written as an inputrc file writes it between double quotes, such as
+// \C-a or \e[A. A name in double quotes is a macro, whose text runs as
+// though it were typed, such as "\C-e;". keymap is one that an inputrc file
+// names, such as emacs, emacs-meta, vi-insert or vi-command, and an empty
+// keymap is the one of the editing mode. The binding takes effect at once.
+//
+// It returns ErrUnknownCommand for a name that no command has,
+// ErrUnknownKeymap for a keymap that readline does not have, and
+// ErrInvalidSequence for a sequence or a macro with a byte that stands for no
+// key.
+func (s *Session) Bind(keymap, seq, name string) error {
+	if s.closed || s.env == nil {
+		return ErrClosed
+	}
+	return s.env.bind(keymap, seq, name)
+}
+
+// Unbind takes away what the key sequence seq in keymap runs, as bash's bind
+// -r does, so that the keys ring the bell as an unbound key does. seq and
+// keymap are written as Bind takes them (D76).
+func (s *Session) Unbind(keymap, seq string) error {
+	if s.closed || s.env == nil {
+		return ErrClosed
+	}
+	return s.env.unbind(keymap, seq)
+}
+
+// Bindings returns every key sequence that keymap binds and what it runs,
+// sorted as readline sorts them. keymap is written as Bind takes it. Under
+// emacs-meta and emacs-ctlx, the sequences are those after Esc and after
+// Ctrl-X (D76).
+func (s *Session) Bindings(keymap string) ([]Binding, error) {
+	if s.closed || s.env == nil {
+		return nil, ErrClosed
+	}
+	return s.env.bindings(keymap)
+}
+
+// AddCommand adds a command of the program's own after New, as WithCommand
+// adds one before it, so that Bind can bind a key to it. This is bash's bind
+// -x: the command reads and changes the line through the Line it is given.
+// Adding a command of the program's under a name it already used replaces
+// it. It returns ErrCommandExists when readline or rline has a command
+// called name (D76).
+func (s *Session) AddCommand(name string, command Command) error {
+	if s.closed || s.env == nil {
+		return ErrClosed
+	}
+	if hasCommand(name) {
+		return fmt.Errorf("adding the command %s: %w", name, ErrCommandExists)
+	}
+	if s.env.commands == nil {
+		s.env.commands = make(map[string]Command)
+	}
+	s.env.commands[name] = command
+	return nil
+}
+
+// SetVariable sets a variable of readline, as the line "set name value" of an
+// inputrc file sets it, so that on and off, and numbers, are read as readline
+// reads them. editing-mode switches between emacs and vi, as bash's set -o
+// vi does. A variable takes effect from the next ReadLine.
+//
+// It returns ErrUnknownVariable for a name that readline has no variable for,
+// and ErrInvalidValue for a value with a line break (D76).
+func (s *Session) SetVariable(name, value string) error {
+	if s.closed || s.env == nil {
+		return ErrClosed
+	}
+	return s.env.setVariable(name, value)
+}
+
+// ParseAndBind reads one line of an inputrc file and applies it, as
+// readline's rl_parse_and_bind does and as bash's bind does with a line such
+// as `"\C-a": end-of-line` or "set bell-style none" (D77). A binding goes to
+// the keymap of the editing mode, unless the line names one.
+//
+// Nothing of the line applies when any of it is at fault. It returns
+// ErrUnknownCommand, ErrUnknownVariable or ErrInvalidSequence as Bind and
+// SetVariable do, ErrInvalidValue for a line with a line break, and the
+// error of the parser for a line that is not one of an inputrc file, such as
+// one that names a keymap readline does not have.
+func (s *Session) ParseAndBind(line string) error {
+	if s.closed || s.env == nil {
+		return ErrClosed
+	}
+	return s.env.parseAndBind(line)
+}
+
+// Variables returns every variable of readline with its value now, as bash's
+// bind -v prints them: on or off, a number, or the text (D76).
+func (s *Session) Variables() map[string]string {
+	if s.env == nil {
+		return nil
+	}
+	vars := s.env.allVars()
+	out := make(map[string]string, len(vars))
+	for name, v := range vars {
+		out[name] = varString(v)
+	}
+	return out
+}
+
+// ReadInputrc reads the inputrc file called name over the bindings and the
+// variables in place, as bash's bind -f does. What the file holds that rline
+// does not support goes into Notices. A file that cannot be read is the
+// error. A line that cannot be parsed is in the error too, and the rest of the
+// file still counts, as readline reads on past it (D76).
+func (s *Session) ReadInputrc(name string) error {
+	if s.closed || s.env == nil {
+		return ErrClosed
+	}
+	return s.env.readInputrcFile(name)
 }
 
 // ReadLineWith reads one line, as ReadLine does, and starts the line with

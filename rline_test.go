@@ -1408,6 +1408,13 @@ func TestErrorsAreConstants(t *testing.T) {
 		"ErrInterrupted":  ErrInterrupted,
 		"ErrNotAFile":     ErrNotAFile,
 		"errNotATerminal": errNotATerminal,
+
+		"ErrCommandExists":   ErrCommandExists,
+		"ErrUnknownCommand":  ErrUnknownCommand,
+		"ErrUnknownKeymap":   ErrUnknownKeymap,
+		"ErrUnknownVariable": ErrUnknownVariable,
+		"ErrInvalidSequence": ErrInvalidSequence,
+		"ErrInvalidValue":    ErrInvalidValue,
 	}
 
 	t.Run("the text is the name without the Err prefix", func(t *testing.T) {

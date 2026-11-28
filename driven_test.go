@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -3213,5 +3214,398 @@ func TestCompletionsCanKeepTheirOrder(t *testing.T) {
 				t.Errorf("the completions are not shown in the order %q:\n%s", tc.want, screen)
 			}
 		})
+	}
+}
+
+// runWith reads one line from the keys, after setup has changed the Session,
+// and returns the line and where the cursor ended.
+func runWith(t *testing.T, keys string, setup func(s *Session) error) (string, int) {
+	t.Helper()
+	ev, _ := feedEnv(t, keys, feedOpts{})
+	if err := setup(&Session{env: ev}); err != nil {
+		t.Fatal(err)
+	}
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	ev.runEditLoop(e)
+	return e.Input.String(), e.Pos
+}
+
+// TestBindChangesTheKeymaps checks that Bind and Unbind change what a key
+// runs while the Session is in use, as bash's bind and bind -r do (D76).
+func TestBindChangesTheKeymaps(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, keys string
+		setup      func(s *Session) error
+		want       string
+	}{
+		{"a command", "ab\x18aX" + kEnter, func(s *Session) error {
+			return s.Bind("emacs", `\C-xa`, "beginning-of-line")
+		}, "Xab"},
+		{"a macro", "ab\x18m" + kEnter, func(s *Session) error {
+			return s.Bind("emacs", `\C-xm`, `"\C-ahi "`)
+		}, "hi ab"},
+		{"over a default", "ab\x01X" + kEnter, func(s *Session) error {
+			return s.Bind("emacs", `\C-a`, "end-of-line")
+		}, "abX"},
+		{"in emacs-meta, after Esc", "ab\x1bqX" + kEnter, func(s *Session) error {
+			return s.Bind("emacs-meta", "q", "beginning-of-line")
+		}, "Xab"},
+		{"in emacs-ctlx, after Ctrl-X", "ab\x18qX" + kEnter, func(s *Session) error {
+			return s.Bind("emacs-ctlx", "q", "beginning-of-line")
+		}, "Xab"},
+		{"the keymap of the editing mode", "ab\x18aX" + kEnter, func(s *Session) error {
+			return s.Bind("", `\C-xa`, "beginning-of-line")
+		}, "Xab"},
+		{"the keymap of vi's insert mode", "ab\x18aX" + kEnter, func(s *Session) error {
+			if err := s.SetVariable("editing-mode", "vi"); err != nil {
+				return err
+			}
+			return s.Bind("", `\C-xa`, "beginning-of-line")
+		}, "Xab"},
+		{"taken away", "ab\x01X" + kEnter, func(s *Session) error {
+			return s.Unbind("emacs", `\C-a`)
+		}, "abX"},
+		{"taken away and bound again", "ab\x01X" + kEnter, func(s *Session) error {
+			if err := s.Unbind("emacs", `\C-a`); err != nil {
+				return err
+			}
+			return s.Bind("emacs", `\C-a`, "beginning-of-line")
+		}, "Xab"},
+		{"a longer sequence taken away leaves the shorter", "ab\x18\x18X" + kEnter, func(s *Session) error {
+			if err := s.Bind("emacs", `\C-x\C-xz`, "end-of-line"); err != nil {
+				return err
+			}
+			return s.Unbind("emacs", `\C-x\C-xz`)
+		}, "Xab"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got, _ := runWith(t, tc.keys, tc.setup); got != tc.want {
+				t.Errorf("the line is %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestBindRefusesWhatItCannotBind checks the errors of Bind and Unbind (D76).
+func TestBindRefusesWhatItCannotBind(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "", feedOpts{})
+	s := &Session{env: ev}
+	for _, tc := range []struct {
+		name string
+		err  error
+		want error
+	}{
+		{"no such command", s.Bind("emacs", `\C-xa`, "no-such-command"), ErrUnknownCommand},
+		{"no such keymap", s.Bind("emacs-fancy", `\C-xa`, "beginning-of-line"), ErrUnknownKeymap},
+		{"no keys", s.Bind("emacs", "", "beginning-of-line"), ErrInvalidSequence},
+		{"an empty macro", s.Bind("emacs", `\C-xa`, `""`), ErrInvalidSequence},
+		{"unbind in no such keymap", s.Unbind("emacs-fancy", `\C-a`), ErrUnknownKeymap},
+		{"unbind no keys", s.Unbind("emacs", ""), ErrInvalidSequence},
+	} {
+		if !errors.Is(tc.err, tc.want) {
+			t.Errorf("%s: the error is %v, want %v", tc.name, tc.err, tc.want)
+		}
+	}
+	closed := &Session{env: ev, closed: true}
+	if err := closed.Bind("emacs", `\C-a`, "end-of-line"); !errors.Is(err, ErrClosed) {
+		t.Errorf("a closed Session bound a key, with %v", err)
+	}
+}
+
+// TestAddCommandIsBindX checks that a command added after New can be bound
+// to a key and can read and replace the line and the cursor, as bash's bind
+// -x does with READLINE_LINE and READLINE_POINT (D76).
+func TestAddCommandIsBindX(t *testing.T) {
+	t.Parallel()
+	got, point := runWith(t, "hello\x02\x02\x18x"+kEnter, func(s *Session) error {
+		err := s.AddCommand("test-wrap", CommandFunc(func(l *Line) {
+			l.Replace("("+l.Text()+")", l.Cursor()+1)
+		}))
+		if err != nil {
+			return err
+		}
+		return s.Bind("emacs", `\C-xx`, "test-wrap")
+	})
+	if got != "(hello)" || point != 4 {
+		t.Errorf("the line is %q at %d, want %q at 4", got, point, "(hello)")
+	}
+	ev, _ := feedEnv(t, "", feedOpts{})
+	s := &Session{env: ev}
+	if err := s.AddCommand("beginning-of-line", CommandFunc(func(*Line) {})); !errors.Is(err, ErrCommandExists) {
+		t.Errorf("AddCommand took readline's name, with %v", err)
+	}
+	for range 2 {
+		if err := s.AddCommand("test-again", CommandFunc(func(*Line) {})); err != nil {
+			t.Errorf("AddCommand did not replace a command of the program's: %v", err)
+		}
+	}
+}
+
+// TestBindingsListsTheKeymap checks what Bindings gives: each sequence as
+// readline prints it, with the command or the macro text, sorted by its
+// bytes, and under emacs-ctlx only the keys after Ctrl-X (D76).
+func TestBindingsListsTheKeymap(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "", feedOpts{})
+	s := &Session{env: ev}
+	for _, b := range [][3]string{
+		{"emacs", `\C-xm`, `"hi\t"`},
+		{"emacs", `\C-xa`, "end-of-line"},
+		{"emacs", `\C-a`, "end-of-line"},
+	} {
+		if err := s.Bind(b[0], b[1], b[2]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	all, err := s.Bindings("emacs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []Binding{
+		{Keys: `\C-a`, Command: "end-of-line"},
+		{Keys: `\C-xa`, Command: "end-of-line"},
+		{Keys: `\C-xm`, Macro: `hi\C-i`},
+		{Keys: `\e[A`, Command: "previous-history"},
+	} {
+		if !slices.Contains(all, want) {
+			t.Errorf("Bindings(emacs) lacks %+v", want)
+		}
+	}
+	if !slices.IsSortedFunc(all, func(a, b Binding) int {
+		return strings.Compare(inputrc.Unescape(a.Keys), inputrc.Unescape(b.Keys))
+	}) {
+		t.Error("Bindings(emacs) is not sorted by the bytes of each sequence")
+	}
+	if slices.Contains(all, Binding{Keys: `\C-a`, Command: "beginning-of-line"}) {
+		t.Error("Bindings(emacs) still lists the binding that Bind replaced")
+	}
+	ctlx, err := s.Bindings("emacs-ctlx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(ctlx, Binding{Keys: "a", Command: "end-of-line"}) || slices.ContainsFunc(ctlx, func(b Binding) bool {
+		return b.Keys == `\C-a`
+	}) {
+		t.Errorf("Bindings(emacs-ctlx) is %+v, want only the keys after Ctrl-X", ctlx)
+	}
+	if _, err := s.Bindings("emacs-fancy"); !errors.Is(err, ErrUnknownKeymap) {
+		t.Errorf("Bindings(emacs-fancy) gave %v, want ErrUnknownKeymap", err)
+	}
+}
+
+// TestSetVariableReadsAsReadlineDoes checks that SetVariable reads a value as
+// a line of an inputrc file is read, that Variables gives it back as bash's
+// bind -v prints it, and that editing-mode and bell-style take effect (D76).
+func TestSetVariableReadsAsReadlineDoes(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "", feedOpts{})
+	ev.beep, ev.term.beep = true, true
+	s := &Session{env: ev}
+	for _, v := range [][3]string{
+		{"completion-query-items", "5", "5"},
+		{"show-all-if-ambiguous", "on", "on"},
+		{"mark-directories", "Off", "off"},
+		{"comment-begin", "--", "--"},
+		{"editing-mode", "vi", "vi"},
+		{"bell-style", "none", "none"},
+	} {
+		if err := s.SetVariable(v[0], v[1]); err != nil {
+			t.Fatalf("SetVariable(%q, %q): %v", v[0], v[1], err)
+		}
+		if got := s.Variables()[v[0]]; got != v[2] {
+			t.Errorf("after SetVariable(%q, %q), Variables gives %q, want %q", v[0], v[1], got, v[2])
+		}
+	}
+	// Each value is still there after the ones set after it.
+	for name, want := range map[string]string{"completion-query-items": "5", "comment-begin": "--"} {
+		if got := s.Variables()[name]; got != want {
+			t.Errorf("%s reads %q after later variables were set, want %q", name, got, want)
+		}
+	}
+	if !ev.viMode {
+		t.Error("editing-mode vi did not switch to vi")
+	}
+	if ev.term.beep {
+		t.Error("bell-style none did not turn the bell off")
+	}
+	if got := s.Variables()["blink-matching-paren"]; got != "off" {
+		t.Errorf("a variable that was never set reads %q, want readline's default off", got)
+	}
+	if err := s.SetVariable("no-such-variable", "on"); !errors.Is(err, ErrUnknownVariable) {
+		t.Errorf("an unknown variable gave %v, want ErrUnknownVariable", err)
+	}
+	if err := s.SetVariable("comment-begin", "a\n\"\\C-a\": end-of-line"); !errors.Is(err, ErrInvalidValue) {
+		t.Errorf("a value with a line break gave %v, want ErrInvalidValue", err)
+	}
+	if err := s.SetVariable("editing-mode", "ed"); err == nil {
+		t.Error("editing-mode took a mode that readline does not have")
+	}
+}
+
+// TestSetVariableTakesEffectAtTheNextLine checks that a variable set between
+// two lines reaches the editor, as comment-begin does for insert-comment, and
+// that a value is read as the type of its variable, so that the text "1" is
+// text (D76).
+func TestSetVariableTakesEffectAtTheNextLine(t *testing.T) {
+	t.Parallel()
+	for _, begin := range []string{"--", "1"} {
+		got, _ := runWith(t, "ab\x1b#", func(s *Session) error {
+			return s.SetVariable("comment-begin", begin)
+		})
+		if want := begin + "ab"; got != want {
+			t.Errorf("insert-comment after comment-begin %q gave %q, want %q", begin, got, want)
+		}
+	}
+}
+
+// TestReadInputrcGoesOverWhatIsThere checks that ReadInputrc reads a file
+// over the bindings and variables in place, as bash's bind -f does, and
+// that a missing file is an error (D76).
+func TestReadInputrcGoesOverWhatIsThere(t *testing.T) {
+	t.Parallel()
+	rc := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(rc, []byte("set comment-begin --\n\"\\C-xb\": beginning-of-line\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := runWith(t, "ab\x18b\x18aX"+kEnter, func(s *Session) error {
+		if err := s.Bind("emacs", `\C-xa`, "end-of-line"); err != nil {
+			return err
+		}
+		if err := s.ReadInputrc(rc); err != nil {
+			return err
+		}
+		if v := s.Variables()["comment-begin"]; v != "--" {
+			t.Errorf("comment-begin is %q after the file, want --", v)
+		}
+		return nil
+	})
+	// \C-xb from the file goes to the start, and \C-xa, bound before the
+	// file, still goes to the end.
+	if got != "abX" {
+		t.Errorf("the line is %q, want %q", got, "abX")
+	}
+	ev, _ := feedEnv(t, "", feedOpts{})
+	s := &Session{env: ev}
+	if err := s.ReadInputrc(filepath.Join(t.TempDir(), "missing")); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("a missing file gave %v, want fs.ErrNotExist", err)
+	}
+	// A line that cannot be parsed is in the error, and the line after it
+	// still counts.
+	bad := filepath.Join(t.TempDir(), "inputrc")
+	if err := os.WriteFile(bad, []byte("set editing-mode ed\nset comment-begin --\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ReadInputrc(bad); err == nil {
+		t.Error("a line that cannot be parsed gave no error")
+	}
+	if v := s.Variables()["comment-begin"]; v != "--" {
+		t.Errorf("the line after the fault set comment-begin to %q, want --", v)
+	}
+}
+
+// TestCommandsListsEveryCommand checks that Commands names readline's
+// commands and rline's own, once each and sorted, as bash's bind -l lists
+// them (D76).
+func TestCommandsListsEveryCommand(t *testing.T) {
+	t.Parallel()
+	names := Commands()
+	for _, want := range []string{"beginning-of-line", "yank-last-arg", "rline-menu-complete", "accept-line"} {
+		if !slices.Contains(names, want) {
+			t.Errorf("Commands lacks %s", want)
+		}
+	}
+	if !slices.IsSorted(names) || len(slices.Compact(slices.Clone(names))) != len(names) {
+		t.Error("Commands is not sorted, or names one twice")
+	}
+}
+
+// TestParseAndBindReadsALineOfInputrc checks that ParseAndBind applies one
+// line of an inputrc file, as readline's rl_parse_and_bind does for bash's
+// bind (D77).
+func TestParseAndBindReadsALineOfInputrc(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, keys string
+		lines      []string
+		want       string
+	}{
+		{"a command", "ab\x18aX" + kEnter, []string{`"\C-xa": beginning-of-line`}, "Xab"},
+		{"a macro", "ab\x18m" + kEnter, []string{`"\C-xm": "\C-ahi "`}, "hi ab"},
+		{"a key by its name", "ab\x01X" + kEnter, []string{`Control-a: end-of-line`}, "abX"},
+		{"a variable", "ab\x1b#", []string{"set comment-begin --"}, "--ab"},
+		{"the keymap of vi's insert mode", "ab\x18aX" + kEnter,
+			[]string{"set editing-mode vi", `"\C-xa": beginning-of-line`}, "Xab"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, _ := runWith(t, tc.keys, func(s *Session) error {
+				for _, line := range tc.lines {
+					if err := s.ParseAndBind(line); err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+			if got != tc.want {
+				t.Errorf("the line is %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestParseAndBindRefusesALineAtFault checks the errors of ParseAndBind, and
+// that a line at fault changes nothing (D77).
+func TestParseAndBindRefusesALineAtFault(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "", feedOpts{})
+	s := &Session{env: ev}
+	for _, tc := range []struct {
+		line string
+		want error
+	}{
+		{`"\C-a": no-such-command`, ErrUnknownCommand},
+		{"set no-such-variable on", ErrUnknownVariable},
+		{`"\C-xm": ""`, ErrInvalidSequence},
+		{"set comment-begin a\nset bell-style none", ErrInvalidValue},
+	} {
+		if err := s.ParseAndBind(tc.line); !errors.Is(err, tc.want) {
+			t.Errorf("%q gave %v, want %v", tc.line, err, tc.want)
+		}
+	}
+	for _, line := range []string{"set keymap emacs-fancy", `"\C-a" end-of-line`, "set editing-mode ed"} {
+		if err := s.ParseAndBind(line); err == nil {
+			t.Errorf("%q gave no error", line)
+		}
+	}
+	if got := s.Variables()["comment-begin"]; got != "#" {
+		t.Errorf("a line at fault set comment-begin to %q", got)
+	}
+	all, err := s.Bindings("emacs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(all, Binding{Keys: `\C-a`, Command: "beginning-of-line"}) {
+		t.Error("a line at fault changed the binding of \\C-a")
+	}
+}
+
+// TestParseAndBindSetsOnlyTheLine checks that a line that sets one variable
+// sets only that one, so that the variables it did not name keep no value of
+// their own and raise no notice (D77).
+func TestParseAndBindSetsOnlyTheLine(t *testing.T) {
+	t.Parallel()
+	ev, _ := feedEnv(t, "", feedOpts{})
+	s := &Session{env: ev}
+	if err := s.ParseAndBind("set comment-begin --"); err != nil {
+		t.Fatal(err)
+	}
+	if n := s.Notices(); len(n) != 0 {
+		t.Errorf("the notices are %q, want none", n)
+	}
+	if want := map[string]any{"comment-begin": "--"}; !maps.Equal(ev.vars, want) {
+		t.Errorf("the variables set are %v, want %v", ev.vars, want)
 	}
 }

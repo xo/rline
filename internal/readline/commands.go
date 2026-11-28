@@ -2,6 +2,7 @@ package readline
 
 import (
 	"bytes"
+	"maps"
 	"slices"
 	"unicode"
 	"unicode/utf8"
@@ -12,6 +13,9 @@ import (
 
 // Has reports whether this package has the command called name.
 func Has(name string) bool { return commands[name] != nil }
+
+// Names returns the names of every command of this package, sorted.
+func Names() []string { return slices.Sorted(maps.Keys(commands)) }
 
 // command is one of readline's commands, by what it does to the line.
 type command func(l *Line, c call)

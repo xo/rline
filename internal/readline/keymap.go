@@ -1,6 +1,8 @@
 package readline
 
 import (
+	"slices"
+	"strings"
 	"unicode/utf8"
 
 	rtext "github.com/xo/rline/internal/text"
@@ -46,6 +48,61 @@ func (k *Keymap) keep(seq string, s source) {
 	}
 	s.keys = append([]key.Code(nil), s.keys...)
 	k.sources[seq] = s
+}
+
+// Unbind takes away what seq is bound to, so that the keys ring the bell as
+// any unbound key does, as bash's bind -r does. A sequence that starts a
+// longer one that is still bound stays the start of it.
+func (k *Keymap) Unbind(seq []key.Code) {
+	path := []*node{&k.root}
+	for _, c := range seq {
+		child, ok := path[len(path)-1].next[c]
+		if !ok {
+			return
+		}
+		path = append(path, child)
+	}
+	n := path[len(path)-1]
+	n.name, n.macro = "", nil
+	// A node that binds nothing and leads nowhere goes, so that the keys
+	// before it are no longer the start of a sequence.
+	for i := len(seq) - 1; i >= 0; i-- {
+		child := path[i+1]
+		if child.name != "" || child.macro != nil || len(child.next) > 0 {
+			break
+		}
+		delete(path[i].next, seq[i])
+	}
+}
+
+// Binding is a key sequence that a keymap binds, and what it runs.
+type Binding struct {
+	// Seq is the sequence as the bytes that an inputrc file gives.
+	Seq string
+
+	// Name is the command it runs, and is empty for a macro.
+	Name string
+
+	// Macro is the text of a macro, as the bytes that an inputrc file gives.
+	Macro string
+}
+
+// Bindings returns every sequence that is still bound, sorted by its bytes,
+// as readline sorts them. A sequence that a later binding of the same keys
+// replaced is left out.
+func (k *Keymap) Bindings() []Binding {
+	byName, macros := k.boundSeqs()
+	out := make([]Binding, 0, len(k.sources))
+	for name, seqs := range byName {
+		for _, seq := range seqs {
+			out = append(out, Binding{Seq: seq, Name: name})
+		}
+	}
+	for _, seq := range macros {
+		out = append(out, Binding{Seq: seq, Macro: k.sources[seq].macro})
+	}
+	slices.SortFunc(out, func(a, b Binding) int { return strings.Compare(a.Seq, b.Seq) })
+	return out
 }
 
 // node is one key of a sequence: the command or the macro bound to the keys

@@ -203,6 +203,21 @@ With that, `"\C-xu": upcase-line` in the inputrc file binds Ctrl-X u to it,
 and M-x runs it by name. `New` returns `ErrCommandExists` for a name that
 readline or rline already has.
 
+A program can also change the bindings and the variables while it runs, as
+bash's `bind` builtin does. `AddCommand` adds a command after `New`, `Bind`
+and `Unbind` change what a key runs, `SetVariable` sets a variable such as
+`editing-mode`, `ParseAndBind` applies one line of an inputrc file, and
+`ReadInputrc` reads another file. `Bindings`, `Variables` and `Commands` list
+what is there:
+
+```go
+_ = p.AddCommand("upcase-line", upcase)
+_ = p.Bind("emacs", `\C-xu`, "upcase-line")
+_ = p.Bind("emacs", `\C-xd`, `"\C-e;"`)
+_ = p.SetVariable("editing-mode", "vi")
+_ = p.ParseAndBind(`"\C-xe": end-of-line`)
+```
+
 Tab completes as readline does: the first Tab fills in what the completions
 share, and the second lists them below the line. Ctrl-R is readline's
 incremental search.

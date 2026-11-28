@@ -36,6 +36,10 @@ something from rline before usql can fix them.
     reverse-i-search is 22 columns before the search text, so a terminal 20
     columns wide shows it on every key. readline counts those rows. From:
     the tests of D71.
+85. A line of the inputrc file that `New` reads and that cannot be parsed
+    gives no notice. inputrc's parser reads on past it and keeps the fault,
+    and `ParseFile` returns nil, so `Notices` does not say why a binding
+    does nothing. `ReadInputrc` returns those faults. From: D76.
 
 ## New features
 
