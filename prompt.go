@@ -6,7 +6,9 @@
 package rline
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"slices"
 	"strings"
@@ -153,8 +155,10 @@ type env struct {
 	initial    string
 	hasInitial bool
 
-	// commands are the program's own commands, by name (D58).
+	// commands are the program's own commands, by name (D58), and pending
+	// the commands that one of them asked to run after it returns (D80).
 	commands map[string]Command
+	pending  []pendingRun
 
 	// completePreview shows in the line what picking the selected entry would
 	// do, and takes it straight back out again. It is on by default. The C
@@ -510,6 +514,74 @@ func (ev *env) clearScreen(e *editor.Editor) {
 	ev.refresh(e)
 }
 
+// release takes the line off the screen and gives the terminal to fn, out of
+// raw mode, and then draws the prompt and the line again below what fn
+// wrote, as bash does around a command of bind -x (D81). Only the last line
+// of a prompt of several lines is drawn again, as bash draws it.
+func (ev *env) release(e *editor.Editor, rl *readline.Line, fn func(io.ReadWriter) error) error {
+	showLine(e, rl)
+	ev.clear(e)
+	ev.term.up(e.CurRow)
+	ev.term.startOfLine()
+	ev.term.flush()
+	ev.outCol = 0
+	ev.term.endRaw(false)
+	ev.keys.endRaw()
+	err := fn(releasedTerminal{ev: ev})
+	ev.term.flush()
+	if rerr := ev.keys.startRaw(); rerr != nil {
+		return errors.Join(err, fmt.Errorf("switching the terminal to raw mode: %w", rerr))
+	}
+	ev.term.startRaw()
+	e.CurRows, e.CurRow = 1, 0
+	ev.startAfterOutput(e)
+	ev.refresh(e)
+	return err
+}
+
+// releasedTerminal is the terminal while a command has it: it reads what the
+// user types, through the decoder, which owns the input, and writes as the
+// Session writes.
+type releasedTerminal struct {
+	ev *env
+}
+
+// Read waits for what the user types, and returns io.EOF when the input
+// ends.
+func (r releasedTerminal) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+	keys := r.ev.keys
+	for {
+		b, ok := keys.readByte(-1)
+		if !ok {
+			if keys.ended() {
+				return 0, io.EOF
+			}
+			continue
+		}
+		p[0] = b
+		n := 1
+		for n < len(p) {
+			if b, ok = keys.readByte(0); !ok {
+				break
+			}
+			p[n] = b
+			n++
+		}
+		return n, nil
+	}
+}
+
+// Write writes p to the terminal, as Session.Write does.
+func (r releasedTerminal) Write(p []byte) (int, error) {
+	r.ev.noteOutput(p)
+	r.ev.term.writeOutput(p)
+	r.ev.term.flush()
+	return len(p), nil
+}
+
 // --------------------------------------------------------------------------
 // editlineloop.go
 
@@ -661,6 +733,10 @@ func (ev *env) readLine(promptText string) (string, bool, error) {
 	ev.term.startRaw()
 	line, ok, c := ev.editLine(promptText)
 	ev.term.endRaw(false)
+	// What the line wrote goes out before the terminal leaves raw mode, which
+	// turns bracketed paste off with a carriage return. Otherwise the "^C"
+	// after a line that Ctrl-C gave up lands at the start of the row (D78).
+	ev.term.flush()
 	ev.keys.endRaw()
 	// The finished line stays on screen and the cursor moves below it, and
 	// a line that Ctrl-C gave up counts as finished here. At the end of the
@@ -796,6 +872,7 @@ func (ev *env) runEditLoop(e *editor.Editor) key.Code {
 		default:
 			l.Key(c)
 		}
+		ev.runPending(l, c)
 		showLine(e, l)
 		changed := l.Text() != before || l.Point() != beforePoint
 		// A question, such as whether to list many completions, is shown

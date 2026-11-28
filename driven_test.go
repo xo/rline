@@ -1933,11 +1933,11 @@ func TestProgramCommandRingsTheBell(t *testing.T) {
 	t.Parallel()
 	ev, _ := feedEnv(t, "", feedOpts{})
 	rl := readline.New(nil, nil)
-	ev.runCommand(rl, CommandFunc(func(l *Line) { l.Bell() }), 'x')
+	ev.runCommand(nil, rl, CommandFunc(func(l *Line) { l.Bell() }), 'x')
 	if rl.Bells() != 1 {
 		t.Errorf("the bell rang %d times, want once", rl.Bells())
 	}
-	ev.runCommand(rl, CommandFunc(func(*Line) {}), 'x')
+	ev.runCommand(nil, rl, CommandFunc(func(*Line) {}), 'x')
 	if rl.Bells() != 1 {
 		t.Errorf("a command that changed nothing rang the bell")
 	}
@@ -3675,4 +3675,191 @@ func TestTheEndOfInputWithBracketedPaste(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestWhatTheLineWroteComesBeforePasteOff checks that what the line wrote
+// reaches the terminal before raw mode ends, which turns bracketed paste off
+// with a carriage return. Before, the "^C" after a line that Ctrl-C gave up
+// came after it and landed at the start of the row. hail found it on a
+// pseudo-terminal against bash 5.3, which writes "^C" and then the sequence
+// (D78).
+func TestWhatTheLineWroteComesBeforePasteOff(t *testing.T) {
+	t.Parallel()
+	ev, sink := feedEnv(t, "ab"+"\x03", feedOpts{})
+	ev.keys.ctrl = &pasteTerminal{feedKeys: ev.keys.src.(*feedKeys), out: sink}
+	ev.keepInterrupted = true
+	ev.promptMarker = "$ "
+	_, out := readLines(t, ev, sink, 1)
+	if i, j := strings.LastIndex(out, "^C"), strings.LastIndex(out, "\x1b[?2004l\r"); i < 0 || j < i {
+		t.Errorf("the output holds ^C at %d and the end of paste mode at %d, want ^C first:\n%q", i, j, out)
+	}
+	if screen := screenOf(out, 80); len(screen) == 0 || screen[0] != "$ ab^C" {
+		t.Errorf("the screen shows %q, want the first row to be %q", screen, "$ ab^C")
+	}
+}
+
+// runCommandKeys reads one line from keys with cmd bound to Ctrl-X x, and
+// returns the line and what the terminal got.
+func runCommandKeys(t *testing.T, keys string, cmd CommandFunc, opt feedOpts) (string, string) {
+	t.Helper()
+	ev, sink := feedEnv(t, keys, opt)
+	ev.promptMarker = "$ "
+	s := &Session{env: ev}
+	if err := s.AddCommand("test-command", cmd); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Bind("emacs", `\C-xx`, "test-command"); err != nil {
+		t.Fatal(err)
+	}
+	e := &editor.Editor{Opts: ev.opts, TermW: 80, CurRows: 1}
+	ev.runEditLoop(e)
+	ev.term.flush()
+	return e.Input.String(), sink.String()
+}
+
+// TestACommandRunsAnother checks Line.Run: the command runs after the
+// program's command returns, as a step of its own for undo (D80).
+func TestACommandRunsAnother(t *testing.T) {
+	t.Parallel()
+	cmd := CommandFunc(func(l *Line) {
+		l.Insert("!")
+		l.Run("unix-line-discard")
+	})
+	for _, tc := range []struct {
+		name, keys, want string
+	}{
+		{"it runs", "ab\x18x" + kEnter, ""},
+		{"undo takes it back alone", "ab\x18x" + kUndo + kEnter, "ab!"},
+		{"a second undo takes back the command", "ab\x18x" + kUndo + kUndo + kEnter, "ab"},
+	} {
+		if got, _ := runCommandKeys(t, tc.keys, cmd, feedOpts{}); got != tc.want {
+			t.Errorf("%s: the line is %q, want %q", tc.name, got, tc.want)
+		}
+	}
+	unknown := CommandFunc(func(l *Line) { l.Run("no-such-command") })
+	if got, _ := runCommandKeys(t, "ab\x18x"+kEnter, unknown, feedOpts{}); got != "ab" {
+		t.Errorf("a command that does not exist changed the line to %q", got)
+	}
+}
+
+// TestACommandCompletesWithItsOwnCompleter checks Line.Complete: it
+// completes with the completer it is given, as bash's complete-filename
+// does, and the Session's completer is back afterwards (D80).
+func TestACommandCompletesWithItsOwnCompleter(t *testing.T) {
+	t.Parallel()
+	cmd := CommandFunc(func(l *Line) {
+		l.Complete("complete", wordsCompleter([]string{"zebra"}))
+	})
+	opt := feedOpts{Completer: wordsCompleter([]string{"select"})}
+	if got, _ := runCommandKeys(t, "z\x18xs"+kTab+kEnter, cmd, opt); got != "zebra select " {
+		t.Errorf("the line is %q, want %q", got, "zebra select ")
+	}
+	list := CommandFunc(func(l *Line) {
+		l.Complete("possible-completions", wordsCompleter([]string{"zebra", "zulu"}))
+	})
+	_, out := runCommandKeys(t, "z\x18x"+kEnter, list, opt)
+	if screen := strings.Join(screenOf(out, 80), "\n"); !strings.Contains(screen, "zebra") || !strings.Contains(screen, "zulu") {
+		t.Errorf("possible-completions did not list the command's completions:\n%s", screen)
+	}
+}
+
+// TestACommandSeesTheMarkAndTheCount checks Line.Mark, Line.SetMark and
+// Line.CountGiven, which bash gives bind -x as READLINE_MARK and
+// READLINE_ARGUMENT (D82).
+func TestACommandSeesTheMarkAndTheCount(t *testing.T) {
+	t.Parallel()
+	type seen struct {
+		mark, count int
+		given       bool
+	}
+	var got []seen
+	record := CommandFunc(func(l *Line) {
+		got = append(got, seen{l.Mark(), l.Count(), l.CountGiven()})
+	})
+	// M-space sets the mark where the cursor is.
+	runCommandKeys(t, "ab\x1b cd\x18x\x1b3\x18x"+kEnter, record, feedOpts{})
+	if want := []seen{{2, 1, false}, {2, 3, true}}; !slices.Equal(got, want) {
+		t.Errorf("the command saw %+v, want %+v", got, want)
+	}
+	set := CommandFunc(func(l *Line) { l.SetMark(1) })
+	// Ctrl-X Ctrl-X goes to the mark that the command set.
+	if line, _ := runCommandKeys(t, "abc\x18x\x18\x18X"+kEnter, set, feedOpts{}); line != "aXbc" {
+		t.Errorf("the line is %q, want %q", line, "aXbc")
+	}
+}
+
+// TestACommandKills checks Line.Kill: what it takes out goes on the kill
+// ring, a kill right after another joins it, and yank brings it back
+// (D83).
+func TestACommandKills(t *testing.T) {
+	t.Parallel()
+	// The command kills the word before the cursor, as bash's
+	// shell-backward-kill-word does.
+	killWord := CommandFunc(func(l *Line) {
+		text, cur := l.Text(), l.Cursor()
+		start := strings.LastIndex(strings.TrimRight(text[:cur], " "), " ") + 1
+		l.Kill(cur, start)
+	})
+	for _, tc := range []struct {
+		name, keys, want string
+	}{
+		{"it takes the word out", "one two\x18x" + kEnter, "one "},
+		{"yank brings it back", "one two\x18x" + kCtrlA + "\x19" + kEnter, "twoone "},
+		{"two kills join", "one two three\x18x\x18x\x19" + kEnter, "one two three"},
+		{"undo takes it back", "one two\x18x" + kUndo + kEnter, "one two"},
+	} {
+		if got, _ := runCommandKeys(t, tc.keys, killWord, feedOpts{}); got != tc.want {
+			t.Errorf("%s: the line is %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
+
+// TestACommandHasTheTerminal checks Line.Release: the line goes off the
+// screen, the command writes and reads the terminal, and the prompt and the
+// line are drawn again below what it wrote, as bash does for bind -x (D81).
+func TestACommandHasTheTerminal(t *testing.T) {
+	t.Parallel()
+	var read string
+	cmd := CommandFunc(func(l *Line) {
+		err := l.Release(func(rw io.ReadWriter) error {
+			if _, err := io.WriteString(rw, "out\n"); err != nil {
+				return fmt.Errorf("writing to the terminal: %w", err)
+			}
+			b := make([]byte, 3)
+			if _, err := io.ReadFull(rw, b); err != nil {
+				return fmt.Errorf("reading the terminal: %w", err)
+			}
+			read = string(b)
+			return nil
+		})
+		if err != nil {
+			t.Error(err)
+		}
+	})
+	// The keys come all at once, so that one read takes all three bytes, and
+	// the key after them goes to the line. A line with keys waiting is not
+	// drawn, so the screen is checked below, with no keys after the command.
+	line, _ := runCommandKeys(t, "ab\x18xyz\rc"+kEnter, cmd, feedOpts{Typeahead: true})
+	if read != "yz\r" || line != "abc" {
+		t.Errorf("the command read %q and the line is %q, want %q and %q", read, line, "yz\r", "abc")
+	}
+	// With no key after the command, the prompt and the line are drawn
+	// again all the same.
+	write := CommandFunc(func(l *Line) {
+		_ = l.Release(func(rw io.ReadWriter) error {
+			if _, err := io.WriteString(rw, "out\n"); err != nil {
+				return fmt.Errorf("writing to the terminal: %w", err)
+			}
+			return nil
+		})
+	})
+	if _, out := runCommandKeys(t, "ab\x18x", write, feedOpts{}); !slices.Equal(screenOf(out, 80), []string{"out", "$ ab"}) {
+		t.Errorf("with no key after the command, the screen shows %q, want %q", screenOf(out, 80), []string{"out", "$ ab"})
+	}
+	failing := CommandFunc(func(l *Line) {
+		if err := l.Release(func(io.ReadWriter) error { return io.ErrUnexpectedEOF }); !errors.Is(err, io.ErrUnexpectedEOF) {
+			t.Errorf("Release gave %v, want the error of the function", err)
+		}
+	})
+	runCommandKeys(t, "\x18x"+kEnter, failing, feedOpts{})
 }

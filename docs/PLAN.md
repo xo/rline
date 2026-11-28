@@ -113,6 +113,10 @@ that holds it.
 | [D77](#d77-parseandbind-applies-one-line-of-an-inputrc-file-decided) | ParseAndBind applies one line of an inputrc file | Decided |
 | [D78](#d78-with-bracketed-paste-on-the-end-of-the-input-moves-below-the-line-decided-amends-d74) | With bracketed paste on, the end of the input moves below the line | Decided. Amends D74 |
 | [D79](#d79-withterminal-takes-the-terminal-from-the-program-decided) | WithTerminal takes the terminal from the program | Decided |
+| [D80](#d80-a-program-command-can-run-another-command-and-complete-with-a-completer-of-its-own-decided) | A program command can run another command, and complete with a completer of its own | Decided |
+| [D81](#d81-a-program-command-can-have-the-terminal-while-it-runs-decided) | A program command can have the terminal while it runs | Decided |
+| [D82](#d82-a-program-command-sees-the-mark-and-whether-a-count-was-typed-decided) | A program command sees the mark and whether a count was typed | Decided |
+| [D83](#d83-a-program-command-can-kill-text-onto-the-kill-ring-decided) | A program command can kill text onto the kill ring | Decided |
 
 ## Purpose
 
@@ -1671,6 +1675,58 @@ lines there. Ken accepted this shape on 2026-11-28.
    backlog 86 holds that check.
 
 The same option lets a test drive a whole Session without a pseudo-terminal.
+
+### D80. A program command can run another command, and complete with a completer of its own. Decided.
+
+hail asked on 2026-11-28 for bash's own keys that complete, such as
+`\e/` (complete-filename), and for its possible-*-completions keys. Ken
+accepted the shape on 2026-11-28.
+
+1. `Line.Run(name string)` runs a readline or rline command after the
+   program's command returns, as though its key were pressed then, with no
+   numeric argument. Undo takes it back as a step of its own.
+2. `Line.Complete(name string, completer Completer)` runs a command that
+   completes, such as `complete` or `possible-completions`, with that
+   completer in place of the Session's, which is back in place afterwards.
+3. Both wait until the command returns, because readline opens an undo
+   group for each command it runs, and one inside the program's command
+   would close the program's group early.
+
+### D81. A program command can have the terminal while it runs. Decided.
+
+bash runs a command of `bind -x` with the line taken off the screen, and
+draws the prompt and the line again below what the command wrote. hail
+found that the output of such a command landed in the middle of the line.
+Ken accepted the shape on 2026-11-28.
+
+`Line.Release(fn func(rw io.ReadWriter) error) error` takes the line off the
+screen and leaves raw mode. It then calls fn, enters raw mode again, and
+draws the prompt and the line below what fn wrote. fn reads what the user
+types through rw, from the decoder, which owns the input, and writes
+through rw as the Session writes. Only the last line of a prompt of several
+lines is drawn again, as bash draws it. Release returns the error of fn.
+
+### D82. A program command sees the mark and whether a count was typed. Decided.
+
+bash gives a command of `bind -x` READLINE_MARK and READLINE_ARGUMENT, and
+the command can move the mark. `Line.Count` returns only an int, and
+changing it would break the API, so these are new methods.
+`Line.CountGiven() bool` reports whether a numeric argument was typed,
+`Line.Mark() int` gives the mark, and `Line.SetMark(pos int)` moves it. Ken
+accepted the shape on 2026-11-28.
+
+### D83. A program command can kill text onto the kill ring. Decided.
+
+bash's shell-kill-word and its kin kill as readline's kill commands do.
+`Line.Kill(start, end int)` takes the text out of the line and puts it on
+the kill ring: a kill by the command that ran just before joins it, and
+yank brings it back. The cursor and the mark go to where the text was. Ken
+accepted this shape on 2026-11-28, and not a way to push any text, which
+would not join kills as readline does.
+
+The methods of `Line` that change the line, the mark or the kill ring now
+act at once, inside the undo step of the command. `Replace` used to wait
+until the command returned. Undo takes back the same changes as before.
 
 ## Open questions for Ken
 

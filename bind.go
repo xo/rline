@@ -10,6 +10,7 @@ package rline
 import (
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"os"
 	"os/user"
@@ -214,7 +215,7 @@ func (ev *env) command(e *editor.Editor, l *readline.Line, name string, c key.Co
 		return true
 	}
 	if cmd := ev.commands[name]; cmd != nil {
-		ev.runCommand(l, cmd, c)
+		ev.runCommand(e, l, cmd, c)
 		return true
 	}
 	return false
@@ -239,41 +240,72 @@ func (f CommandFunc) Run(l *Line) { f(l) }
 
 // Line is the line being edited, as a Command sees it and changes it. Every
 // position is a byte offset, as everywhere in this package.
+//
+// A change to the line, the mark or the kill ring happens at once, and undo
+// takes back everything that the command changed as one step. Run and
+// Complete wait until the command returns.
 type Line struct {
-	text   string
-	cursor int
-	count  int
-	key    key.Code
+	rl    *readline.Line
+	ev    *env
+	e     *editor.Editor
+	count int
+	given bool
+	key   key.Code
 
 	// What the command asked for, which runCommand does after it returns.
-	changed bool
-	bell    bool
-	accept  bool
+	bell   bool
+	accept bool
+}
+
+// pendingRun is a command that a Command asked to run after it returns, and
+// the completer to run it with, when it is a completion of its own.
+type pendingRun struct {
+	name      string
+	completer Completer
+	complete  bool
 }
 
 // Text returns the line.
-func (l *Line) Text() string { return l.text }
+func (l *Line) Text() string { return l.rl.Text() }
 
 // Cursor returns where the cursor is in Text.
-func (l *Line) Cursor() int { return l.cursor }
+func (l *Line) Cursor() int { return l.rl.Point() }
 
 // Count returns the numeric argument typed before the key, as readline
 // passes it to a command. It is 1 when none was typed, and can be negative.
 func (l *Line) Count() int { return l.count }
 
+// CountGiven reports whether a numeric argument was typed before the key, as
+// bash's READLINE_ARGUMENT is set only then (D82).
+func (l *Line) CountGiven() bool { return l.given }
+
 // Key returns the key that ran the command.
 func (l *Line) Key() key.Code { return l.key }
+
+// Mark returns the mark, as bash's READLINE_MARK gives it (D82).
+func (l *Line) Mark() int { return l.rl.Mark() }
+
+// SetMark puts the mark at pos, within the line (D82).
+func (l *Line) SetMark(pos int) { l.rl.SetMark(pos) }
 
 // Replace makes the line text, with the cursor at cursor. Undo takes the
 // change back as one step, with the rest of the command.
 func (l *Line) Replace(text string, cursor int) {
-	l.text, l.cursor, l.changed = text, min(max(cursor, 0), len(text)), true
+	l.rl.Edit(text, min(max(cursor, 0), len(text)))
 }
 
 // Insert puts s in at the cursor and leaves the cursor after it.
 func (l *Line) Insert(s string) {
-	l.Replace(l.text[:l.cursor]+s+l.text[l.cursor:], l.cursor+len(s))
+	text, cursor := l.Text(), l.Cursor()
+	l.Replace(text[:cursor]+s+text[cursor:], cursor+len(s))
 }
+
+// Kill takes the text from start to end out of the line and puts it on the
+// kill ring, as readline's kill commands do, so that yank brings it back. A
+// kill by the command that ran just before joins it, as a second kill-word
+// does. The cursor and the mark go to where the text was, and the two ends
+// can come in either order (D83).
+func (l *Line) Kill(start, end int) { l.rl.Kill(start, end) }
 
 // Bell rings the bell, as a readline command does when it can do nothing.
 func (l *Line) Bell() { l.bell = true }
@@ -282,20 +314,61 @@ func (l *Line) Bell() { l.bell = true }
 // does, so that ReadLine hands it back.
 func (l *Line) AcceptLine() { l.accept = true }
 
-// runCommand runs a command of the program's own, and makes the changes that
-// it asked for in the line.
-func (ev *env) runCommand(rl *readline.Line, cmd Command, c key.Code) {
-	n, _ := rl.Count()
-	l := &Line{text: rl.Text(), cursor: rl.Point(), count: n, key: c}
+// Run runs the readline or rline command called name after this command
+// returns, as though its key were pressed then, with no numeric argument.
+// Undo takes it back as a step of its own. A name that no command has rings
+// the bell (D80).
+func (l *Line) Run(name string) {
+	l.ev.pending = append(l.ev.pending, pendingRun{name: name})
+}
+
+// Complete runs a command that completes, such as complete,
+// possible-completions or insert-completions, after this command returns,
+// with completer in place of the Session's, as bash's complete-filename
+// completes file names whatever the program's completer offers. The
+// Session's completer is back in place afterwards (D80).
+func (l *Line) Complete(name string, completer Completer) {
+	l.ev.pending = append(l.ev.pending, pendingRun{name: name, completer: completer, complete: true})
+}
+
+// Release gives the terminal to fn while the command runs, as bash does for
+// bind -x: the line is taken off the screen, the terminal leaves raw mode,
+// fn reads and writes the terminal through rw, and then the prompt and the
+// line are drawn again below what fn wrote. It returns the error of fn, or
+// the error of putting the terminal back into raw mode (D81).
+func (l *Line) Release(fn func(rw io.ReadWriter) error) error {
+	return l.ev.release(l.e, l.rl, fn)
+}
+
+// runCommand runs a command of the program's own, and does what it asked for
+// once it returns.
+func (ev *env) runCommand(e *editor.Editor, rl *readline.Line, cmd Command, c key.Code) {
+	n, given := rl.Count()
+	l := &Line{rl: rl, ev: ev, e: e, count: n, given: given, key: c}
 	cmd.Run(l)
-	if l.changed {
-		rl.Edit(l.text, l.cursor)
-	}
 	if l.bell {
 		rl.Ding()
 	}
 	if l.accept {
 		rl.Run("accept-line", c)
+	}
+}
+
+// runPending runs the commands that a Command asked for with Run and
+// Complete, each as though its key were pressed after the key that ran the
+// Command (D80).
+func (ev *env) runPending(l *readline.Line, c key.Code) {
+	for len(ev.pending) > 0 {
+		p := ev.pending[0]
+		ev.pending = ev.pending[1:]
+		if !p.complete {
+			l.Run(p.name, c)
+			continue
+		}
+		prev, arg := ev.completions.completer, ev.completions.completerArg
+		ev.completions.setCompleter(p.completer, nil)
+		l.Run(p.name, c)
+		ev.completions.setCompleter(prev, arg)
 	}
 }
 

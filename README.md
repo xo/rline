@@ -203,6 +203,11 @@ With that, `"\C-xu": upcase-line` in the inputrc file binds Ctrl-X u to it,
 and M-x runs it by name. `New` returns `ErrCommandExists` for a name that
 readline or rline already has.
 
+A command can do more through its `Line`. `Kill` puts text on the kill ring,
+`Mark`, `SetMark` and `CountGiven` give what bash gives `bind -x`, `Run` and
+`Complete` run another command after it, and `Release` gives it the terminal
+while the line is off the screen.
+
 A program can also change the bindings and the variables while it runs, as
 bash's `bind` builtin does. `AddCommand` adds a command after `New`, `Bind`
 and `Unbind` change what a key runs, `SetVariable` sets a variable such as

@@ -219,6 +219,26 @@ func (l *Line) Point() int { return l.point }
 // Mark returns the mark, in bytes.
 func (l *Line) Mark() int { return l.mark }
 
+// SetMark puts the mark at pos, in bytes, within the line.
+func (l *Line) SetMark(pos int) { l.mark = min(max(pos, 0), len(l.buf)) }
+
+// Kill takes the bytes from start to end out of the line and puts them on the
+// kill ring, as readline's kill commands do: a kill right after another kill
+// joins it, and the cursor and the mark go to where the text was. The two
+// ends can come in either order. It is part of the command that is running
+// for undo, or a change of its own outside a command.
+func (l *Line) Kill(start, end int) {
+	start, end = min(max(start, 0), len(l.buf)), min(max(end, 0), len(l.buf))
+	if start > end {
+		start, end = end, start
+	}
+	if l.undo.open == nil {
+		l.undo.begin()
+		defer l.undo.end()
+	}
+	l.kill(start, end)
+}
+
 // Done reports whether the line was handed back, by accept-line or by the
 // end of the input.
 func (l *Line) Done() bool { return l.done }

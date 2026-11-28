@@ -1686,6 +1686,9 @@ func (s *Session) password(prompt string) (string, error) {
 	s.logger.hide(true)
 	line, err := s.readHidden()
 	s.logger.hide(false)
+	// What was written goes out before the terminal leaves raw mode, as in
+	// readLine.
+	s.env.term.flush()
 	s.env.keys.endRaw()
 	// The line the user typed is invisible, so the cursor has to be moved on
 	// by hand or the next thing written lands beside the prompt.
